@@ -911,11 +911,7 @@ input, textarea, [contenteditable] {
     }
 
     @media(hover: hover) {
-        // Highlight on hover.  If .parent-highlight is set, also highlight if the parent
-        // is hovered.
-        
-        &:hover,
-        :hover > &.parent-highlight
+        &:hover
         {
             color: var(--button-highlight-color);
         }
@@ -973,8 +969,8 @@ input, textarea, [contenteditable] {
         border-radius: 5px;
         object-fit: cover;
         aspect-ratio: 1;
-        width: auto;
-        height: var(--avatar-height);
+        width: var(--avatar-width);
+        height: auto;
 
         &.loaded {
             box-shadow: 0 0 10px 4px #000;
@@ -2028,6 +2024,10 @@ a.box-link, span.box-link
 
         // Remove the default min-width.
         min-width: 0;
+
+        // For some reason we have to set a small width to allow this input to flex, otherwise
+        // it still gets a minimum width which is much too wide for mobile.
+        width: 1px;
     }
 
     // Buttons to the right of the input box:
@@ -2101,10 +2101,9 @@ a.box-link, span.box-link
 }
 
 /* Tag lists are usually inline.  Make the tag filter a vertical list. */
-.member-tags-box .post-tag-list,
 .search-tags-box .related-tag-list,
-.bookmark-tags-box .bookmark-tag-list,
-.local-bookmark-tags-box .local-bookmark-tag-list {
+.data-source-tag-list
+{
     max-height: 50vh;
     min-width: 20em;
     overflow-x: hidden;
@@ -4164,5 +4163,17 @@ svg.heart-image .delete {
             margin: 0 0.25em;
             min-width: 5em;
         }
+    }
+}
+
+.tag-search-with-related-tags
+{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    .search-box
+    {
+        flex: 1;
     }
 }

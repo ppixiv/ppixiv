@@ -13,7 +13,10 @@ function _get_main_search_menu_options()
         // only made visible when an artist is being viewed already.
         { label: "Artist",                 icon: "face",           url: "/users/1#ppixiv", visible: false, classes: ["artist-row", "disable-clicks"] },
 
-        { label: "Search works",           icon: "search",          url: `/tags#ppixiv` },
+        // This weird URL is to work around Pixiv encoding their URLs in a silly way: we have
+        // to do this to set "artworks" without setting a tag.  The content type should be a
+        // query parameter, putting it in the path doesn't make any sense.
+        { label: "Search works",           icon: "search",          url: `/tags//artworks#ppixiv` },
         { label: "New works by following", icon: "photo_library",   url: "/bookmark_new_illust.php#ppixiv" },
         { label: "New works by everyone",  icon: "groups",          url: "/new_illust.php#ppixiv" },
     ];
@@ -146,13 +149,8 @@ class thumbnail_ui_desktop extends ppixiv.widget
                         ${ helpers.create_icon("logout") }
                     </div>
 
-                    <!-- Containing block for :hover highlights on the button: -->
-                    <div class=pixiv-only>
-                        <div class="icon-button popup-menu-box-button popup parent-highlight" data-popup="Search">
-                            ${ helpers.create_icon("menu") }
-                        </div>
-
-                        <div hidden class="main-search-menu popup-menu-box vertical-list"></div>
+                    <div class="main-search-menu-button icon-button popup pixiv-only" data-popup="Search">
+                        ${ helpers.create_icon("menu") }
                     </div>
 
                     <div class="refresh-search-button icon-button popup" data-popup="Refresh">
@@ -172,10 +170,8 @@ class thumbnail_ui_desktop extends ppixiv.widget
                     </a>
 
                     <div class="settings-menu-box popup" data-popup="Preferences">
-                        <div class="parent-highlight icon-button preferences-button">
+                        <div class="icon-button preferences-button">
                             ${ helpers.create_icon("settings") }
-                        </div>
-                        <div hidden class="popup-menu-box vertical-list">
                         </div>
                     </div>
                 </div>
@@ -185,8 +181,19 @@ class thumbnail_ui_desktop extends ppixiv.widget
             `
         });
 
-        let option_box = this.container.querySelector(".main-search-menu");
-        _create_main_search_menu(option_box);
+        // Create the search menu dropdown.
+        new ppixiv.dropdown_menu_opener({
+            button: this.container.querySelector(".main-search-menu-button"),
+            create_box: ({...options}) => {
+                let dropdown = this.bookmark_tags_dropdown = new ppixiv.widget({
+                    ...options,
+                    template: `<div class="vertical-list"></div>`,
+                });
+                _create_main_search_menu(dropdown.container);
+
+                return dropdown;
+            },
+        });
 
         this.user_info_links = new user_info_links({
             container: this.querySelector(".user-links"),
@@ -236,9 +243,6 @@ class thumbnail_ui_desktop extends ppixiv.widget
                     local_api.logout();
             });
         }
-
-        // Set up hover popups.
-        dropdown_menu_opener.create_handlers(this.container);
     }
     
     set_data_source(data_source)

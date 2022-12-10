@@ -141,9 +141,6 @@ ppixiv.image_ui = class extends ppixiv.widget
             contents: this.container.querySelector(".tag-list"),
         });
 
-        // Set up hover popups.
-        dropdown_menu_opener.create_handlers(this.container);
-        
         media_cache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
         
         this.bookmark_tag_widget = new bookmark_tag_list_dropdown_widget({

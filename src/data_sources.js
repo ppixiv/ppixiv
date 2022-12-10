@@ -283,6 +283,27 @@ class illust_id_list
     }
 };
 
+// A helper widget for dropdown lists of tags.
+class tag_dropdown_widget extends ppixiv.widget
+{
+    constructor({data_source, ...options})
+    {
+        super({
+            ...options,
+            template: `<div class="data-source-tag-list vertical-list"></div>`,
+        });
+
+        this.data_source = data_source;
+
+        this.data_source.addEventListener("_refresh_ui", () => this.refresh_tags(), this._signal);
+        this.refresh_tags();
+    }
+
+    refresh_tags()
+    {
+    }
+}
+
 // A data source asynchronously loads illust_ids to show.  The callback will be called
 // with:
 // {
@@ -765,6 +786,37 @@ ppixiv.data_source = class extends EventTarget
     {
         return { };
     }
+    // it to parent (normally a widget returned by create_box).
+    create_and_set_button(parent, create_options, setup_options)
+    {
+        let button = helpers.create_box_link({
+            as_element: true,
+            ...create_options
+        });
+        parent.appendChild(button);
+        this.set_item(button, setup_options);
+        return button;
+    }
+
+    // Create a common search dropdown.  button is options to create_box_link, and items
+    // is options to set_item.
+    setup_dropdown(button, items)
+    {
+        return new ppixiv.dropdown_menu_opener({
+            button,
+            create_box: ({...options}) => {
+                let dropdown = new ppixiv.widget({
+                    ...options,
+                    template: `<div class=vertical-list></div>`,
+                });
+
+                for(let {create_options, setup_options} of items)
+                    this.create_and_set_button(dropdown.container, create_options, setup_options);
+
+                return dropdown;
+            },
+        });
+    }
 
     // A helper for setting up UI links.  Find the link with the given type,
     // set all {key: value} entries as query parameters, and remove any query parameters
@@ -943,66 +995,6 @@ ppixiv.data_source = class extends EventTarget
 
         link.href = url.toString();
     };
-    
-    // Set the active class on all top-level dropdowns which have something other than
-    // the default selected.
-    set_active_popup_highlight(container)
-    {
-        // popup-menu-box-button is buttons that have dropdowns.  Only affect .box-link,
-        // so we don't mess with icons that are also buttons for popups.
-        for(let button of container.querySelectorAll(".popup-menu-box-button.box-link"))
-        {
-            // See if this button has a dropdown menu.  This is set up by dropdown_menu_opener.
-            let box = button.dropdownMenuBox;
-            if(box == null)
-                continue;
-
-            // Find the selected item in the dropdown, if any.
-            let selected_item = box.querySelector(".selected");
-            let selected_default = selected_item == null || selected_item.dataset["default"];
-
-            // If an explicit default button exists, there's usually always something selected in the
-            // list: either a filter is selected or the default is.  If a list has a default button
-            // but nothing is selected at all, that means we're not on any of the available selections
-            // (we don't even match the default).  For example, this can happen if "This Week" is selected,
-            // but some time has passed, so the time range the "This Week" menu item points to doesn't match
-            // the search.  (That means we're viewing "some week in the past", but we don't have a menu item
-            // for it.)
-            //
-            // If this happens, show the dropdown as selected, even though none of its items are active, to
-            // indicate that a filter really is active and the user can reset it.
-            let item_has_default = box.querySelector("[data-default]") != null;
-            if(item_has_default && selected_item == null)
-                selected_default = false;
-
-            helpers.set_class(button, "selected", !selected_default);
-            helpers.set_class(box, "selected", !selected_default);
-
-            // Store the original text, so we can restore it when the default is selected.
-            if(button.dataset.originalText == null)
-            {
-                let button_label = button.querySelector(".label");
-                button.dataset.originalText = button_label.innerText;
-            }
-
-            let label = button.querySelector(".label");
-
-            // If an option is selected, replace the menu button text with the selection's label.
-            if(selected_default)
-                label.innerText = button.dataset.originalText;
-            else
-            {
-                // The short label is used to try to keep these labels from causing the menu buttons to
-                // overflow the container, and for labels like "2 years ago" where the menu text doesn't
-                // make sense.
-                //
-                // If we don't have a selected item, we're in the item_has_default case (see above).
-                let text = selected_item?.dataset?.shortLabel;
-                let selected_label = selected_item?.querySelector(".label")?.innerText;
-                label.innerText = text ?? selected_label ?? "Other";
-            }
-        }
-    }
 
     // Return true of the thumbnail view should show bookmark icons for this source.
     get show_bookmark_icons()
@@ -1589,18 +1581,11 @@ ppixiv.data_sources.rankings = class extends data_source
                         </div>
 
                         <div class=box-button-row>
-                            ${ helpers.create_box_link({label: "Contents",    popup: "Content type to display", classes: ["popup-menu-box-button"] }) }
-                            <div class="popup-menu-box content-list vertical-list">
-                                ${ helpers.create_box_link({label: "All",           popup: "Show all works",           data_type: "content-all" }) }
-                                ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations only",  data_type: "content-illust" }) }
-                                ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",     data_type: "content-ugoira" }) }
-                                ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",          data_type: "content-manga" }) }
-                            </div>
+                            ${ helpers.create_box_link({label: "Contents",    popup: "Content type to display", classes: ["content-type-button"] }) }
                         </div>
 
                         <div class=box-button-row>
-                            ${ helpers.create_box_link({label: "Ranking type",    popup: "Content type to display", classes: ["popup-menu-box-button"] }) }
-                            <div class="popup-menu-box mode-list vertical-list"></div>
+                            ${ helpers.create_box_link({label: "Ranking type",    popup: "Content type to display", classes: ["mode-button"] }) }
                         </div>
 
                         <div class="box-button-row modes"></div>
@@ -1701,29 +1686,6 @@ ppixiv.data_sources.rankings = class extends data_source
                 let content_key = content_key_for(current_content, current_ages);
                 console.log(`Rankings content mode: ${current_content}, ages: ${current_ages}, key: ${content_key}`);
 
-                // Set up the content links.
-                for(let content of ["all", "illust", "ugoira", "manga"])
-                {
-                    data_source.set_item(this.container, {
-                        type: "content-" + content, // content-all, content-illust, etc
-                        fields: {content},
-                        default_values: {content: "all"},
-                        adjust_url: (args) => {
-                            if(content == current_content)
-                                return;
-
-                            // If the current mode and ages combination doesn't exist in the content type
-                            // this link will switch to, also reset the mode to daily, since it exists for
-                            // all "all-ages" modes.
-                            let current_ranking_type = ranking_types[current_mode];
-                            console.assert(current_ranking_type, current_mode);
-                            let switching_to_content_key = content_key_for(content, current_ages);
-                            if(current_ranking_type.content.indexOf(switching_to_content_key) == -1)
-                                args.query.set("mode", "daily");
-                        },
-                    });
-                }
-
                 let mode_container = this.querySelector(".modes");
 
                 // Create the R18 and R18G buttons.  If we're on a selection where toggling this doesn't exist,
@@ -1768,34 +1730,90 @@ ppixiv.data_sources.rankings = class extends data_source
                     });
                 }
 
-                // Create mode links for rankings that exist in the current content and ages selection.
-                mode_container = this.querySelector(".mode-list");
-                for(let [mode, {content, label, popup}] of Object.entries(ranking_types))
-                {
-                    console.assert(content, mode);
+                // Create the content dropdown.
+                new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".content-type-button"),
+                    create_box: ({...options}) => {
+                        let dropdown = new ppixiv.widget({
+                            ...options,
+                            template: `
+                                <div class="vertical-list">
+                                    ${ helpers.create_box_link({label: "All",           popup: "Show all works",           data_type: "content-all" }) }
+                                    ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations only",  data_type: "content-illust" }) }
+                                    ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",     data_type: "content-ugoira" }) }
+                                    ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",          data_type: "content-manga" }) }
+                                </div>
+                            `,
+                        });
 
-                    mode = mode_with_ages(mode, current_ages);
+                        // Set up the content links.
+                        // grr: this doesn't work with the dropdown text
+                        for(let content of ["all", "illust", "ugoira", "manga"])
+                        {
+                            data_source.set_item(dropdown, {
+                                type: "content-" + content, // content-all, content-illust, etc
+                                fields: {content},
+                                default_values: {content: "all"},
+                                adjust_url: (args) => {
+                                    if(content == current_content)
+                                        return;
 
-                    // Skip this mode if it's not available in the selected content and ages combination.
-                    if(content.indexOf(content_key) == -1)
-                        continue;
+                                    // If the current mode and ages combination doesn't exist in the content type
+                                    // this link will switch to, also reset the mode to daily, since it exists for
+                                    // all "all-ages" modes.
+                                    let current_ranking_type = ranking_types[current_mode];
+                                    console.assert(current_ranking_type, current_mode);
+                                    let switching_to_content_key = content_key_for(content, current_ages);
+                                    if(current_ranking_type.content.indexOf(switching_to_content_key) == -1)
+                                        args.query.set("mode", "daily");
+                                },
+                            });
+                        }
 
-                    let button = helpers.create_box_link({
-                        label,
-                        popup,
-                        as_element: true,
-                    });
-                    mode_container.appendChild(button);
+                        return dropdown;
+                    },
+                });
 
-                    data_source.set_item(button, {
-                        fields: {mode},
-                        default_values: {mode: "daily"},
-                        current_url: current_args.url,
-                    });
-                }
+                // Create the mode dropdown.
+                new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".mode-button"),
+                    create_box: ({...options}) => {
+                        let dropdown = new ppixiv.widget({
+                            ...options,
+                            template: `
+                                <div class="vertical-list">
+                                </div>
+                            `
+                        });
 
-                dropdown_menu_opener.create_handlers(this.container);
-                data_source.set_active_popup_highlight(this.container);
+                        // Create mode links for rankings that exist in the current content and ages selection.
+                        for(let [mode, {content, label, popup}] of Object.entries(ranking_types))
+                        {
+                            console.assert(content, mode);
+
+                            mode = mode_with_ages(mode, current_ages);
+
+                            // Skip this mode if it's not available in the selected content and ages combination.
+                            if(content.indexOf(content_key) == -1)
+                                continue;
+
+                            let button = helpers.create_box_link({
+                                label,
+                                popup,
+                                as_element: true,
+                            });
+                            dropdown.container.appendChild(button);
+
+                            data_source.set_item(button, {
+                                fields: {mode},
+                                default_values: {mode: "daily"},
+                                current_url: current_args.url,
+                            });
+                        }
+
+                        return dropdown;
+                    }
+                });
             }
 
             refresh_dates = () =>
@@ -2124,11 +2142,7 @@ ppixiv.data_sources.artist = class extends data_source
                             ${ helpers.create_box_link({label: "Works",    popup: "Show all works",            data_type: "artist-works" }) }
                             ${ helpers.create_box_link({label: "Illusts",  popup: "Show illustrations only",   data_type: "artist-illust" }) }
                             ${ helpers.create_box_link({label: "Manga",    popup: "Show manga only",           data_type: "artist-manga" }) }
-
-                            <div class=member-tags-box>
-                                ${ helpers.create_box_link({label: "Tags",    popup: "Tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                                <div class="popup-menu-box post-tag-list vertical-list"></div>
-                            </div>
+                            ${ helpers.create_box_link({label: "Tags",     popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] }) }
                         </div>
 
                         <vv-container class=avatar-container></vv-container>
@@ -2137,8 +2151,10 @@ ppixiv.data_sources.artist = class extends data_source
 
                 this.data_source = data_source;
 
-                this.refresh_artist_tag_list();
-                data_source.addEventListener("_refresh_ui", () => this.refresh_artist_tag_list(), this._signal);
+                data_source.addEventListener("_refresh_ui", () => {
+                    // Refresh the displayed label in case we didn't have it when we created the widget.
+                    this.tag_dropdown.set_button_popup_highlight();
+                }, this._signal);
 
                 data_source.set_path_item(this.container, "artist-works", 2, "artworks");
                 data_source.set_path_item(this.container, "artist-illust", 2, "illustrations");
@@ -2156,88 +2172,85 @@ ppixiv.data_sources.artist = class extends data_source
                     this.avatar_widget.set_user_id(data_source.viewing_user_id);
                 }
 
-                this.container.querySelector(".member-tags-box .post-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
-
-                dropdown_menu_opener.create_handlers(this.container);
-
-                // While we're active, watch for the tags box to open.  We only populate the tags
-                // dropdown if it's opened, so we don't load user tags for every user page.
-                let popup = this.querySelector(".member-tags-box > .popup-menu-box");
-                this.src_observer = new MutationObserver((mutation_list) => {
-                    if(popup.classList.contains("popup-visible"))
-                        data_source.tag_list_opened();
-                });
-                this.src_observer.observe(popup, { attributes: true });
-            }
-
-            refresh_artist_tag_list()
-            {
-                let current_args = helpers.args.location;
-
-                // Refresh the post tag list.
-                let tag_list = this.querySelector(".post-tag-list");
-                helpers.remove_elements(tag_list);
-                
-                let add_tag_link = (tag_info) =>
+                class tag_dropdown extends tag_dropdown_widget
                 {
-                    // Skip tags with very few posts.  This list includes every tag the author
-                    // has ever used, and ends up being pages long with tons of tags that were
-                    // only used once.
-                    if(tag_info.tag != "All" && tag_info.cnt < 5)
-                        return;
+                    refresh_tags()
+                    {
+                        // Refresh the post tag list.
+                        helpers.remove_elements(this.container);
 
-                    let tag = tag_info.tag;
-                    let translated_tag = tag;
-                    if(this.data_source.translated_tags && this.data_source.translated_tags[tag])
-                        translated_tag = this.data_source.translated_tags[tag];
+                        if(data_source.post_tags != null)
+                        {
+                            this.add_tag_link({ tag: "All" });
+                            for(let tag_info of data_source.post_tags || [])
+                                this.add_tag_link(tag_info);
+                        }
+                        else
+                        {
+                            // Tags aren't loaded yet.  We'll be refreshed after tag_list_opened loads tags.
+                            // If a tag is selected, fill in just that tag so the button text works.
+                            var span = document.createElement("span");
+                            span.innerText = "Loading...";
+                            this.container.appendChild(span);
 
-                    let classes = ["tag-entry"];
+                            this.add_tag_link({ tag: "All" });
 
-                    // If the user has searched for this tag recently, add the recent tag.  This is added
-                    // in tag_list_opened.
-                    if(tag_info.recent)
-                        classes.push("recent");
+                            let current_tag = data_source.current_tag;
+                            if(current_tag != null)
+                                this.add_tag_link({ tag: current_tag });
+                        }
+                    }
 
-                    let a = helpers.create_box_link({
-                        label: translated_tag,
-                        classes,
-                        popup: tag_info?.cnt,
-                        link: "#",
-                        as_element: true,
-                        data_type: "artist-tag",
-                    });
+                    add_tag_link(tag_info)
+                    {
+                        let current_args = helpers.args.location;
 
-                    this.data_source.set_item(a, { fields: {"tag": tag != "All"? tag:null}, current_url: current_args.url });
+                        // Skip tags with very few posts.  This list includes every tag the author
+                        // has ever used, and ends up being pages long with tons of tags that were
+                        // only used once.
+                        if(tag_info.tag != "All" && tag_info.cnt < 5)
+                            return;
 
-                    if(tag == "All")
-                        a.dataset["default"] = 1;
+                        let tag = tag_info.tag;
+                        let translated_tag = tag;
+                        if(data_source.translated_tags && data_source.translated_tags[tag])
+                            translated_tag = data_source.translated_tags[tag];
 
-                    tag_list.appendChild(a);
+                        let classes = ["tag-entry"];
+
+                        // If the user has searched for this tag recently, add the recent tag.  This is added
+                        // in tag_list_opened.
+                        if(tag_info.recent)
+                            classes.push("recent");
+
+                        let a = helpers.create_box_link({
+                            label: translated_tag,
+                            classes,
+                            popup: tag_info?.cnt,
+                            link: "#",
+                            as_element: true,
+                            data_type: "artist-tag",
+                        });
+
+                        data_source.set_item(a, { fields: {"tag": tag != "All"? tag:null}, current_url: current_args.url });
+
+                        if(tag == "All")
+                            a.dataset["default"] = 1;
+
+                        this.container.appendChild(a);
+                    };
                 };
 
-                if(this.data_source.post_tags != null)
-                {
-                    add_tag_link({ tag: "All" });
-                    for(let tag_info of this.data_source.post_tags || [])
-                        add_tag_link(tag_info);
-                }
-                else
-                {
-                    // Tags aren't loaded yet.  We'll be refreshed after tag_list_opened loads tags.
-                    // If a tag is selected, fill in just that tag so the button text works.
-                    var span = document.createElement("span");
-                    span.innerText = "Loading...";
-                    tag_list.appendChild(span);
-
-                    add_tag_link({ tag: "All" });
-
-                    let current_tag = this.data_source.current_tag;
-                    if(current_tag != null)
-                        add_tag_link({ tag: current_tag });
-                }
-
-                this.data_source.set_active_popup_highlight(this.container);
-            }            
+                this.tag_dropdown = new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".member-tags-button"),
+                    create_box: ({...options}) => new tag_dropdown({data_source, ...options}),
+                    onvisibilitychanged: (opener) => {
+                        // Populate the tags dropdown if it's opened, so we don't load user tags for every user page.
+                        if(opener.visible);
+                            data_source.tag_list_opened();
+                    }
+                });
+            }
         }
     }
 
@@ -2786,22 +2799,14 @@ ppixiv.data_source_bookmarks_base = class extends data_source
                             ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "order-shuffle" }) }
                         </div>
 
-                        <div class=box-button-row>
-                            <div class=bookmark-tags-box>
-                                ${ helpers.create_box_link({label: "All bookmarks",    popup: "Bookmark tags",  icon: "ppixiv:tag", classes: ["popup-menu-box-button"] }) }
-                                <div class="popup-menu-box bookmark-tag-list vertical-list"></div>
-                            </div>
-                        </div>
+                        ${ helpers.create_box_link({label: "All bookmarks",    popup: "Bookmark tags",  icon: "ppixiv:tag", classes: ["bookmark-tag-button"] }) }
                     </div>
                 `});
 
                 this.data_source = data_source;
 
-                this.data_source.addEventListener("_refresh_ui", () => this._refresh_bookmark_tag_list(), this._signal);
-                this._refresh_bookmark_tag_list();
-
-                this.querySelector(".bookmark-tags-box .bookmark-tag-list").addEventListener("scroll", function(e) { e.stopPropagation(); }, true);
-                dropdown_menu_opener.create_handlers(this.container);
+                // Refresh the displayed label in case we didn't have it when we created the widget.
+                this.data_source.addEventListener("_refresh_ui", () => this.tag_dropdown.set_button_popup_highlight(), this._signal);
 
                 // The public/private button only makes sense when viewing your own bookmarks.
                 let public_private_button_container = this.querySelector(".bookmarks-public-private");
@@ -2821,72 +2826,77 @@ ppixiv.data_source_bookmarks_base = class extends data_source
                 let set_public = show_all? { rest: null, "#show-all": 0 }:{};
                 this.data_source.set_item(this.container, {type: "order-shuffle", fields: {"#shuffle": 1, ...set_public}, toggle: true, default_values: {"#shuffle": null, "#show-all": 1}});
 
-                this.data_source.set_active_popup_highlight(this.container);
-            }
-
-            _refresh_bookmark_tag_list()
-            {
-                let current_args = helpers.args.location;
-
-                // Refresh the bookmark tag list.  Remove the page number from these buttons.
-                let current_url = new URL(this.data_source.url);
-                current_url.searchParams.delete("p");
-
-                let tag_list = this.querySelector(".bookmark-tag-list");
-                
-                for(let tag of tag_list.querySelectorAll(".tag-entry"))
-                    tag.remove();
-
-                let add_tag_link = (tag) =>
+                class bookmark_tags_dropdown extends tag_dropdown_widget
                 {
-                    let label;
-                    if(tag == null)
-                        label = "All bookmarks";
-                    else if(tag == "")
-                        label = "Untagged";
-                    else
-                        label = tag;
+                    refresh_tags()
+                    {
+                        // Refresh the bookmark tag list.  Remove the page number from these buttons.
+                        let current_url = new URL(data_source.url);
+                        current_url.searchParams.delete("p");
 
-                    let a = helpers.create_box_link({
-                        label,
-                        classes: ["tag-entry"],
-                        popup: this.data_source.bookmark_tag_counts[tag],
-                        link: "#",
-                        as_element: true,
-                        data_type: "bookmark-tag",
-                    });
+                        for(let tag of this.container.querySelectorAll(".tag-entry"))
+                            tag.remove();
 
-                    if(label == "All bookmarks")
-                        a.dataset.default = 1;
+                        this.add_tag_link(null); // All
+                        this.add_tag_link(""); // Uncategorized
 
-                    if(tag == "")
-                        tag = "未分類"; // Uncategorized
+                        let all_tags = Object.keys(data_source.bookmark_tag_counts);
+                        all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+                        for(let tag of all_tags)
+                        {
+                            // Skip uncategorized, which is always placed at the beginning.
+                            if(tag == "")
+                                continue;
 
-                    this.data_source.set_item(a, {
-                        url_format: "users/id/bookmarks/type/tag",
-                        fields: {"/tag": tag},
-                        current_url: current_args.url
-                    });
+                            if(data_source.bookmark_tag_counts[tag] == 0)
+                                continue;
 
-                    tag_list.appendChild(a);
+                            this.add_tag_link(tag);
+                        }
+                    }                    
+
+                    add_tag_link(tag)
+                    {
+                        let current_args = helpers.args.location;
+
+                        let label;
+                        if(tag == null)
+                            label = "All bookmarks";
+                        else if(tag == "")
+                            label = "Untagged";
+                        else
+                            label = tag;
+
+                        let a = helpers.create_box_link({
+                            label,
+                            classes: ["tag-entry"],
+                            popup: data_source.bookmark_tag_counts[tag],
+                            link: "#",
+                            as_element: true,
+                            data_type: "bookmark-tag",
+                        });
+
+                        if(label == "All bookmarks")
+                            a.dataset.default = 1;
+
+                        if(tag == "")
+                            tag = "未分類"; // Uncategorized
+
+                            data_source.set_item(a, {
+                            url_format: "users/id/bookmarks/type/tag",
+                            fields: {"/tag": tag},
+                            current_url: current_args.url
+                        });
+
+                        this.container.appendChild(a);
+                    };
                 };
 
-                add_tag_link(null); // All
-                add_tag_link(""); // Uncategorized
-
-                let all_tags = Object.keys(this.data_source.bookmark_tag_counts);
-                all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
-                for(let tag of all_tags)
-                {
-                    // Skip uncategorized, which is always placed at the beginning.
-                    if(tag == "")
-                        continue;
-
-                    if(this.data_source.bookmark_tag_counts[tag] == 0)
-                        continue;
-
-                    add_tag_link(tag);
-                }
+                // Create the bookmark tag dropdown.
+                this.tag_dropdown = new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".bookmark-tag-button"),
+                    create_box: ({...options}) => new bookmark_tags_dropdown({data_source, ...options}),
+                });
             }
         };
     }
@@ -3261,70 +3271,70 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
                     <div>
                         <div class=box-button-row>
                             ${ helpers.create_box_link({label: "R18",    popup: "Show only R18 works",   data_type: "bookmarks-new-illust-ages-r18", classes: ["r18"] }) }
-
-                            <div class="new-post-follow-tags premium-only">
-                                ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                                <div class="popup-menu-box new-post-follow-tag-list vertical-list"></div>
-                            </div>
+                            ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["follow-tag-button", "premium-only"] }) }
                         </div>
                     </div>
                 `});
 
                 this.data_source = data_source;
 
-                this.data_source.addEventListener("_refresh_ui", () => this.refresh_following_tags(), this._signal);
-                this.refresh_following_tags();
-
-                dropdown_menu_opener.create_handlers(this.container);
-            }
-
-            refresh_following_tags()
-            {
-                let current_args = helpers.args.location;
-
-                // Refresh the bookmark tag list.
-                let current_tag = this.data_source.url.searchParams.get("tag") || "All tags";
-
-                let tag_list = this.querySelector(".new-post-follow-tags .vertical-list");
-                for(let tag of tag_list.querySelectorAll(".tag-entry"))
-                    tag.remove();
-
-                let add_tag_link = (tag) =>
+                class follow_tag_dropdown extends tag_dropdown_widget
                 {
-                    // Work around Pixiv always returning a follow tag named "null" for some users.
-                    if(tag == "null")
-                        return;
+                    refresh_tags()
+                    {
+                        // Refresh the bookmark tag list.
+                        let current_tag = data_source.url.searchParams.get("tag") || "All tags";
 
-                    let label = tag;
-                    if(tag == "All tags")
-                        tag = null;
+                        for(let tag of this.container.querySelectorAll(".tag-entry"))
+                            tag.remove();
 
-                    let a = helpers.create_box_link({
-                        label,
-                        classes: ["tag-entry"],
-                        link: "#",
-                        as_element: true,
-                        data_type: "following-tag",
-                    });
+                        this.add_tag_link("All tags");
+                        for(let tag of data_source.bookmark_tags)
+                            this.add_tag_link(tag);
 
-                    if(label == "All tags")
-                        a.dataset.default = 1;
+                        // If we don't have the tag list yet because we're still loading the page, fill in
+                        // the current tag, to reduce flicker as the page loads.
+                        if(data_source.bookmark_tags.length == 0 && current_tag != "All tags")
+                            this.add_tag_link(current_tag);
+                    }
 
-                    this.data_source.set_item(a, { fields: {"tag": tag}, current_url: current_args.url });
+                    add_tag_link(tag)
+                    {
+                        let current_args = helpers.args.location;
 
-                    tag_list.appendChild(a);
+                        // Work around Pixiv always returning a follow tag named "null" for some users.
+                        if(tag == "null")
+                            return;
+
+                        let label = tag;
+                        if(tag == "All tags")
+                            tag = null;
+
+                        let a = helpers.create_box_link({
+                            label,
+                            classes: ["tag-entry"],
+                            link: "#",
+                            as_element: true,
+                            data_type: "following-tag",
+                        });
+
+                        if(label == "All tags")
+                            a.dataset.default = 1;
+
+                            data_source.set_item(a, { fields: {"tag": tag}, current_url: current_args.url });
+
+                        this.container.appendChild(a);
+                    };
                 };
+                
+                // Create the follow tag dropdown.
+                new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".follow-tag-button"),
+                    create_box: ({...options}) => new follow_tag_dropdown({data_source, ...options}),
+                });
 
-                add_tag_link("All tags");
-                for(let tag of this.data_source.bookmark_tags)
-                    add_tag_link(tag);
-
-                // If we don't have the tag list yet because we're still loading the page, fill in
-                // the current tag, to reduce flicker as the page loads.
-                if(this.data_source.bookmark_tags.length == 0 && current_tag != "All tags")
-                    add_tag_link(current_tag);
-                    
-                    this.data_source.set_item(this.container, {
+                let current_args = helpers.args.location;
+                data_source.set_item(this.container, {
                     type: "bookmarks-new-illust-ages-r18",
                     toggle: true,
                     url_format: "path",
@@ -3332,9 +3342,6 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
                     default_values: {"/path": "bookmark_new_illust.php"},
                     current_url: current_args.url,
                 });
-
-                // Set the contents of the tag menu button.
-                this.data_source.set_active_popup_highlight(this.container);
             }
         }
     }
@@ -3624,91 +3631,21 @@ ppixiv.data_sources.search = class extends data_source
             {
                 super({ ...options, template: `
                     <div>
-                        <div class=tag-search-box-container></div>
+                        <div class=tag-search-with-related-tags>
+                            <vv-container class=tag-search-box-container></vv-container>
 
-                        <!-- We don't currently have popup text for these, since it's a little annoying to
-                                have it pop over the menu. -->
+                            ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["related-tags-button"] }) }
+                        </div>
+
                         <div class="box-button-row search-options-row">
-                            ${ helpers.create_box_link({label: "Ages",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "All",  data_type: "ages-all", dataset: { default: true } }) }
-                                ${ helpers.create_box_link({label: "All ages",  data_type: "ages-safe" }) }
-                                ${ helpers.create_box_link({label: "R18",  data_type: "ages-r18", classes: ["r18"] }) }
-                            </div>
-
-                            ${ helpers.create_box_link({label: "Sort",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "Newest",              data_type: "order-newest", dataset: { default: true } }) }
-                                ${ helpers.create_box_link({label: "Oldest",              data_type: "order-oldest" }) }
-                                ${ helpers.create_box_link({label: "Popularity",          data_type: "order-all",    classes: ["premium-only"] }) }
-                                ${ helpers.create_box_link({label: "Popular with men",    data_type: "order-male",   classes: ["premium-only"] }) }
-                                ${ helpers.create_box_link({label: "Popular with women",  data_type: "order-female", classes: ["premium-only"] }) }
-                            </div>
-
-                            ${ helpers.create_box_link({label: "Type",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "All",             data_type: "search-type-all",    dataset: { default: true } }) }
-                                ${ helpers.create_box_link({label: "Illustrations",   data_type: "search-type-illust" }) }
-                                ${ helpers.create_box_link({label: "Manga",           data_type: "search-type-manga" }) }
-                                ${ helpers.create_box_link({label: "Animations",      data_type: "search-type-ugoira" }) }
-                            </div>
-
-                            ${ helpers.create_box_link({label: "Search mode",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "Tag",               data_type: "search-all",    dataset: { default: true } }) }
-                                ${ helpers.create_box_link({label: "Exact tag match",   data_type: "search-exact" }) }
-                                ${ helpers.create_box_link({label: "Text search",       data_type: "search-text" }) }
-                            </div>
-
-                            ${ helpers.create_box_link({label: "Image size",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "All",               data_type: "res-all",    dataset: { default: true } }) }
-                                ${ helpers.create_box_link({label: "High-res",          data_type: "res-high" }) }
-                                ${ helpers.create_box_link({label: "Medium-res",        data_type: "res-medium" }) }
-                                ${ helpers.create_box_link({label: "Low-res",           data_type: "res-low" }) }
-                            </div>
-                            
-                            ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "All",               data_type: "aspect-ratio-all",       icon: "", dataset: { default: true } }) }
-                                ${ helpers.create_box_link({label: "Landscape",         data_type: "aspect-ratio-landscape", icon: "panorama" }) }
-                                ${ helpers.create_box_link({label: "Portrait",          data_type: "aspect-ratio-portrait",  icon: "portrait" }) }
-                                ${ helpers.create_box_link({label: "Square",            data_type: "aspect-ratio-square",    icon: "crop_square" }) }
-                            </div>
-
-                            ${ helpers.create_box_link({label: "Bookmarks",    classes: ["popup-menu-box-button", "premium-only"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                <!-- The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
-                                        really useful and the query parameters let us filter differently, so we
-                                        replace it with a more useful "minimum bookmarks" filter. -->
-                                ${ helpers.create_box_link({label: "All",               data_type: "bookmarks-all",    dataset: { default: true } }) }
-                                ${ helpers.create_box_link({label: "100+",              data_type: "bookmarks-100" }) }
-                                ${ helpers.create_box_link({label: "250+",              data_type: "bookmarks-250" }) }
-                                ${ helpers.create_box_link({label: "500+",              data_type: "bookmarks-500" }) }
-                                ${ helpers.create_box_link({label: "1000+",             data_type: "bookmarks-1000" }) }
-                                ${ helpers.create_box_link({label: "2500+",             data_type: "bookmarks-2500" }) }
-                                ${ helpers.create_box_link({label: "5000+",             data_type: "bookmarks-5000" }) }
-                            </div>
-                            
-                            ${ helpers.create_box_link({label: "Time",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "All",               data_type: "time-all",  dataset: { default: true } }) }
-                                ${ helpers.create_box_link({label: "This week",         data_type: "time-week", dataset: { shortLabel: "Weekly" } }) }
-                                ${ helpers.create_box_link({label: "This month",        data_type: "time-month" }) }
-                                ${ helpers.create_box_link({label: "This year",         data_type: "time-year" }) }
-
-                                <div class=years-ago>
-                                    ${ helpers.create_box_link({label: "1",             data_type: "time-years-ago-1", dataset: { shortLabel: "1 year" } }) }
-                                    ${ helpers.create_box_link({label: "2",             data_type: "time-years-ago-2", dataset: { shortLabel: "2 years" } }) }
-                                    ${ helpers.create_box_link({label: "3",             data_type: "time-years-ago-3", dataset: { shortLabel: "3 years" } }) }
-                                    ${ helpers.create_box_link({label: "4",             data_type: "time-years-ago-4", dataset: { shortLabel: "4 years" } }) }
-                                    ${ helpers.create_box_link({label: "5",             data_type: "time-years-ago-5", dataset: { shortLabel: "5 years" } }) }
-                                    ${ helpers.create_box_link({label: "6",             data_type: "time-years-ago-6", dataset: { shortLabel: "6 years" } }) }
-                                    ${ helpers.create_box_link({label: "7",             data_type: "time-years-ago-7", dataset: { shortLabel: "7 years" } }) }
-                                    <span>years ago</span>
-                                </div>
-                            </div>
-                            
+                            ${ helpers.create_box_link({label: "Ages",    classes: ["ages-button"] }) }
+                            ${ helpers.create_box_link({label: "Sort",    classes: ["sort-button"] }) }
+                            ${ helpers.create_box_link({label: "Type",    classes: [["search-type-button"]] }) }
+                            ${ helpers.create_box_link({label: "Search mode",    classes: ["search-mode-button"] }) }
+                            ${ helpers.create_box_link({label: "Image size",    classes: ["image-size-button"] }) }
+                            ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["aspect-ratio-button"] }) }
+                            ${ helpers.create_box_link({label: "Bookmarks",    classes: ["bookmark-count-button", "premium-only"] }) }
+                            ${ helpers.create_box_link({label: "Time",    classes: ["time-ago-button"] }) }
                             ${ helpers.create_box_link({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
                         </div>
                     </div>
@@ -3716,112 +3653,230 @@ ppixiv.data_sources.search = class extends data_source
 
                 this.data_source = data_source;
 
-                this.data_source.set_item(this.container, { type: "ages-all", fields: {mode: null} });
-                this.data_source.set_item(this.container, { type: "ages-safe", fields: {mode: "safe"} });
-                this.data_source.set_item(this.container, { type: "ages-r18", fields: {mode: "r18"} });
-
-                this.data_source.set_item(this.container, { type: "order-newest", fields: {order: null}, default_values: {order: "date_d"} });
-                this.data_source.set_item(this.container, { type: "order-oldest", fields: {order: "date"} });
-                this.data_source.set_item(this.container, { type: "order-all", fields: {order: "popular_d"} });
-                this.data_source.set_item(this.container, { type: "order-male", fields: {order: "popular_male_d"} });
-                this.data_source.set_item(this.container, { type: "order-female", fields: {order: "popular_female_d"} });
-
-                let set_search_mode = (container, type, mode) =>
+                class related_tag_dropdown extends tag_dropdown_widget
                 {
-                    var link = container.querySelector("[data-type='" + type + "']");
-                    if(link == null)
+                    constructor({...options})
                     {
-                        console.warn("Couldn't find button with selector", type);
-                        return;
+                        super({...options});
+
+                        this.related_tag_widget = new tag_widget({
+                            contents: this.container,
+                        });
+
+                        this.refresh_tags();
                     }
 
-                    let current_mode = data_source.get_url_search_mode();
-                    let button_is_selected = current_mode == mode;
-                    helpers.set_class(link, "selected", button_is_selected);
-
-                    // Adjust the URL for this button.
-                    let url = data_source.set_url_search_mode(data_source.url, mode);
-                    link.href = url.toString();
+                    refresh_tags()
+                    {
+                        if(this.data_source.related_tags && this.related_tag_widget)
+                            this.related_tag_widget.set(this.data_source.related_tags);
+                    }
                 };
 
-                set_search_mode(this.container, "search-type-all", "all");
-                set_search_mode(this.container, "search-type-illust", "illust");
-                set_search_mode(this.container, "search-type-manga", "manga");
-                set_search_mode(this.container, "search-type-ugoira", "ugoira");
+                this.tag_dropdown = new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".related-tags-button"),
+                    create_box: ({...options}) => new related_tag_dropdown({ data_source, ...options }),
+                });
 
-                this.data_source.set_item(this.container, { type: "search-all", fields: {s_mode: null}, default_values: {s_mode: "s_tag"} });
-                this.data_source.set_item(this.container, { type: "search-exact", fields: {s_mode: "s_tag_full"} });
-                this.data_source.set_item(this.container, { type: "search-text", fields: {s_mode: "s_tc"} });
+                data_source.setup_dropdown(this.querySelector(".ages-button"), [{
+                    create_options: { label: "All",  dataset: { default: true } },
+                    setup_options: { fields: {mode: null} },
+                }, {
+                    create_options: { label: "All ages" },
+                    setup_options: { fields: {mode: "safe"} },
+                }, {
+                    create_options: { label: "R18", classes: ["r18"] },
+                    setup_options: { fields: {mode: "r18"} },
+                }]);
 
-                this.data_source.set_item(this.container, { type: "res-all", fields: {wlt: null, hlt: null, wgt: null, hgt: null} });
-                this.data_source.set_item(this.container, { type: "res-high", fields: {wlt: 3000, hlt: 3000, wgt: null, hgt: null} });
-                this.data_source.set_item(this.container, { type: "res-medium", fields: {wlt: 1000, hlt: 1000, wgt: 2999, hgt: 2999} });
-                this.data_source.set_item(this.container, { type: "res-low", fields: {wlt: null, hlt: null, wgt: 999, hgt: 999} });
+                data_source.setup_dropdown(this.querySelector(".sort-button"), [{
+                    create_options: { label: "Newest",              dataset: { default: true } },
+                    setup_options: { fields: {order: null}, default_values: {order: "date_d"} }
+                }, {
+                    create_options: { label: "Oldest" },
+                    setup_options: { fields: {order: "date"} }
+                }, {
+                    create_options: { label: "Popularity",          classes: ["premium-only"] },
+                    setup_options: { fields: {order: "popular_d"} }
+                }, {
+                    create_options: { label: "Popular with men",    classes: ["premium-only"] },
+                    setup_options: { fields: {order: "popular_male_d"} }
+                }, {
+                    create_options: { label: "Popular with women",  classes: ["premium-only"] },
+                    setup_options:  { fields: {order: "popular_female_d"} }
+                }]);
 
-                this.data_source.set_item(this.container, { type: "aspect-ratio-all", fields: {ratio: null} });
-                this.data_source.set_item(this.container, { type: "aspect-ratio-landscape", fields: {ratio: "0.5"} });
-                this.data_source.set_item(this.container, { type: "aspect-ratio-portrait", fields: {ratio: "-0.5"} });
-                this.data_source.set_item(this.container, { type: "aspect-ratio-square", fields: {ratio: "0"} });
-            
-                this.data_source.set_item(this.container, { type: "bookmarks-all", fields: {blt: null, bgt: null} });
-                this.data_source.set_item(this.container, { type: "bookmarks-5000", fields: {blt: 5000, bgt: null} });
-                this.data_source.set_item(this.container, { type: "bookmarks-2500", fields: {blt: 2500, bgt: null} });
-                this.data_source.set_item(this.container, { type: "bookmarks-1000", fields: {blt: 1000, bgt: null} });
-                this.data_source.set_item(this.container, { type: "bookmarks-500", fields: {blt: 500, bgt: null} });
-                this.data_source.set_item(this.container, { type: "bookmarks-250", fields: {blt: 250, bgt: null} });
-                this.data_source.set_item(this.container, { type: "bookmarks-100", fields: {blt: 100, bgt: null} });
+                let url_format = "tags/tag/type";
+                data_source.setup_dropdown(this.querySelector(".search-type-button"), [{
+                    create_options: { label: "All",             dataset: { default: true } },
+                    setup_options: {
+                        url_format,
+                        fields: {"/type": "artworks", type: null},
+                    }
+                }, {
+                    create_options: { label: "Illustrations" },
+                    setup_options: {
+                        url_format,
+                        fields: {"/type": "illustrations", type: "illust"},
+                    }
+                }, {
+                    create_options: { label: "Manga" },
+                    setup_options: {
+                        url_format,
+                        fields: {"/type": "manga", type: null},
+                    }
+                }, {
+                    create_options: { label: "Animations" },
+                    setup_options: {
+                        url_format,
+                        fields: {"/type": "illustrations", type: "ugoira"},
+                    }
+                }]);
 
-                // The time filter is a range, but I'm not sure what time zone it filters in
-                // (presumably either JST or UTC).  There's also only a date and not a time,
-                // which means you can't actually filter "today", since there's no way to specify
-                // which "today" you mean.  So, we offer filtering starting at "this week",
-                // and you can just use the default date sort if you want to see new posts.
-                // For "this week", we set the end date a day in the future to make sure we
-                // don't filter out posts today.
-                data_source.set_item(this.container, { type: "time-all", fields: {scd: null, ecd: null} });
+                data_source.setup_dropdown(this.querySelector(".search-mode-button"), [{
+                    create_options: { label: "Tag",               dataset: { default: true } },
+                    setup_options: { fields: {s_mode: null}, default_values: {s_mode: "s_tag"} },
+                }, {
+                    create_options: { label: "Exact tag match" },
+                    setup_options:  { fields: {s_mode: "s_tag_full"} },
+                }, {
+                    create_options: { label: "Text search" },
+                    setup_options:  { fields: {s_mode: "s_tc"} },
+                }]);
 
-                let format_date = (date) =>
-                {
-                    var f = (date.getYear() + 1900).toFixed();
-                    return (date.getYear() + 1900).toFixed().padStart(2, "0") + "-" +
-                            (date.getMonth() + 1).toFixed().padStart(2, "0") + "-" +
-                            date.getDate().toFixed().padStart(2, "0");
-                };
+                data_source.setup_dropdown(this.querySelector(".image-size-button"), [{
+                    create_options: { label: "All",               dataset: { default: true } },
+                    setup_options: { fields: {wlt: null, hlt: null, wgt: null, hgt: null} },
+                }, {
+                    create_options: { label: "High-res" },
+                    setup_options: { fields: {wlt: 3000, hlt: 3000, wgt: null, hgt: null} },
+                }, {
+                    create_options: { label: "Medium-res" },
+                    setup_options: { fields: {wlt: 1000, hlt: 1000, wgt: 2999, hgt: 2999} },
+                }, {
+                    create_options: { label: "Low-res" },
+                    setup_options: { fields: {wlt: null, hlt: null, wgt: 999, hgt: 999} },
+                }]);
 
-                let set_date_filter = (name, start, end) =>
-                {
-                    var start_date = format_date(start);
-                    var end_date = format_date(end);
-                    data_source.set_item(this.container, { type: name, fields: {scd: start_date, ecd: end_date} });
-                };
+                data_source.setup_dropdown(this.querySelector(".aspect-ratio-button"), [{
+                    create_options: {label: "All",               icon: "", dataset: { default: true } },
+                    setup_options: { fields: {ratio: null} },
+                }, {
+                    create_options: {label: "Landscape",         icon: "panorama" },
+                    setup_options: { fields: {ratio: "0.5"} },
+                }, {
+                    create_options: {label: "Portrait",          icon: "portrait" },
+                    setup_options: { fields: {ratio: "-0.5"} },
+                }, {
+                    create_options: {label: "Square",            icon: "crop_square" },
+                    setup_options: { fields: {ratio: "0"} },
+                }]);
 
-                let tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-                let last_week = new Date(); last_week.setDate(last_week.getDate() - 7);
-                let last_month = new Date(); last_month.setMonth(last_month.getMonth() - 1);
-                let last_year = new Date(); last_year.setFullYear(last_year.getFullYear() - 1);
-                set_date_filter("time-week", last_week, tomorrow);
-                set_date_filter("time-month", last_month, tomorrow);
-                set_date_filter("time-year", last_year, tomorrow);
-                for(let years_ago = 1; years_ago <= 7; ++years_ago)
-                {
-                    var start_year = new Date(); start_year.setFullYear(start_year.getFullYear() - years_ago - 1);
-                    var end_year = new Date(); end_year.setFullYear(end_year.getFullYear() - years_ago);
-                    set_date_filter("time-years-ago-" + years_ago, start_year, end_year);
-                }
+                // The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
+                // really useful and the query parameters let us filter differently, so we
+                // replace it with a more useful "minimum bookmarks" filter.
+                data_source.setup_dropdown(this.querySelector(".bookmark-count-button"), [{
+                    create_options: { label: "All",               data_type: "bookmarks-all",    dataset: { default: true } },
+                    setup_options: { fields: {blt: null, bgt: null} },
+                }, {
+                    create_options: { label: "100+",              data_type: "bookmarks-100" },
+                    setup_options: { fields: {blt: 100, bgt: null} },
+                }, {
+                    create_options: { label: "250+",              data_type: "bookmarks-250" },
+                    setup_options: { fields: {blt: 250, bgt: null} },
+                }, {
+                    create_options: { label: "500+",              data_type: "bookmarks-500" },
+                    setup_options: { fields: {blt: 500, bgt: null} },
+                }, {
+                    create_options: { label: "1000+",             data_type: "bookmarks-1000" },
+                    setup_options: { fields: {blt: 1000, bgt: null} },
+                }, {
+                    create_options: { label: "2500+",             data_type: "bookmarks-2500" },
+                    setup_options: { fields: {blt: 2500, bgt: null} },
+                }, {
+                    create_options: { label: "5000+",             data_type: "bookmarks-5000" },
+                    setup_options: { fields: {blt: 5000, bgt: null} },
+                }]);
 
-                // The "reset search" button removes everything in the query except search terms, and resets
-                // the search type.
-                let box = this.querySelector(".reset-search");
-                let url = new URL(this.data_source.url);
-                let tag = helpers._get_search_tags_from_url(url);
-                url.search = "";
-                if(tag == null)
-                    url.pathname = "/tags";
-                else
-                    url.pathname = "/tags/" + encodeURIComponent(tag) + "/artworks";
-                box.href = url;
+                // The time-ago dropdown has a custom layout, so create it manually.
+                new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".time-ago-button"),
+                    create_box: ({...options}) => {
+                        let dropdown = new ppixiv.widget({
+                            ...options,
+                            template: `
+                                <div class=vertical-list>
+                                    ${ helpers.create_box_link({label: "All",               data_type: "time-all",  dataset: { default: true } }) }
+                                    ${ helpers.create_box_link({label: "This week",         data_type: "time-week", dataset: { shortLabel: "Weekly" } }) }
+                                    ${ helpers.create_box_link({label: "This month",        data_type: "time-month" }) }
+                                    ${ helpers.create_box_link({label: "This year",         data_type: "time-year" }) }
 
-                dropdown_menu_opener.create_handlers(this.container);
+                                    <div class=years-ago>
+                                        ${ helpers.create_box_link({label: "1",             data_type: "time-years-ago-1", dataset: { shortLabel: "1 year" } }) }
+                                        ${ helpers.create_box_link({label: "2",             data_type: "time-years-ago-2", dataset: { shortLabel: "2 years" } }) }
+                                        ${ helpers.create_box_link({label: "3",             data_type: "time-years-ago-3", dataset: { shortLabel: "3 years" } }) }
+                                        ${ helpers.create_box_link({label: "4",             data_type: "time-years-ago-4", dataset: { shortLabel: "4 years" } }) }
+                                        ${ helpers.create_box_link({label: "5",             data_type: "time-years-ago-5", dataset: { shortLabel: "5 years" } }) }
+                                        ${ helpers.create_box_link({label: "6",             data_type: "time-years-ago-6", dataset: { shortLabel: "6 years" } }) }
+                                        ${ helpers.create_box_link({label: "7",             data_type: "time-years-ago-7", dataset: { shortLabel: "7 years" } }) }
+                                        <span>years ago</span>
+                                    </div>
+                                </div>
+                            `,
+                        });
+
+                        // The time filter is a range, but I'm not sure what time zone it filters in
+                        // (presumably either JST or UTC).  There's also only a date and not a time,
+                        // which means you can't actually filter "today", since there's no way to specify
+                        // which "today" you mean.  So, we offer filtering starting at "this week",
+                        // and you can just use the default date sort if you want to see new posts.
+                        // For "this week", we set the end date a day in the future to make sure we
+                        // don't filter out posts today.
+                        data_source.set_item(dropdown, { type: "time-all", fields: {scd: null, ecd: null} });
+
+                        let format_date = (date) =>
+                        {
+                            return (date.getYear() + 1900).toFixed().padStart(2, "0") + "-" +
+                                    (date.getMonth() + 1).toFixed().padStart(2, "0") + "-" +
+                                    date.getDate().toFixed().padStart(2, "0");
+                        };
+
+                        let set_date_filter = (name, start, end) =>
+                        {
+                            let start_date = format_date(start);
+                            let end_date = format_date(end);
+                            data_source.set_item(dropdown, { type: name, fields: {scd: start_date, ecd: end_date} });
+                        };
+
+                        let tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+                        let last_week = new Date(); last_week.setDate(last_week.getDate() - 7);
+                        let last_month = new Date(); last_month.setMonth(last_month.getMonth() - 1);
+                        let last_year = new Date(); last_year.setFullYear(last_year.getFullYear() - 1);
+                        set_date_filter("time-week", last_week, tomorrow);
+                        set_date_filter("time-month", last_month, tomorrow);
+                        set_date_filter("time-year", last_year, tomorrow);
+                        for(let years_ago = 1; years_ago <= 7; ++years_ago)
+                        {
+                            let start_year = new Date(); start_year.setFullYear(start_year.getFullYear() - years_ago - 1);
+                            let end_year = new Date(); end_year.setFullYear(end_year.getFullYear() - years_ago);
+                            set_date_filter("time-years-ago-" + years_ago, start_year, end_year);
+                        }
+
+                        // The "reset search" button removes everything in the query except search terms, and resets
+                        // the search type.
+                        let box = this.querySelector(".reset-search");
+                        let url = new URL(this.data_source.url);
+                        let tag = helpers._get_search_tags_from_url(url);
+                        url.search = "";
+                        if(tag == null)
+                            url.pathname = "/tags";
+                        else
+                            url.pathname = "/tags/" + encodeURIComponent(tag) + "/artworks";
+                        box.href = url;
+
+                        return dropdown;
+                    },
+                });
 
                 // Create the tag dropdown for the search page input.
                 this.tag_search_box = new tag_search_box_widget({ container: this.querySelector(".tag-search-box-container") });
@@ -3833,17 +3888,6 @@ ppixiv.data_sources.search = class extends data_source
                 if(search)
                     search += " ";
                 this.querySelector(".tag-search-box .input-field-container > input").value = search;
-
-                this.data_source.set_active_popup_highlight(this.container);
-
-                this.data_source.addEventListener("_refresh_ui", () => this.refresh_related_tags(), this._signal);
-                this.refresh_related_tags();
-            }
-
-            refresh_related_tags()
-            {
-                if(this.data_source.related_tags && this.tag_search_box)
-                    this.tag_search_box.related_tag_widget.set(this.data_source.related_tags);
             }
         }
     }
@@ -3964,12 +4008,7 @@ ppixiv.data_sources.follows = class extends data_source
                                 ${ helpers.create_box_link({ popup: "Accepting requests", icon: "paid",   data_type: "accepting-requests" }) }
                             </div>
 
-                            <div class=box-button-row>
-                                <span class="followed-users-follow-tags premium-only">
-                                    ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                                    <div class="popup-menu-box follow-tag-list vertical-list"></div>
-                                </span>
-                            </div>
+                            ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["follow-tags-button", "premium-only"] }) }
                         </div>
                     </div>
                 `});
@@ -3984,61 +4023,70 @@ ppixiv.data_sources.follows = class extends data_source
                 data_source.set_item(this.container, { type: "private-follows", fields: {rest: "hide"}, default_values: {rest: "show"} });
                 data_source.set_item(this.container, { type: "accepting-requests", toggle: true, fields: {acceptingRequests: "1"}, default_values: {acceptingRequests: "0"}});
 
-                // Set the contents of the tag menu button.
-                data_source.set_active_popup_highlight(this.container);
-
-                dropdown_menu_opener.create_handlers(this.container);
-
-                this.refresh_follow_tags();
-                data_source.addEventListener("_refresh_ui", () => this.refresh_follow_tags(), this._signal);
-            }
-
-            refresh_follow_tags()
-            {
-                let current_args = helpers.args.location;
-
-                let tag_list = this.container.querySelector(".followed-users-follow-tags .vertical-list");
-                for(let tag of tag_list.querySelectorAll(".tag-entry"))
-                    tag.remove();
-
-                // Refresh the bookmark tag list.  Remove the page number from these buttons.
-                let current_tag = this.data_source.url.searchParams.get("tag") || "All tags";
-
-                let add_tag_link = (tag) =>
+                class follow_tag_dropdown extends ppixiv.widget
                 {
-                    // Work around Pixiv always returning a follow tag named "null" for some users.
-                    if(tag == "null")
-                        return;
-
-                    let a = helpers.create_box_link({
-                        label: tag,
-                        classes: ["tag-entry"],
-                        link: "#",
-                        as_element: true,
-                        data_type: "following-tag",
-                    });
-
-                    if(tag == "All tags")
+                    constructor()
                     {
-                        tag = null;
-                        a.dataset.default = 1;
+                        super({
+                            ...options,
+                            template: `<div class="follow-tag-list vertical-list"></div>`,
+                        });
+
+                        data_source.addEventListener("_refresh_ui", () => this.refresh_following_tags(), this._signal);
+                        this.refresh_following_tags();
                     }
 
-                    this.data_source.set_item(a, { fields: {"tag": tag}, current_url: current_args.url });
-
-                    tag_list.appendChild(a);
-                };
-
-                add_tag_link("All tags");
-                for(let tag of this.data_source.follow_tags)
-                    add_tag_link(tag);
-
-                // If we don't have the tag list yet because we're still loading the page, fill in
-                // the current tag, to reduce flicker as the page loads.
-                if(this.data_source.follow_tags.length == 0 && current_tag != "All tags")
-                    add_tag_link(current_tag);
-
-                this.data_source.set_active_popup_highlight(this.container);
+                    refresh_following_tags()
+                    {
+                        let current_args = helpers.args.location;
+        
+                        let tag_list = this.container;
+                        for(let tag of tag_list.querySelectorAll(".tag-entry"))
+                            tag.remove();
+        
+                        // Refresh the bookmark tag list.  Remove the page number from these buttons.
+                        let current_tag = data_source.url.searchParams.get("tag") || "All tags";
+        
+                        let add_tag_link = (tag) =>
+                        {
+                            // Work around Pixiv always returning a follow tag named "null" for some users.
+                            if(tag == "null")
+                                return;
+        
+                            let a = helpers.create_box_link({
+                                label: tag,
+                                classes: ["tag-entry"],
+                                link: "#",
+                                as_element: true,
+                                data_type: "following-tag",
+                            });
+        
+                            if(tag == "All tags")
+                            {
+                                tag = null;
+                                a.dataset.default = 1;
+                            }
+        
+                            data_source.set_item(a, { fields: {"tag": tag}, current_url: current_args.url });
+        
+                            tag_list.appendChild(a);
+                        };
+        
+                        add_tag_link("All tags");
+                        for(let tag of data_source.follow_tags)
+                            add_tag_link(tag);
+        
+                        // If we don't have the tag list yet because we're still loading the page, fill in
+                        // the current tag, to reduce flicker as the page loads.
+                        if(data_source.follow_tags.length == 0 && current_tag != "All tags")
+                            add_tag_link(current_tag);
+                    }
+                }
+                // Create the follow tag dropdown.
+                new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".follow-tags-button"),
+                    create_box: ({...options}) => new follow_tag_dropdown({data_source, ...options}),
+                });
             }
         }
     }
@@ -4629,43 +4677,13 @@ ppixiv.data_sources.vview = class extends data_source
                             ${ helpers.create_box_link({label: "Bookmarks",           popup: "Show bookmarks",                       data_type: "local-bookmarks-only" }) }
 
                             <div class=local-bookmark-tags-box>
-                                ${ helpers.create_box_link({label: "Tags",    icon: "ppixiv:tag", classes: ["popup-menu-box-button"] }) }
-                                <div class="popup-menu-box local-bookmark-tag-list vertical-list"></div>
+                                ${ helpers.create_box_link({label: "Tags",    icon: "ppixiv:tag", classes: ["bookmark-tags-button"] }) }
                             </div>
 
-                            ${ helpers.create_box_link({label: "Type",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "All",           data_type: "local-type-all", dataset: { default: "1"} }) }
-                                ${ helpers.create_box_link({label: "Videos",        data_type: "local-type-videos" }) }
-                                ${ helpers.create_box_link({label: "Images",        data_type: "local-type-images" }) }
-                            </div>
-                            
-                            ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "All",           data_type: "local-aspect-ratio-all", dataset: { default: "1"} }) }
-                                ${ helpers.create_box_link({label: "Landscape",     data_type: "local-aspect-ratio-landscape" }) }
-                                ${ helpers.create_box_link({label: "Portrait",      data_type: "local-aspect-ratio-portrait" }) }
-                            </div>
-                            
-                            ${ helpers.create_box_link({label: "Image size",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "All",           data_type: "local-res-all", dataset: { default: "1"} }) }
-                                ${ helpers.create_box_link({label: "High-res",      data_type: "local-res-high" }) }
-                                ${ helpers.create_box_link({label: "Medium-res",    data_type: "local-res-medium" }) }
-                                ${ helpers.create_box_link({label: "Low-res",       data_type: "local-res-low" }) }
-                            </div>
-
-                            ${ helpers.create_box_link({label: "Order",    classes: ["popup-menu-box-button"] }) }
-                            <div hidden class="popup-menu-box vertical-list">
-                                ${ helpers.create_box_link({label: "Name",           data_type: "local-sort-normal", dataset: { default: "1"} }) }
-                                ${ helpers.create_box_link({label: "Name (inverse)", data_type: "local-sort-invert" }) }
-                                ${ helpers.create_box_link({label: "Newest",         data_type: "local-sort-newest" }) }
-                                ${ helpers.create_box_link({label: "Oldest",         data_type: "local-sort-oldest" }) }
-                                ${ helpers.create_box_link({label: "New bookmarks", data_type: "local-sort-bookmark-created-at-desc" }) }
-                                ${ helpers.create_box_link({label: "Old bookmarks", data_type: "local-sort-bookmark-created-at-asc" }) }
-                            </div>
-
-                            ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "local-sort-shuffle" }) }
+                            ${ helpers.create_box_link({ label: "Type",          classes: ["file-type-button"] }) }
+                            ${ helpers.create_box_link({ label: "Aspect ratio",  classes: ["aspect-ratio-button"] }) }
+                            ${ helpers.create_box_link({ label: "Image size",    classes: ["image-size-button"] }) }
+                            ${ helpers.create_box_link({ label: "Order",         classes: ["sort-button"] }) }
                         </div>
                     </div>
                 `});
@@ -4675,13 +4693,153 @@ ppixiv.data_sources.vview = class extends data_source
                 // The search history dropdown for local searches.
                 new local_search_box_widget({ contents: this.querySelector(".local-tag-search-box") });
         
-                dropdown_menu_opener.create_handlers(this.container);
+                let current_args = helpers.args.location;
 
-                // Don't scroll thumbnails when scrolling tag dropdowns.
-                this.querySelector(".local-bookmark-tags-box .local-bookmark-tag-list").addEventListener("scroll", (e) => e.stopPropagation(), true);
+                data_source.setup_dropdown(this.querySelector(".file-type-button"), [{
+                    create_options: { label: "All",           data_type: "local-type-all", dataset: { default: "1"} },
+                    setup_options: { fields: {"#type": null}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "Videos",        data_type: "local-type-videos" },
+                    setup_options: { fields: {"#type": "videos"}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "Images",        data_type: "local-type-images" },
+                    setup_options: { fields: {"#type": "images"}, current_url: current_args.url },
+                }]);
 
-                data_source.addEventListener("_refresh_ui", () => this.refresh_bookmark_tag_list(), this._signal);
-                this.refresh_bookmark_tag_list();
+                data_source.setup_dropdown(this.querySelector(".aspect-ratio-button"), [{
+                    create_options: { label: "All",           data_type: "local-aspect-ratio-all", dataset: { default: "1"} },
+                    setup_options: { fields: {"#aspect-ratio": null}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "Landscape",     data_type: "local-aspect-ratio-landscape" },
+                    setup_options: { fields: {"#aspect-ratio": `3:2...`}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "Portrait",      data_type: "local-aspect-ratio-portrait" },
+                    setup_options: { fields: {"#aspect-ratio": `...2:3`}, current_url: current_args.url },
+                }]);
+
+                data_source.setup_dropdown(this.querySelector(".image-size-button"), [{
+                    create_options: { label: "All",           dataset: { default: "1"} },
+                    setup_options: { fields: {"#pixels": null}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "High-res" },
+                    setup_options: { fields: {"#pixels": "4000000..."}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "Medium-res" },
+                    setup_options: { fields: {"#pixels": "1000000...3999999"}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "Low-res" },
+                    setup_options: { fields: {"#pixels": "...999999"}, current_url: current_args.url },
+                }]);
+
+                data_source.setup_dropdown(this.querySelector(".sort-button"), [{
+                    create_options: { label: "Name",           dataset: { default: "1"} },
+                    setup_options: { fields: {"#order": null}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "Name (inverse)" },
+                    setup_options: { fields: {"#order": "-normal"}, current_url: current_args.url },
+                }, {
+                    create_options: { label: "Newest" },
+                    setup_options: { fields: {"#order": "-ctime"}, current_url: current_args.url },
+
+                }, {
+                    create_options: { label: "Oldest" },
+                    setup_options: { fields: {"#order": "ctime"}, current_url: current_args.url },
+
+                }, {
+                    create_options: { label: "New bookmarks" },
+                    setup_options: { fields: {"#order": "bookmarked-at"}, current_url: current_args.url,
+                        // If a bookmark sort is selected, also enable viewing bookmarks.
+                        adjust_url: (args) => args.hash.set("bookmarks", 1),
+                    },
+                }, {
+                    create_options: { label: "Old bookmarks" },
+                    setup_options: { fields: {"#order": "-bookmarked-at"}, current_url: current_args.url,
+                        adjust_url: (args) => args.hash.set("bookmarks", 1),
+                    },
+                }, {
+                    create_options: { label: "Shuffle", icon: "shuffle" },
+                    setup_options: { fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url },
+                }]);
+
+                class bookmark_tag_dropdown extends tag_dropdown_widget
+                {
+                    refresh_tags()
+                    {
+                        // Clear the tag list.
+                        for(let tag of this.container.querySelectorAll(".following-tag"))
+                            tag.remove();
+
+                        // Stop if we don't have the tag list yet.
+                        if(this.data_source.bookmark_tag_counts == null)
+                            return;
+
+                        this.add_tag_link(null); // All
+                        this.add_tag_link(""); // Uncategorized
+
+                        let all_tags = Object.keys(this.data_source.bookmark_tag_counts);
+                        all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+                        for(let tag of all_tags)
+                        {
+                            // Skip uncategorized, which is always placed at the beginning.
+                            if(tag == "")
+                                continue;
+
+                            if(this.data_source.bookmark_tag_counts[tag] == 0)
+                                continue;
+
+                            this.add_tag_link(tag);
+                        }
+                    }
+
+                    add_tag_link(tag)
+                    {
+                        let current_args = helpers.args.location;
+
+                        let tag_count = this.data_source.bookmark_tag_counts[tag];
+
+                        let tag_name = tag;
+                        if(tag_name == null)
+                            tag_name = "All bookmarks";
+                        else if(tag_name == "")
+                            tag_name = "Untagged";
+
+                        // Show the bookmark count in the popup.
+                        let popup = null;
+                        if(tag_count != null)
+                            popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
+
+                        let a = helpers.create_box_link({
+                            label: tag_name,
+                            classes: ["following-tag"],
+                            data_type: "following-tag",
+                            popup,
+                            link: "#",
+                            as_element: true,
+                        });
+                        if(tag_name == "All bookmarks")
+                            a.dataset.default = 1;
+
+                            this.data_source.set_item(a, {
+                            fields: {"#bookmark-tag": tag},
+                            current_url: current_args.url,
+                        });
+
+                        this.container.appendChild(a);
+                    }
+                }
+
+                this.tag_dropdown = new ppixiv.dropdown_menu_opener({
+                    button: this.querySelector(".bookmark-tags-button"),
+                    create_box: ({...options}) => new bookmark_tag_dropdown({ data_source, ...options }),
+                });
+
+                // Hide the bookmark box if we're not showing bookmarks.
+                this.querySelector(".local-bookmark-tags-box").hidden = !data_source.bookmark_search_active;
+
+                data_source.addEventListener("_refresh_ui", () => {
+                    // Refresh the displayed label in case we didn't have it when we created the widget.
+                    this.tag_dropdown.set_button_popup_highlight();
+                }, this._signal);
 
                 let clear_local_search_button = this.querySelector(".clear-local-search");
                 clear_local_search_button.addEventListener("click", (e) => {
@@ -4700,8 +4858,6 @@ ppixiv.data_sources.vview = class extends data_source
                     this.copy_link();
                 });
 
-                let current_args = helpers.args.location;
-
                 // Hide the "copy local path" button if we don't have one.
                 this.querySelector(".copy-local-path").hidden = data_source.local_path == null;
 
@@ -4715,104 +4871,6 @@ ppixiv.data_sources.vview = class extends data_source
 
                 // If we're only allowed to do bookmark searches, hide the bookmark search button.
                 this.querySelector('[data-type="local-bookmarks-only"]').hidden = local_api.local_info.bookmark_tag_searches_only;
-
-                data_source.set_item(this.container, { type: "local-type-all", fields: {"#type": null}, current_url: current_args.url });
-                data_source.set_item(this.container, { type: "local-type-videos", fields: {"#type": "videos"}, current_url: current_args.url });
-                data_source.set_item(this.container, { type: "local-type-images", fields: {"#type": "images"}, current_url: current_args.url });
-
-                data_source.set_item(this.container, { type: "local-aspect-ratio-all", fields: {"#aspect-ratio": null}, current_url: current_args.url });
-                data_source.set_item(this.container, { type: "local-aspect-ratio-landscape", fields: {"#aspect-ratio": `3:2...`}, current_url: current_args.url });
-                data_source.set_item(this.container, { type: "local-aspect-ratio-portrait", fields: {"#aspect-ratio": `...2:3`}, current_url: current_args.url });
-
-                data_source.set_item(this.container, { type: "local-res-all", fields: {"#pixels": null}, current_url: current_args.url });
-                data_source.set_item(this.container, { type: "local-res-high", fields: {"#pixels": "4000000..."}, current_url: current_args.url });
-                data_source.set_item(this.container, { type: "local-res-medium", fields: {"#pixels": "1000000...3999999"}, current_url: current_args.url });
-                data_source.set_item(this.container, { type: "local-res-low", fields: {"#pixels": "...999999"}, current_url: current_args.url });
-
-                data_source.set_item(this.container, {type: "local-sort-normal", fields: {"#order": null}, current_url: current_args.url });
-                data_source.set_item(this.container, {type: "local-sort-invert", fields: {"#order": "-normal"}, current_url: current_args.url });
-                data_source.set_item(this.container, {type: "local-sort-newest", fields: {"#order": "-ctime"}, current_url: current_args.url });
-                data_source.set_item(this.container, {type: "local-sort-oldest", fields: {"#order": "ctime"}, current_url: current_args.url });
-                data_source.set_item(this.container, {type: "local-sort-shuffle", fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url });
-
-                data_source.set_item(this.container, {type: "local-sort-bookmark-created-at-desc", fields: {"#order": "bookmarked-at"}, current_url: current_args.url,
-                    // If a bookmark sort is selected, also enable viewing bookmarks.
-                    adjust_url: (args) => args.hash.set("bookmarks", 1),
-                });
-                data_source.set_item(this.container, {type: "local-sort-bookmark-created-at-asc", fields: {"#order": "-bookmarked-at"}, current_url: current_args.url,
-                    adjust_url: (args) => args.hash.set("bookmarks", 1),
-                });
-                
-                data_source.set_active_popup_highlight(this.container);
-            }
-
-            refresh_bookmark_tag_list()
-            {
-                let current_args = helpers.args.location;
-
-                // Clear the tag list.
-                let tag_list = this.querySelector(".local-bookmark-tag-list");
-                for(let tag of tag_list.querySelectorAll(".following-tag"))
-                    tag.remove();
-
-                // Hide the bookmark box if we're not showing bookmarks.
-                this.querySelector(".local-bookmark-tags-box").hidden = !this.data_source.bookmark_search_active;
-
-                // Stop if we don't have the tag list yet.
-                if(this.data_source.bookmark_tag_counts == null)
-                    return;
-
-                let add_tag_link = (tag) =>
-                {
-                    let tag_count = this.data_source.bookmark_tag_counts[tag];
-
-                    let tag_name = tag;
-                    if(tag_name == null)
-                        tag_name = "All bookmarks";
-                    else if(tag_name == "")
-                        tag_name = "Untagged";
-
-                    // Show the bookmark count in the popup.
-                    let popup = null;
-                    if(tag_count != null)
-                        popup = tag_count + (tag_count == 1? " bookmark":" bookmarks");
-
-                    let a = helpers.create_box_link({
-                        label: tag_name,
-                        classes: ["following-tag"],
-                        data_type: "following-tag",
-                        popup,
-                        link: "#",
-                        as_element: true,
-                    });
-                    if(tag_name == "All bookmarks")
-                        a.dataset.default = 1;
-
-                        this.data_source.set_item(a, {
-                        fields: {"#bookmark-tag": tag},
-                        current_url: current_args.url,
-                    });
-
-                    tag_list.appendChild(a);
-                };
-
-                add_tag_link(null); // All
-                add_tag_link(""); // Uncategorized
-
-                let all_tags = Object.keys(this.data_source.bookmark_tag_counts);
-                all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
-                for(let tag of all_tags)
-                {
-                    // Skip uncategorized, which is always placed at the beginning.
-                    if(tag == "")
-                        continue;
-
-                    if(this.data_source.bookmark_tag_counts[tag] == 0)
-                        continue;
-
-                    add_tag_link(tag);
-                }
-                this.data_source.set_active_popup_highlight(this.container);
             }
         }
     }

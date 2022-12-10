@@ -843,49 +843,50 @@ ppixiv.click_outside_listener = class
     }
 }
 
-// Show popup menus when a button is clicked.
-ppixiv.dropdown_menu_opener = class
+// Create a button that displays a dropdown menu.
+ppixiv.dropdown_menu_opener = class extends ppixiv.actor
 {
-    static create_handlers(container)
-    {
-        for(let button of container.querySelectorAll(".popup-menu-box-button"))
-            dropdown_menu_opener.create_handler(button);
-    }
-
-    // A shortcut for creating an opener for our common button/popup layout.
-    static create_handler(button)
-    {
-        let box = button.nextElementSibling;
-        if(box == null || !box.classList.contains("popup-menu-box"))
-        {
-            console.error("Couldn't find menu box for", button);
-            return;
-        }
-        new dropdown_menu_opener(button, box);
-    }
-
     // When button is clicked, show box.
-    constructor(button, box)
+    constructor({
+        button,
+
+        // This is called when button is clicked and should return a widget to display.  The
+        // widget will be shut down when it's dismissed.
+        create_box=null,
+
+        onvisibilitychanged=() => { },
+    })
     {
+        // Find a parent widget above the button.
+        let parent = ppixiv.widget.from_node(button);
+        super({ parent });
+
+        this.onvisibilitychanged = onvisibilitychanged;
+
         this.button = button;
-        this.box = box;
+        this.box = null;
+        this.create_box = create_box;
 
-        // Store references between the two parts.
-        this.button.dropdownMenuBox = box;
-        this.box.dropdownMenuButton = button;
-
+        this._visible = true;
         this.visible = false;
 
-        this.button.addEventListener("click", (e) => { this.button_onclick(e); });
+        this.button.addEventListener("click", (e) => this.button_onclick(e), this._signal);
 
         // We manually position the dropdown, so we need to reposition them if
         // the window size changes.
-        window.addEventListener("resize", (e) => { this.align_to_button(); });
+        window.addEventListener("resize", (e) => this._align_to_button(), this._signal);
+
+        // Refresh the position if the box width changes.  Don't refresh on any ResizeObserver
+        // call, since that'll recurse and end up refreshing constantly.
+        this._box_width = 0;
 
         // Hide popups when any containing view is hidden.
         new view_hidden_listener(this.button, (e) => {
             this.visible = false;
-        });
+        }, this._signal);
+
+        if(this.create_box)
+            this.set_button_popup_highlight();
     }
 
     // The viewhidden event is sent when the enclosing view is no longer visible, and
@@ -897,20 +898,34 @@ ppixiv.dropdown_menu_opener = class
 
     get visible()
     {
-        return !this.box.hidden;
+        return this._visible;
     }
 
     set visible(value)
     {
-        if(this.box.hidden == !value)
+        if(this._visible == value)
             return;
 
-        this.box.hidden = !value;
-        helpers.set_class(this.box, "popup-visible", value);
+        this._visible = value;
+        if(this.box)
+            helpers.set_class(this.box, "popup-visible", value); // XXX needed?
 
         if(value)
         {
-            this.align_to_button();
+            // If we have a create_box callback, run it to create the box.  Otherwise, display
+            // the static box.
+            if(this.create_box)
+            {
+                this.box_widget = this.create_box({
+                    container: document.body,
+                });
+                this.box_widget.container.classList.add("popup-menu-box");
+                this.box = this.box_widget.container;
+            }
+            else
+            {
+                this.box.hidden = false;
+            }
 
             this.listener = new click_outside_listener([this.button, this.box], () => {
                 this.visible = false;
@@ -918,16 +933,37 @@ ppixiv.dropdown_menu_opener = class
 
             if(this.close_on_click_inside)
                 this.box.addEventListener("click", this.box_onclick);
+
+            this._resize_observer = new ResizeObserver(() => {
+                if(this._box_width == this.box.offsetWidth)
+                    return;
+    
+                this._box_width = this.box.offsetWidth;
+                this._align_to_button();
+            });
+            this._resize_observer.observe(this.box);
+        
+            this._align_to_button();
         }
         else
         {
-            if(this.listener)
-            {
-                this.listener.shutdown();
-                this.listener = null;
-            }
+            if(!this.box)
+                return;
 
             this.box.removeEventListener("click", this.box_onclick);
+
+            this._cleanup();
+
+            // If we created the box dynamically, shut it down.  Otherwise, hide the static box.
+            if(this.box_widget)
+            {
+                this.box_widget.shutdown();
+                this.box_widget = null;
+            }
+            else
+            {
+                this.box.hidden = true;
+            }
         }
 
         // If we're inside a .top-ui-box container (the UI that sits at the top of the screen), set
@@ -935,9 +971,26 @@ ppixiv.dropdown_menu_opener = class
         let top_ui_box = this.box.closest(".top-ui-box");
         if(top_ui_box)
             helpers.set_class(top_ui_box, "force-open", value);
+
+        this.onvisibilitychanged(this);
     }
 
-    align_to_button()
+    _cleanup()
+    {
+        if(this._resize_observer)
+        {
+            this._resize_observer.disconnect();
+            this._resize_observer = null;
+        }
+
+        if(this.listener)
+        {
+            this.listener.shutdown();
+            this.listener = null;
+        }
+    }
+
+    _align_to_button()
     {
         if(!this.visible)
             return;
@@ -948,18 +1001,33 @@ ppixiv.dropdown_menu_opener = class
         let {left: box_x, top: box_y} = this.box.getBoundingClientRect(document.body);
         let {left: button_x, top: button_y, height: box_height} = this.button.getBoundingClientRect(document.body);
 
-        // Align to the bottom of the button.
-        button_y += box_height;
+        // Align to the left of the button.
+        let x = button_x;
 
-        let move_right_by = button_x - box_x;
-        let move_down_by = button_y - box_y;
-        let x = this.box.offsetLeft + move_right_by;
-        let y = this.box.offsetTop + move_down_by;
+        // If the right edge of the box is offscreen, push the box left.
+        let right_edge = x + this._box_width;
+        x -= Math.max(right_edge - window.innerWidth, 0);
+
+        // Don't push the left edge past the left edge of the screen.
+        x = Math.max(x, 0);
+
+        // Align to the bottom of the button.
+        let y = button_y + box_height;
+
+        x += this.box.offsetLeft - box_x;
+        y += this.box.offsetTop - box_y;
 
         this.box.style.left = `${x}px`;
         this.box.style.top = `${y}px`;
 
-        helpers.set_max_height(this.box, { bottom_padding: 10 });
+        helpers.set_max_height(this.box);
+    }
+
+    shutdown()
+    {
+        super.shutdown();
+
+        this._cleanup();
     }
 
     // Return true if this popup should close when clicking inside it.  If false,
@@ -986,6 +1054,57 @@ ppixiv.dropdown_menu_opener = class
         e.stopPropagation();
         this.visible = !this.visible;
     }
+
+    // Set the text and highlight on button based on the contents of the box.
+    //
+    // The data_source dropdowns originally created all of their contents, then we set the
+    // button text by looking at the contents.  We now create the popups on demand, but we
+    // still want to set the button based on the selection.  Do this by creating a temporary
+    // dropdown so we can see what gets set.  This is tightly tied to data_source.set_item.
+    set_button_popup_highlight()
+    {
+        let temp_box = this.create_box({container: document.body});
+        ppixiv.dropdown_menu_opener.set_active_popup_highlight_from(this.button, temp_box.container);
+        temp_box.shutdown();
+    }
+
+    static set_active_popup_highlight_from(button, box)
+    {
+        // Find the selected item in the dropdown, if any.
+        let selected_item = box.querySelector(".selected");
+        let selected_default = selected_item == null || selected_item.dataset["default"];
+
+        // If an explicit default button exists, there's usually always something selected in the
+        // list: either a filter is selected or the default is.  If a list has a default button
+        // but nothing is selected at all, that means we're not on any of the available selections
+        // (we don't even match the default).  For example, this can happen if "This Week" is selected,
+        // but some time has passed, so the time range the "This Week" menu item points to doesn't match
+        // the search.  (That means we're viewing "some week in the past", but we don't have a menu item
+        // for it.)
+        //
+        // If this happens, show the dropdown as selected, even though none of its items are active, to
+        // indicate that a filter really is active and the user can reset it.
+        let item_has_default = box.querySelector("[data-default]") != null;
+        if(item_has_default && selected_item == null)
+            selected_default = false;
+
+        helpers.set_class(button, "selected", !selected_default);
+        helpers.set_class(box, "selected", !selected_default);
+
+        // If an option is selected, replace the menu button text with the selection's label.
+        if(!selected_default)
+        {
+            // The short label is used to try to keep these labels from causing the menu buttons to
+            // overflow the container, and for labels like "2 years ago" where the menu text doesn't
+            // make sense.
+            //
+            // If we don't have a selected item, we're in the item_has_default case (see above).
+            let text = selected_item?.dataset?.shortLabel;
+            let selected_label = selected_item?.querySelector(".label")?.innerText;
+            let label = button.querySelector(".label");
+            label.innerText = text ?? selected_label ?? "Other";
+        }
+    }    
 };
 
 ppixiv.checkbox_widget = class extends ppixiv.widget
@@ -1123,6 +1242,7 @@ ppixiv.avatar_widget = class extends widget
             container: box,
             parent: this,
             open_button: avatar_link,
+            //visible: true,
         });
 
         if(interactive)
@@ -1329,7 +1449,7 @@ ppixiv.follow_widget = class extends widget
         // Close if our container closes.
         new view_hidden_listener(this.container, (e) => {
             this.visible = false;
-        });
+        }, this._signal);
     }
 
     user_changed = ({user_id}) =>
@@ -2058,7 +2178,7 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
         // XXX not if we're in the mobile menu
         new view_hidden_listener(this.container, (e) => {
             this.visible = false;
-        });
+        }, this._signal);
     }
 
     async refresh_internal({ media_id })

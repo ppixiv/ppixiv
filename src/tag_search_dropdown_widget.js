@@ -21,11 +21,6 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
                         ${ helpers.create_icon("search") }
                     </span>
                 </div>
-
-                <div class="related-tags-box box-button-row" style="display: inline-block;" tabindex=1>
-                    ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["popup-menu-box-button"] }) }
-                    <div class="popup-menu-box related-tag-list vertical-list"></div>
-                </div>
             </div>
         `});
 
@@ -62,13 +57,6 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
         // Search submission:
         helpers.input_handler(this.input_element, this.submit_search);
         this.container.querySelector(".search-submit-button").addEventListener("click", this.submit_search);
-
-        // Create the tag widget used by the search data source.
-        this.related_tag_widget = new tag_widget({
-            contents: this.container.querySelector(".related-tag-list"),
-        });
-
-        dropdown_menu_opener.create_handlers(this.container);
 
         // Hide the dropdowns on navigation.
         new view_hidden_listener(this.input_element, (e) => {
