@@ -209,7 +209,6 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
         this.public_bookmark = new bookmark_button_widget({
             contents: public_bookmark,
             bookmark_type: "public",
-            onedited: () => this.visible = false,
 
             // Instead of deleting the bookmark, save tag changes when these bookmark buttons
             // are clicked.
@@ -218,6 +217,7 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
             // Close if a bookmark button is clicked.
             bookmark_tag_list_widget: this.tag_list_widget,
         });
+        this.public_bookmark.addEventListener("bookmarkedited", () => this.visible = false);
 
         let private_bookmark = this.container.querySelector(".private");
         private_bookmark.hidden = ppixiv.native;
@@ -226,19 +226,19 @@ class mobile_overlay_bookmark_tag_dialog extends ppixiv.dialog_widget
             this.private_bookmark = new bookmark_button_widget({
                 contents: private_bookmark,
                 bookmark_type: "private",
-                onedited: () => this.visible = false,
                 toggle_bookmark: false,
                 bookmark_tag_list_widget: this.tag_list_widget,
             });
+            this.private_bookmark.addEventListener("bookmarkedited", () => this.visible = false);
         }
 
         let delete_bookmark = this.container.querySelector(".button-remove-bookmark");
         this.delete_bookmark = new bookmark_button_widget({
             contents: delete_bookmark,
             bookmark_type: "delete",
-            onedited: () => this.visible = false,
             bookmark_tag_list_widget: this.tag_list_widget,
         });
+        this.delete_bookmark.addEventListener("bookmarkedited", () => this.visible = false);
 
         this.tag_list_widget.set_media_id(media_id);
         this.public_bookmark.set_media_id(media_id);
@@ -267,7 +267,6 @@ class mobile_illust_ui_more_options_dialog extends dialog_widget
 
         this.more_options_widget = new more_options_dropdown_widget({
             container: this.container.querySelector(".box"),
-            visible: true,
         });
         this.more_options_widget.set_media_id(media_id);
     }

@@ -176,12 +176,11 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                             <ppixiv-inline src="resources/zoom-actual.svg"></ppixiv-inline>
                         </div>
                     </div>
-                    <!-- position: relative positions the popup menu. -->
-                    <div class=button-block style="position: relative;">
+                    <div class=button-block>
                         <div class="button button-more enabled" data-popup="More...">
+                        
                             ${ helpers.create_icon("settings") }
                         </div>
-                        <div class=popup-more-options-container></div>
                     </div>
                 </div>
                 <div class=button-strip>
@@ -199,8 +198,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                         </a>
                     </div>
 
-                    <!-- position: relative positions the popup menu. -->
-                    <div class="button-block button-container" style="position: relative;">
+                    <div class="button-block button-container">
                         <!-- position: relative positions the bookmark count. -->
                         <div class="button button-bookmark public" data-bookmark-type=public style="position: relative;">
                             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
@@ -215,11 +213,10 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                         </div>
                     </div>
                     
-                    <div class=button-block style="position: relative;">
-                        <div class="button button-bookmark-tags" data-popup="Bookmark tags">
+                    <div class=button-block>
+                        <div class="button button-bookmark-tags enabled" data-popup="Bookmark tags">
                             ${ helpers.create_icon("ppixiv:tag") }
                         </div>
-                        <div class=popup-bookmark-tag-dropdown-container></div>
                     </div>
 
                     <div class="button-block button-container">
@@ -732,27 +729,31 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             mode: "overlay",
         });
 
-        let bookmark_tag_list_widget = new bookmark_tag_list_dropdown_widget({
-            container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
+        // Set up the more options dropdown.
+        let more_options_button = this.container.querySelector(".button-more");
+        this.more_options_dropdown_opener = new ppixiv.dropdown_box_opener({
+            button: more_options_button,
+
+            create_box: ({...options}) => {
+                let dropdown = new more_options_dropdown_widget({
+                    ...options,
+                    parent: this,
+                });
+
+                dropdown.container.classList.add("popup-more-options-dropdown");
+                dropdown.set_media_id(this.effective_media_id);
+                dropdown.set_user_id(this.effective_user_id);
+
+                return dropdown;
+            },
         });
-        let more_options_widget = new more_options_dropdown_widget({
-            container: this.container.querySelector(".popup-more-options-container"),
+
+        more_options_button.addEventListener("click", (e) => {
+            this.more_options_dropdown_opener.visible = !this.more_options_dropdown_opener.visible;
         });
-        more_options_widget.container.classList.add("popup-more-options-dropdown");
 
         this.illust_widgets = [
             this.avatar_widget,
-            bookmark_tag_list_widget,
-            more_options_widget,
-            new toggle_dropdown_menu_widget({
-                contents: this.container.querySelector(".button-bookmark-tags"),
-                widget: bookmark_tag_list_widget,
-                require_image: true,
-            }),
-            new toggle_dropdown_menu_widget({
-                contents: this.container.querySelector(".button-more"),
-                widget: more_options_widget,
-            }),
             new like_button_widget({
                 contents: this.container.querySelector(".button-like"),
             }),
@@ -772,19 +773,26 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         }));
 
         // The bookmark buttons, and clicks in the tag dropdown:
+        this.bookmark_buttons = [];
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
         {
             // The bookmark buttons, and clicks in the tag dropdown:
-            this.illust_widgets.push(new bookmark_button_widget({
+            let bookmark_widget = new bookmark_button_widget({
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
-                bookmark_tag_list_widget,
+            });
 
-                // Close the tag dropdown if a bookmark button is clicked.
-                onedited: () => bookmark_tag_list_widget.visible = false,
-            }));
+            this.bookmark_buttons.push(bookmark_widget);
+            this.illust_widgets.push(bookmark_widget);
         }
-        this.element_bookmark_tag_list = this.container.querySelector(".bookmark-tag-list");
+
+        // Set up the bookmark tags dropdown.
+        this.bookmark_tags_dropdown_opener = new ppixiv.bookmark_tag_dropdown_opener({
+            parent: this,
+            bookmark_tags_button: this.container.querySelector(".button-bookmark-tags"),
+            bookmark_buttons: this.bookmark_buttons,
+        });
+        this.illust_widgets.push(this.bookmark_tags_dropdown_opener);
 
         this.refresh();
     }

@@ -8,7 +8,7 @@
 // Most actors are widgets and should derive from ppixiv.widget.  The base actor class
 // doesn't have HTML content or add itself to the DOM tree.  Non-widget actors are used
 // for helpers that want to live in the actor tree, but don't have content of their own.
-ppixiv.actor = class
+ppixiv.actor = class extends EventTarget
 {
     // If true, stack traces will be logged if shutdown() is called more than once.  This takes
     // a stack trace on each shutdown, so it's only enabled when needed.
@@ -56,6 +56,8 @@ ppixiv.actor = class
         ...options
     }={})
     {
+        super();
+        
         this.options = options;
 
         this.templates = {};
@@ -274,21 +276,24 @@ ppixiv.widget = class extends ppixiv.actor
         if(container != null && container instanceof ppixiv.widget)
             container = container.container;
 
-        let parent_search_node = container;
-        if(contents)
-            parent_search_node = contents.parentNode;
-        if(parent_search_node == null && parent == null)
-            console.warn("Can't search for parent");
-        if(parent_search_node)
+        if(parent == null)
         {
-            let parent_widget = widget.from_node(parent_search_node, { allow_none: true });
-            if(parent != null && parent !== parent_widget)
+            let parent_search_node = container;
+            if(contents)
+                parent_search_node = contents.parentNode;
+            if(parent_search_node == null && parent == null)
+                console.warn("Can't search for parent");
+            if(parent_search_node)
             {
-                console.assert(parent === parent_widget);
-                console.log("Found:", parent_widget);
-                console.log("Expected:", parent);
+                let parent_widget = widget.from_node(parent_search_node, { allow_none: true });
+                if(parent != null && parent !== parent_widget)
+                {
+                    console.assert(parent === parent_widget);
+                    console.log("Found:", parent_widget);
+                    console.log("Expected:", parent);
+                }
+                parent = parent_widget;
             }
-            parent = parent_widget;
         }
 
         super({container, parent, ...options});
@@ -368,7 +373,6 @@ ppixiv.widget = class extends ppixiv.actor
     apply_visibility()
     {
         helpers.set_class(this.container, "hidden-widget", !this._visible);
-        helpers.set_class(this.container, "visible-widget", this._visible);
     }
 
     // this.visible sets whether or not we want to be visible, but other things might influence
@@ -2040,6 +2044,15 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
         this.deactivated = true;
     }
 
+    shutdown()
+    {
+        // If we weren't hidden before being shut down, set ourselves hidden so we save any
+        // changes.
+        this.visible = false;
+
+        super.shutdown();
+    }
+
     // Return an array of tags selected in the tag dropdown.
     get selected_tags()
     {
@@ -2270,10 +2283,15 @@ ppixiv.bookmark_tag_list_widget = class extends ppixiv.illust_widget
 // A bookmark tag list in a dropdown.
 //
 // The base class is a simple widget.  This subclass handles some of the trickier
-// bits around closing the dropdown correctly.
+// bits around closing the dropdown correctly, and tells any bookmark buttons about
+// itself.
 ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_list_widget
 {
-    constructor({...options})
+    constructor({
+        media_id,
+        bookmark_buttons,
+        ...options
+    })
     {
         super({
             classes: ["popup-bookmark-tag-dropdown"],
@@ -2281,6 +2299,15 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
         });
 
         this.container.classList.add("popup-bookmark-tag-dropdown");
+
+        this.bookmark_buttons = bookmark_buttons;
+
+        this.set_media_id(media_id);
+
+        // Let the bookmark buttons know about this bookmark tag dropdown, and remove it when
+        // it's closed.
+        for(let bookmark_button of this.bookmark_buttons)
+            bookmark_button.bookmark_tag_list_widget = this;
     }
 
     async refresh_internal({ media_id })
@@ -2304,19 +2331,104 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
         if(!this.visible_recursively)
             this.visible = false;
     }
+
+    shutdown()
+    {
+        super.shutdown();
+
+        for(let bookmark_button of this.bookmark_buttons)
+        {
+            if(bookmark_button.bookmark_tag_list_widget == this)
+                bookmark_button.bookmark_tag_list_widget = null;
+        }
+    }
+}
+
+// This opens the bookmark tag dropdown when a button is pressed.
+ppixiv.bookmark_tag_dropdown_opener = class extends ppixiv.actor
+{
+    constructor({
+        // The bookmark tag button which opens the dropdown.
+        bookmark_tags_button,
+
+        // The associated bookmark button widgets, if any.
+        bookmark_buttons,
+        
+        onvisibilitychanged,
+        ...options
+    })
+    {
+        super({...options});
+
+        this.bookmark_buttons = bookmark_buttons;
+        this._media_id = null;
+
+        // Create an opener to actually create the dropdown.
+        this._opener = new ppixiv.dropdown_box_opener({
+            button: bookmark_tags_button,
+            onvisibilitychanged,
+            create_box: this._create_box,
+
+            // If we have bookmark buttons, don't close for clicks inside them.  We need the
+            // bookmark button to handle the click first, then it'll close us.
+            close_for_click: (e) =>
+            {
+                for(let button of this.bookmark_buttons)
+                {
+                    if(helpers.is_above(button.container, e.target))
+                        return false;
+                }
+
+                return true;
+            },
+        });
+
+        bookmark_tags_button.addEventListener("click", (e) => {
+            this._opener.visible = !this._opener.visible;
+        });
+
+        for(let button of this.bookmark_buttons)
+        {
+            button.addEventListener("bookmarkedited", () => {
+                this._opener.visible = false;
+            }, this._signal);
+        }
+    }
+
+    set_media_id(media_id)
+    {
+        if(this._media_id == media_id)
+            return;
+
+        this._media_id = media_id;
+
+        // Hide the dropdown if the image changes while it's open.
+        this._opener.visible = false;
+    }
+
+    _create_box = ({...options}) => {
+        if(this._media_id == null)
+            throw new Error("Media ID not set");
+
+        return new ppixiv.bookmark_tag_list_dropdown_widget({
+            ...options,
+            parent: this,
+            media_id: this._media_id,
+            bookmark_buttons: this.bookmark_buttons,
+        });
+    }
+
+    set visible(value) { this._opener.visible = value; }
+    get visible() { return this._opener.visible; }
 }
 
 ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "partial"; }
 
-    constructor({
-        visible=false,
-        ...options
-    })
+    constructor({ ...options })
     {
         super({...options,
-            visible,
             template: `
                 <div class="more-options-dropdown">
                     <div class="options vertical-list" style="min-width: 13em;"></div>
@@ -2719,43 +2831,6 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
     }
 }
 
-// A button in the context menu that shows and hides a dropdown.
-ppixiv.toggle_dropdown_menu_widget = class extends ppixiv.illust_widget
-{
-    // We only need an illust ID and no info.
-    get needed_data() { return "media_id"; }
-
-    constructor({widget, require_image=false, ...options})
-    {
-        super(options);
-
-        this.widget = widget;
-        this.require_image = require_image;
-
-        this.container.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Ignore clicks if this button isn't enabled.
-            if(this.require_image && !this.container.classList.contains("enabled"))
-                return;
-
-            // If the widget supports set_alt_pressed, tell it whether shift was held
-            // while it was opened.
-            if(this.widget.set_alt_pressed)
-                this.widget.set_alt_pressed(e.altKey);
-
-            this.widget.visible = !this.widget.visible;
-        });
-    }
-
-    refresh_internal({ media_id })
-    {
-        if(this.require_image)
-            helpers.set_class(this.container, "enabled", media_id != null);
-    }
-}
-
 ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "partial"; }
@@ -2774,19 +2849,31 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         // us about an active bookmark_tag_list_widget lets us prevent collisions.
         bookmark_tag_list_widget,
 
-        // This is called when the bookmark is edited.
-        onedited = () => { },
-
         ...options})
     {
         super({...options});
 
         this.bookmark_type = bookmark_type;
         this.toggle_bookmark = toggle_bookmark;
-        this.bookmark_tag_list_widget = bookmark_tag_list_widget;
-        this.onedited = onedited;
+        this._bookmark_tag_list_widget = bookmark_tag_list_widget;
 
         this.container.addEventListener("click", this.clicked_bookmark);
+    }
+
+    // Dispatch bookmarkedited when we're editing a bookmark.  This lets any bookmark tag
+    // dropdowns know they should close.
+    _fire_onedited()
+    {
+        this.dispatchEvent(new Event("bookmarkedited"));
+    }
+
+    // Set the associated bookmark_tag_list_widget.
+    //
+    // Bookmark buttons and the tag list widget both manipulate and can create bookmarks.  Telling
+    // us about an active bookmark_tag_list_widget lets us prevent collisions.
+    set bookmark_tag_list_widget(value)
+    {
+        this._bookmark_tag_list_widget = value;
     }
 
     refresh_internal({ media_id, media_info })
@@ -2839,18 +2926,17 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
         // If the tag list dropdown is open, make a list of tags selected in the tag list dropdown.
         // If it's closed, leave tag_list null so we don't modify the tag list.
         let tag_list = null;
-        if(this.bookmark_tag_list_widget && this.bookmark_tag_list_widget.visible)
-            tag_list = this.bookmark_tag_list_widget.selected_tags;
+        if(this._bookmark_tag_list_widget && this._bookmark_tag_list_widget.visible_recursively)
+            tag_list = this._bookmark_tag_list_widget.selected_tags;
 
         // If we have a tag list dropdown, tell it to become inactive.  It'll continue to
         // display its contents, so they don't change during transitions, but it won't make
         // any further bookmark changes.  This prevents it from trying to create a bookmark
         // when it closes, since we're doing that already.
-        if(this.bookmark_tag_list_widget)
-        {
-            this.bookmark_tag_list_widget.deactivate();
-            this.onedited();
-        }
+        if(this._bookmark_tag_list_widget)
+            this._bookmark_tag_list_widget.deactivate();
+
+        this._fire_onedited();
 
         let illust_data = await media_cache.get_media_info(this._media_id, { full: false });
         let private_bookmark = this.bookmark_type == "private";
@@ -2883,10 +2969,9 @@ ppixiv.bookmark_button_widget = class extends ppixiv.illust_widget
             // Hide the tag dropdown after unbookmarking, without saving any tags in the
             // dropdown (that would readd the bookmark).
             if(this.bookmark_tag_list_widget)
-            {
                 this.bookmark_tag_list_widget.deactivate();
-                this.onedited();
-            }
+
+            this._fire_onedited();
 
             return;
         }

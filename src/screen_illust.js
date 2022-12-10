@@ -17,11 +17,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
                 <!-- The top-left hover UI is inserted here. -->
                 <div class=ui>
-                    <div class=hover-sphere>
-                        <svg viewBox="0 0 1 1" preserveAspectRatio="none">
-                            <circle class=hover-circle cx="0.5" cy="0.5" r=".5" fill-opacity="0" />
-                        </svg>
-                    </div>
                 </div>
 
                 <div class=fade-search></div>
@@ -54,17 +49,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Desktop UI:
         if(!ppixiv.mobile)
         {
-            // Show the corner UI on hover.
-            this.ui.container.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
-            this.ui.container.addEventListener("mouseleave", (e) => { this.hovering_over_box = false; this.refresh_overlay_ui_visibility(); });
-   
-            let hover_circle = this.container.querySelector(".ui .hover-circle");
-            hover_circle.addEventListener("mouseenter", (e) => { this.hovering_over_sphere = true; this.refresh_overlay_ui_visibility(); });
-            hover_circle.addEventListener("mouseleave", (e) => { this.hovering_over_sphere = false; this.refresh_overlay_ui_visibility(); });
-            settings.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
-            settings.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
-            this.refresh_overlay_ui_visibility();
-        
             // Fullscreen on double-click.
             this.view_container.addEventListener("dblclick", () => {
                 helpers.toggle_fullscreen();
@@ -106,25 +90,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.drag_to_exit = new ScreenIllustDragToExit({ parent: this });
 
         this.deactivate();
-    }
-
-    refresh_overlay_ui_visibility()
-    {
-        // Hide widgets inside the hover UI when it's hidden.
-        let visible = this.hovering_over_box || this.hovering_over_sphere;
-
-        // Don't show the hover UI while editing, since it can get in the way of trying to
-        // click the image.
-        let editing = settings.get("image_editing") && settings.get("image_editing_mode") != null;
-        if(editing)
-            visible = false;
-
-        // Tell the image UI when it's visible.
-        this.ui.visible = visible;
-
-        // Hide the UI's container too when we're editing, so the hover boxes don't get in
-        // the way.
-        this.container.querySelector(".ui").hidden = editing || ppixiv.mobile;
     }
 
     set_data_source(data_source)

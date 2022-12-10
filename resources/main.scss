@@ -1140,7 +1140,7 @@ body.hide-r18g .r18g { display: none; }
 // ppixiv.dropdown_box_opener:
 .dropdown-box {
     position: absolute;
-    z-index: 2;
+    z-index: 100;
 }
 
 // ppixiv.dropdown_menu_opener:
@@ -2305,7 +2305,6 @@ a.box-link, span.box-link
 .popup-context-menu {
     color: #fff;
     position: fixed;
-    z-index: 1;
     top: 100px;
     left: 350px;
     text-align: left;
@@ -2449,13 +2448,6 @@ a.box-link, span.box-link
         }
     }
 
-    // Enable scrolling on the bookmark tag list.
-    .bookmark-tag-list > .tag-list
-    {
-        overflow-x: hidden;
-        overflow-y: auto;
-    }
-        
     .context-menu-image-info-container {
         // Bottom align within the row.
         align-self: flex-end;
@@ -2501,13 +2493,15 @@ a.box-link, span.box-link
 .popup-more-options-dropdown {
     background-color: var(--frame-bg-color);
     color: var(--frame-fg-color);
-    position: absolute;
     padding: 4px;
-    top: calc(100%);
     border-radius: 0px 0px 4px 4px;
 
-    /* Put this on top of other elements, like the image-ui tag list. */
-    z-index: 1;
+    // Enable scrolling on the bookmark tag list.
+    .tag-list
+    {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
 }
 
 .bookmark-tag-list,

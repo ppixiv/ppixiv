@@ -10,6 +10,12 @@ ppixiv.image_ui = class extends ppixiv.widget
             visible: false,
             template: `
 <div class=ui-box>
+    <div class=hover-sphere>
+        <svg viewBox="0 0 1 1" preserveAspectRatio="none">
+            <circle class=hover-circle cx="0.5" cy="0.5" r=".5" fill-opacity="0" />
+        </svg>
+    </div>
+
     <div class=avatar-popup></div>
 
     <div class=ui-title-box>
@@ -65,15 +71,12 @@ ppixiv.image_ui = class extends ppixiv.widget
             </div>
         </div>
 
-        <!-- position: relative positions the tag dropdown. -->
-        <div class=button-container style="position: relative;">
+        <div class=button-container>
             <!-- position: relative positions the bookmark count. -->
             <div class="button icon-button button-bookmark public popup" data-bookmark-type=public style="position: relative;">
                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                 <div class=count></div>
             </div>
-
-            <div class=popup-bookmark-tag-dropdown-container></div>
         </div>
 
         <div class="button icon-button button-bookmark private popup button-container" data-bookmark-type=private>
@@ -143,14 +146,6 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         media_cache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
         
-        this.bookmark_tag_widget = new bookmark_tag_list_dropdown_widget({
-            container: this.container.querySelector(".popup-bookmark-tag-dropdown-container"),
-        });
-        this.toggle_tag_widget = new toggle_dropdown_menu_widget({
-            contents: this.container.querySelector(".button-bookmark-tags"),
-            widget: this.bookmark_tag_widget,
-            require_image: true,
-        });
         this.like_button = new like_button_widget({
             contents: this.container.querySelector(".button-like"),
         });
@@ -168,8 +163,19 @@ ppixiv.image_ui = class extends ppixiv.widget
             this.bookmark_buttons.push(new bookmark_button_widget({
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
-                bookmark_tag_widget: this.bookmark_tag_widget,
             }));
+
+        let bookmark_tags_button = this.container.querySelector(".button-bookmark-tags");
+        this.bookmark_tags_dropdown_opener = new ppixiv.bookmark_tag_dropdown_opener({
+            parent: this,
+            bookmark_tags_button,
+            bookmark_buttons: this.bookmark_buttons,
+
+            // The dropdown affects visibility, so refresh when it closes.
+            onvisibilitychanged: () => {
+                this.refresh_overlay_ui_visibility();
+            },
+        });
 
         for(let button of this.container.querySelectorAll(".download-button"))
             button.addEventListener("click", this.clicked_download);
@@ -181,6 +187,40 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
             new ppixiv.settings_dialog();
         });
+
+        // Show on hover.
+        this.container.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
+        this.container.addEventListener("mouseleave", (e) => { this.hovering_over_box = false; this.refresh_overlay_ui_visibility(); });
+
+        let hover_circle = this.querySelector(".hover-circle");
+        hover_circle.addEventListener("mouseenter", (e) => { this.hovering_over_sphere = true; this.refresh_overlay_ui_visibility(); });
+        hover_circle.addEventListener("mouseleave", (e) => { this.hovering_over_sphere = false; this.refresh_overlay_ui_visibility(); });
+        settings.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
+        settings.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
+        this.refresh_overlay_ui_visibility();
+    }
+
+    refresh_overlay_ui_visibility()
+    {
+        // Hide widgets inside the hover UI when it's hidden.
+        let visible = this.hovering_over_box || this.hovering_over_sphere;
+
+        // Don't show the hover UI while editing, since it can get in the way of trying to
+        // click the image.
+        let editing = settings.get("image_editing") && settings.get("image_editing_mode") != null;
+        if(editing)
+            visible = false;
+
+        // Stay visible if the bookmark tag dropdown is visible.
+        if(this.bookmark_tags_dropdown_opener?.visible)
+            visible = true;
+
+        // Tell the image UI when it's visible.
+        this.visible = visible;
+
+        // Hide the UI's container too when we're editing, so the hover boxes don't get in
+        // the way.
+        this.container.hidden = editing || ppixiv.mobile;
     }
 
     visibility_changed()
@@ -231,13 +271,12 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         // Update widget illust IDs.
         this.like_button.set_media_id(this._media_id);
-        this.bookmark_tag_widget.set_media_id(this._media_id);
-        this.toggle_tag_widget.set_media_id(this._media_id);
         this.like_count_widget.set_media_id(this._media_id);
         this.bookmark_count_widget.set_media_id(this._media_id);
         for(let button of this.bookmark_buttons)
             button.set_media_id(this._media_id);
-    
+        this.bookmark_tags_dropdown_opener.set_media_id(this._media_id);
+
         this.illust_data = null;
         if(this._media_id == null)
             return;
