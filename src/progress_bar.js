@@ -54,16 +54,8 @@ ppixiv.progress_bar_controller = class
             return;
 
         this.progress_bar.bar.hidden = (value == null);
-        this.progress_bar.bar.classList.remove("hide");
-        this.progress_bar.bar.getBoundingClientRect();
         if(value != null)
             this.progress_bar.bar.style.width = (value * 100) + "%";
-    }
-
-    // Flash the current progress value and fade out.
-    show_briefly()
-    {
-        this.progress_bar.bar.classList.add("hide");
     }
 
     detach()

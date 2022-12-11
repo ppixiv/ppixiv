@@ -480,11 +480,6 @@ input, textarea, [contenteditable] {
     width: 100%;
     height: 2px;
     z-index: 100;
-    @keyframes flash-progress-bar { to { opacity: 0; } }
-
-    &.hide {
-        animation: flash-progress-bar 500ms linear 1 forwards;
-    }
 }
 
 // ppixiv.checkbox_widget:
