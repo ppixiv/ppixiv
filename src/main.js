@@ -237,8 +237,10 @@ ppixiv.MainController = class
          
         this.container = document.body;
 
-        // Create the popup menu handler.
-        this.context_menu = new main_context_menu({container: document.body});
+        // Create the popup menu.
+        if(!ppixiv.mobile)
+            this.context_menu = new main_context_menu({container: document.body});
+
         link_this_tab_popup.setup();
         send_here_popup.setup();
 
@@ -411,7 +413,8 @@ ppixiv.MainController = class
             message_widget.singleton.hide();
             
             this.data_source = data_source;
-            this.context_menu.set_data_source(data_source);
+            if(this.context_menu)
+                this.context_menu.set_data_source(data_source);
             
             if(this.data_source != null)
                 this.data_source.startup();
@@ -440,7 +443,8 @@ ppixiv.MainController = class
 
         let new_screen = this.screens[new_screen_name];
 
-        this.context_menu.set_media_id(media_id);
+        if(this.context_menu)
+            this.context_menu.set_media_id(media_id);
         
         this.current_screen_name = new_screen_name;
 

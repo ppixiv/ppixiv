@@ -660,19 +660,9 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
 ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
 {
-    // Return the singleton.
-    static get get()
-    {
-        return main_context_menu._singleton;
-    }
-
     constructor({...options})
     {
         super(options);
-
-        if(main_context_menu._singleton != null)
-            throw "Singleton already exists";
-        main_context_menu._singleton = this;
 
         this._on_click_viewer = null;
         this._media_id = null;

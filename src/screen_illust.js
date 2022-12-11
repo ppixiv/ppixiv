@@ -157,7 +157,8 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.cancel_async_navigation();
 
         // Stop showing the user in the context menu, and stop showing the current page.
-        main_context_menu.get.set_media_id(null);
+        if(main_controller.context_menu)
+            main_controller.context_menu.set_media_id(null);
 
         if(this.mobile_illust_ui)
         {
@@ -529,8 +530,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.ui.media_id = this.current_media_id;
 
         // Tell the context menu which user is being viewed.
-        main_context_menu.get.user_id = this.current_user_id;
-        main_context_menu.get.set_media_id(this.current_media_id);
+        if(main_controller.context_menu)
+        {
+            main_controller.context_menu.user_id = this.current_user_id;
+            main_controller.context_menu.set_media_id(this.current_media_id);
+        }
 
         if(this.mobile_illust_ui)
         {
