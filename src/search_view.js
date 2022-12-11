@@ -1650,6 +1650,9 @@ ppixiv.search_view = class extends ppixiv.widget
     // after coming from an illustration.
     scroll_to_media_id(media_id)
     {
+        // Make sure this image has a thumbnail created if possible.
+        this.refresh_images({ forced_media_id: media_id });
+
         let thumb = this.get_thumbnail_for_media_id(media_id, { fallback_on_p1: true });
         if(thumb == null)
             return false;
