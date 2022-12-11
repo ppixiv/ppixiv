@@ -1170,7 +1170,7 @@ class DragImageChanger
     }
 };
 
-// This handles dragging down from the top of the screen to return to the search on mobile.
+// This handles dragging up from the top of the screen to return to the search on mobile.
 class ScreenIllustDragToExit
 {
     constructor({parent})
@@ -1191,7 +1191,7 @@ class ScreenIllustDragToExit
 
             // We're hidden until set_active makes us visible.
             visible: false,
-            direction: "up", // up to make visible, down to hide
+            direction: "down", // down to make visible, up to hide
             duration: () => {
                 return settings.get("animations_enabled")? 200:0;
             },
