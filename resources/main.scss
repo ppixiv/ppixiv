@@ -1149,7 +1149,7 @@ body.hide-r18g .r18g { display: none; }
     min-width: 10em;
     background-color: var(--frame-bg-color);
     border: 1px solid var(--frame-border-color);
-    padding: .25em .5em;
+    padding: .25em .25em;
 }
 
 .popup-menu-box.hover-menu-box {
@@ -2100,12 +2100,14 @@ a.box-link, span.box-link
     }
 }
 
-/* Tag lists are usually inline.  Make the tag filter a vertical list. */
-.search-tags-box .related-tag-list,
 .data-source-tag-list
 {
     max-height: 50vh;
-    min-width: 20em;
+
+    // Try to set a minimum width, but clamp at the viewport width, so we fill horizontally
+    // if we're on desktop and filling the screen.
+    min-width: min(20em, 100vw);
+    max-width: 100vw;
     overflow-x: hidden;
     overflow-y: auto;
     white-space: nowrap;
