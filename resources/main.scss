@@ -2131,23 +2131,9 @@ a.box-link, span.box-link
     margin-top: 8px; // push slightly away from the input box
     margin-left: -4px;
 
-    // Global editor buttons.  These sit on top of the scroller overlapping the sticky header
-    // area.
-    > .tag-dropdown-global-buttons {
-        font-size: 150%;
-        position: absolute;
-        top: 0;
-        left: calc(100% + 0em);
-        background-color: #004;
-
-        display: flex;
-        flex-direction: column;
-        gap: .5em;
-    }
-
     // Hide edit buttons when not editing.
     &:not(.editing) {
-        .edit-button { display: none !important; }
+        .edit-button, .editing-only { display: none !important; }
     }
 
     .edit-button {
@@ -2178,7 +2164,7 @@ a.box-link, span.box-link
 
     .input-dropdown-contents {
         width: var(--width); // set by script
-        max-width: min(800px, 80vw);
+        max-width: min(800px, 100vw);
         margin: 1px;
 
         display: flex;
@@ -2219,7 +2205,7 @@ a.box-link, span.box-link
             padding: .5em;
         }
 
-        > .entry {
+        .entry {
             display: flex;
             flex-direction: row;
             color: var(--box-link-fg-color);
@@ -2265,7 +2251,7 @@ a.box-link, span.box-link
         
         // Only highlight on hover when editing is disabled, since activating entries is disabled
         // during editing.
-        &:not(.editing) > .entry {
+        &:not(.editing) .entry {
             @media(hover: hover) {
                 &:hover { background-color: var(--box-link-hover-color); }
                 &:hover.selected { background-color: var(--box-link-selected-hover-color); }

@@ -34,6 +34,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             create_box: ({...options}) => {
                 return new tag_search_dropdown_widget({
                     input_element: this.container,
+                    parent: this,
                     ...options,
                 });
             },
@@ -124,17 +125,21 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     {
         super({...options, template: `
             <div class="search-history input-dropdown" tabindex=1>
-                <div class=tag-dropdown-global-buttons>
-                    <div class="edit-button create-section-button">${ helpers.create_icon("mat:create_new_folder") }</div>
-                </div>
-
                 <div class="all-results">
                     <div class="input-dropdown-contents autocomplete-list">
                         <!-- template-tag-dropdown-entry instances will be added here. -->
                     </div>
 
                     <div class="input-dropdown-contents input-dropdown-list">
+                        <div class="tag-section create-section-button editing-only">
+                            <div class="edit-button">
+                                ${ helpers.create_icon("mat:create_new_folder") }
+                            </div>
+                            <div class=label>Add section</div>
+                        </div>
+
                         <!-- template-tag-dropdown-entry instances will be added here. -->
+                        <vv-container class=contents></vv-container>
                     </div>
                 </div>
             </div>
@@ -164,6 +169,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.all_results = this.container.querySelector(".all-results");
         this.autocomplete_list = this.container.querySelector(".autocomplete-list");
         this.input_dropdown = this.container.querySelector(".input-dropdown-list");
+        this.input_dropdown_contents = this.input_dropdown.querySelector(".contents");
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
@@ -1098,13 +1104,13 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let saved_position = this.save_search_position();
 
         helpers.remove_elements(this.autocomplete_list);
-        helpers.remove_elements(this.input_dropdown);
+        helpers.remove_elements(this.input_dropdown_contents);
 
         this.autocomplete_list.hidden = autocompleted_tags.length == 0;
 
         // On mobile, don't put autocompletes in a separate scroller, since there usually isn't
         // space.
-        let autocomplete_container = ppixiv.mobile? this.input_dropdown:this.autocomplete_list;
+        let autocomplete_container = ppixiv.mobile? this.input_dropdown_contents:this.autocomplete_list;
 
         // Add autocompletes at the top.
         if(autocompleted_tags.length)
@@ -1126,7 +1132,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 continue;
 
             let collapsed = saved_search_tags.get_collapsed_tag_groups().has(group_name);
-            this.input_dropdown.appendChild(this.create_separator(group_name, {
+            this.input_dropdown_contents.appendChild(this.create_separator(group_name, {
                 icon: collapsed? "mat:folder":"mat:folder_open",
                 is_user_section: true,
                 group_name: group_name,
@@ -1137,7 +1143,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             if(!collapsed)
             {
                 for(let tag of tags_in_group)
-                    this.input_dropdown.appendChild(this.create_entry(tag, { classes: ["history", "saved"] }));
+                    this.input_dropdown_contents.appendChild(this.create_entry(tag, { classes: ["history", "saved"] }));
             }
         }
 
@@ -1145,7 +1151,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let recents_collapsed = saved_search_tags.get_collapsed_tag_groups().has(null);
         let recent_tags = tags_by_group.get(null);
         if(recent_tags.length)
-            this.input_dropdown.appendChild(this.create_separator("Recent tags", {
+            this.input_dropdown_contents.appendChild(this.create_separator("Recent tags", {
                 icon: "mat:history",
                 collapsed: recents_collapsed,
             }));
@@ -1153,7 +1159,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         if(!recents_collapsed)
         {
             for(let tag of recent_tags)
-                this.input_dropdown.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
+                this.input_dropdown_contents.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
         }
 
         helpers.set_max_height(this.input_dropdown);
@@ -1221,7 +1227,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // list and find it.  All nodes that are stickied will have the same offsetTop, so we need
         // to find the last sticky node with the same offsetTop as the first one.
         let sticky_top = null;
-        for(let node of this.input_dropdown.children)
+        for(let node of this.input_dropdown_contents.children)
         {
             if(!node.classList.contains("tag-section"))
                 continue;
