@@ -5323,7 +5323,21 @@ ppixiv.RunningDrags = class
 
     // Add an active dragger.  If cancel_others is called, oncancel() will be called to
     // cancel the drag.
-    static add(dragger, oncancel) { this.drags.set(dragger, oncancel); }
+    static add(dragger, oncancel)
+    {
+        // Sanity check: we should never add new drags to the list while another one is already
+        // active.  It's redundant but OK for the active dragger to re-add itself.
+        if(this._active_drag != null && this._active_drag != dragger)
+        {
+            console.log("Adding:", dragger);
+            console.log("Active:", this._active_drag);
+
+            throw new Error("Can't add a dragger while one is currently active");
+        }
+
+        this.drags.set(dragger, oncancel);
+    }
+    
     static remove(dragger)
     {
         this.drags.delete(dragger);
