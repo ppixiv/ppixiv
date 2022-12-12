@@ -1348,6 +1348,10 @@ ppixiv.avatar_widget = class extends widget
         // If true, handle clicks and show the follow dropdown.  If false, this is just an
         // avatar image.
         interactive=true,
+
+        // This is called when the follow dropdown visibility changes.
+        dropdownvisibilitychanged=() => { },
+
         ...options
     }={})
     {
@@ -1378,6 +1382,7 @@ ppixiv.avatar_widget = class extends widget
         {
             this.follow_dropdown_opener = new ppixiv.dropdown_box_opener({
                 button: avatar_link,
+                onvisibilitychanged: dropdownvisibilitychanged,
                 create_box: ({...options}) => {
                     this.follow_widget = new ppixiv.follow_widget({
                         ...options,

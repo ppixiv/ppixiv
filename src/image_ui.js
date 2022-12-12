@@ -138,6 +138,9 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.avatar_widget = new avatar_widget({
             container: this.container.querySelector(".avatar-popup"),
             mode: "dropdown",
+            dropdownvisibilitychanged: () => {
+                this.refresh_overlay_ui_visibility();
+            },
         });
 
         this.tag_widget = new tag_widget({
@@ -211,8 +214,8 @@ ppixiv.image_ui = class extends ppixiv.widget
         if(editing)
             visible = false;
 
-        // Stay visible if the bookmark tag dropdown is visible.
-        if(this.bookmark_tags_dropdown_opener?.visible)
+        // Stay visible if the bookmark tag dropdown or the follow dropdown are visible.
+        if(this.bookmark_tags_dropdown_opener?.visible || this.avatar_widget.follow_dropdown_opener.visible)
             visible = true;
 
         // Tell the image UI when it's visible.
