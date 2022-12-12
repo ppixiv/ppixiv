@@ -1522,7 +1522,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
            this.container.style.cursor = "none";
 
            // Don't show the UI if the mouse hovers over it while dragging.
-           document.body.classList.add("hide-ui");
+           ClassFlags.get.set("hide-ui", true);
 
            // Stop animating if this is a real click.  If it's a carried-over click during quick
            // view, don't stop animating until we see a drag.
@@ -1573,7 +1573,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
    shutdown()
    {
        // Note that we need to avoid writing to browser history once shutdown() is called.
-       document.body.classList.remove("hide-ui");
+       ClassFlags.get.set("hide-ui", false);
        super.shutdown();
    }
 
@@ -1601,7 +1601,7 @@ ppixiv.image_viewer_desktop = class extends ppixiv.image_viewer_base
        
        this.container.removeEventListener("lostpointercapture", this.lost_pointer_capture);
 
-       document.body.classList.remove("hide-ui");
+       ClassFlags.get.set("hide-ui", false);
        
        this._mouse_pressed = false;
        this.reposition();

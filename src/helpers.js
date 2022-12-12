@@ -5172,7 +5172,8 @@ ppixiv.ClassFlags = class extends EventTarget
             // the first oldValue to the current value.
             let mutation = mutations[0];
 
-            let old_set = new Set(mutation.oldValue.split(" "));
+            let old_classes = mutation.oldValue ?? "";
+            let old_set = new Set(old_classes.split(" "));
             let new_set = this.element.classList;
             for(let name of new_set)
                 if(!old_set.has(name))

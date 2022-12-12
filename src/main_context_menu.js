@@ -420,7 +420,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.apply_visibility();
 
         // Disable popup UI while a context menu is open.
-        document.body.classList.add("hide-ui");
+        ClassFlags.get.set("hide-ui", true);
         
         window.addEventListener("blur", this.window_onblur);
 
@@ -653,7 +653,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.displayed_menu = null;
         hide_mouse_cursor_on_idle.enable_all("context-menu");
         this.buttons_down = {};
-        document.body.classList.remove("hide-ui");
+        ClassFlags.get.set("hide-ui", false);
         window.removeEventListener("blur", this.window_onblur);
         window.removeEventListener("dragstart", this.cancel_event, true);
 

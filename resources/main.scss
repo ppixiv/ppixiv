@@ -713,142 +713,127 @@ input, textarea, [contenteditable] {
     }
 }
 
-.screen-illust-container {
-    .ui {
+.image-ui {
+    .disabled {
+        display: none;
+    }
+
+    // This is the box that triggers the UI to be displayed.  We use this rather than
+    // ui-box for this so we can give it a fixed size.  That way, the UI box won't suddenly
+    // appear when changing to another image because a longer description caused the box
+    // to become bigger.
+    //
+    // This is a little tricky.  Hovering over either hover-box or the UI makes it visible.
+    // When the UI is hidden, it's set to pointer-events: none, so it can't be hovered,
+    // but once you hover over hover-box and cause the UI to be visible, pointer events
+    // are reenabled so hovering over anywhere in the UI keeps it visible.  The UI is
+    // over hover-box in the Z order, so we don't need to disable pointer events on hover-box
+    // to prevent it from blocking the UI.
+    //
+    // We also disable pointer-events on the UI until it's visible, so it doesn't receive
+    // clicks until it's visible.
+    .hover-sphere {
+        width: 500px;
+        height: 500px;
+
+        /* Clamp the sphere to a percentage of the viewport width, so it gets smaller for
+        * small windows. */
+        max-width: 30vw;
+        max-height: 30vw;
         position: absolute;
-        top: 0px;
-        left: 0px;
-        min-width: 450px;
-        max-height: 500px;
+        top: 0;
+        left: 0;
+
+        circle {
+            pointer-events: auto; /* reenable pointer events that are disabled on .ui */
+        }
+
+        &  > svg {
+            width: 100%;
+            height: 100%;
+            transform: translate(-50%,-50%)
+        }
+    }
+
+    .ui-box
+    {
+        position: absolute;
+        top: 1vmin;
+        left: 1vmin;
+        min-width: min(450px, 90vw);
+        max-height: min(500px, 100vh - 2vmin);
         width: 30%;
-        height: auto;
 
-        /* Disable events on the top-level container, so it doesn't block clicks on the
-         * image when the UI isn't visible.  We'll reenable events on the hover-box and ui-box
-         * below it where we actually want pointer events. */
-        pointer-events: none;
+        color: var(--ui-fg-color);
+        border: solid 2px var(--ui-border-color);
+        background-color: var(--ui-bg-color);
+        padding: 1em;
+        border-radius: 8px;
 
-        .disabled {
-            display: none;
-        }
-    }
-}
-
-/*
- * This is the box that triggers the UI to be displayed.  We use this rather than
- * ui-box for this so we can give it a fixed size.  That way, the UI box won't suddenly
- * appear when changing to another image because a longer description caused the box
- * to become bigger.
- *
- * This is a little tricky.  Hovering over either hover-box or the UI makes it visible.
- * When the UI is hidden, it's set to pointer-events: none, so it can't be hovered,
- * but once you hover over hover-box and cause the UI to be visible, pointer events
- * are reenabled so hovering over anywhere in the UI keeps it visible.  The UI is
- * over hover-box in the Z order, so we don't need to disable pointer events on hover-box
- * to prevent it from blocking the UI.
- *
- * We also disable pointer-events on the UI until it's visible, so it doesn't receive
- * clicks until it's visible.
- */
-.hover-sphere {
-    width: 500px;
-    height: 500px;
-
-    /* Clamp the sphere to a percentage of the viewport width, so it gets smaller for
-     * small windows. */
-    max-width: 30vw;
-    max-height: 30vw;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: -1; // underneath the UI
-
-    circle {
-        pointer-events: auto; /* reenable pointer events that are disabled on .ui */
-    }
-
-    &  > svg {
-        width: 100%;
-        height: 100%;
-        transform: translate(-50%,-50%)
-    }
-}
-
-.ui-box
-{
-    background-color: var(--ui-bg-color);
-    color: var(--ui-fg-color);
-    border: solid 2px var(--ui-border-color);
-    padding: 1em;
-    border-radius: 8px;
-    position: relative;
-
-    // The avatar icon in the top-right.  This is absolutely positioned, since we don't
-    // want this to push the rest of the UI down.
-    .avatar-popup
-    {
-        position: absolute;
-        top: 1em;
-        right: 1em;
-    }
-
-    .ui-title-box
-    {
-        display: flex;
-        flex-direction: row;
-
-        // Prevent this from overlapping the absolutely-positioned avatar icon above it.
-        margin-right: 4em;
-    }
-
-    .author {
-        vertical-align: top;
-    }
-    
-    // Override the default hidden-widget hiding behavior.
-    &.hidden-widget
-    {
-        display: inherit !important;
-    }
-
-    .screen-illust-container & {
         transition: transform .25s, opacity .25s;
-        opacity: 0;
-        transform: translate(-50px, 0);
-        pointer-events: none;
-        margin: .5em;
 
-        // Make sure text doesn't stay selected while we're hidden.
-        user-select: none;
-        
-        // Show the UI on hover when hide-ui isn't set.  force-ui is used for debugging.
-        body:not(.hide-ui) &:not(.hidden-widget),
-        body.force-ui &
+        overflow-x: hidden;
+        overflow-y: auto;
+        overflow-y: overlay;
+
+        opacity: 1;
+        transform: translate(0, 0);
+
+        // Hide the UI when ui-hidden is set.  force-ui is used for debugging.
+        body:not(.force-ui) &:not(.ui-hidden)
         {
-            opacity: 1;
-            transform: translate(0, 0);
-            pointer-events: auto;
-            user-select: auto;
+            opacity: 0;
+            transform: translate(-50px, 0);
+            pointer-events: none;
+            user-select: none;
         }
-    }
 
-    .button.button-bookmark .count,
-    .button.button-like .count
-    {
-        top: calc(100% - 11px);
-        pointer-events: none;
-    }
-}
+        // The avatar icon in the top-right.  This is absolutely positioned, since we don't
+        // want this to push the rest of the UI down.
+        .avatar-popup
+        {
+            position: absolute;
+            top: 1em;
+            right: 1em;
+        }
 
-.button-row {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--icon-row-gap);
+        .ui-title-box
+        {
+            display: flex;
+            flex-direction: row;
 
-    .button.enabled {
-        cursor: pointer;
+            // Prevent this from overlapping the absolutely-positioned avatar icon above it.
+            margin-right: 4em;
+        }
+
+        .post-info > * {
+            display: inline-block;
+            background-color: var(--box-link-bg-color);
+            color: var(--box-link-fg-color);
+            padding: 2px 10px;
+
+            // Use a smaller, heavier font to distinguish these from tags.
+            font-size: .8em;
+            font-weight: bold;
+        }
+
+        .description {
+            border: solid 1px var(--ui-border-color);
+            padding: .35em;
+            background-color: var(--ui-bg-section-color);
+            overflow-wrap: break-word;
+        }
+
+        .author {
+            vertical-align: top;
+        }
+        
+        .button.button-bookmark .count,
+        .button.button-like .count
+        {
+            top: calc(100% - 11px);
+            pointer-events: none;
+        }
     }
 }
 
@@ -877,6 +862,18 @@ input, textarea, [contenteditable] {
                 z-index: 1;
             }
         }
+    }
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--icon-row-gap);
+
+    .button.enabled {
+        cursor: pointer;
     }
 }
 
@@ -1059,23 +1056,6 @@ body.dot canvas.filtering {
     image-rendering: pixelated;
 }
 
-.post-info > * {
-    display: inline-block;
-    background-color: var(--box-link-bg-color);
-    color: var(--box-link-fg-color);
-    padding: 2px 10px;
-
-    /* Use a smaller, heavier font to distinguish these from tags. */
-    font-size: .8em;
-    font-weight: bold;
-}
-.description {
-    border: solid 1px var(--ui-border-color);
-    padding: .35em;
-    background-color: var(--ui-bg-section-color);
-    max-height: 10em;
-    overflow-y: auto;
-}
 /* Override obnoxious colors in descriptions.  Why would you allow this? */
 .description * {
     color: var(--ui-fg-color);

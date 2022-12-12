@@ -548,9 +548,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         let [illust_id] = helpers.media_id_to_illust_id_and_page(this.current_media_id);
         disable_button.href = `/artworks/${illust_id}#no-ppixiv`;
 
-        // If we're not showing an image yet, hide the UI and don't try to update it.
-        helpers.set_class(this.container.querySelector(".ui"), "disabled", this.current_media_id == null);
-
         if(this.current_media_id == null)
             return;
 
@@ -562,11 +559,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(!this._active)
             return;        
 
-        // Don't intercept wheel scrolling over the description box.
-        if(e.target.closest(".description") != null)
-            return;
-
-        var down = e.deltaY > 0;
+        let down = e.deltaY > 0;
         this.navigate_to_next(down, { manga: e.shiftKey? "skip-to-first":"normal" });
     }
 

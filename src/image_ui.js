@@ -9,131 +9,137 @@ ppixiv.image_ui = class extends ppixiv.widget
             ...options,
             visible: false,
             template: `
-<div class=ui-box>
+<div class=image-ui>
     <div class=hover-sphere>
         <svg viewBox="0 0 1 1" preserveAspectRatio="none">
             <circle class=hover-circle cx="0.5" cy="0.5" r=".5" fill-opacity="0" />
         </svg>
     </div>
 
-    <div class=avatar-popup></div>
+    <div class=ui-box>
+        <div class=avatar-popup></div>
 
-    <div class=ui-title-box>
-        <div>
-            <span class="title-block">
-                <!-- Put the title and author in separate inline-blocks, to encourage
-                     the browser to wrap between them if possible, putting the author
-                     on its own line if they won't both fit, but still allowing the
-                     title to wrap if it's too long by itself. -->
-                <span style="display: inline-block;" class="title-font">
-                    <a class="title"></a>
+        <div class=ui-title-box>
+            <div>
+                <span class="title-block">
+                    <!-- Put the title and author in separate inline-blocks, to encourage
+                        the browser to wrap between them if possible, putting the author
+                        on its own line if they won't both fit, but still allowing the
+                        title to wrap if it's too long by itself. -->
+                    <span style="display: inline-block;" class="title-font">
+                        <a class="title"></a>
+                    </span>
+                    <span style="display: inline-block;" class="author-block title-font">
+                        <span style="font-size: 12px;">by</span>
+                        <a class="author"></a>
+                    </span>
+                    <span style="display: inline-block;" class=folder-block>
+                        <span style="font-size: 12px;">in</span>
+                        <a class="folder-text title-font"></a>
+                    </span>
+
+                    <a class=edit-post href=#>Edit post</a>
                 </span>
-                <span style="display: inline-block;" class="author-block title-font">
-                    <span style="font-size: 12px;">by</span>
-                    <a class="author"></a>
-                </span>
-                <span style="display: inline-block;" class=folder-block>
-                    <span style="font-size: 12px;">in</span>
-                    <a class="folder-text title-font"></a>
-                </span>
-
-                <a class=edit-post href=#>Edit post</a>
-            </span>
-        </div>
-    </div>
-
-    <div class=button-row style="margin: 0.5em 0">
-        <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
-            ${ helpers.create_icon("ppixiv:pixiv") }
-        </a>
-
-        <div class="view-manga-button popup" data-popup="View manga pages">
-            <div class="icon-button">
-                ${ helpers.create_icon("ppixiv:thumbnails") }
             </div>
         </div>
 
-        <div class="download-button download-image-button popup pixiv-only" data-download="image" data-popup="Download image">
-            <div class="icon-button button enabled">
-                <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
-            </div>
-        </div>
+        <div class=button-row style="margin: 0.5em 0">
+            <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
+                ${ helpers.create_icon("ppixiv:pixiv") }
+            </a>
 
-        <div class="download-button download-manga-button popup pixiv-only" data-download="ZIP" data-popup="Download ZIP of all images">
-            <div class="icon-button button enabled">
-                <ppixiv-inline src="resources/download-manga-icon.svg"></ppixiv-inline>
+            <div class="view-manga-button popup" data-popup="View manga pages">
+                <div class="icon-button">
+                    ${ helpers.create_icon("ppixiv:thumbnails") }
+                </div>
             </div>
-        </div>
 
-        <div class="download-button download-video-button popup pixiv-only" data-download="MKV" data-popup="Download MKV">
-            <div class="icon-button button enabled">
-                <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
+            <div class="download-button download-image-button popup pixiv-only" data-download="image" data-popup="Download image">
+                <div class="icon-button button enabled">
+                    <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
+                </div>
             </div>
-        </div>
 
-        <div class=button-container>
-            <!-- position: relative positions the bookmark count. -->
-            <div class="button icon-button button-bookmark public popup" data-bookmark-type=public style="position: relative;">
+            <div class="download-button download-manga-button popup pixiv-only" data-download="ZIP" data-popup="Download ZIP of all images">
+                <div class="icon-button button enabled">
+                    <ppixiv-inline src="resources/download-manga-icon.svg"></ppixiv-inline>
+                </div>
+            </div>
+
+            <div class="download-button download-video-button popup pixiv-only" data-download="MKV" data-popup="Download MKV">
+                <div class="icon-button button enabled">
+                    <ppixiv-inline src="resources/download-icon.svg"></ppixiv-inline>
+                </div>
+            </div>
+
+            <div class=button-container>
+                <!-- position: relative positions the bookmark count. -->
+                <div class="button icon-button button-bookmark public popup" data-bookmark-type=public style="position: relative;">
+                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                    <div class=count></div>
+                </div>
+            </div>
+
+            <div class="button icon-button button-bookmark private popup button-container" data-bookmark-type=private>
                 <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+            </div>
+            
+            <div style="position: relative;">
+                <div class="button icon-button button-bookmark-tags popup" data-popup="Bookmark tags">
+                    ${ helpers.create_icon("ppixiv:tag") }
+                    <div style="position: absolute; bottom: 2px; left: 4px;">
+                        <div class=tag-dropdown-arrow hidden></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button icon-button button-like enabled popup button-container" style="position: relative;">
+                <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
+
                 <div class=count></div>
             </div>
-        </div>
 
-        <div class="button icon-button button-bookmark private popup button-container" data-bookmark-type=private>
-            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-        </div>
-        
-        <div style="position: relative;">
-            <div class="button icon-button button-bookmark-tags popup" data-popup="Bookmark tags">
-                ${ helpers.create_icon("ppixiv:tag") }
-                <div style="position: absolute; bottom: 2px; left: 4px;">
-                    <div class=tag-dropdown-arrow hidden></div>
+            <a class="similar-illusts-button popup pixiv-only" data-popup="Similar illustrations" href=#>
+                <div class=icon-button>
+                    ${ helpers.create_icon("ppixiv:suggestions") }
+                </div>
+            </a>
+
+            <a class="similar-artists-button popup pixiv-only" data-popup="Similar artists" href=#>
+                <div class=icon-button>
+                    ${ helpers.create_icon("ppixiv:suggestions") }
+                </div>
+            </a>
+
+            <a class="similar-bookmarks-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
+                <div class=icon-button>
+                    ${ helpers.create_icon("ppixiv:suggestions") }
+                </div>
+            </a>
+
+            <div class="image-settings-menu-box popup" data-popup="Preferences">
+                <div class="icon-button preferences-button">
+                    ${ helpers.create_icon("settings") }
                 </div>
             </div>
         </div>
-
-        <div class="button icon-button button-like enabled popup button-container" style="position: relative;">
-            <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
-
-            <div class=count></div>
+        <div class=post-info>
+            <div class="post-age popup" hidden></div>
+            <div class=image-info hidden></div>
+            <div class=page-count hidden></div>
+            <div class=ugoira-duration hidden></div>
+            <div class=ugoira-frames hidden></div>
         </div>
-
-        <a class="similar-illusts-button popup pixiv-only" data-popup="Similar illustrations" href=#>
-            <div class=icon-button>
-                ${ helpers.create_icon("ppixiv:suggestions") }
-            </div>
-        </a>
-
-        <a class="similar-artists-button popup pixiv-only" data-popup="Similar artists" href=#>
-            <div class=icon-button>
-                ${ helpers.create_icon("ppixiv:suggestions") }
-            </div>
-        </a>
-
-        <a class="similar-bookmarks-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
-            <div class=icon-button>
-                ${ helpers.create_icon("ppixiv:suggestions") }
-            </div>
-        </a>
-
-        <div class="image-settings-menu-box popup" data-popup="Preferences">
-            <div class="icon-button preferences-button">
-                ${ helpers.create_icon("settings") }
-            </div>
-        </div>
+        
+        <div class="tag-list box-button-row"></div>
+        <div class=description></div>
     </div>
-    <div class=post-info>
-        <div class="post-age popup" hidden></div>
-        <div class=image-info hidden></div>
-        <div class=page-count hidden></div>
-        <div class=ugoira-duration hidden></div>
-        <div class=ugoira-frames hidden></div>
-    </div>
-    
-    <div class="tag-list box-button-row"></div>
-    <div class=description></div>
 </div>
         `});
+
+        // ui-box is the real container.  THe outer div is just so hover-sphere isn't inside
+        // the scroller.
+        this.ui_box = this.container.querySelector(".ui-box");
 
         this.avatar_widget = new avatar_widget({
             container: this.container.querySelector(".avatar-popup"),
@@ -158,7 +164,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.bookmark_count_widget = new bookmark_count_widget({
             contents: this.container.querySelector(".button-bookmark .count"),
         });
-        this.manga_page_bar = new progress_bar({container: this.container}).controller();
+        this.manga_page_bar = new progress_bar({container: this.ui_box}).controller();
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmark_buttons = [];
@@ -187,19 +193,29 @@ ppixiv.image_ui = class extends ppixiv.widget
             main_controller.navigate_out();
         });
 
+        // Don't propagate wheel events if the contents can scroll, so moving the scroller doesn't change the
+        // image.  Most of the time the contents will fit, so allow changing the page if there's no need to
+        // scroll.
+        this.ui_box.addEventListener("wheel", (e) => {
+            if(this.ui_box.scrollHeight > this.ui_box.offsetHeight)
+                e.stopPropagation();
+        }, { passive: false });
+
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
             new ppixiv.settings_dialog();
         });
 
         // Show on hover.
-        this.container.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
-        this.container.addEventListener("mouseleave", (e) => { this.hovering_over_box = false; this.refresh_overlay_ui_visibility(); });
+        this.ui_box.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
+        this.ui_box.addEventListener("mouseleave", (e) => { this.hovering_over_box = false; this.refresh_overlay_ui_visibility(); });
 
         let hover_circle = this.querySelector(".hover-circle");
         hover_circle.addEventListener("mouseenter", (e) => { this.hovering_over_sphere = true; this.refresh_overlay_ui_visibility(); });
         hover_circle.addEventListener("mouseleave", (e) => { this.hovering_over_sphere = false; this.refresh_overlay_ui_visibility(); });
         settings.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
         settings.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
+        ClassFlags.get.addEventListener("hide-ui", () => this.refresh_overlay_ui_visibility(), this._signal);
+
         this.refresh_overlay_ui_visibility();
     }
 
@@ -218,12 +234,20 @@ ppixiv.image_ui = class extends ppixiv.widget
         if(this.bookmark_tags_dropdown_opener?.visible || this.avatar_widget.follow_dropdown_opener.visible)
             visible = true;
 
+        if(ClassFlags.get.get("hide-ui"))
+            visible = false;
+        
         // Tell the image UI when it's visible.
         this.visible = visible;
 
         // Hide the UI's container too when we're editing, so the hover boxes don't get in
         // the way.
         this.container.hidden = editing || ppixiv.mobile;
+    }
+
+    apply_visibility()
+    {
+        helpers.set_class(this.container.querySelector(".ui-box"), "ui-hidden", this._visible);
     }
 
     visibility_changed()
@@ -268,6 +292,8 @@ ppixiv.image_ui = class extends ppixiv.widget
 
     refresh = async() =>
     {
+        helpers.set_class(this.container, "disabled", !this.visible);
+
         // Don't do anything if we're not visible.
         if(!this.visible)
             return;
