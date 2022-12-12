@@ -1016,9 +1016,6 @@ input, textarea, [contenteditable] {
 {
     display: flex;
     flex-direction: column;
-    background-color: var(--ui-bg-color);
-    border: 1px solid var(--frame-border-color);
-    padding: .25em;
 
     .separator {
         // For some reason flex overrides our height if the dropdown is scaled down
@@ -1124,6 +1121,9 @@ body.hide-r18g .r18g { display: none; }
     z-index: 100;
     overflow-x: hidden;
     overflow-y: auto;
+    border: 1px solid var(--frame-border-color);
+    background-color: var(--frame-bg-color);
+    border-radius: 5px;
 }
 
 // ppixiv.dropdown_menu_opener:
@@ -1131,7 +1131,6 @@ body.hide-r18g .r18g { display: none; }
     overflow-y: auto;
     min-width: 10em;
     background-color: var(--frame-bg-color);
-    border: 1px solid var(--frame-border-color);
     padding: .25em .25em;
 }
 
@@ -2114,7 +2113,9 @@ a.box-link, span.box-link
 .input-dropdown {
     user-select: none;
     -webkit-user-select: none;
-    background-color: var(--frame-bg-color);
+    resize: horizontal;
+    width: var(--width); // set by script
+    max-width: min(800px, 100vw);
 
     // Hide edit buttons when not editing.
     &:not(.editing) {
@@ -2147,9 +2148,7 @@ a.box-link, span.box-link
         opacity: 0;
     }
 
-    .input-dropdown-contents {
-        width: var(--width); // set by script
-        max-width: min(800px, 100vw);
+    .input-dropdown-list {
         margin: 1px;
 
         display: flex;
@@ -2247,20 +2246,6 @@ a.box-link, span.box-link
         &.editing .entry {
             cursor: default;
         }        
-    }
-
-    .autocomplete-list {
-        // Add a slight visual division between the autocomplete list and the saved tags scroller.
-        border-bottom: 1px solid #aaa;
-    }
-
-    // The search history scroller.  If there are autocompletes, this sits underneath it.
-    .input-dropdown-list {
-        // Always show the vertical scrollbar.  Otherwise, the resize handle falls under the buttons
-        // when it's not shown.
-        overflow-x: hidden;
-        overflow-y: scroll;
-        resize: horizontal;
     }
 }
 
@@ -2452,14 +2437,6 @@ a.box-link, span.box-link
             transform: translate(2px, -2px);
         }
     }
-}
-
-.popup-bookmark-tag-dropdown,
-.popup-more-options-dropdown {
-    background-color: var(--frame-bg-color);
-    color: var(--frame-fg-color);
-    padding: 4px;
-    border-radius: 0px 0px 4px 4px;
 }
 
 .bookmark-tag-list,

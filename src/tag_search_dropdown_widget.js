@@ -125,11 +125,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     {
         super({...options, template: `
             <div class="search-history input-dropdown" tabindex=1>
-                <div class="input-dropdown-contents autocomplete-list">
-                    <!-- template-tag-dropdown-entry instances will be added here. -->
-                </div>
-
-                <div class="input-dropdown-contents input-dropdown-list">
+                <div class=input-dropdown-list>
                     <div class="tag-section create-section-button editing-only">
                         <div class="edit-button">
                             ${ helpers.create_icon("mat:create_new_folder") }
@@ -165,32 +161,26 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         // input-dropdown is resizable.  Save the size when the user drags it.
         this.all_results = this.container;
-        this.autocomplete_list = this.container.querySelector(".autocomplete-list");
         this.input_dropdown = this.container.querySelector(".input-dropdown-list");
         this.input_dropdown_contents = this.input_dropdown.querySelector(".contents");
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
-            let width = parseInt(this.input_dropdown.style.width);
+            let width = parseInt(this.container.style.width);
             if(isNaN(width))
                 width = 600;
             settings.set("tag-dropdown-width", width);
         });
-        observer.observe(this.input_dropdown, { attributes: true });
+        observer.observe(this.container, { attributes: true });
 
         // Restore input-dropdown's width.
         this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
-        this.autocomplete_list.style.width = settings.get("tag-dropdown-width", "400px");
 
         // tag-dropdown-width may have "px" baked into it.  Use parseInt to remove it.
         let width = settings.get("tag-dropdown-width", "400");
         width = parseInt(width);
 
         this.container.style.setProperty('--width', `${width}px`);
-
-        // Try to prevent scrolling the thumbnails underneath when over the unscrolling autocomplete
-        // container.  We can't block onscroll, so we can't prevent all unintended scrolling here.
-        this.autocomplete_list.addEventListener("wheel", (e) =>  { e.preventDefault(); });
 
         this.pointer_listener = new ppixiv.pointer_listener({
             element: this.container,
@@ -1101,25 +1091,18 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // changing up above.
         let saved_position = this.save_search_position();
 
-        helpers.remove_elements(this.autocomplete_list);
         helpers.remove_elements(this.input_dropdown_contents);
-
-        this.autocomplete_list.hidden = autocompleted_tags.length == 0;
-
-        // On mobile, don't put autocompletes in a separate scroller, since there usually isn't
-        // space.
-        let autocomplete_container = ppixiv.mobile? this.input_dropdown_contents:this.autocomplete_list;
 
         // Add autocompletes at the top.
         if(autocompleted_tags.length)
-            autocomplete_container.appendChild(this.create_separator(`Suggestions for ${this.most_recent_autocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
+            this.input_dropdown_contents.appendChild(this.create_separator(`Suggestions for ${this.most_recent_autocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
 
         for(var tag of autocompleted_tags)
         {
             // Autocomplete entries link to the fully completed search, but only display the
             // tag that was searched for.
             let entry = this.create_entry(tag.tag, { classes: ["autocomplete"], target_tags: tag.search });
-            autocomplete_container.appendChild(entry);
+            this.input_dropdown_contents.appendChild(entry);
         }
 
         // Show saved tags above recent tags.
