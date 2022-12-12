@@ -1131,7 +1131,6 @@ body.hide-r18g .r18g { display: none; }
 .popup-menu-box {
     overflow-y: auto;
     min-width: 10em;
-    background-color: var(--frame-bg-color);
     padding: .25em .25em;
 }
 
@@ -1989,7 +1988,6 @@ a.box-link, span.box-link
 
 .input-field-container {
     flex: 1;
-    background-color: var(--frame-bg-color);
     padding: 6px 10px;
 
     outline: 1px solid var(--input-outline);
@@ -2546,10 +2544,6 @@ a.box-link, span.box-link
                 border-radius: 15px;
                 padding: .25em;
 
-                //background-color: var(--frame-bg-color);
-                //@include overlay-blur();
-                // background-color: rgba(40,40,40,.4);
-
                 backdrop-filter: blur(5px) contrast(60%) brightness(0.5);
                 -webkit-backdrop-filter: blur(5px) contrast(60%) brightness(0.5);
 
@@ -2611,7 +2605,6 @@ a.box-link, span.box-link
                 .mobile-ui-tag-entry {
                     // Only wrap between tags, not in the middle.
                     white-space: nowrap;
-                    // background-color: #444;
                     background-color: var(--frame-bg-color);
                     padding: .5em 0.75em;
                     border-radius: .25em;
