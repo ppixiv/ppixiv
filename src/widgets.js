@@ -1452,11 +1452,11 @@ ppixiv.avatar_widget = class extends widget
 
     async set_user_id(user_id)
     {
-        if(this.user_id == user_id)
-            return;
-        this.user_id = user_id;
-        if(this.follow_dropdown_opener)
+        // Close the dropdown if the user is changing.
+        if(this.user_id != user_id && this.follow_dropdown_opener)
             this.follow_dropdown_opener.visible = false;
+
+        this.user_id = user_id;
         this.refresh();
     }
 
