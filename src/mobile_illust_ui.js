@@ -354,9 +354,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         if(this._media_id == media_id)
             return;
 
+        // We'll apply the media ID to our children in refresh().
         this._media_id = media_id;
-        this.info_widget.set_media_id(media_id);
-        this.page.media_id = media_id;
 
         this.refresh();
     }
@@ -431,6 +430,15 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
 
     refresh()
     {
+        // Don't refresh while we're hiding, so we don't flash the next page's info while we're
+        // hiding right after the page is dragged.  This shouldn't happen when displaying, since
+        // our media ID should be set before show() is called.
+        if(this.dragger.animation_playing)
+            return;
+
+        this.info_widget.set_media_id(this._media_id);
+        this.page.media_id = this._media_id;
+
         // Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
         // open.
         let fully_visible = this.dragger.position == 1;
