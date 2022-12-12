@@ -2405,11 +2405,8 @@ a.box-link, span.box-link
             }
         }
 
-        /* This nudges the zoom strip to the left by the width of one button, to add the browser
-         * back button to the left of other buttons. */
-        & > .button-block.shift-left {
-            margin-left: -56px;
-        }
+        > .button-block.shift-right { margin-left: 56px; }
+        > .button-block.shift-left { margin-left: -56px; }
 
         .button-block > .button > .font-icon {
             font-size: 200%;

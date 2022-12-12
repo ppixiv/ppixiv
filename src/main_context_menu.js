@@ -141,7 +141,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         super({...options, template: `
             <div class=popup-context-menu>
                 <div class=button-strip>
-                    <div class=button-block>
+                    <div class="button-block shift-right">
                         <div class="button button-view-manga" data-popup="View manga pages">
                             ${ helpers.create_icon("ppixiv:thumbnails") }
                         </div>
@@ -155,7 +155,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                     <div class=context-menu-image-info-container></div>
                 </div>
                 <div class=button-strip>
-                    <div class="button-block shift-left">
+                    <div class=button-block>
                         <div class="button button-browser-back enabled" data-popup="Back" style="transform: scaleX(-1);">
                             <ppixiv-inline src="resources/exit-icon.svg"></ppixiv-inline>
                         </div>
@@ -184,7 +184,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
                     </div>
                 </div>
                 <div class=button-strip>
-                    <div class="button-block shift-left">
+                    <div class=button-block>
                         <div class="avatar-widget-container"></div>
 
                         <div class="button button-parent-folder enabled" data-popup="Parent folder" hidden>
@@ -463,8 +463,24 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
     set_current_position()
     {
-        this.displayed_menu.style.left = `${this.popup_position.x}px`;
-        this.displayed_menu.style.top = `${this.popup_position.y}px`;
+        let { x, y } = this.popup_position;
+
+        if(this._on_click_viewer == null)
+        {
+            // If we can't zoom, adjust the popup position so it doesn't go over the right and
+            // bottom of the screen, with a bit of padding so we're not flush with the edge and
+            // so the popup text is visible.
+            //
+            // If zooming is enabled (we're viewing an image), always align to the same place,
+            // so the cursor is always over the zoom toggle button.
+            let window_width = window.innerWidth - 4;
+            let window_height = window.innerHeight - 20;
+            x = Math.min(x, window_width - this.displayed_menu.offsetWidth);
+            y = Math.min(y, window_height - this.displayed_menu.offsetHeight);
+        }
+
+        this.displayed_menu.style.left = `${x}px`;
+        this.displayed_menu.style.top = `${y}px`;
     }
 
     // Try to keep the context menu in the same place on screen when we toggle fullscreen.
@@ -511,7 +527,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         if(!this.visible)
             throw new Error("Expected to be visible");
 
-            // The position of the client area onscreen.  If we have client scaling, this is
+        // The position of the client area onscreen.  If we have client scaling, this is
         // in client units.
         let windowX = e.screenX/window.devicePixelRatio - e.clientX;
         let windowY = e.screenY/window.devicePixelRatio - e.clientY;
