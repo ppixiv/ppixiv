@@ -133,6 +133,8 @@ ppixiv.image_ui = class extends ppixiv.widget
         
         <div class="tag-list box-button-row"></div>
         <div class=description></div>
+
+        <div class=manga-page-bar hidden></div>
     </div>
 </div>
         `});
@@ -164,7 +166,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.bookmark_count_widget = new bookmark_count_widget({
             contents: this.container.querySelector(".button-bookmark .count"),
         });
-        this.manga_page_bar = new progress_bar({container: this.ui_box}).controller();
+        this.manga_page_bar = this.querySelector(".manga-page-bar");
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmark_buttons = [];
@@ -319,6 +321,13 @@ ppixiv.image_ui = class extends ppixiv.widget
             return;
 
         this.illust_data = illust_info;
+
+        this.manga_page_bar.hidden = this.illust_data.pageCount == 1;
+        if(this.illust_data.pageCount > 1)
+        {
+            let fill = (this.displayed_page+1) / this.illust_data.pageCount;
+            this.manga_page_bar.style.width = (fill * 100) + "%";
+        }
 
         let [illust_id] = helpers.media_id_to_illust_id_and_page(this._media_id);
         let user_id = illust_info.userId;

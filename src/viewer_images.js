@@ -11,8 +11,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             </div>
         `});
 
-        this.manga_page_bar = options.manga_page_bar;
-
         let image_viewer_class = ppixiv.mobile? image_viewer_mobile:image_viewer_desktop;
 
         // Create a click and drag viewer for the image.
@@ -170,15 +168,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
                 this.restore_history = false;
             },
         });
-
-        // If we have a manga_page_bar, update to show the current page.
-        if(this.manga_page_bar)
-        {
-            if(this.illust_data.pageCount == 1)
-                this.manga_page_bar.set(null);
-            else
-                this.manga_page_bar.set((this._page+1) / this.illust_data.pageCount);
-        }
     }
 
     onkeydown = (e) =>

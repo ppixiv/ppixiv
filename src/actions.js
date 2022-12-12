@@ -489,15 +489,13 @@ ppixiv.actions = class
     // Download illust_data.
     static async download_illust(media_id, download_type)
     {
-        let progress_bar_controller = main_controller.progress_bar.controller();
-        
         let illust_data = await media_cache.get_media_info(media_id);
         let user_info = await user_cache.get_user_info(illust_data.userId);
         console.log("Download", media_id, "with type", download_type);
 
         if(download_type == "MKV")
         {
-            new ugoira_downloader_mjpeg(illust_data, progress_bar_controller);
+            new ugoira_downloader_mjpeg(illust_data);
             return;
         }
 

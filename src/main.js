@@ -247,9 +247,6 @@ ppixiv.MainController = class
         // Set the whats-new-updated class.
         ppixiv.whats_new.handle_last_viewed_version();
 
-        // Create the main progress bar.
-        this.progress_bar = new progress_bar({ container: this.container });
-        
         // Create the screens.
         this.screen_search = new screen_search({ container: document.body });
         this.screen_illust = new screen_illust({ container: document.body });

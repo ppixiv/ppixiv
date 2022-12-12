@@ -25,7 +25,6 @@ source_files = [
     'src/extra_cache.js',
     'src/user_cache.js',
     'src/on_click_viewer.js',
-    'src/progress_bar.js',
     'src/seek_bar.js',
     'src/struct.js',
     'src/ugoira_downloader_mjpeg.js',

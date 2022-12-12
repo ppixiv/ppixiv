@@ -239,7 +239,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             media_id,
             container: this.view_container,
             slideshow,
-            manga_page_bar: this.ui.manga_page_bar,
+            
             onnextimage: async (finished_viewer) => {
                 if(!this._active)
                     return { };
