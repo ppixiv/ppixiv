@@ -814,6 +814,9 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         if(this.container == null || this.view_width == 0)
             return;
 
+        // Update the rounding box with the new position.
+        this._update_rounding_box();
+
         // Stop if there's an animation active.
         if(this.animations_running)
             return;
@@ -828,8 +831,6 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         this.center_pos = zoom_pos;
         
         this.image_box.style.transform = `translateX(${image_position.x}px) translateY(${image_position.y}px) scale(${zoom_factor})`;
-
-        this._update_rounding_box();
     }
 
     // The rounding box is used when in notch mode to round the edge of the image.  This
@@ -844,12 +845,8 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         let rounded_box = this.querySelector(".rounded-box");
         let rounded_box_reposition = this.querySelector(".rounded-box-reposition");
 
-        // This isn't used when animations are running.  They always reach the edge of the
-        // screen, so we only need the main view rounding, and we don't need to run this every
-        // animation frame.
-        //
-        // This also isn't used if we're not in notch mode.
-        if(this.animations_running || document.documentElement.dataset.fullscreenMode != "notch")
+        // This isn't used if we're not in notch mode.
+        if(document.documentElement.dataset.fullscreenMode != "notch")
         {
             rounded_box.style.translate = "";
             rounded_box_reposition.style.translate = "";
@@ -872,6 +869,16 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         bottom_right[1] = view_height - bottom_right[1];
         bottom_right[0] = Math.max(0, bottom_right[0]);
         bottom_right[1] = Math.max(0, bottom_right[1]);
+
+        // If animations are running, just fill the screen, so we round at the very edges.  
+        // We don't update the rounding box during animations (we'd have to update every frame),
+        // but animations always fill the screen, so if animations are running, just fill the
+        // screen, so we round at the very edges.  
+        if(this.animations_running)
+        {
+            top_left = [0,0];
+            bottom_right = [0,0];
+        }
 
         rounded_box.style.translate = `${top_left[0]}px ${top_left[1]}px`;
         rounded_box_reposition.style.translate = `${-top_left[0]}px ${-top_left[1]}px`;
