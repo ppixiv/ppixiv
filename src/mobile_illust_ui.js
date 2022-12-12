@@ -512,20 +512,22 @@ let image_info_widget = class extends ppixiv.illust_widget
 
         let tag_widget = this.container.querySelector(".bookmark-tags");
         helpers.remove_elements(tag_widget);
-        if(media_info.bookmarkData?.tags)
-        {
-            for(let tag of media_info.bookmarkData.tags)
-            {
-                let entry = this.create_template({name: "tag-entry", html: `
-                    <div class="mobile-ui-tag-entry">
-                        ${ helpers.create_icon("ppixiv:tag", { classes: ["bookmark-tag-icon"] }) }
-                        <span class=tag-name></span>
-                    </div>
-                `});
 
-                entry.querySelector(".tag-name").innerText = tag;
-                tag_widget.appendChild(entry);
-            }
+        let is_local = helpers.is_media_id_local(this._media_id);
+        let tags = is_local? media_info.bookmarkData?.tags:media_info.tagList;
+        tags ??= [];
+        for(let tag of tags)
+        {
+            let entry = this.create_template({name: "tag-entry", html: `
+                <a href=# class="mobile-ui-tag-entry">
+                    ${ helpers.create_icon("ppixiv:tag", { classes: ["bookmark-tag-icon"] }) }
+                    <span class=tag-name></span>
+                </a>
+            `});
+
+            entry.href = ppixiv.helpers.get_args_for_tag_search(tag, ppixiv.plocation);
+            entry.querySelector(".tag-name").innerText = tag;
+            tag_widget.appendChild(entry);
         }
 
         let set_info = (query, text) =>

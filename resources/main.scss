@@ -2598,9 +2598,10 @@ a.box-link, span.box-link
                 margin-top: 0.25em;
                 display: flex;
                 flex-wrap: wrap;
-                flex-direction: column;
+                flex-direction: row;
                 gap: 0.5em 0.5em;
                 align-items: flex-start;
+                pointer-events: auto;
 
                 .mobile-ui-tag-entry {
                     // Only wrap between tags, not in the middle.
