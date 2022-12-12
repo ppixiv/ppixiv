@@ -2337,21 +2337,6 @@ ppixiv.helpers = {
         return [x, y];
     },
     
-    // Set node's maxHeight so it doesn't cross the bottom of the screen.
-    set_max_height(node, { max_height=null, bottom_padding=0 }={})
-    {
-        let {top} = node.getBoundingClientRect(document.body);
-        let height = window.innerHeight - top;
-
-        // Add a bit of padding so it's not flush against the edge.
-        height -= bottom_padding;
-        
-        if(max_height != null)
-            height = Math.min(max_height, height);
-
-        node.style.maxHeight = `${height}px`;
-    },
-    
     distance({x: x1, y: y1}, {x: x2, y: y2})
     {
         let distance = Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2);

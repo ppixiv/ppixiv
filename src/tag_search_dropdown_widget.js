@@ -125,22 +125,20 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     {
         super({...options, template: `
             <div class="search-history input-dropdown" tabindex=1>
-                <div class="all-results">
-                    <div class="input-dropdown-contents autocomplete-list">
-                        <!-- template-tag-dropdown-entry instances will be added here. -->
-                    </div>
+                <div class="input-dropdown-contents autocomplete-list">
+                    <!-- template-tag-dropdown-entry instances will be added here. -->
+                </div>
 
-                    <div class="input-dropdown-contents input-dropdown-list">
-                        <div class="tag-section create-section-button editing-only">
-                            <div class="edit-button">
-                                ${ helpers.create_icon("mat:create_new_folder") }
-                            </div>
-                            <div class=label>Add section</div>
+                <div class="input-dropdown-contents input-dropdown-list">
+                    <div class="tag-section create-section-button editing-only">
+                        <div class="edit-button">
+                            ${ helpers.create_icon("mat:create_new_folder") }
                         </div>
-
-                        <!-- template-tag-dropdown-entry instances will be added here. -->
-                        <vv-container class=contents></vv-container>
+                        <div class=label>Add section</div>
                     </div>
+
+                    <!-- template-tag-dropdown-entry instances will be added here. -->
+                    <vv-container class=contents></vv-container>
                 </div>
             </div>
         `});
@@ -166,7 +164,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         this.current_autocomplete_results = [];
 
         // input-dropdown is resizable.  Save the size when the user drags it.
-        this.all_results = this.container.querySelector(".all-results");
+        this.all_results = this.container;
         this.autocomplete_list = this.container.querySelector(".autocomplete-list");
         this.input_dropdown = this.container.querySelector(".input-dropdown-list");
         this.input_dropdown_contents = this.input_dropdown.querySelector(".contents");
@@ -1161,8 +1159,6 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             for(let tag of recent_tags)
                 this.input_dropdown_contents.appendChild(this.create_entry(tag, { classes: ["history", "recent"] }));
         }
-
-        helpers.set_max_height(this.input_dropdown);
 
         // Restore the previous selection.
         if(saved_selection)

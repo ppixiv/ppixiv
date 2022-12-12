@@ -1037,6 +1037,8 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
         let refresh_dropdown_width = () => {
             let width = settings.get("tag-dropdown-width", "400");
             width = parseInt(width);
+            if(isNaN(width))
+                width = 400;
             this.container.style.setProperty('--width', `${width}px`);
         };
 
@@ -1090,8 +1092,6 @@ ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
     {
         // Fill in the dropdown before displaying it.
         this.populate_dropdown();
-
-        helpers.set_max_height(this.input_dropdown);
     }
 
     create_entry(search)

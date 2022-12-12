@@ -1065,32 +1065,58 @@ ppixiv.dropdown_box_opener = class extends ppixiv.actor
         if(!this.visible)
             return;
 
+        // The amount of padding to leave relative to the button we're aligning to.
+        let horizontal_padding = 4, vertical_padding = 8;
+
         // Use getBoundingClientRect to figure out the position, since it works
         // correctly with CSS transforms.  Figure out how far off we are and move
         // by that amount.  This works regardless of what our relative position is.
-        let {left: box_x, top: box_y} = this.box.getBoundingClientRect(document.body);
-        let {left: button_x, top: button_y, height: box_height} = this.button.getBoundingClientRect(document.body);
+        //let {left: box_x, top: box_y} = this.box.getBoundingClientRect(document.body);
+        let {left: button_x, top: button_y, height: box_height} = this.button.getBoundingClientRect();
 
-        // Align to the left of the button.
-        let x = button_x;
+        // Align to the left of the button.  Nudge left slightly for padding.
+        let x = button_x - horizontal_padding;
 
-        // If the right edge of the box is offscreen, push the box left.
+        // If the right edge of the box is offscreen, push the box left.  Leave a bit of
+        // padding on desktop, so the dropdown isn't flush with the edge of the window.
+        // On mobile, allow the box to be flush with the edge.
+        let padding = ppixiv.mobile? 0:4;
         let right_edge = x + this._box_width;
-        x -= Math.max(right_edge - window.innerWidth, 0);
+        x -= Math.max(right_edge - (window.innerWidth - padding), 0);
 
         // Don't push the left edge past the left edge of the screen.
         x = Math.max(x, 0);
 
-        // Align to the bottom of the button.
-        let y = button_y + box_height;
-
-        x += this.box.offsetLeft - box_x;
-        y += this.box.offsetTop - box_y;
+        let y = button_y;
 
         this.box.style.left = `${x}px`;
-        this.box.style.top = `${y}px`;
 
-        helpers.set_max_height(this.box);
+        // Put the dropdown below the button if we're on the top half of the screen, otherwise
+        // put it above.
+        if(y < window.innerHeight / 2)
+        {
+            // Align to the bottom of the button, adding a bit of padding.
+            y += box_height + vertical_padding;
+            this.box.style.top = `${y}px`;
+            this.box.style.bottom = "";
+
+            // Set the box's maxHeight so it doesn't cross the bottom of the screen.
+            // On desktop, add a bit of padding so it's not flush against the edge.
+            let height = window.innerHeight - y - padding;
+            this.box.style.maxHeight = `${height}px`;
+        }
+        else
+        {
+            y -= vertical_padding;
+
+            // Align to the top of the button.
+            this.box.style.top = "";
+            this.box.style.bottom = `calc(100% - ${y}px)`;
+
+            // Set the box's maxHeight so it doesn't cross the top of the screen.
+            let height = y - padding;
+            this.box.style.maxHeight = `${height}px`;
+        }
     }
 
     shutdown()
@@ -1334,8 +1360,6 @@ ppixiv.avatar_widget = class extends widget
                         <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
                     </div>
                 </a>
-
-                <div class=follow-box></div>
             </div>
         `});
 
@@ -1350,20 +1374,24 @@ ppixiv.avatar_widget = class extends widget
         let element_author_avatar = this.container.querySelector(".avatar");
         let avatar_link = this.container.querySelector(".avatar-link");
 
-        let box = this.container.querySelector(".follow-box");
-        this.follow_widget = new ppixiv.follow_widget({
-            container: box,
-            parent: this,
-            open_button: avatar_link,
-            //visible: true,
-        });
-
         if(interactive)
         {
+            this.follow_dropdown_opener = new ppixiv.dropdown_box_opener({
+                button: avatar_link,
+                create_box: ({...options}) => {
+                    this.follow_widget = new ppixiv.follow_widget({
+                        ...options,
+                        user_id: this.user_id,
+                    });
+
+                    return this.follow_widget;
+                },
+            });
+
             avatar_link.addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.follow_widget.visible = !this.follow_widget.visible;
+                this.follow_dropdown_opener.visible = !this.follow_dropdown_opener.visible;
             }, {
                 // Hack: capture this event so we get clicks even over the eye widget.  We can't
                 // set it to pointer-events: none since it reacts to mouse movement.
@@ -1419,8 +1447,11 @@ ppixiv.avatar_widget = class extends widget
 
     async set_user_id(user_id)
     {
+        if(this.user_id == user_id)
+            return;
         this.user_id = user_id;
-        this.follow_widget.user_id = user_id;
+        if(this.follow_dropdown_opener)
+            this.follow_dropdown_opener.visible = false;
         this.refresh();
     }
 
@@ -1479,16 +1510,11 @@ ppixiv.avatar_widget = class extends widget
 ppixiv.follow_widget = class extends widget
 {
     constructor({
-        // The button used to open this widget.  We close on clicks outside of our box, but
-        // we won't close if this button is clicked, so toggling the widget works properly.
-        open_button=null,
-
+        user_id=null,
         ...options
     })
     {
         super({
-            visible: false,
-
             ...options, template: `
             <div class="follow-container vertical-list">
                 ${helpers.create_box_link({
@@ -1540,24 +1566,22 @@ ppixiv.follow_widget = class extends widget
                     icon: "add_circle",
                     classes: ["premium-only", "add-follow-tag"],
                 })}
+
+                <vv-container class=follow-tag-list></vv-container>
             </div>
         `});
 
-        this.open_button = open_button;
-        this._user_id = null;
+        this._user_id = user_id;
 
-        this.container.querySelector(".follow-button-public").addEventListener("click", (e) => { this.clicked_follow(false); });
-        this.container.querySelector(".follow-button-private").addEventListener("click", (e) => { this.clicked_follow(true); });
-        this.container.querySelector(".toggle-follow-button-public").addEventListener("click", (e) => { this.clicked_follow(false); });
-        this.container.querySelector(".toggle-follow-button-private").addEventListener("click", (e) => { this.clicked_follow(true); });
-        this.container.querySelector(".unfollow-button").addEventListener("click", (e) => { this.clicked_unfollow(); });
-
-        this.container.querySelector(".add-follow-tag").addEventListener("click", (e) => {
-            this.add_follow_tag();
-        });
+        this.container.querySelector(".follow-button-public").addEventListener("click", (e) => this.clicked_follow(false));
+        this.container.querySelector(".follow-button-private").addEventListener("click", (e) => this.clicked_follow(true));
+        this.container.querySelector(".toggle-follow-button-public").addEventListener("click", (e) => this.clicked_follow(false));
+        this.container.querySelector(".toggle-follow-button-private").addEventListener("click", (e) => this.clicked_follow(true));
+        this.container.querySelector(".unfollow-button").addEventListener("click", (e) => this.clicked_unfollow());
+        this.container.querySelector(".add-follow-tag").addEventListener("click", (e) => this.add_follow_tag());
 
         // Refresh if the user we're displaying changes.
-        user_cache.addEventListener("usermodified", this.user_changed, { signal: this.shutdown_signal.signal });
+        user_cache.addEventListener("usermodified", this.user_changed, this._signal);
     }
 
     user_changed = ({user_id}) =>
@@ -1579,46 +1603,10 @@ ppixiv.follow_widget = class extends widget
     }
     get user_id() { return this._user_id; }
 
-    visibility_changed()
-    {
-        super.visibility_changed();
-
-        if(this.visible)
-        {
-            this.refresh();
-
-            // Close on clicks outside of our menu.  Include our parent's button which opens
-            // us, so we don't close when it's going to toggle us.
-            this.click_outside_listener = new click_outside_listener([this.container, this.open_button], () => {
-                this.visible = false;
-            });
-        }
-        else
-        {
-            if(this.click_outside_listener)
-            {
-                this.click_outside_listener.shutdown();
-                this.click_outside_listener = null;
-            }
-        }
-    }
-
-    // Hide if our tree becomes hidden.
-    on_visible_recursively_changed()
-    {
-        super.on_visible_recursively_changed();
-
-        if(!this.visible_recursively)
-            this.visible = false;
-    }
-
     async refresh()
     {
         if(!this.visible)
             return;
-
-        // Fit the tag scroll box within however much space we have available.
-        helpers.set_max_height(this.container, { max_height: 400, bottom_padding: 10 });
 
         if(this.refreshing)
         {
@@ -1707,8 +1695,7 @@ ppixiv.follow_widget = class extends widget
         }
 
         // If we've loaded follow tags, fill in the list.
-        let follow_tags = this.container.querySelectorAll(".follow-tag");
-        for(let element of follow_tags)
+        for(let element of this.container.querySelectorAll(".follow-tag"))
             element.remove();
 
         if(all_tags != null)
@@ -2322,10 +2309,6 @@ ppixiv.bookmark_tag_list_dropdown_widget = class extends ppixiv.bookmark_tag_lis
             this.visible = false;
 
         await super.refresh_internal({ media_id });
-
-        // Fit the tag scroll box within however much space we have available.
-        if(this.visible)
-            helpers.set_max_height(this.container.querySelector(".tag-list"), { max_height: 400, bottom_padding: 10 });
     }
 
     // Hide if our tree becomes hidden.

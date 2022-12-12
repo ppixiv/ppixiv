@@ -978,19 +978,6 @@ input, textarea, [contenteditable] {
         }
     }
 
-    // Position the follow dropdown.
-    .follow-box {
-        position: absolute;
-        top: 100%;
-        z-index: 1;
-    }
-
-    // When we're in the context menu, push the dropdown down a bit so it's aligned with the edge
-    // of the menu instead of the avatar icon inside it.
-    &:not(.big) .follow-box {
-        top: calc(100% + 10px);
-    }
-
     // Hide the avatar while we're waiting for user data to load, since the follow icon isn't
     // updated until then.
     &.loading {
@@ -1032,7 +1019,6 @@ input, textarea, [contenteditable] {
     background-color: var(--ui-bg-color);
     border: 1px solid var(--frame-border-color);
     padding: .25em;
-    overflow-y: auto;
 
     .separator {
         // For some reason flex overrides our height if the dropdown is scaled down
@@ -1136,6 +1122,8 @@ body.hide-r18g .r18g { display: none; }
 .dropdown-box {
     position: absolute;
     z-index: 100;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 // ppixiv.dropdown_menu_opener:
@@ -1873,7 +1861,7 @@ body.hide-r18g .r18g { display: none; }
 
     // For box-links directly within the list (most of them), put the horizontal
     // padding on them.
-    > .box-link { padding: 0 .5em; }
+    > .box-link { padding-left: 0.5em; padding-right: 0.5em; }
 
     > .box-link
     {
@@ -2126,10 +2114,7 @@ a.box-link, span.box-link
 .input-dropdown {
     user-select: none;
     -webkit-user-select: none;
-
     background-color: var(--frame-bg-color);
-    margin-top: 8px; // push slightly away from the input box
-    margin-left: -4px;
 
     // Hide edit buttons when not editing.
     &:not(.editing) {
@@ -2478,13 +2463,6 @@ a.box-link, span.box-link
     color: var(--frame-fg-color);
     padding: 4px;
     border-radius: 0px 0px 4px 4px;
-
-    // Enable scrolling on the bookmark tag list.
-    .tag-list
-    {
-        overflow-x: hidden;
-        overflow-y: auto;
-    }
 }
 
 .bookmark-tag-list,
