@@ -1586,11 +1586,8 @@ ppixiv.data_sources.rankings = class extends data_source
                         </div>
 
                         <div class=box-button-row>
+                            ${ helpers.create_box_link({label: "Ranking type",    popup: "Rankings to display", classes: ["mode-button"] }) }
                             ${ helpers.create_box_link({label: "Contents",    popup: "Content type to display", classes: ["content-type-button"] }) }
-                        </div>
-
-                        <div class=box-button-row>
-                            ${ helpers.create_box_link({label: "Ranking type",    popup: "Content type to display", classes: ["mode-button"] }) }
                         </div>
 
                         <div class="box-button-row modes"></div>
