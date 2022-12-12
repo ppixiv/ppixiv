@@ -3654,6 +3654,7 @@ ppixiv.data_sources.search = class extends data_source
                 `});
 
                 this.data_source = data_source;
+                this.data_source.addEventListener("_refresh_ui", () => this.refresh(), this._signal);
 
                 class related_tag_dropdown extends tag_dropdown_widget
                 {
@@ -3890,6 +3891,13 @@ ppixiv.data_sources.search = class extends data_source
                 if(search)
                     search += " ";
                 this.querySelector(".tag-search-box .input-field-container > input").value = search;
+            }
+
+            refresh()
+            {
+                super.refresh();
+
+                helpers.set_class(this.querySelector(".related-tags-button"), "disabled", this.data_source.related_tags == null);
             }
         }
     }
