@@ -5399,6 +5399,8 @@ ppixiv.DragHandler = class
         onpointerdown,
 
         // Called when the drag starts, which is the first pointer movement after onpointerdown.
+        // If false is returned, the drag is cancelled.  If this happens when deferred_start is true,
+        // the drag won't be started and won't interrupt other drags.
         ondragstart = () => true,
 
         // ondrag({event, first})
