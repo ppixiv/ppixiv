@@ -353,51 +353,6 @@ input, textarea, [contenteditable] {
     display: none !important;
 }
 
-// The top-level container for screen_illust.  This sits on top of the search view, fills
-// the screen and clears the background to hide the search view.
-.screen-illust-container {
-    // The top-level container fills the screen completely.  This needs to be fixed and not
-    // absolute, so it doesn't scroll with the body, which is still scrolled to the search
-    // view's position.
-    position: fixed;
-    inset: 0;
-
-    // This screen doesn't have a background color, so we don't obscure the search view
-    // during transitions.  We just use the document's background.
-    //background-color: var(--main-background-color);
-    //background-image: var(--background-noise);
-
-    // Make sure we're on top of the search view.  Without this, the sticky UI header will be
-    // above the illust view.
-    z-index: 1;
-
-    // The view container holds the actual viewers, and applies safe zones and the rounded
-    // edge effect if they're being used.
-    .view-container {
-        @include fullscreen();
-
-        user-select: none;
-        -webkit-user-select: none;
-        cursor: pointer;
-
-        // The individual image viewers.  There's usually just one of these, but we can have
-        // multiple for transitions.
-        .viewer {
-            position: absolute;
-            inset: 0;
-
-            // Hide viewers by making them invisible instead of not displayed, so viewers have dimensions
-            // while they're setting up for setting things like the initial pan/zoom position.
-            &.hidden-widget
-            {
-                display: unset;
-                visibility: none;
-                pointer-events: none;
-            }
-        }
-    }
-}
-
 .viewer-images {
     width: 100%;
     height: 100%;
@@ -3235,11 +3190,54 @@ svg.heart-image .delete {
     }
 }
 
+// The top-level container for screen_illust.  This sits on top of the search view, fills
+// the screen and clears the background to hide the search view.
 .screen-illust-container {
+    // The top-level container fills the screen completely.  This needs to be fixed and not
+    // absolute, so it doesn't scroll with the body, which is still scrolled to the search
+    // view's position.
+    position: fixed;
+    inset: 0;
+
+    // This screen doesn't have a background color, so we don't obscure the search view
+    // during transitions.  We just use the document's background.
+    //background-color: var(--main-background-color);
+    //background-image: var(--background-noise);
+
+    // Make sure we're on top of the search view.  Without this, the sticky UI header will be
+    // above the illust view.
+    z-index: 1;
+
     // This is animated by screen_illust.  At 0, screen_illust is displayed, and at 1, screen_search
     // is displayed.  Since it's owned by screen_illust, give it a default of hidden, so screen_search
     // is visible if screen_illust hasn't made itself visible yet.
     --illust-hidden: 1;
+
+    // The view container holds the actual viewers, and applies safe zones and the rounded
+    // edge effect if they're being used.
+    .view-container {
+        @include fullscreen();
+
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: pointer;
+
+        // The individual image viewers.  There's usually just one of these, but we can have
+        // multiple for transitions.
+        .viewer {
+            position: absolute;
+            inset: 0;
+
+            // Hide viewers by making them invisible instead of not displayed, so viewers have dimensions
+            // while they're setting up for setting things like the initial pan/zoom position.
+            &.hidden-widget
+            {
+                display: unset;
+                visibility: none;
+                pointer-events: none;
+            }
+        }
+    }
 
     .fade-search {
         position: fixed;
