@@ -108,7 +108,7 @@ ppixiv.UserCache = class extends EventTarget
         {
             let message = result?.message || "Error loading user";
             console.log(`Error loading user ${user_id}: ${message}`);
-            this.nonexistant_user_ids[user_id] = message;
+            this.nonexistant_user_ids[`user:${user_id}`] = message;
             return null;
         }
 
