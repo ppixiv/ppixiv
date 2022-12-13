@@ -687,6 +687,7 @@ input, textarea, [contenteditable] {
         position: absolute;
         top: 0;
         left: 0;
+        pointer-events: none;
 
         circle {
             pointer-events: auto; /* reenable pointer events that are disabled on .ui */
@@ -695,7 +696,8 @@ input, textarea, [contenteditable] {
         &  > svg {
             width: 100%;
             height: 100%;
-            transform: translate(-50%,-50%)
+            transform: translate(-50%,-50%);
+            pointer-events: auto;
         }
     }
 
