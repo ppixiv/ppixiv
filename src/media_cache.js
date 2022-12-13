@@ -397,6 +397,10 @@ ppixiv.MediaCache = class extends EventTarget
             if(!force && this.media_info[media_id] != null)
                 continue;
 
+            // Ignore media IDs that have already failed to load.
+            if(!force && this.nonexistant_media_ids[media_id])
+                continue;
+
             // Skip IDs that are already loading.
             let existing_load = this.media_info_loads_full[media_id] ?? this.media_info_loads_partial[media_id];
             if(existing_load)
@@ -473,26 +477,42 @@ ppixiv.MediaCache = class extends EventTarget
             
             let illusts = Object.values(result.body.works);
             await this.add_media_infos_partial(illusts, "normal");
-            return;
+        }
+        else
+        {
+            // This is a fallback if we're displaying search results we never received media
+            // info for.  It's a very old API and doesn't have all of the information newer ones
+            // do: it's missing the AI flag, and only has a boolean value for "bookmarked" and no
+            // bookmark data.  However, it seems to be the only API available that can batch
+            // load info for a list of unrelated illusts.
+            let result = await helpers.rpc_get_request("/rpc/illust_list.php", {
+                illust_ids: illust_ids.join(","),
+
+                // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150
+                // ones we'll get if we don't (though changing the URL is easy enough too).
+                page: "discover",
+
+                // We do our own muting, but for some reason this flag is needed to get bookmark info.
+                exclude_muted_illusts: 1,
+            });
+
+
+            for(let thumb_info of search_result)
+            {
+                console.log("got", thumb_info);
+                //let { remapped_thumb_info, profile_image_url } = ppixiv.media_cache_mappings.remap_partial_media_info(thumb_info, source);
+            }
+
+            await this.add_media_infos_partial(result, "illust_list");
         }
 
-        // This is a fallback if we're displaying search results we never received media
-        // info for.  It's a very old API and doesn't have all of the information newer ones
-        // do: it's missing the AI flag, and only has a boolean value for "bookmarked" and no
-        // bookmark data.  However, it seems to be the only API available that can batch
-        // load info for a list of unrelated illusts.
-        let result = await helpers.rpc_get_request("/rpc/illust_list.php", {
-            illust_ids: illust_ids.join(","),
-
-            // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150
-            // ones we'll get if we don't (though changing the URL is easy enough too).
-            page: "discover",
-
-            // We do our own muting, but for some reason this flag is needed to get bookmark info.
-            exclude_muted_illusts: 1,
-        });
-
-        await this.add_media_infos_partial(result, "illust_list");
+        // Mark any media IDs that we asked for but didn't receive as not existing, so we won't
+        // keep trying to load them.
+        for(let media_id of media_ids)
+        {
+            if(this.media_info[media_id] == null && this.nonexistant_media_ids[media_id] == null)
+                this.nonexistant_media_ids[media_id] = "Illustration doesn't exist";
+        }
     }
 
     // Cache partial media info that was loaded from a Pixiv search.  This can come from
