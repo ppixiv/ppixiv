@@ -6401,10 +6401,6 @@ ppixiv.WidgetDragger = class
         if(this.animation_playing && this.drag_animation.animating_towards == end_position)
             return;
 
-        // Briefly set active, so we're active when the drag animation first starts controlling
-        // the node.  We'll always immediately switch to animating below.
-        this._set_state("active");
-
         // If we're animating to a visible state, mark ourselves visible.
         if(end_position > 0)
             this._set_visible(true);
@@ -6418,7 +6414,7 @@ ppixiv.WidgetDragger = class
         this._set_state("animating");
     }
 
-    // Set the current state: "idle", "active", "dragging" or "animating", running the
+    // Set the current state: "idle", "dragging" or "animating", running the
     // appropriate callbacks.
     _set_state(state, ...args)
     {
@@ -6443,7 +6439,11 @@ ppixiv.WidgetDragger = class
 
         // console.warn(`state change: ${old_state} -> ${new_state}`);
         this._state = new_state;
-        this.onstatechange();
+
+        // Don't call onstatechange for active, since it's just a transition between
+        // other states.
+        if(new_state != "active")
+            this.onstatechange();
 
         return true;
     }
