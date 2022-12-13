@@ -6114,31 +6114,23 @@ ppixiv.WidgetDragger = class
         // list while visible will cause the dragger to hide.
         close_if_outside=null,
 
-        // Callbacks
-        //
-        // Callback states are always in this order:
-        //
-        // confirm_drag
-        //     onactive
-        //         onbeforeshown
-        //         onafterhidden
-        //     oninactive
-        //
         // This is called before a drag starts.  If false is returned, the drag will be ignored.
         confirm_drag = () => true,
 
-        // This is called before a drag or fling starts.
-        onactive = () => { },
+        // Callbacks
+        //
+        // onactive
+        //     ondragstart <-> ondragend                    User dragging started or stopped
+        //     onanimationstart <-> onanimationfinished     Animation such as a fling started or stopped
+        //     onbeforeshown <-> onafterhidden              Visibility changed
+        // oninactive
+        onactive = () => { },                  oninactive = () => { },
+        ondragstart = () => { },               ondragend = () => { },
+        onanimationstart = () => { },          onanimationfinished = () => { },
+        onbeforeshown = () => { },             onafterhidden = () => { },
 
-        // This is called when any drag or fling finishes and we're no longer modifying the node.
-        oninactive = () => { },
-
-        // A drag is about to cause the node to become at least partially visible (this.position > 0).
-        onbeforeshown = () => { },
-
-        // This is called when the drag animation has finished and left the node no longer
-        // visible (this.position <= 0), so the caller can shut down if wanted.
-        onafterhidden = () => { },
+        // This is called on any state change (the value of this.state has changed).
+        onstatechange = () => { },
 
         // Whether the widget is initially visible.
         visible=false,
@@ -6159,11 +6151,12 @@ ppixiv.WidgetDragger = class
     {
         this._visible = visible;
         this.nodes = node;
-        this.onbeforeshown = onbeforeshown;
-        this.onafterhidden = onafterhidden;
+        this.onactive = onactive;                      this.oninactive = oninactive;
+        this.ondragstart = ondragstart;                this.ondragend = ondragend;
+        this.onanimationstart = onanimationstart;      this.onanimationfinished = onanimationfinished;
+        this.onbeforeshown = onbeforeshown;            this.onafterhidden = onafterhidden;
+        this.onstatechange = onstatechange;
         this.confirm_drag = confirm_drag;
-        this.onactive = onactive;
-        this.oninactive = oninactive;
         this.animations = animations;
         this.animated_property = animated_property;
         this.animated_property_inverted = animated_property_inverted;
@@ -6171,6 +6164,7 @@ ppixiv.WidgetDragger = class
         this.duration = duration;
         this.start_offset = start_offset;
         this.end_offset = end_offset;
+        this._state = "idle";
 
         if(!(this.duration instanceof Function))
             this.duration = () => duration;
@@ -6202,10 +6196,13 @@ ppixiv.WidgetDragger = class
             onanimationfinished: (anim) => {
                 // Call onanimationfinished if the animation we finished put us at 0.
                 let position = anim.position;
+
                 if(position < 0.00001)
                     this._set_visible(false);
 
-                this._send_onactive(false);
+                // When an animation finishes normally, we're no longer doing anything, so
+                // go back to inactive.
+                this._set_state("idle");
             }
         });
 
@@ -6226,11 +6223,12 @@ ppixiv.WidgetDragger = class
                 if(!this.confirm_drag(args))
                     return false;
 
+                // Stop any running animation.
                 this.drag_animation.stop();
 
                 this.recent_pointer_movement.reset();
 
-                this._send_onactive(true, args);
+                this._set_state("dragging");
 
                 // A drag is starting.  Send onbeforeshown if we weren't visible, since we
                 // might be about to make the widget visible.
@@ -6242,7 +6240,21 @@ ppixiv.WidgetDragger = class
 
                 return true;
             },
+
             ondrag: ({event, first}) => {
+                // If we're animating, show() or hide() was called during a drag.  This doesn't stop
+                // the drag, but we're in the animating state while this happens.  Since we saw another
+                // drag movement, cancel the animation and return to dragging.
+                if(this._state == "animating")
+                {
+                    console.log("animation interrupted by drag");
+                    this.drag_animation.cancel();
+                    this._set_state("dragging");
+                }
+
+                // Drags should always be in the dragging state, and won't change state.
+                console.assert(this._state == "dragging");
+
                 this.recent_pointer_movement.add_sample({ x: event.movementX, y: event.movementY });
 
                 // The first movement is thresholded by the browser, and counts towards fling velocity
@@ -6268,6 +6280,8 @@ ppixiv.WidgetDragger = class
                 this.drag_animation.position = pos;
             },
 
+            // When a drag ends, we'll always call either show() or hide(), which will either start
+            // an animation or put us in the inactive state.
             ondragend: ({cancel}) => {
                 // If the drag was cancelled, return to the open or close state we were in at the
                 // start.  This is mostly important for ScreenIllustDragToExit, so a drag up on iOS
@@ -6310,6 +6324,10 @@ ppixiv.WidgetDragger = class
         return velocity > 500? "ease-out":"ease-in-out";
     }
 
+    // Return the dragger state: "idle", "dragging" or "animating".  This can also be
+    // "active" while we're transitioning between states.
+    get state() { return this._state; }
+
     get visible()
     {
         return this._visible;
@@ -6346,62 +6364,88 @@ ppixiv.WidgetDragger = class
         }
     }
 
+    // Stop any animations, and jump to the given position.
+    set_position_without_transition(position=0)
+    {
+        this.drag_animation.stop();
+        this.drag_animation.position = position;
+
+        this._set_state("idle");
+    }
+    
     // Animate to the fully shown state.  If given, velocity is the drag speed that caused this.
+    //
+    // If a drag is in progress, it'll continue, and cancel the animation if it moves again.
     show({ velocity=0 }={})
     {
-        if(this.drag_animation.position == 1 && !this.drag_animation.playing)
-        {
-            // We're already in this state.  If we're coming out of a drag, send onanimationfinished.
-            this._send_onactive(false);
-            return;
-        }
-
-        // If we're already showing, just let it continue.
-        if(this.animation_playing && this.animating_to_shown)
-            return;
-
-        this._send_onactive(true);
-
-        let duration = this.duration();
-        let easing = this._easing_for_velocity(velocity);
-        this.drag_animation.play({end_position: 1, easing, duration});
-
-        // This makes us visible if we weren't already.  Call this after starting the animation,
-        // so animation_playing is true during this call.
-        this._set_visible(true);
+        this._animate_to({end_position: 1, velocity});
     }
 
     // Animate to the completely hidden state.  If given, velocity is the drag speed that caused this.
     hide({ velocity=0 }={})
     {
-        if(this.drag_animation.position == 0 && !this.drag_animation.playing)
+        this._animate_to({end_position: 0, velocity});
+    }
+
+    _animate_to({ end_position, velocity=0 }={})
+    {
+        if(!this.animation_playing && this.drag_animation.position == end_position)
         {
-            // We're already closed, so just make sure we're marked hidden, which would normally
-            // happen at the end of the animation.  This sends onafterhidden.
-            this._set_visible(false);
-            this._send_onactive(false);
+            // We're already closed, so just update visibility and go back to inactive.
+            this._set_visible(end_position != 0);
+            this._set_state("idle");
             return;
         }
 
+        // If we're already animating towards this position, just let it continue.
+        if(this.animation_playing && this.drag_animation.animating_towards == end_position)
+            return;
+
+        // Briefly set active, so we're active when the drag animation first starts controlling
+        // the node.  We'll always immediately switch to animating below.
+        this._set_state("active");
+
+        // If we're animating to a visible state, mark ourselves visible.
+        if(end_position > 0)
+            this._set_visible(true);
+
         let duration = this.duration();
         let easing = this._easing_for_velocity(velocity);
-        this.drag_animation.play({end_position: 0, easing, duration});
+        this.drag_animation.play({end_position, easing, duration});
 
-        // Call this after starting the animation, so animation_playing is true during this call.
-        this._send_onactive(true);
+        // Call this after starting the animation, so animation_playing and animating_to_shown
+        // reflect the animation when onanimationstart is called.
+        this._set_state("animating");
     }
 
-    // Call onactive or oninactive if we haven't previously entered that state.
-    _send_onactive(value, ...args)
+    // Set the current state: "idle", "active", "dragging" or "animating", running the
+    // appropriate callbacks.
+    _set_state(state, ...args)
     {
-        if(this._sent_active == value)
+        if(state == this._state)
             return;
-        this._sent_active = value;
 
-        if(value)
-            this.onactive(...args);
-        else
-            this.oninactive(...args);
+        // Transition back to active, ending whichever state we were in before.
+        if(state != "idle"      && this._change_state("idle", "active")) this.onactive(...args);
+        if(state != "dragging"  && this._change_state("dragging", "active")) this.ondragend(...args);
+        if(state != "animating" && this._change_state("animating", "active")) this.onanimationfinished(...args);
+
+        // Transition into the new state, beginning the new state.
+        if(state == "dragging"  && this._change_state("active", "dragging")) this.ondragstart(...args);
+        if(state == "animating" && this._change_state("active", "animating")) this.onanimationstart(...args);
+        if(state == "idle"      && this._change_state("active", "idle")) this.oninactive(...args);
+    }
+
+    _change_state(old_state, new_state)
+    {
+        if(this._state != old_state)
+            return false;
+
+        // console.warn(`state change: ${old_state} -> ${new_state}`);
+        this._state = new_state;
+        this.onstatechange();
+
+        return true;
     }
 
     toggle()
@@ -6415,7 +6459,7 @@ ppixiv.WidgetDragger = class
     // Return true if an animation (not a drag) is currently running.
     get animation_playing()
     {
-        return this.drag_animation.playing;
+        return this._state == "animating";
     }
 
     // Return true if the current animation is towards being shown (show() was called),
@@ -6423,7 +6467,7 @@ ppixiv.WidgetDragger = class
     // If no animation is running, return false.
     get animating_to_shown()
     {
-        if(!this.drag_animation.playing)
+        if(this._state != "animating")
             return false;
 
         return this.drag_animation.animating_towards == 1;
