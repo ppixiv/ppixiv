@@ -336,14 +336,17 @@ ppixiv.image_preloader = class
             results.push(new img_preloader(url));
         }
 
-        // Preload the remaining pages.
-        for(let p = 0; p < illust_data.mangaPages.length; ++p)
+        if(!ppixiv.mobile)
         {
-            if(p == page)
-                continue;
+            // Preload the remaining pages.
+            for(let p = 0; p < illust_data.mangaPages.length; ++p)
+            {
+                if(p == page)
+                    continue;
 
-            let { url } = media_cache.get_main_image_url(illust_data, page);
-            results.push(new img_preloader(url));
+                let { url } = media_cache.get_main_image_url(illust_data, page);
+                results.push(new img_preloader(url));
+            }
         }
 
         return results;
@@ -359,6 +362,9 @@ ppixiv.image_preloader = class
     // If media_id is null, stop any running guessed preload.
     async guess_preload(media_id)
     {
+        if(ppixiv.mobile)
+            return;
+
         // See if we can guess the image's URL from previous info, or if we can figure it
         // out from another source.
         let guessed_url = null;
