@@ -6119,16 +6119,19 @@ ppixiv.WidgetDragger = class
         // Callback states are always in this order:
         //
         // confirm_drag
-        //     onanimationstart
+        //     onactive
         //         onbeforeshown
         //         onafterhidden
-        //     onanimationfinished
+        //     oninactive
         //
         // This is called before a drag starts.  If false is returned, the drag will be ignored.
         confirm_drag = () => true,
 
         // This is called before a drag or fling starts.
-        onanimationstart = () => { },
+        onactive = () => { },
+
+        // This is called when any drag or fling finishes and we're no longer modifying the node.
+        oninactive = () => { },
 
         // A drag is about to cause the node to become at least partially visible (this.position > 0).
         onbeforeshown = () => { },
@@ -6136,9 +6139,6 @@ ppixiv.WidgetDragger = class
         // This is called when the drag animation has finished and left the node no longer
         // visible (this.position <= 0), so the caller can shut down if wanted.
         onafterhidden = () => { },
-
-        // This is called when any drag or fling finishes and we're no longer modifying the node.
-        onanimationfinished = () => { },
 
         // Whether the widget is initially visible.
         visible=false,
@@ -6162,8 +6162,8 @@ ppixiv.WidgetDragger = class
         this.onbeforeshown = onbeforeshown;
         this.onafterhidden = onafterhidden;
         this.confirm_drag = confirm_drag;
-        this.onanimationstart = onanimationstart;
-        this.onanimationfinished = onanimationfinished;
+        this.onactive = onactive;
+        this.oninactive = oninactive;
         this.animations = animations;
         this.animated_property = animated_property;
         this.animated_property_inverted = animated_property_inverted;
@@ -6205,7 +6205,7 @@ ppixiv.WidgetDragger = class
                 if(position < 0.00001)
                     this._set_visible(false);
 
-                this._send_animation_running(false);
+                this._send_onactive(false);
             }
         });
 
@@ -6230,7 +6230,7 @@ ppixiv.WidgetDragger = class
 
                 this.recent_pointer_movement.reset();
 
-                this._send_animation_running(true, args);
+                this._send_onactive(true, args);
 
                 // A drag is starting.  Send onbeforeshown if we weren't visible, since we
                 // might be about to make the widget visible.
@@ -6348,11 +6348,11 @@ ppixiv.WidgetDragger = class
         if(this.drag_animation.position == 1 && !this.drag_animation.playing)
         {
             // We're already in this state.  If we're coming out of a drag, send onanimationfinished.
-            this._send_animation_running(false);
+            this._send_onactive(false);
             return;
         }
 
-        this._send_animation_running(true);
+        this._send_onactive(true);
 
         let duration = this.duration();
         let easing = this._easing_for_velocity(velocity);
@@ -6371,7 +6371,7 @@ ppixiv.WidgetDragger = class
             // We're already closed, so just make sure we're marked hidden, which would normally
             // happen at the end of the animation.  This sends onafterhidden.
             this._set_visible(false);
-            this._send_animation_running(false);
+            this._send_onactive(false);
             return;
         }
 
@@ -6380,20 +6380,20 @@ ppixiv.WidgetDragger = class
         this.drag_animation.play({end_position: 0, easing, duration});
 
         // Call this after starting the animation, so animation_playing is true during this call.
-        this._send_animation_running(true);
+        this._send_onactive(true);
     }
 
-    // Call onanimationstart or onanimationfinished if we haven't previously entered that state.
-    _send_animation_running(value, ...args)
+    // Call onactive or oninactive if we haven't previously entered that state.
+    _send_onactive(value, ...args)
     {
-        if(this._sent_onanimationstart == value)
+        if(this._sent_active == value)
             return;
-        this._sent_onanimationstart = value;
+        this._sent_active = value;
 
         if(value)
-            this.onanimationstart(...args);
+            this.onactive(...args);
         else
-            this.onanimationfinished(...args);
+            this.oninactive(...args);
     }
 
     toggle()

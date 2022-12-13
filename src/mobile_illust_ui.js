@@ -326,8 +326,8 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             },
             onbeforeshown: () => this.visibility_changed(),
             onafterhidden: () => this.visibility_changed(),
-            onanimationstart: () => this.visibility_changed(),
-            onanimationfinished: () => this.visibility_changed(),
+            onactive: () => this.visibility_changed(),
+            oninactive: () => this.visibility_changed(),
         });
 
         // Listen for the image viewer changing.  This is used for zooming.

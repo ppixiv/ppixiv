@@ -1206,14 +1206,14 @@ class ScreenIllustDragToExit
                     main_controller.navigate_from_image_to_search(args);
                 }
             },
-            onanimationfinished: () => {
+            oninactive: () => {
                 // See if we want to remove the viewer now that the animation has finished.
                 this.parent.cleanup_image();
 
                 // Scroll the search view to the current image when we're not animating.
                 this.showing_new_image();
             },
-            onanimationstart: () => {
+            onactive: () => {
                 // Close the menu bar if it's open when a drag starts.
                 if(this.parent.mobile_illust_ui)
                     this.parent.mobile_illust_ui.hide();
