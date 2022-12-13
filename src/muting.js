@@ -16,18 +16,32 @@ ppixiv.muting = class extends EventTarget
     {
         super();
 
+        this.muted_tags = [];
+        this.muted_user_ids = [];
+
         // This is used to tell other tabs when mutes change, so adding mutes takes effect without
         // needing to reload all other tabs.
         this.sync_mutes_channel = new BroadcastChannel("ppixiv:mutes-changed");
         this.sync_mutes_channel.addEventListener("message", this.received_message);
     }
 
-    // Set the list of tags and users muted via Pixiv's settings.
     get pixiv_muted_tags() { return this.muted_tags; }
-    set pixiv_muted_tags(muted_tags) { this.muted_tags = muted_tags; this.fire_mutes_changed(); }
-
     get pixiv_muted_user_ids() { return this.muted_user_ids; }
-    set pixiv_muted_user_ids(muted_user_ids) { this.muted_user_ids = muted_user_ids; this.fire_mutes_changed(); }
+
+    // Set the list of tags and users muted via Pixiv's settings.
+    set_mutes({tags, user_ids}={})
+    {
+        if(tags == null && user_ids == null)
+            return;
+
+        if(tags != null)
+            this.muted_tags = tags;
+        if(user_ids != null)
+            this.muted_user_ids = user_ids;
+
+        this._store_mutes();
+        this.fire_mutes_changed();
+    }
 
     // Extra mutes have a similar format to the /ajax/mute/items API:
     //
@@ -153,6 +167,74 @@ ppixiv.muting = class extends EventTarget
         // Non-premium users can only have one mute, and that's shared across both tags and users.
         let total_mutes = this.pixiv_muted_tags.length + this.pixiv_muted_user_ids.length;
         return window.global_data.premium || total_mutes == 0;
+    }
+
+    // Pixiv doesn't include mutes in the initialization data for pages on mobile.  We load
+    // it with an API call, but we don't want to wait for that to return and delay every page
+    // load.  However, we also don't want to not have mute info and possibly show muted images
+    // briefly on startup.  Work around this by caching mutes to storage, and using the cached
+    // mutes while we're waiting to receive them.
+    _store_mutes()
+    {
+        // This is only needed for mobile.
+        if(!ppixiv.mobile)
+            return;
+
+        settings.set("cached_mutes", {
+            tags: this.muted_tags,
+            user_ids: this.muted_user_ids,
+        });
+    }
+
+    // Load mutes cached by _store_mutes.  This is only used until we load the mute list, and
+    // is only used on mobile.
+    load_cached_mutes()
+    {
+        // This is only needed for mobile.
+        if(!ppixiv.mobile)
+            return;
+
+        let cached_mutes = settings.get("cached_mutes");
+        if(cached_mutes == null)
+        {
+            console.log("No cached mutes to load");
+            return;
+        }
+
+        let { tags, user_ids } = cached_mutes;
+        this.muted_tags = tags;
+        this.muted_user_ids = user_ids;
+    }
+
+    // Request the user's mute list.  This is only used on mobile.
+    async fetch_mutes()
+    {
+        // Load the real mute list.
+        let data = await helpers.get_request(`/touch/ajax/user/self/status?lang=en`);
+        if(data.error)
+        {
+            console.log("Error loading user info:", data.message);
+            return;
+        }
+
+        let mutes = data.body.user_status.mutes;
+
+        let tags = [];
+        for(let [tag, info] of Object.entries(mutes.tags))
+        {
+            // "enabled" seems to always be true.
+            if(info.enabled)
+                tags.push(tag);
+        }
+
+        let user_ids = [];
+        for(let [user_id, info] of Object.entries(mutes.users))
+        {
+            if(info.enabled)
+                user_ids.push(user_id);
+        }
+
+        this.set_mutes({tags, user_ids});
     }
 }
 

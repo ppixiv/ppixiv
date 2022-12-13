@@ -791,27 +791,23 @@ ppixiv.MainController = class
         if(window.global_data)
             return true;
 
-        // On mobile we can get most of this from meta#init-config.  However, it doesn't include
-        // mutes, and we'd still need to wait for a /touch/ajax/user/self/status API call to get those.
-        // Since it doesn't actually save us from having to wait for an API call, we just let it
-        // use the regular fallback.
-        /*
-        let init_config = document.querySelector("meta#init-config");
-        if(init_config)
+        if(ppixiv.mobile)
         {
-            let config = JSON.parse(init_config.getAttribute("content"));
-            console.log("key", config["pixiv.context.postKey"]);
-            console.log("R18", config["pixiv.user.x_restrict"]);
-            console.log("user id", config["pixiv.user.id"]);
-            console.log("premium", config["pixiv.user.premium"] == "1");
+            // On mobile we can get most of this from meta#init-config.  However, it doesn't include
+            // mutes, and we'd still need to wait for a /touch/ajax/user/self/status API call to get those.
+            // Since it doesn't actually save us from having to wait for an API call, we just let it
+            // use the regular fallback.
+            let init_config = document.querySelector("meta#init-config");
+            if(init_config)
+            {
+                let config = JSON.parse(init_config.getAttribute("content"));
+                this.init_global_data(config["pixiv.context.postKey"], config["pixiv.user.id"], config["pixiv.user.premium"] == "1",
+                    null, // mutes missing on mobile
+                    config["pixiv.user.x_restrict"]);
 
-            this.init_global_data(config["pixiv.context.postKey"], config["pixiv.user.id"], config["pixiv.user.premium"] == "1",
-                [], // mutes missing on mobile
-                config["pixiv.user.x_restrict"]);
-
-            return true;
+                return true;
+            }
         }
-        */
 
         // This format is used on at least /new_illust.php.
         let global_data = doc.querySelector("#meta-global-data");
@@ -862,17 +858,27 @@ ppixiv.MainController = class
 
     init_global_data(csrf_token, user_id, premium, mutes, content_mode)
     {
-        var muted_tags = [];
-        var muted_user_ids = [];
-        for(var mute of mutes)
+        if(mutes)
         {
-            if(mute.type == 0)
-                muted_tags.push(mute.value);
-            else if(mute.type == 1)
-                muted_user_ids.push(mute.value);
+            let tags = [];
+            let user_ids = [];
+            for(let mute of mutes)
+            {
+                if(mute.type == 0)
+                    tags.push(mute.value);
+                else if(mute.type == 1)
+                    user_ids.push(mute.value);
+            }
+            muting.singleton.set_mutes({tags, user_ids});
         }
-        muting.singleton.pixiv_muted_tags = muted_tags;
-        muting.singleton.pixiv_muted_user_ids = muted_user_ids;
+        else
+        {
+            // This page doesn't tell us the user's mutes.  Load from cache if possible, and request
+            // the mute list from the server.  This normally only happens on mobile.
+            console.assert(ppixiv.mobile);
+            muting.singleton.load_cached_mutes();
+            muting.singleton.fetch_mutes();
+        }
 
         window.global_data = {
             // Store the token for XHR requests.
