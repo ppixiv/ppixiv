@@ -5043,6 +5043,22 @@ ppixiv.FlingVelocity = class
         this.samples = [];
     }
 
+    // A helper to get current_distance and current_velocity in a direction: "up", "down", "left" or "right".
+    get_movement_in_direction(direction)
+    {
+        let distance = this.current_distance;
+        let velocity = this._get_velocity_from_current_distance(distance);
+        switch(direction)
+        {
+        case "up":    return { distance: -distance.y, velocity: -velocity.y };
+        case "down":  return { distance: +distance.y, velocity: +velocity.y };
+        case "left":  return { distance: -distance.x, velocity: -velocity.x };
+        case "right": return { distance: +distance.x, velocity: +velocity.x };
+        default:
+            throw new Error("Unknown direction:", direction);
+        }
+    }
+
     // Get the distance travelled within the sample period.
     get current_distance()
     {
@@ -5061,26 +5077,15 @@ ppixiv.FlingVelocity = class
         return { x: total[0], y: total[1] };
     }
 
-    // A helper to get current_distance and current_velocity in a direction: "up", "down", "left" or "right".
-    get_movement_in_direction(direction)
-    {
-        let distance = this.current_distance;
-        let velocity = this.current_velocity;
-        switch(direction)
-        {
-        case "up":    return { distance: -distance.y, velocity: -velocity.y };
-        case "down":  return { distance: +distance.y, velocity: +velocity.y };
-        case "left":  return { distance: -distance.x, velocity: -velocity.x };
-        case "right": return { distance: +distance.x, velocity: +velocity.x };
-        default:
-            throw new Error("Unknown direction:", direction);
-        }
-    }
-
     // Get the average velocity.
     get current_velocity()
     {
-        let { x, y } = this.current_distance;
+        return this._get_velocity_from_current_distance(this.current_distance);
+    }
+
+    _get_velocity_from_current_distance(current_distance)
+    {
+        let { x, y } = current_distance;
 
         if(this.samples.length == 0)
             return { x: 0, y: 0 };
@@ -6176,9 +6181,10 @@ ppixiv.WidgetDragger = class
         let reversed = direction == "left" || direction == "up";
 
         // Create the velocity tracker used to detect flings.
-        this.recent_pointer_movement = new ppixiv.FlingVelocity({
-            sample_period: 0.150,
-        });
+        this.recent_pointer_movement = new ppixiv.FlingVelocity({ sample_period: 0.150 });
+
+        // Create the velocity tracker for the speed the animated property is changing.
+        this.recent_value_movement = new ppixiv.FlingVelocity({ sample_period: 0.150 });
 
         let property_start = animated_property_inverted? 1:0;
         let property_end = animated_property_inverted? 0:1;
@@ -6203,7 +6209,15 @@ ppixiv.WidgetDragger = class
                 // When an animation finishes normally, we're no longer doing anything, so
                 // go back to inactive.
                 this._set_state("idle");
-            }
+            },
+
+            onchange: ({value, old_value}) => {
+                if(old_value == null)
+                    return;
+
+                let delta = Math.abs(value - old_value);
+                this.recent_value_movement.add_sample({ x: delta });
+            },
         });
 
         this.drag_animation.position = visible? 1:0;
@@ -6315,15 +6329,6 @@ ppixiv.WidgetDragger = class
         });
     }
 
-    // Return the easing to use for the given swipe velocity.  If we're animating from a
-    // quick swipe then we use ease-out, so we don't come to a halt and slowly accelerate,
-    // but if we're animating from releasing while stationary we'll use ease-in-out
-    // so we accelerate smoothly.
-    _easing_for_velocity(velocity)
-    {
-        return velocity > 500? "ease-out":"ease-in-out";
-    }
-
     // Return the dragger state: "idle", "dragging" or "animating".  This can also be
     // "active" while we're transitioning between states.
     get state() { return this._state; }
@@ -6376,18 +6381,18 @@ ppixiv.WidgetDragger = class
     // Animate to the fully shown state.  If given, velocity is the drag speed that caused this.
     //
     // If a drag is in progress, it'll continue, and cancel the animation if it moves again.
-    show({ velocity=0 }={})
+    show({ easing=null }={})
     {
-        this._animate_to({end_position: 1, velocity});
+        this._animate_to({end_position: 1, easing});
     }
 
     // Animate to the completely hidden state.  If given, velocity is the drag speed that caused this.
-    hide({ velocity=0 }={})
+    hide({ easing=null }={})
     {
-        this._animate_to({end_position: 0, velocity});
+        this._animate_to({end_position: 0, easing});
     }
 
-    _animate_to({ end_position, velocity=0 }={})
+    _animate_to({ end_position, easing=null }={})
     {
         if(!this.animation_playing && this.drag_animation.position == end_position)
         {
@@ -6406,7 +6411,24 @@ ppixiv.WidgetDragger = class
             this._set_visible(true);
 
         let duration = this.duration();
-        let easing = this._easing_for_velocity(velocity);
+
+        // If no easing was specified, create an easing curve to match the current velocity
+        // of the animated property.
+        if(easing == null)
+        {
+            let property_velocity = this.recent_value_movement.current_velocity.x;
+            let property_start = this.drag_animation.current_property_value;
+            let property_end = this.drag_animation.property_value_for_position(end_position);
+            // console.log("->", property_start, property_end, property_velocity);
+
+            easing = ppixiv.Bezier2D.find_curve_for_velocity({
+                distance: Math.abs(property_end - property_start),
+                duration: duration / 1000, // in seconds
+                target_velocity: Math.abs(property_velocity),
+                return_object: true,
+            });
+        }
+
         this.drag_animation.play({end_position, easing, duration});
 
         // Call this after starting the animation, so animation_playing and animating_to_shown
@@ -6568,11 +6590,14 @@ ppixiv.Bezier2D = class
 
         // The duration the animation will be, in milliseconds:
         duration,
-    })
+
+        // If true, return a ppixiv.Bezier2D.  Otherwise, return a cubic-bezier string.
+        return_object=false,
+    }={})
     {
         // Do a simple search ac
         let best_error = null;
-        let best_curve = null;
+        let best_t = 0;
         for(let t = 0; t < 0.5; t += 0.05)
         {
             // We're searching from (0, 0.5, 0.5, 1), which eases in slowly: // https://cubic-bezier.com/#0,.5,.5,1
@@ -6594,13 +6619,16 @@ ppixiv.Bezier2D = class
             if(best_error == null || error < best_error)
             {
                 best_error = error;
-                best_curve = `cubic-bezier(${t}, ${0.5-t}, 0.45, 1)`;
+                best_t = t;
             }
 
             // console.log(`t ${t} segment ${segment} segment_distance ${segment_distance} actual_distance_per_second ${actual_distance_per_second}`);
         }
-        
-        return best_curve;
+
+        if(return_object)
+            return new ppixiv.Bezier2D(best_t, 0.5 - best_t, 0.45, 1.0);
+        else
+            return `cubic-bezier(${best_t}, ${0.5-best_t}, 0.45, 1)`;
     }
 }
 
@@ -6626,12 +6654,16 @@ ppixiv.PropertyAnimation = class
 
         // If play() is called, this is called after the animation completes.
         onanimationfinished,
+
+        // This is called when this.position changes, including during animations.
+        onchange=() => { },
     }={})
     {
         if(!(node instanceof Array))
             node = [node];
         this.node = node;
         this.onanimationfinished = onanimationfinished;
+        this.onchange = onchange;
         this.state = "stopped";
         this.property = property;
         this.property_start = property_start;
@@ -6663,13 +6695,31 @@ ppixiv.PropertyAnimation = class
         this._set_position(offset);
     }
 
-    _set_position(offset)
+    _set_position(position)
     {
-        this._position = offset;
+        let old_position = this._position;
+        let old_value = this._property_value;
+        this._position = position;
 
-        let value = helpers.scale(offset, 0, 1, this.property_start, this.property_end);
+        let value = this._property_value = this.property_value_for_position(position);
         for(let node of this.node)
             node.style.setProperty(this.property, value);
+
+        // Call onchange with the old and new values.  Note that old_value and old_position
+        // are null on the first call.
+        this.onchange({position, value, old_position, old_value});
+    }
+
+    // Return the value of the output property for the given 0-1 position.
+    property_value_for_position(position)
+    {
+        return helpers.scale(position, 0, 1, this.property_start, this.property_end);
+    }
+
+    // Return the current value of the property.
+    get current_property_value()
+    {
+        return this.property_value_for_position(this._position);
     }
 
     // Return true if an animation is active.
@@ -6679,7 +6729,7 @@ ppixiv.PropertyAnimation = class
     }
 
     // Play the animation from the current position to end_position, replacing any running animation.
-    async play({end_position=1, easing="ease-in-xout", duration=300}={})
+    async play({end_position=1, easing="ease-in-out", duration=300}={})
     {
         // This is just for convenience, so the caller can tell which way an animation is going.
         this.animating_towards = end_position;
@@ -6689,7 +6739,7 @@ ppixiv.PropertyAnimation = class
         let token = this._playToken = new Object();
 
         // Get the easing curve.
-        let curve = ppixiv.Bezier2D.curve(easing);
+        let curve = easing instanceof ppixiv.Bezier2D? easing:ppixiv.Bezier2D.curve(easing);
         if(curve == null)
             throw new Error(`Unknown easing curve: ${easing}`);
 
