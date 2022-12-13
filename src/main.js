@@ -37,6 +37,7 @@ ppixiv.MainController = class
         // inject polyfills into Pixiv when we're not active.
         install_polyfills();
 
+        // Hide the bright white document until we've loaded our stylesheet.
         if(!ppixiv.native)
             this.temporarily_hide_document();
 
@@ -190,9 +191,6 @@ ppixiv.MainController = class
         // it came from.
         html.location = ppixiv.plocation;
 
-        // Now that we've cleared the document, we can unhide it.
-        document.documentElement.hidden = false;
-
         // Load image resources into blobs.
         await this.load_resource_blobs();
 
@@ -225,6 +223,10 @@ ppixiv.MainController = class
         if(initial_stylesheet)
             initial_stylesheet.remove();
        
+        // Now that we've cleared the document and added our style so our background color is
+        // correct, we can unhide the document.
+        this.undo_temporarily_hide_document();
+
         // Create the shared title.  This is set by helpers.set_page_title.
         if(document.querySelector("title") == null)
             document.head.appendChild(document.createElement("title"));
@@ -990,28 +992,19 @@ ppixiv.MainController = class
 
     temporarily_hide_document()
     {
-        if(document.documentElement != null)
-        {
-            document.documentElement.hidden = true;
+        if(document.documentElement == null)
             return;
-        }
 
-        // At this point, none of the document has loaded, and document.body and
-        // document.documentElement don't exist yet, so we can't hide it.  However,
-        // we want to hide the document as soon as it's added, so we don't flash
-        // the original page before we have a chance to replace it.  Use a mutationObserver
-        // to detect the document being created.
-        var observer = new MutationObserver((mutation_list) => {
-            if(document.documentElement == null)
-                return;
-            observer.disconnect();
+        document.documentElement.style.filter = "brightness(0)";
+        document.documentElement.style.backgroundColor = "#000";
+    }
 
-            document.documentElement.hidden = true;
-        });
-
-        observer.observe(document, { attributes: false, childList: true, subtree: true });
-    };
-
+    undo_temporarily_hide_document()
+    {
+        document.documentElement.style.filter = "";
+        document.documentElement.style.backgroundColor = "";
+    }
+    
     // When we're disabled, but available on the current page, add the button to enable us.
     async setup_disabled_ui(logged_out=false)
     {
