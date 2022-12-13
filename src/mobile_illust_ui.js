@@ -316,7 +316,7 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             size: () => 150,
             animated_property: "--menu-bar-pos",
             direction: "down",
-            ondragstart: ({event}) => {
+            confirm_drag: ({event}) => {
                 // If this is a drag up and we're closed, ignore the drag, since it should be handled
                 // by ScreenIllustDragToExit instead.
                 if(event.movementY < 0 && this.dragger.position == 0)

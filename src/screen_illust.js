@@ -1193,7 +1193,7 @@ class ScreenIllustDragToExit
                 // Don't do anything if the screen isn't active.
                 return this.parent._active && ppixiv.mobile;
             },
-            ondragstart: ({event}) => {
+            confirm_drag: ({event}) => {
                 return Math.abs(event.movementY) > Math.abs(event.movementX);
             },
             onafterhidden: () => {

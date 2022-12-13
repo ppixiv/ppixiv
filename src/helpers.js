@@ -6118,14 +6118,14 @@ ppixiv.WidgetDragger = class
         //
         // Callback states are always in this order:
         //
-        // ondragstart
+        // confirm_drag
         //     onanimationstart
         //         onbeforeshown
         //         onafterhidden
         //     onanimationfinished
         //
         // This is called before a drag starts.  If false is returned, the drag will be ignored.
-        ondragstart = () => true,
+        confirm_drag = () => true,
 
         // This is called before a drag or fling starts.
         onanimationstart = () => { },
@@ -6161,7 +6161,7 @@ ppixiv.WidgetDragger = class
         this.nodes = node;
         this.onbeforeshown = onbeforeshown;
         this.onafterhidden = onafterhidden;
-        this.ondragstart = ondragstart;
+        this.confirm_drag = confirm_drag;
         this.onanimationstart = onanimationstart;
         this.onanimationfinished = onanimationfinished;
         this.animations = animations;
@@ -6223,7 +6223,7 @@ ppixiv.WidgetDragger = class
                 if(!vertical && helpers.should_ignore_horizontal_drag(args.event))
                     return false;
                 
-                if(!this.ondragstart(args))
+                if(!this.confirm_drag(args))
                     return false;
 
                 this.drag_animation.stop();

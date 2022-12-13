@@ -574,7 +574,7 @@ ppixiv.dialog_widget = class extends ppixiv.widget
                 onpointerdown: () => this.drag_to_exit,
 
                 // Ignore vertical drags.
-                ondragstart: ({event}) => Math.abs(event.movementX) > Math.abs(event.movementY),
+                confirm_drag: ({event}) => Math.abs(event.movementX) > Math.abs(event.movementY),
 
                 // Set dragging while dragging the dialog to disable the scroller.
                 onanimationstart: () => this.container.classList.add("dragging-dialog"),
