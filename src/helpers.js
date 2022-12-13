@@ -6250,6 +6250,10 @@ ppixiv.WidgetDragger = class
                 if(first)
                     return;
 
+                // If show() or hide() was called during a fling and the user dragged again, we're interrupting
+                // the animation to continue the drag, so stop the drag.
+                this.drag_animation.stop();
+
                 let pos = this.drag_animation.position;
                 let movement = vertical? event.movementY:event.movementX;
                 if(reversed)
@@ -6351,6 +6355,10 @@ ppixiv.WidgetDragger = class
             this._send_onactive(false);
             return;
         }
+
+        // If we're already showing, just let it continue.
+        if(this.animation_playing && this.animating_to_shown)
+            return;
 
         this._send_onactive(true);
 
