@@ -496,13 +496,6 @@ ppixiv.MediaCache = class extends EventTarget
                 exclude_muted_illusts: 1,
             });
 
-
-            for(let thumb_info of search_result)
-            {
-                console.log("got", thumb_info);
-                //let { remapped_thumb_info, profile_image_url } = ppixiv.media_cache_mappings.remap_partial_media_info(thumb_info, source);
-            }
-
             await this.add_media_infos_partial(result, "illust_list");
         }
 
