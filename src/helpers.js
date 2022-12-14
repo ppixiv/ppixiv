@@ -6304,7 +6304,7 @@ ppixiv.WidgetDragger = class
                 if(this._state == "animating")
                 {
                     console.log("animation interrupted by drag");
-                    this.drag_animation.cancel();
+                    this.drag_animation.stop();
                     this._set_state("dragging");
                 }
 
