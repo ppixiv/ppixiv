@@ -5815,11 +5815,24 @@ ppixiv.TouchScroller = class
     // Cancel any drag immediately without starting a fling.
     cancel_drag()
     {
+        if(this._state != "dragging")
+            return;
+
+        this._cancel_drag();
+        this._set_state("idle");
+    }
+
+    // Like cancel_drag, but don't change our state.  This is used if we're changing from
+    // dragging to animating, where we shouldn't return to idle in-between.
+    _cancel_drag()
+    {
+        if(this._state != "dragging")
+            return;
+
         this.pointers.clear();
         this.cancel_pending_drag();
         this._unregister_events();
         ppixiv.RunningDrags.remove(this);
-        this._set_state("idle");
     }
 
     // This also receives pointercancel.
@@ -5959,17 +5972,18 @@ ppixiv.TouchScroller = class
     // for convenience.
     start_fling({onanimationstart_options={}}={})
     {
-        // If we're being called externally and not from a drag, a drag might be in progress.
-        // For regular flings after drags, we'll always have finished the drag, so this won't
-        // do anything.
-        this.cancel_drag();
-
         // We shouldn't already be flinging when this is called.
         if(this._state == "animating")
         {
             console.warn("Already animating");
             return;
         }
+
+        // If we're being called externally and not from a drag, a drag might be in progress.
+        // For regular flings after drags, we'll always have finished the drag, so this won't
+        // do anything.  The internal _cancel_drag won't return us to idle, since we're about
+        // to set animating.
+        this._cancel_drag();
 
         // Set the initial velocity to the average recent speed of all touches.
         this.velocity = this.fling_velocity.current_velocity;
