@@ -1650,23 +1650,26 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
     {
         super(options);
 
-        // Any touch on the image stops the animation, even if it doesn't cause
-        // TouchScroller to do anything.
         this.container.addEventListener("pointerdown", (e) => {
-            if(this.slideshow_mode)
+            if(this.slideshow_mode || !this.animations_running)
                 return;
-            
-            if(this.stop_animation())
-            {
-                // If this touch caused us to stop animations, mark it as partially handled so
-                // IsolatedTapHandler doesn't trigger and cause it to also open the menu.
-                e.partially_handled = true;
-            }
+
+            // Taps during panning animations stop the animation.  Mark them as partially
+            // handled, so they don't also trigger IsolatedTapHandler and open the menu.
+            // Do this here instead of in onactive below, so this happens even if the touch
+            // isn't long enough to activate TouchScroller.
+            e.partially_handled = true;
         });
- 
+    
         this.touch_scroller = new ppixiv.TouchScroller({
             container: this.container,
             signal: this.shutdown_signal.signal,
+
+            onactive: () => {
+                // Stop pan animations if the touch scroller becomes active.
+                if(!this.slideshow_mode)
+                    this.stop_animation();
+            },
 
             // Return the current position in client coordinates.
             get_position: () => {

@@ -5620,11 +5620,10 @@ ppixiv.TouchScroller = class
         // current zoom to the wanted zoom.  This is applied along with rubber banding.
         get_wanted_zoom,
 
-        // Called before a bounce or fling animation starts.
-        onanimationstart,
-
-        // Called after a bounce or fling animation finishes.
-        onanimationfinished,
+        // Callbacks:
+        onactive = () => { },                  oninactive = () => { },
+        ondragstart = () => { },               ondragend = () => { },
+        onanimationstart = () => { },          onanimationfinished = () => { },
 
         // An AbortSignal to shut down.
         signal,
@@ -5638,15 +5637,18 @@ ppixiv.TouchScroller = class
             get_bounds,
             get_wanted_zoom,
             adjust_zoom,
-            onanimationstart,
-            onanimationfinished,
+
+            onactive,              oninactive,
+            ondragstart,           ondragend,
+            onanimationstart,      onanimationfinished,
         };
 
         this.velocity = {x: 0, y: 0};
         this.fling_velocity = new FlingVelocity();
         this.pointers = new Map();
+        this._delaying_before_drag = false;
 
-        // This is null if we're inactive, "dragging" if the user is dragging, or "fling" if we're
+        // This is null if we're inactive, "dragging" if the user is dragging, or "animating" if we're
         // flinging and rebounding.
         this._state = "idle";
 
@@ -5676,11 +5678,14 @@ ppixiv.TouchScroller = class
         window.removeEventListener("pointercancel", this.onpointerup);
     }
 
-    // If we're in drag-delay, cancel the drag_delay_timer and cancel the potential drag.
+    // If we're delaying before a drag, cancel the drag_delay_timer and cancel the potential drag.
     cancel_pending_drag = () =>
     {
-        if(this._state == "drag-delay")
-            this._state = "idle";
+        if(this._state == "idle" && this._delaying_before_drag)
+        {
+            this._delaying_before_drag = false;
+            this._set_state("idle");
+        }
 
         if(this.drag_delay_timer != null)
         {
@@ -5697,7 +5702,7 @@ ppixiv.TouchScroller = class
             return;
 
         // If we were flinging, the user grabbed the fling and interrupted it.
-        if(this._state == "fling")
+        if(this._state == "animating")
             this.cancel_fling();
 
         if(this.pointers.size == 0 && helpers.should_ignore_horizontal_drag(e))
@@ -5712,31 +5717,34 @@ ppixiv.TouchScroller = class
             this.cancel_pending_drag();
             ppixiv.RunningDrags.add(this, () => this.cancel_pending_drag());
             ppixiv.RunningDrags.cancel_others(this);
-            this._state = "dragging";
+            this._set_state("dragging");
         }
         */
 
-        if(this._state == "drag-delay" && this.pointers.size > 0)
+        if(this._state == "idle" && this._delaying_before_drag && this.pointers.size > 0)
         {
-            // We were in drag-delay and a second tap started.  Cancel the delay and start
-            // immediately for pinch zooming.
+            // We were in _delaying_before_drag and a second tap started.  Cancel the delay and
+            // start immediately for pinch zooming.
             this.cancel_pending_drag();
-            this._state = "dragging";
+            this._set_state("dragging");
             ppixiv.RunningDrags.cancel_others(this);
         }
-        else if(this._state != "dragging" && this._state != "drag-delay")
+        else if(this._state != "dragging" && !this._delaying_before_drag)
         {
             // We can start the drag now.  Wait briefly to allow the other screen_illust draggers to
             // have a shot at them first, so they see quick flings and we see drags that have a slight
             // delay.
             this.total_movement_during_delay = [0,0];
             this.drag_delay_timer = helpers.setTimeout(() => {
-                console.assert(this._state == "drag-delay", `Expected to be in drag-delay, actually in ${this._state}`);
+                console.assert(this._state == "idle", `Expected to be idle, actually ${this._state}`);
+                console.assert(this._delaying_before_drag, `Expected to be in _delaying_before_drag`);
+                
                 ppixiv.RunningDrags.cancel_others(this);
-                this._state = "dragging";
+                this._delaying_before_drag = false;
+                this._set_state("dragging");
             }, 30);
 
-            this._state = "drag-delay";
+            this._delaying_before_drag = true;
         }
 
         ppixiv.RunningDrags.add(this, () => this.cancel_pending_drag());
@@ -5767,6 +5775,40 @@ ppixiv.TouchScroller = class
         this.drag_axes_locked = [bounds.width < 0.001, bounds.height < 0.001];
     }
 
+    // Set the current state: "idle", "dragging" or "animating", running the
+    // appropriate callbacks.
+    _set_state(state, args={})
+    {
+        if(state == this._state)
+            return;
+
+        // Transition back to active, ending whichever state we were in before.
+        if(state != "idle"      && this._change_state("idle", "active")) this.options.onactive(args);
+        if(state != "dragging"  && this._change_state("dragging", "active")) this.options.ondragend(args);
+        if(state != "animating" && this._change_state("animating", "active")) this.options.onanimationfinished(args);
+
+        // Transition into the new state, beginning the new state.
+        if(state == "dragging"  && this._change_state("active", "dragging")) this.options.ondragstart(args);
+        if(state == "animating" && this._change_state("active", "animating")) this.options.onanimationstart(args);
+        if(state == "idle"      && this._change_state("active", "idle")) this.options.oninactive(args);
+    }
+    
+    _change_state(old_state, new_state)
+    {
+        if(this._state != old_state)
+            return false;
+
+        // console.warn(`state change: ${old_state} -> ${new_state}`);
+        this._state = new_state;
+
+        // Don't call onstatechange for active, since it's just a transition between
+        // other states.
+        // if(new_state != "active")
+        //    this.onstatechange();
+
+        return true;
+    }
+
     // Cancel any drag immediately without starting a fling.
     cancel_drag()
     {
@@ -5774,7 +5816,7 @@ ppixiv.TouchScroller = class
         this.cancel_pending_drag();
         this._unregister_events();
         ppixiv.RunningDrags.remove(this);
-        this._state = "idle";
+        this._set_state("idle");
     }
 
     // This also receives pointercancel.
@@ -5796,8 +5838,9 @@ ppixiv.TouchScroller = class
         this.cancel_pending_drag();
         ppixiv.RunningDrags.remove(this);
 
-        // The last touch was released.  Start flinging or rubber banding.
-        this.start_fling();
+        // The last touch was released.  If we were dragging, start flinging or rubber banding.
+        if(this._state == "dragging")
+            this.start_fling();
     }
 
     // Get the average position of all current touches.
@@ -5911,7 +5954,7 @@ ppixiv.TouchScroller = class
     // This can be called by the user to force a fling to begin, allowing this to be used
     // for smooth bouncing.  onanimationstart_options will be passed to onanimationstart
     // for convenience.
-    start_fling({onanimationstart_options=null}={})
+    start_fling({onanimationstart_options={}}={})
     {
         // If we're being called externally and not from a drag, a drag might be in progress.
         // For regular flings after drags, we'll always have finished the drag, so this won't
@@ -5919,18 +5962,16 @@ ppixiv.TouchScroller = class
         this.cancel_drag();
 
         // We shouldn't already be flinging when this is called.
-        if(this._state == "fling")
+        if(this._state == "animating")
         {
-            console.warn("Already flinging");
+            console.warn("Already animating");
             return;
         }
-
-        this._state = "fling";
 
         // Set the initial velocity to the average recent speed of all touches.
         this.velocity = this.fling_velocity.current_velocity;
 
-        this.options.onanimationstart({...onanimationstart_options});
+        this._set_state("animating", onanimationstart_options);
 
         console.assert(this.abort_fling == null);
         this.abort_fling = new AbortController();
@@ -5945,14 +5986,14 @@ ppixiv.TouchScroller = class
             this.abort_fling = null;
         }
 
-        this._state = "idle";
+        this._set_state("idle");
     }
 
     // Handle a fling asynchronously.  Stop when the fling ends or signal is aborted.
     async run_fling(signal)
     {
         let previous_time = Date.now() / 1000;
-        while(this._state == "fling")
+        while(this._state == "animating")
         {
             let success = await helpers.vsync({ signal });
             if(!success)
@@ -5992,9 +6033,7 @@ ppixiv.TouchScroller = class
         this.velocity = { x: 0, y: 0 };
 
         this.abort_fling = null;
-        this._state = "idle";
-
-        this.options.onanimationfinished();
+        this._set_state("idle");
     }
 
     apply_zoom_bounce(duration)
