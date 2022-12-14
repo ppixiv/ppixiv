@@ -135,9 +135,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Tell the dragger to transition us in.
         if(this.drag_to_exit)
             this.drag_to_exit.activate();
-
-        // Focus the container, so it receives keyboard events like home/end.
-        this.container.focus();
     }
 
     deactivate()
