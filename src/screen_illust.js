@@ -695,13 +695,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 }
 
 // Handle mobile image switching.
-//
-// We switch images by dragging vertically across the edge of the screen.  This mimics
-// iOS's task switching by dragging at the bottom.
-//
-// This is easier to implement than trying to drag past the edge of the image, since videos
-// don't use touch dragging.  It also works better than swiping from the edge of the screen,
-// since both iOS and Android have problems that make that impossible.
 class DragImageChanger
 {
     constructor({parent})
@@ -721,7 +714,7 @@ class DragImageChanger
         this.adding_viewer = false;
         this.animations = null;
 
-        // Once we reach the top and bottom edge, this is set to the minimum and maximum value
+        // Once we reach the left and right edge, this is set to the minimum and maximum value
         // of this.drag_distance.
         this.bounds = [null, null];
 
@@ -816,7 +809,7 @@ class DragImageChanger
         for(let animation of animations)
             animation.pause();
 
-        // If a drag is active, set drag_distance to the Y position of the main viewer to match
+        // If a drag is active, set drag_distance to the X position of the main viewer to match
         // the drag to where the animation was.
         if(this.drag_distance != null && this.main_viewer)
         {
@@ -913,16 +906,16 @@ class DragImageChanger
 
         // See if we need to add another viewer in either direction.
         //
-        // The bottom edge of the topmost viewer, including the gap between images.  If this is
+        // The right edge of the leftmost viewer, including the gap between images.  If this is
         // 0, it's just above the screen.
-        let top_viewer_bottom = this.get_viewer_x(-1) + this.viewer_distance;
+        let left_viewer_edge = this.get_viewer_x(-1) + this.viewer_distance;
         let down = null;
-        if(top_viewer_bottom > drag_threshold)
+        if(left_viewer_edge > drag_threshold)
             down = false;
 
-        // The top edge of the bottommost viewer.
-        let bottom_viewer_top = this.get_viewer_x(this.viewers.length) - this.image_gap;
-        if(bottom_viewer_top < window.innerHeight - drag_threshold)
+        // The left edge of the rightmost viewer.
+        let right_viewer_edge = this.get_viewer_x(this.viewers.length) - this.image_gap;
+        if(right_viewer_edge < window.innerHeight - drag_threshold)
             down = true;
 
         // If the user drags multiple times quickly, the drag target may be past the end.
