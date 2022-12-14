@@ -1748,13 +1748,23 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                 let top_left = this.get_current_actual_position({zoom_pos: [0,0]}).zoom_pos;
                 let bottom_right = this.get_current_actual_position({zoom_pos: [1,1]}).zoom_pos;
 
+                // If move_to_target is true, we're animating for a double-tap zoom and we want to
+                // center on this.target_zoom_center.  Adjust the target position so the image is still
+                // clamped to the edge of the screen, and use that as both corners, so it's the only
+                // place we can go.
+                if(this.move_to_target)
+                {
+                    top_left = this.get_current_actual_position({zoom_pos: this.target_zoom_center}).zoom_pos;
+                    bottom_right = [...top_left]; // copy
+                }
+
                 // Scale to view coordinates.
                 top_left[0] *= this.current_width;
                 top_left[1] *= this.current_height;
                 bottom_right[0] *= this.current_width;
                 bottom_right[1] *= this.current_height;
 
-                // Convert to screen coords.
+                // Convert to client coords.
                 top_left = this.view_to_client_coords(top_left);
                 bottom_right = this.view_to_client_coords(bottom_right);
 
@@ -1763,8 +1773,10 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
             // When a fling starts (this includes releasing drags, even without a fling), decide
             // on the zoom factor we want to bounce to.
-            onanimationstart: ({target_factor=null, target_image_pos=null}={}) =>
+            onanimationstart: ({target_factor=null, target_image_pos=null, move_to_target=false}={}) =>
             {
+                this.move_to_target = move_to_target;
+
                 // If we were given an explicit zoom factor to zoom to, use it.  This happens
                 // if we start the zoom in mobile_toggle_zoom.
                 if(target_factor != null)
@@ -1793,6 +1805,12 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
                     this.target_zoom_factor = this._zoom_factor_cover;
                 else
                     this.target_zoom_factor = this._zoom_factor_current;
+            },
+
+            onanimationfinished: () =>
+            {
+                // If we enabled moving towards a target position, disable it when the animation finishes.
+                this.move_to_target = false;
             },
 
             // We don't want to zoom under zoom factor 1x.  Return the zoom ratio needed to bring
@@ -1860,6 +1878,9 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
             onanimationstart_options: {
                 target_factor,
                 target_image_pos,
+
+                // Set move_to_target so we'll center on this position too.
+                move_to_target: true,
             }
         });
     }
