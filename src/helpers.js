@@ -5648,7 +5648,7 @@ ppixiv.TouchScroller = class
 
         // This is null if we're inactive, "dragging" if the user is dragging, or "fling" if we're
         // flinging and rebounding.
-        this.mode = null;
+        this._state = "idle";
 
         // Note that we don't use pointer_listener for this.  It's meant for mouse events
         // and isn't optimized for multitouch.
@@ -5679,8 +5679,8 @@ ppixiv.TouchScroller = class
     // If we're in drag-delay, cancel the drag_delay_timer and cancel the potential drag.
     cancel_pending_drag = () =>
     {
-        if(this.mode == "drag-delay")
-            this.mode = null;
+        if(this._state == "drag-delay")
+            this._state = "idle";
 
         if(this.drag_delay_timer != null)
         {
@@ -5693,11 +5693,11 @@ ppixiv.TouchScroller = class
     {
         // Don't start a drag if one is already running.  Do continue if we're already dragging
         // and this is the start of a pinch.
-        if(this.mode != "dragging" && ppixiv.RunningDrags.active_drag)
+        if(this._state != "dragging" && ppixiv.RunningDrags.active_drag)
             return;
 
         // If we were flinging, the user grabbed the fling and interrupted it.
-        if(this.mode == "fling")
+        if(this._state == "fling")
             this.cancel_fling();
 
         if(this.pointers.size == 0 && helpers.should_ignore_horizontal_drag(e))
@@ -5707,36 +5707,36 @@ ppixiv.TouchScroller = class
         // the delay.  It's disabled for now since it might make the UI confusing.  It probably
         // would work better if we had access to haptics.
         /*
-        if(this.mode != "dragging" && e.width > 50)
+        if(this._state != "dragging" && e.width > 50)
         {
             this.cancel_pending_drag();
             ppixiv.RunningDrags.add(this, () => this.cancel_pending_drag());
             ppixiv.RunningDrags.cancel_others(this);
-            this.mode = "dragging";
+            this._state = "dragging";
         }
         */
 
-        if(this.mode == "drag-delay" && this.pointers.size > 0)
+        if(this._state == "drag-delay" && this.pointers.size > 0)
         {
             // We were in drag-delay and a second tap started.  Cancel the delay and start
             // immediately for pinch zooming.
             this.cancel_pending_drag();
-            this.mode = "dragging";
+            this._state = "dragging";
             ppixiv.RunningDrags.cancel_others(this);
         }
-        else if(this.mode != "dragging" && this.mode != "drag-delay")
+        else if(this._state != "dragging" && this._state != "drag-delay")
         {
             // We can start the drag now.  Wait briefly to allow the other screen_illust draggers to
             // have a shot at them first, so they see quick flings and we see drags that have a slight
             // delay.
             this.total_movement_during_delay = [0,0];
             this.drag_delay_timer = helpers.setTimeout(() => {
-                console.assert(this.mode == "drag-delay", `Expected to be in drag-delay, actually in ${this.mode}`);
+                console.assert(this._state == "drag-delay", `Expected to be in drag-delay, actually in ${this._state}`);
                 ppixiv.RunningDrags.cancel_others(this);
-                this.mode = "dragging";
+                this._state = "dragging";
             }, 30);
 
-            this.mode = "drag-delay";
+            this._state = "drag-delay";
         }
 
         ppixiv.RunningDrags.add(this, () => this.cancel_pending_drag());
@@ -5774,7 +5774,7 @@ ppixiv.TouchScroller = class
         this.cancel_pending_drag();
         this._unregister_events();
         ppixiv.RunningDrags.remove(this);
-        this.mode = null;
+        this._state = "idle";
     }
 
     // This also receives pointercancel.
@@ -5831,7 +5831,7 @@ ppixiv.TouchScroller = class
         if(pointer_info == null)
             return;
 
-        if(this.mode != "dragging")
+        if(this._state != "dragging")
         {
             this.total_movement_during_delay[0] += Math.abs(e.movementX);
             this.total_movement_during_delay[1] += Math.abs(e.movementY);
@@ -5919,13 +5919,13 @@ ppixiv.TouchScroller = class
         this.cancel_drag();
 
         // We shouldn't already be flinging when this is called.
-        if(this.mode == "fling")
+        if(this._state == "fling")
         {
             console.warn("Already flinging");
             return;
         }
 
-        this.mode = "fling";
+        this._state = "fling";
 
         // Set the initial velocity to the average recent speed of all touches.
         this.velocity = this.fling_velocity.current_velocity;
@@ -5945,14 +5945,14 @@ ppixiv.TouchScroller = class
             this.abort_fling = null;
         }
 
-        this.mode = null;
+        this._state = "idle";
     }
 
     // Handle a fling asynchronously.  Stop when the fling ends or signal is aborted.
     async run_fling(signal)
     {
         let previous_time = Date.now() / 1000;
-        while(this.mode == "fling")
+        while(this._state == "fling")
         {
             let success = await helpers.vsync({ signal });
             if(!success)
@@ -5992,7 +5992,7 @@ ppixiv.TouchScroller = class
         this.velocity = { x: 0, y: 0 };
 
         this.abort_fling = null;
-        this.mode = null;
+        this._state = "idle";
 
         this.options.onanimationfinished();
     }
