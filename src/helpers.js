@@ -5785,6 +5785,11 @@ ppixiv.TouchScroller = class
         if(state == this._state)
             return;
 
+        // Debugging a case where we end up in idle, but we're still the active dragger and think
+        // we have touches.
+        if(state == "idle" && this.pointers.size > 0)
+            console.warn("Invalid TouchScroller idle state");
+
         // Transition back to active, ending whichever state we were in before.
         if(state != "idle"      && this._change_state("idle", "active")) this.options.onactive(args);
         if(state != "dragging"  && this._change_state("dragging", "active")) this.options.ondragend(args);
@@ -5997,6 +6002,9 @@ ppixiv.TouchScroller = class
 
     cancel_fling()
     {
+        if(this._state != "animating")
+            return;
+
         if(this.abort_fling)
         {
             this.abort_fling.abort();
