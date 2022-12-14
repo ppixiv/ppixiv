@@ -114,8 +114,7 @@ ppixiv.muting = class extends EventTarget
         
         this.handling_broadcast_mutes = true;
         try {
-            this.pixiv_muted_tags = data.pixiv_muted_tags;
-            this.pixiv_muted_user_ids = data.pixiv_muted_user_ids;
+            this.set_mutes({tags: data.pixiv_muted_tags, user_ids: data.pixiv_muted_user_ids});
         } finally {
             this.handling_broadcast_mutes = false;
         }
