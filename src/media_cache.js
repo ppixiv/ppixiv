@@ -358,6 +358,23 @@ ppixiv.MediaCache = class extends EventTarget
             }];
         }
 
+        // Try to find the user's avatar URL.  userIllusts contains a list of the user's illust IDs,
+        // and only three have thumbnail data, probably for UI previews.  For some reason these don't
+        // always contain profileImageUrl, but usually one or two of the three do.  Cache it if it's
+        // there so it's ready for avatar_widget if possible.
+        if(illust_data.userIllusts)
+        {
+            for(let user_illust_data of Object.values(illust_data.userIllusts))
+            {
+                if(user_illust_data?.profileImageUrl == null)
+                    continue;
+
+                let { profile_image_url } = ppixiv.media_cache_mappings.remap_partial_media_info(user_illust_data, "normal");
+                if(profile_image_url)
+                    this.cache_profile_picture_url(illust_data.userId, profile_image_url);
+            }
+        }
+
         // Remember that this is full info.
         illust_data.full = true;
 
@@ -526,7 +543,7 @@ ppixiv.MediaCache = class extends EventTarget
             // The profile image URL isn't included in image info since it's not present in full
             // info.  Store it separately.
             if(profile_image_url)
-                this.user_profile_urls[remapped_thumb_info.userId] = profile_image_url;
+                this.cache_profile_picture_url(remapped_thumb_info.userId, profile_image_url);
 
             // If we already have full media info, don't replace it with partial info.  This can happen
             // when a data source is refreshed.
@@ -687,6 +704,16 @@ ppixiv.MediaCache = class extends EventTarget
         if(!result)
             result = "https://s.pximg.net/common/images/no_profile.png";
         return result;
+    }
+
+    // Cache the URL to a user's avatar and preload it.
+    cache_profile_picture_url(user_id, url)
+    {
+        if(this.user_profile_urls[user_id] == url)
+            return;
+
+        this.user_profile_urls[user_id] = url;
+        helpers.preload_images([url]);
     }
 
     // Helpers
