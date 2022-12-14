@@ -60,7 +60,6 @@ ppixiv.actor = class extends EventTarget
         
         this.options = options;
 
-        this.templates = {};
         this.child_actors = [];
 
         this.parent = parent;
@@ -131,14 +130,18 @@ ppixiv.actor = class extends EventTarget
     // using name as a key.
     create_template({name=null, html, make_svg_unique=true})
     {
-        let template = name? this.templates[name]:null;
+        // Cache templates on the class.  This doesn't share cache between subclasses, but
+        // it lets us reuse templates between instances.
+        let cls = this.__proto__;
+        cls.templates ??= {};
+        let template = name? cls.templates[name]:null;
         if(!template)
         {
             template = document.createElement("template");
             template.innerHTML = html;
             helpers.replace_inlines(template.content);
             
-            this.templates[name] = template;
+            cls.templates[name] = template;
         }
 
         return helpers.create_from_template(template, { make_svg_unique });
