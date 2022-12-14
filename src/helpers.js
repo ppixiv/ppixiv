@@ -5621,7 +5621,7 @@ ppixiv.TouchScroller = class
         get_wanted_zoom,
 
         // Called before a bounce or fling animation starts.
-        onanimationstarted,
+        onanimationstart,
 
         // Called after a bounce or fling animation finishes.
         onanimationfinished,
@@ -5638,7 +5638,7 @@ ppixiv.TouchScroller = class
             get_bounds,
             get_wanted_zoom,
             adjust_zoom,
-            onanimationstarted,
+            onanimationstart,
             onanimationfinished,
         };
 
@@ -5909,9 +5909,9 @@ ppixiv.TouchScroller = class
     // Switch from dragging to flinging.
     //
     // This can be called by the user to force a fling to begin, allowing this to be used
-    // for smooth bouncing.  onanimationstarted_options will be passed to onanimationstarted
+    // for smooth bouncing.  onanimationstart_options will be passed to onanimationstart
     // for convenience.
-    start_fling({onanimationstarted_options=null}={})
+    start_fling({onanimationstart_options=null}={})
     {
         // If we're being called externally and not from a drag, a drag might be in progress.
         // For regular flings after drags, we'll always have finished the drag, so this won't
@@ -5930,7 +5930,7 @@ ppixiv.TouchScroller = class
         // Set the initial velocity to the average recent speed of all touches.
         this.velocity = this.fling_velocity.current_velocity;
 
-        this.options.onanimationstarted({...onanimationstarted_options});
+        this.options.onanimationstart({...onanimationstart_options});
 
         console.assert(this.abort_fling == null);
         this.abort_fling = new AbortController();

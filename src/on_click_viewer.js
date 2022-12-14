@@ -1760,7 +1760,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
 
             // When a fling starts (this includes releasing drags, even without a fling), decide
             // on the zoom factor we want to bounce to.
-            onanimationstarted: ({target_factor=null, target_image_pos=null}={}) =>
+            onanimationstart: ({target_factor=null, target_image_pos=null}={}) =>
             {
                 // If we were given an explicit zoom factor to zoom to, use it.  This happens
                 // if we start the zoom in mobile_toggle_zoom.
@@ -1854,7 +1854,7 @@ ppixiv.image_viewer_mobile = class extends ppixiv.image_viewer_base
         let target_image_pos = this.get_image_position(view_pos);
 
         this.touch_scroller.start_fling({
-            onanimationstarted_options: {
+            onanimationstart_options: {
                 target_factor,
                 target_image_pos,
             }
