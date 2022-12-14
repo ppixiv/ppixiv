@@ -1196,29 +1196,35 @@ class ScreenIllustDragToExit
             confirm_drag: ({event}) => {
                 return Math.abs(event.movementY) > Math.abs(event.movementX);
             },
-            onafterhidden: () => {
-                // The drag finished.  If the screen is still active, exit the illust screen and go
-                // back to the search screen.  If the screen is already inactive then we're animating
-                // a navigation that has already happened (browser back).
-                if(this.parent._active)
-                {
-                    let args = new helpers.args(this.parent.data_source.search_url.toString());
-                    main_controller.navigate_from_image_to_search(args);
-                }
-            },
-            oninactive: () => {
-                // See if we want to remove the viewer now that the animation has finished.
-                this.parent.cleanup_image();
 
-                // Scroll the search view to the current image when we're not animating.
-                this.showing_new_image();
-            },
             onactive: () => {
                 // Close the menu bar if it's open when a drag starts.
                 if(this.parent.mobile_illust_ui)
                     this.parent.mobile_illust_ui.hide();
 
                 this._config_animation();
+            },
+
+            oninactive: () => {
+                if(this.dragger.visible)
+                {
+                    // Scroll the search view to the current image when we're not animating.
+                    this.showing_new_image();
+                }
+                else
+                {
+                    // We're no longer visible.  If the screen is still active, complete the navigation
+                    // back to the search screen.  If the screen is already inactive then we're animating
+                    // a navigation that has already happened (browser back).
+                    if(this.parent._active)
+                    {
+                        let args = new helpers.args(this.parent.data_source.search_url.toString());
+                        main_controller.navigate_from_image_to_search(args);
+                    }
+
+                    // See if we want to remove the viewer now that the animation has finished.
+                    this.parent.cleanup_image();
+                }
             },
         });
     }
