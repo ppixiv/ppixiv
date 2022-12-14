@@ -6264,11 +6264,12 @@ ppixiv.WidgetDragger = class
             end_offset: this.end_offset,
     
             onanimationfinished: (anim) => {
-                // Call onanimationfinished if the animation we finished put us at 0.
-                let position = anim.position;
-
-                if(position < 0.00001)
+                // Update visibility if the animation we finished put us at 0.
+                if(anim.position < 0.00001)
                     this._set_visible(false);
+
+                // If a drag was left active during the animation, cancel it before returning to idle.
+                this.dragger.cancel_drag();
 
                 // When an animation finishes normally, we're no longer doing anything, so
                 // go back to inactive.
@@ -6331,7 +6332,7 @@ ppixiv.WidgetDragger = class
                 }
 
                 // Drags should always be in the dragging state, and won't change state.
-                console.assert(this._state == "dragging");
+                console.assert(this._state == "dragging", this._state);
 
                 this.recent_pointer_movement.add_sample({ x: event.movementX, y: event.movementY });
 
@@ -6444,7 +6445,8 @@ ppixiv.WidgetDragger = class
     
     // Animate to the fully shown state.  If given, velocity is the drag speed that caused this.
     //
-    // If a drag is in progress, it'll continue, and cancel the animation if it moves again.
+    // If a drag is in progress, it'll continue, and cancel the animation if it moves again.  The
+    // drag will be cancelled if the animation completes.
     show({ easing=null }={})
     {
         this._animate_to({end_position: 1, easing});
@@ -6458,16 +6460,12 @@ ppixiv.WidgetDragger = class
 
     _animate_to({ end_position, easing=null }={})
     {
-        if(!this.animation_playing && this.drag_animation.position == end_position)
-        {
-            // We're already closed, so just update visibility and go back to inactive.
-            this._set_visible(end_position != 0);
-            this._set_state("idle");
+        // Stop if we're already in this state.
+        if(this._state == "idle" && this.drag_animation.position == end_position)
             return;
-        }
-
+    
         // If we're already animating towards this position, just let it continue.
-        if(this.animation_playing && this.drag_animation.animating_towards == end_position)
+        if(this._state == "animating" && this.drag_animation.animating_towards == end_position)
             return;
 
         // If we're animating to a visible state, mark ourselves visible.
