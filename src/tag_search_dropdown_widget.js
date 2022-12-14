@@ -32,11 +32,19 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             button: this.input_element,
 
             create_box: ({...options}) => {
-                return new tag_search_dropdown_widget({
+                let dropdown = new tag_search_dropdown_widget({
                     input_element: this.container,
                     parent: this,
+                    saved_position: this.saved_dropdown_position,
                     ...options,
                 });
+
+                // Save the scroll position when the dropdown closes, so we can restore it the
+                // next time we open it.
+                dropdown.shutdown_signal.signal.addEventListener("abort", () => {
+                    this.saved_dropdown_position = dropdown.save_search_position();
+                });
+                return dropdown;
             },
 
             close_for_click: (e) => {
@@ -121,7 +129,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
 
 ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 {
-    constructor({input_element, ...options})
+    constructor({input_element, saved_position, ...options})
     {
         super({...options, template: `
             <div class="search-history input-dropdown" tabindex=1>
@@ -141,6 +149,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         this.autocomplete_cache = new Map();
         this.disable_autocomplete_until = 0;
+        this.saved_position = saved_position;
 
         // Find the <input>.
         this.input_element = input_element.querySelector("input");
@@ -1087,9 +1096,12 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // Save the selection so we can restore it.
         let saved_selection = this.get_selection();
     
-        // Save the scroll position so we can try to preserve it, especially when autocomplete is
-        // changing up above.
-        let saved_position = this.save_search_position();
+        // If we were given a saved scroll position, use it the first time we open.  Otherwise,
+        // save the current position.  This preserves the scroll position when we're destroyed
+        // and recreated, and when we refresh due tothings like autocomplete changing.
+        let saved_position = this.saved_position ?? this.save_search_position();
+        this.saved_position = null;
+        saved_position ??= {};
 
         helpers.remove_elements(this.input_dropdown_contents);
 
@@ -1166,15 +1178,16 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
     }
 
     // Save the current search position, to be restored with restore_search_position.
+    // This can be used as the saved_position argument to the constructor.
     save_search_position()
     {
         // Find the first visible entry.
         for(let node of this.input_dropdown.querySelectorAll(".entry[data-tag]"))
         {
-            if(node.offsetTop < this.input_dropdown.scrollTop)
+            if(node.offsetTop < this.container.scrollTop)
                 continue;
 
-            let saved_position = helpers.save_scroll_position(this.input_dropdown, node);
+            let saved_position = helpers.save_scroll_position(this.container, node);
             let tag = node.dataset.tag;
             return { saved_position, tag };
         }
@@ -1189,7 +1202,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         let restore_entry = this.get_entry_for_tag(tag);
         if(restore_entry)
-            helpers.restore_scroll_position(this.input_dropdown, restore_entry, saved_position);
+            helpers.restore_scroll_position(this.container, restore_entry, saved_position);
     }
 
     // Scroll a row into view.  entry can be an entry or a section header.
@@ -1219,8 +1232,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         // If entry is underneath the header, scroll down to make it visible.  The extra offsetTop
         // adjustment is to adjust for the autocomplete box above the scroller.
         let sticky_padding = sticky_top.offsetHeight;
-        let offset_from_top = entry.offsetTop - this.input_dropdown.offsetTop - this.input_dropdown.scrollTop;
+        let offset_from_top = entry.offsetTop - this.input_dropdown.offsetTop - this.container.scrollTop;
         if(offset_from_top < sticky_padding)
-            this.input_dropdown.scrollTop -= sticky_padding - offset_from_top;
+            this.container.scrollTop -= sticky_padding - offset_from_top;
     }
 }
