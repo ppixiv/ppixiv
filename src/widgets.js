@@ -12,7 +12,7 @@ ppixiv.actor = class extends EventTarget
 {
     // If true, stack traces will be logged if shutdown() is called more than once.  This takes
     // a stack trace on each shutdown, so it's only enabled when needed.
-    static debug_shutdown = true;
+    static debug_shutdown = false;
 
     // A list of top-level actors (actors with no parent).  This is just for debugging.
     static top_actors = [];
