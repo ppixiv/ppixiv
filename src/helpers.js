@@ -228,25 +228,28 @@ ppixiv.helpers = {
         data_type=null,
     })
     {
-        // We always create an anchor, even if we don't have a link.  Browsers just treat it as
-        // a span when there's no href attribute.
-        //
-        // label-box encloses the icon and label, so they're aligned to each other with text spacing,
-        // which is needed to get text to align with font icons.  The resulting box is then spaced as
-        // a unit within box-link's flexbox.
-        let html = `
-            <a class=box-link>
-                <div class=label-box>
-                    <span hidden class=icon></span>
-                    <span hidden class=label></span>
-                    <span hidden class=explanation></span>
-                </div>
-            </a>
-        `;
+        if(!this._cached_box_link_template)
+        {
+            // We always create an anchor, even if we don't have a link.  Browsers just treat it as
+            // a span when there's no href attribute.
+            //
+            // label-box encloses the icon and label, so they're aligned to each other with text spacing,
+            // which is needed to get text to align with font icons.  The resulting box is then spaced as
+            // a unit within box-link's flexbox.
+            let html = `
+                <a class=box-link>
+                    <div class=label-box>
+                        <span hidden class=icon></span>
+                        <span hidden class=label></span>
+                        <span hidden class=explanation></span>
+                    </div>
+                </a>
+            `;
 
-        let template = document.createElement("template");
-        template.innerHTML = html;
-        let node = helpers.create_from_template(template);
+            this._cached_box_link_template = document.createElement("template");
+            this._cached_box_link_template.innerHTML = html;
+        }
+        let node = helpers.create_from_template(this._cached_box_link_template);
 
         if(label != null)
         {
