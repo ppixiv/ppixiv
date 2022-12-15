@@ -5684,11 +5684,7 @@ ppixiv.TouchScroller = class
     // If we're delaying before a drag, cancel the drag_delay_timer and cancel the potential drag.
     cancel_pending_drag = () =>
     {
-        if(this._state == "idle" && this._delaying_before_drag)
-        {
-            this._delaying_before_drag = false;
-            this._set_state("idle");
-        }
+        this._delaying_before_drag = false;
 
         if(this.drag_delay_timer != null)
         {
