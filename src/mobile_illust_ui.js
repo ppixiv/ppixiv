@@ -27,14 +27,14 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
                         <span class=label>Similar</span>
                     </div>
 
-                    <div class="item button-more enabled">
-                        ${ helpers.create_icon("settings") }
-                        <span class=label>More...</span>
-                    </div>
-
                     <div class="item button-view-manga enabled">
                         ${ helpers.create_icon("ppixiv:thumbnails") }
                         <span class=label>Pages</span>
+                    </div>
+
+                    <div class="item button-more enabled">
+                        ${ helpers.create_icon("settings") }
+                        <span class=label>More...</span>
                     </div>
                 </div>
         `});
