@@ -34,6 +34,16 @@ ppixiv.SendImage = class
         this.send_message({ message: "list-tabs" });
     }
 
+    // Return true if this feature should be displayed.
+    //
+    // On desktop this can be used across tabs, and when native this can be used
+    // across clients.  It isn't useful when on mobile and on Pixiv, since there's
+    // nowhere for it to go.
+    get enabled()
+    {
+        return ppixiv.native || !ppixiv.mobile;
+    }
+
     create_tab_id(recreate=false)
     {
         // If we have a saved tab ID, use it.

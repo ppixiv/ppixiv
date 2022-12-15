@@ -440,7 +440,9 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             this.create_page_button("user_muting");
         }
 
-        this.create_page_button("linked_tabs");
+        if(ppixiv.send_image.enabled)
+            this.create_page_button("linked_tabs");
+
         this.create_page_button("other");
         this.create_page_button("whats_new");
     }
