@@ -4353,12 +4353,14 @@ ppixiv.touch_listener = class
 {
     // callback(event) will be called each time buttons change.  The event will be the event
     // that actually triggered the state change, and can be preventDefaulted, etc.
-    constructor({element, callback, ...options}={})
+    constructor({element, callback, signal, ...options}={})
     {
         this.element = element;
         this.pressed = 0;
         this.callback = callback;
-        this.event_options = options;
+        this.event_options = { };
+        if(signal)
+            this.event_options.signal = signal;
 
         this.element.addEventListener("pointerdown", this.onpointerevent, this.event_options);
 
@@ -4379,15 +4381,15 @@ ppixiv.touch_listener = class
     {
         // These need to go on window, so if a mouse button is pressed and that causes
         // the element to be hidden, we still get the pointerup.
-        window.addEventListener("pointerup", this.onpointerevent, this.event_options);
-        window.addEventListener("pointercancel", this.onpointerevent, this.event_options);
+        window.addEventListener("pointerup", this.onpointerevent, { capture: true, ...this.event_options });
+        window.addEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.event_options });
         window.addEventListener("blur", this.onblur, this.event_options);
     }
 
     unregister_events_while_pressed()
     {
-        window.removeEventListener("pointerup", this.onpointerevent, this.event_options);
-        window.removeEventListener("pointercancel", this.onpointerevent, this.event_options);
+        window.removeEventListener("pointerup", this.onpointerevent, { capture: true, ...this.event_options });
+        window.removeEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.event_options });
         window.removeEventListener("blur", this.onblur, this.event_options);
     }
 
