@@ -881,18 +881,19 @@ class DragImageChanger
     // Return the index of the main viewer in this.viewers.
     get main_viewer_index()
     {
-        let index = 0;
-        let main_viewer = this.main_viewer;
-        for(let viewer of this.viewers)
+        return this._find_viewer_index(this.main_viewer);
+    }
+
+    _find_viewer_index(viewer)
+    {
+        let index = this.viewers.indexOf(viewer);
+        if(index == -1)
         {
-            if(viewer == main_viewer)
-                return index;
-            index++;
+            console.error("Viewer is missing");
+            return 0;
         }
 
-        // The main viewer should always be in the list during drags.
-        console.error("Main viewer is missing");
-        return 0;
+        return index;
     }
 
     // Add a new viewer if we've dragged far enough to need one.
@@ -1067,6 +1068,12 @@ class DragImageChanger
         // image, transition back to normal.
         if(dragged_to_viewer)
         {
+            // Set latest_navigation_direction_down to true if we're navigating forwards or false
+            // if we're navigating backwards.  This is a hint for speculative loading.
+            let old_main_index = this.main_viewer_index;
+            let new_main_index = this._find_viewer_index(dragged_to_viewer);
+            this.parent.latest_navigation_direction_down = new_main_index > old_main_index;
+
             // The drag was released and we're selecting dragged_to_viewer.  Make it active immediately,
             // without waiting for the animation to complete.  This lets the UI update quickly, and
             // makes it easier to handle quickly dragging multiple times.  We keep our viewer list until
