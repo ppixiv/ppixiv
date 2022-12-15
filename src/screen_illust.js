@@ -910,26 +910,26 @@ class DragImageChanger
         // The right edge of the leftmost viewer, including the gap between images.  If this is
         // 0, it's just above the screen.
         let left_viewer_edge = this.get_viewer_x(-1) + this.viewer_distance;
-        let down = null;
+        let add_forwards = null;
         if(left_viewer_edge > drag_threshold)
-            down = false;
+            add_forwards = false;
 
         // The left edge of the rightmost viewer.
         let right_viewer_edge = this.get_viewer_x(this.viewers.length) - this.image_gap;
-        if(right_viewer_edge < window.innerHeight - drag_threshold)
-            down = true;
+        if(right_viewer_edge < window.innerWidth - drag_threshold)
+            add_forwards = true;
 
         // If the user drags multiple times quickly, the drag target may be past the end.
         // Add a viewer for it as soon as it's been dragged to, even though it may be well
         // off-screen, so we're able to transition to it.
         let target_viewer_index = this.current_drag_target();
         if(target_viewer_index < 0)
-            down = false;
+            add_forwards = false;
         else if(target_viewer_index >= this.viewers.length)
-            down = true;
+            add_forwards = true;
 
         // Stop if we're not adding a viewer.
-        if(down == null)
+        if(add_forwards == null)
             return;
 
         // Capture the viewers list, so we always work with this list if this.viewers gets reset
@@ -937,14 +937,14 @@ class DragImageChanger
         let viewers = this.viewers;
 
         // The viewer ID we're adding next to:
-        let neighbor_viewer = viewers[down? viewers.length-1:0];
+        let neighbor_viewer = viewers[add_forwards? viewers.length-1:0];
         let neighbor_media_id = neighbor_viewer.media_id;
 
         this.adding_viewer = true;
         let media_id, early_illust_data;
         try {
             // Get the next or previous media ID.
-            media_id = await this.parent.get_navigation(down, { navigate_from_media_id: neighbor_media_id });
+            media_id = await this.parent.get_navigation(add_forwards, { navigate_from_media_id: neighbor_media_id });
             if(media_id != null)
                 early_illust_data = await media_cache.get_media_info(media_id, { full: false });
         } finally {
@@ -959,7 +959,7 @@ class DragImageChanger
         {
             // There's nothing in this direction, so remember that this is the boundary.  Once we
             // do this, overscroll will activate in this direction.
-            if(down)
+            if(add_forwards)
                 this.bounds[1] = this.viewer_distance * (this.viewers.length - 1 - this.main_viewer_index);
             else
                 this.bounds[0] = this.viewer_distance * (0 - this.main_viewer_index);
@@ -977,7 +977,7 @@ class DragImageChanger
         viewer.visible = false;
 
         // Insert the new viewer.
-        viewers.splice(down? viewers.length:0, 0, viewer);
+        viewers.splice(add_forwards? viewers.length:0, 0, viewer);
 
         // Set the initial position.
         this.refresh_drag_position();        
