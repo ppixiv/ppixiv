@@ -5831,11 +5831,12 @@ ppixiv.TouchScroller = class
     // dragging to animating, where we shouldn't return to idle in-between.
     _cancel_drag()
     {
+        this.cancel_pending_drag();
+
         if(this._state != "dragging")
             return;
 
         this.pointers.clear();
-        this.cancel_pending_drag();
         this._unregister_events();
         ppixiv.RunningDrags.remove(this);
     }
