@@ -5368,7 +5368,8 @@ ppixiv.RunningDrags = class
             if(dragger === active_dragger)
                 continue;
 
-            cancel_drag();
+            // Tell the dragger which other dragger cancelled it.
+            cancel_drag({dragger, other_dragger: active_dragger});
         }
     }
 
@@ -5393,6 +5394,9 @@ ppixiv.DragHandler = class
         // Called on the initial press before starting the drag.  If set, returns true if the drag
         // should begin or false if it should be ignored.
         onpointerdown,
+
+        // This is called we were cancelled after onpointerdown by another dragger starting first.
+        oncancelled,
 
         // Called when the drag starts, which is the first pointer movement after onpointerdown.
         // If false is returned, the drag is cancelled.  If this happens when deferred_start is true,
@@ -5419,6 +5423,7 @@ ppixiv.DragHandler = class
         this.element = element;
         this.captured_pointer_id = null;
         this.onpointerdown = onpointerdown;
+        this.oncancelled = oncancelled;
         this.onpointerup = onpointerup;
         this.ondragstart = ondragstart;
         this.ondrag = ondrag;
@@ -5433,9 +5438,7 @@ ppixiv.DragHandler = class
             callback: this._pointerevent,
         });
 
-        signal.addEventListener("abort", () => {
-            this.cancel_drag();
-        });
+        signal.addEventListener("abort", () => this.cancel_drag());
     }
 
     // If a drag is active, cancel it.
@@ -5517,7 +5520,11 @@ ppixiv.DragHandler = class
         this.first_pointer_movement = true;
         this.sent_ondragstart = false;
 
-        ppixiv.RunningDrags.add(this, () => this.cancel_drag());
+        ppixiv.RunningDrags.add(this, ({other_dragger}) => {
+            this.cancel_drag();
+            if(this.oncancelled)
+                this.oncancelled({other_dragger});
+        });
 
         // Ask the caller if we want to defer the start of the drag until the first pointer
         // movement.  If we don't, start it now, otherwise we'll start it in pointermove later.
@@ -6196,6 +6203,9 @@ ppixiv.WidgetDragger = class
         ondragstart = () => { },               ondragend = () => { },
         onanimationstart = () => { },          onanimationfinished = () => { },
         onbeforeshown = () => { },             onafterhidden = () => { },
+        
+        // This is called if we were cancelled by another dragger starting first.
+        oncancelled,
 
         // This is called on any state change (the value of this.state has changed).
         onstatechange = () => { },
@@ -6291,6 +6301,7 @@ ppixiv.WidgetDragger = class
             element: drag_node,
             onpointerdown,
             onpointerup,
+            oncancelled,
 
             ondragstart: (args) => {
                 // If this is a horizontal dragger, see if we should ignore this drag because
@@ -6948,6 +6959,19 @@ ppixiv.MobileDoubleTapHandler = class
 // action, like a link, since we only use this for taps on the image view.
 ppixiv.IsolatedTapHandler = class
 {
+    static handlers = new Set();
+
+    // If any running IsolatedTapHandler saw a pointerdown and is about to run,
+    // cancel it.  This can be used to prevent isolated taps in places where it's
+    // hard to access a pointer event related to it.
+    static prevent_taps()
+    {
+        for(let handler of ppixiv.IsolatedTapHandler.handlers)
+        {
+            handler._clear_presses();
+        }
+    }
+
     constructor({ node, callback, delay=350, signal=null }={})
     {
         signal ??= (new AbortController()).signal;
@@ -6960,6 +6984,9 @@ ppixiv.IsolatedTapHandler = class
         this._timeout_id = -1;
         this._pressed = false;
         this._all_presses = new Set();
+
+        ppixiv.IsolatedTapHandler.handlers.add(this);
+        this.signal.addEventListener("abort", () => ppixiv.IsolatedTapHandler.handlers.delete(this));
 
         this._event_names_during_touch = ["pointerup", "pointercancel", "pointermove", "blur", "dblclick"];
         this.node.addEventListener("pointerdown", this._handle_event, { signal });

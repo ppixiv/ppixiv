@@ -316,6 +316,19 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
             size: () => 150,
             animated_property: "--menu-bar-pos",
             direction: "down",
+
+            oncancelled: ({other_dragger}) => {
+                if(!this.dragger.visible)
+                    return;
+
+                // Hide the menu if another dragger starts, so we hide if the image changer, pan/zoom,
+                // etc. begin.  We do it this way and not with a click_outside_listener so we don't
+                // close when a new menu drag starts.
+                this.dragger.hide();
+
+                // Prevent IsolatedTapHandler, so it doesn't trigger from this press and reopen us.
+                ppixiv.IsolatedTapHandler.prevent_taps();
+            },
             confirm_drag: ({event}) => {
                 // If this is a drag up and we're closed, ignore the drag, since it should be handled
                 // by ScreenIllustDragToExit instead.
@@ -393,28 +406,6 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
         // with iOS sending clicks to the button when it wasn't pressable when the touch started.
         helpers.set_class(this.container, "fully-visible", visible && !this.dragger.animation_playing);
 
-        if(visible)
-        {
-            if(this.click_outside_listener == null)
-            {
-                this.click_outside_listener = new click_outside_listener([this.container], (element) => {
-                    // Don't close the UI if the click is inside an element with the no-close-ui
-                    // class.
-                    if(element.closest(".no-close-ui"))
-                        return;
-                    this.hide();
-                });
-            }            
-        }
-        else
-        {
-            if(this.click_outside_listener != null)
-            {
-                this.click_outside_listener.shutdown();
-                this.click_outside_listener = null;
-            }
-        }
-
         this.refresh();
     }
 
@@ -426,6 +417,14 @@ ppixiv.mobile_illust_ui = class extends ppixiv.widget
     hide()
     {
         this.dragger.hide();        
+    }
+
+    toggle()
+    {
+        if(this.dragger.visible)
+            this.hide();
+        else
+            this.show();
     }
 
     refresh()

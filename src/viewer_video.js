@@ -374,9 +374,7 @@ ppixiv.video_ui = class extends ppixiv.widget
     {
         super({
             ...options, template: `
-            <!-- no-close-ui prevents clicks inside this UI from closing the mobile UI, which
-                 we tie our visibility to on mobile. -->
-            <div class="video-ui no-close-ui">
+            <div class=video-ui>
                 <div class=seek-bar-container-top></div>
                 <div class=video-ui-strip>
                     <vv-container class="play-button button">

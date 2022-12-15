@@ -81,7 +81,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
             new IsolatedTapHandler({
                 node: this.view_container,
                 callback: (e) => {
-                    this.mobile_illust_ui.show();
+                    // Show or hide the menu on isolated taps.  Note that most of the time, hiding
+                    // will happen in mobile_illust_ui's oncancelled handler, when a press triggers
+                    // another scroller (usually TouchScroller).  But, we also handle it here as a
+                    // fallback in case that doesn't happen, such as if we're on a video.
+                    this.mobile_illust_ui.toggle();
                 },
             });
         }
@@ -771,13 +775,9 @@ class DragImageChanger
 
     ondragstart({event})
     {
-        // If we aren't grabbing a running drag, only start if the initial movement was vertical.
+        // If we aren't grabbing a running drag, only start if the initial movement was horizontal.
         if(this.animations == null && this.drag_distance == 0 && Math.abs(event.movementY) > Math.abs(event.movementX))
             return false;
-
-        // Close the menu bar if it's open when a drag starts.
-        if(this.parent.mobile_illust_ui)
-            this.parent.mobile_illust_ui.hide();
 
         this.drag_distance = 0;
         this.recent_pointer_movement.reset();
