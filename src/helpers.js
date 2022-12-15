@@ -7256,18 +7256,35 @@ ppixiv.DirectAnimation = class
         // We should be able to just subclass Animation, and this works in Chrome, but iOS Safari
         // is broken and doesn't call overridden functions.
         this.animation = new Animation(effect);
-        this._playState = "idle";
-        this.finished = helpers.make_promise();
+        this._update_playstate("idle");
     }
 
     get effect() { return this.animation.effect; }
+
+    _update_playstate(state)
+    {
+        if(state == this._playState)
+            return;
+
+        // If we're exiting finished, create a new finished promise.
+        if(this.finished == null || this._playState == "finished")
+        {
+            this.finished = helpers.make_promise();
+
+            // Catch this promise by default, so errors aren't logged to the console every time
+            // an animation is cancelled.
+            this.finished.catch((f) => true);
+        }
+
+        this._playState = state;
+    }
 
     play()
     {
         if(this._playState == "running")
             return;
 
-        this._playState = "running";
+        this._update_playstate("running");
         this._playToken = new Object();
         this._runner = this._run_animation();
     }
@@ -7277,7 +7294,7 @@ ppixiv.DirectAnimation = class
         if(this._playState == "paused")
             return;
 
-        this._playState = "paused";
+        this._update_playstate("paused");
         this._playToken = null;
         this._runner = null;
     }
@@ -7338,7 +7355,10 @@ ppixiv.DirectAnimation = class
 
                 // Stop if the animation state changed while we were async.
                 if(token !== this._playToken)
+                {
+                    this.finished.reject(new DOMException("The animation was aborted", "AbortError"));
                     return;
+                }
 
                 let now = Date.now();
                 delta = now - last_update;
@@ -7381,7 +7401,7 @@ ppixiv.DirectAnimation = class
             // is infinity.
             if(finished)
             {
-                this._playState = "finished";
+                this._update_playstate("finished");
                 this.finished.accept();
                 if(this.onfinish)
                     this.onfinish();
