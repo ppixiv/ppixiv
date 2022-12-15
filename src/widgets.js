@@ -2789,15 +2789,6 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.refresh();
     }
 
-    // Hide if our tree becomes hidden.
-    on_visible_recursively_changed()
-    {
-        super.on_visible_recursively_changed();
-
-        if(!this.visible_recursively)
-            this.visible = false;
-    }
-
     async refresh_internal({ media_id, media_info })
     {
         if(!this.visible)
