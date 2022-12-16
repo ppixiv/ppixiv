@@ -193,6 +193,11 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // If set, this is a pan created by PanEditor.
         pan=null,
 
+        // If set, this is a function returning a promise which resolves when any transitions
+        // are complete.  We'll wait until this resolves before switching to the full image to
+        // reduce frame skips.
+        wait_for_animations=null,
+
         // This will be called once we have somethign displayed, and any previous image
         // can be removed without flicker.
         onready=() => { },
@@ -327,6 +332,15 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
             this.pause_animation = true;
 
         this.reposition();
+
+        // If wait_for_animations was given, wait for it to resolve, which means any transitions
+        // are finished.  This prevents us from switching from the preview to the full image during
+        // the transition, which causes hitches on mobile for larger images.
+        if(wait_for_animations)
+        {
+            await wait_for_animations();
+            signal.check();
+        }
 
         // Let the caller know that we've restored history.
         if(onrestoredhistory)

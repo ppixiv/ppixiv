@@ -4,13 +4,18 @@
 // either a single image or navigate between an image sequence.
 ppixiv.viewer_images = class extends ppixiv.viewer
 {
-    constructor({ ...options })
+    constructor({
+        // This returns a promise that resolves when any running animations complete.
+        wait_for_animations,
+        ...options
+    })
     {
         super({...options, template: `
             <div class="viewer viewer-images">
             </div>
         `});
 
+        this.wait_for_animations = wait_for_animations;
         let image_viewer_class = ppixiv.mobile? image_viewer_mobile:image_viewer_desktop;
 
         // Create a click and drag viewer for the image.
@@ -151,6 +156,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             crop: this.image_editor?.editing_crop? null:current_image.crop, // no cropping while editing cropping
             pan: current_image.pan,
             restore_history: this.restore_history,
+            wait_for_animations: this.wait_for_animations,
 
             slideshow: this._slideshow,
             onnextimage: () => this._onnextimage(this),

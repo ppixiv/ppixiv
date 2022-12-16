@@ -6501,7 +6501,11 @@ ppixiv.WidgetDragger = class
             });
         }
 
-        this.drag_animation.play({end_position, easing, duration});
+        let promise = this._animation_promise = this.drag_animation.play({end_position, easing, duration});
+        this._animation_promise.then(() => {
+            if(promise == this._animation_promise)
+                this._animation_promise = null;
+        });
 
         // Call this after starting the animation, so animation_playing and animating_to_shown
         // reflect the animation when onanimationstart is called.
@@ -6566,6 +6570,14 @@ ppixiv.WidgetDragger = class
 
         return this.drag_animation.animating_towards == 1;
     }
+    
+    // Return a promise that resolves when the current animation completes, or null if no animation
+    // is running.
+    get finished()
+    {
+        return this._animation_promise;
+    }
+
 
     shutdown()
     {

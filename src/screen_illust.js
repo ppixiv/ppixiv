@@ -241,6 +241,10 @@ ppixiv.screen_illust = class extends ppixiv.screen
             container: this.view_container,
             slideshow,
             
+            wait_for_animations: () => {
+                return this.drag_to_exit?.wait_for_animations_promise;
+            },
+
             onnextimage: async (finished_viewer) => {
                 if(!this._active)
                     return { };
@@ -1294,6 +1298,13 @@ class ScreenIllustDragToExit
     get is_animating()
     {
         return this.dragger.animation_playing;
+    }
+
+    // Return a promise that resolves when there's no animation running, or null if
+    // no animation is active.
+    get wait_for_animations_promise()
+    {
+        return this.dragger.finished;
     }
 
     showing_new_image()
