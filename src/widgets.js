@@ -2680,7 +2680,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     onclick: (e) => {
                         e.stopPropagation();
 
-                        new ppixiv.settings_dialog({ show_page: "linked_tabs" });
+                        new ppixiv.settings_page_dialog({ settings_page: "linked_tabs" });
 
                         this.parent.hide();
                         return true;
