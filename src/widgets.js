@@ -2574,7 +2574,44 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
-            // XXX: hook into progress bar
+            share_image: () => {
+                return new menu_option_button({
+                    ...shared_options,
+                    label: "Share image",
+                    icon: "mat:share",
+
+                    // This requires an image and support for the share API.
+                    requires: ({media_id}) => {
+                        if(navigator.share == null)
+                            return false;
+                        if(media_id == null || helpers.is_media_id_local(media_id))
+                            return false;
+
+                        let media_info = ppixiv.media_cache.get_media_info_sync(media_id, { full: false });
+                        return media_info && media_info.illustType != 2;
+                    },
+
+                    onclick: async () => {
+                        let illust_data = await media_cache.get_media_info(this._media_id, { full: true });
+                        let page = helpers.parse_media_id(this.media_id).page;
+                        let { url } = media_cache.get_main_image_url(illust_data, page);
+
+                        let title = `${illust_data.userName} - ${illust_data.illustId}`;
+                        if(illust_data.mangaPages.length > 1)
+                        {
+                            let manga_page = helpers.parse_media_id(this._media_id).page;
+                            title += " #" + (manga_page + 1);
+                        }
+
+                        title += `.${helpers.get_extension(url)}`;
+                        navigator.share({
+                            url,
+                            title,
+                        });
+                    }
+                });
+            },
+
             download_image: () => {
                 return new menu_option_button({
                     ...shared_options,
@@ -2741,6 +2778,12 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
             this.menu_options.push(menu_options.download_manga());
             this.menu_options.push(menu_options.download_video());
             this.menu_options.push(menu_options.edit_mutes());
+
+            // This is hidden by default since it's special-purpose: it shares the image URL, not the
+            // page URL, which is used for special-purpose iOS shortcuts stuff that probably nobody else
+            // cares about.
+            if(settings.get("show_share"))
+                this.menu_options.push(menu_options.share_image());
         }
         else
         {
