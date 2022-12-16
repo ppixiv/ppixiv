@@ -387,18 +387,18 @@ ppixiv.settings_widgets = {
     }
 }
 
+let _page_titles = {
+    thumbnail:  "Thumbnail options",
+    image:"Image viewing",
+    tag_muting: "Muted tags",
+    user_muting: "Muted users",
+    linked_tabs: "Linked tabs",
+    other: "Other",
+    whats_new: "What's New",
+};
+
 ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 {
-    page_titles = {
-        thumbnail:  "Thumbnail options",
-        image:"Image viewing",
-        tag_muting: "Muted tags",
-        user_muting: "Muted users",
-        linked_tabs: "Linked tabs",
-        other: "Other",
-        whats_new: "What's New",
-    }
-
     constructor({show_page="thumbnail", ...options}={})
     {
         super({
@@ -425,6 +425,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
 
         // If we're not on the phone UI, show the default page.
         show_page ??= "thumbnail";
+
         if(!this.phone)
             this.show_page(show_page);
     }
@@ -451,7 +452,7 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
     {
         let page_button = this.create_template({
             html: helpers.create_box_link({
-                label: this.page_titles[name],
+                label: _page_titles[name],
                 classes: ["settings-page-button"],
             }),
         });
@@ -471,70 +472,64 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         if(this.visible_page_name == name)
             return;
 
-        // If we were showing another page, remove it.
-        if(this.visible_page != null)
-        {
-            // Tell widgets that they're being removed.
-            this.page_removed_signal.abort();
-            this.page_removed_signal = null;
-
-            helpers.set_class(this.page_buttons[this.visible_page_name], "selected", false);
-
-            this.visible_page.remove();
-            this.visible_page = null;
-        }
+        // Remove the widget page or dialog if it still exists.
+        if(this.page_widget != null)
+            this.page_widget.shutdown();
+        console.assert(this.page_widget == null);
 
         this.visible_page_name = name;
 
         if(name != null)
         {
-            this.visible_page = this.create_page(name);
+            this.page_widget = this.create_page(name);
+            helpers.set_class(this.page_buttons[name], "selected", true);
+            if(!this.phone)
+                this.header = _page_titles[name];
 
-            helpers.set_class(this.page_buttons[this.visible_page_name], "selected", true);
-            if(this.visible_page && !this.phone)
-                this.header = this.page_titles[name];
+            this.page_widget.shutdown_signal.signal.addEventListener("abort", () => {
+                this.page_widget = null;
+                helpers.set_class(this.page_buttons[name], "selected", false);
+            });
         }
     }
 
-    create_page(name)
+    create_page(settings_page)
     {
         // If we're on a phone, create a dialog to show the page.  Otherwise, create the page in our
         // items container.
-        let page_container;
         if(this.phone)
-        {
-            let page_dialog = new settings_page_dialog({ header: this.page_titles[name] });
-            page_container = page_dialog.container.querySelector(".scroll");
-            page_container.classList.add("settings-page");
+            return new settings_page_dialog({ settings_page });
 
-            // Listen for the page dialog closing.
-            page_dialog.shutdown_signal.signal.addEventListener("abort", () => {
-                this.show_page(null);
-            });
-        } else {
-            page_container = this.create_template({name: "settings-page", html: `
+        let page_widget = new ppixiv.widget({
+            container: this.container.querySelector(".items"),
+            template: `
                 <div class=settings-page></div>
-            `});
+            `
+        });
 
-            let items = this.container.querySelector(".items");
-            items.appendChild(page_container);
-        }
+        ppixiv.settings_dialog._fill_page({
+            settings_page,
+            page_widget,
+            page_container: page_widget.container,
+        });
 
+        return page_widget;
+    }
+
+    static _fill_page({ settings_page, page_widget, page_container })
+    {
         // Set settings-list if this page is a list of options, like the thumbnail options page.
         // This class enables styling for these lists.  If it's another type of settings page
         // with its own styling, this is disabled.
-        let is_settings_list = name != "tag_muting" && name != "user_muting";
+        let is_settings_list = settings_page != "tag_muting" && settings_page != "user_muting";
         if(is_settings_list)
             page_container.classList.add("settings-list");
-
-        // This will be aborted when we remove the tab.
-        this.page_removed_signal = new AbortController();
 
         // Options that we pass to all menu_options:
         let global_options = {
             classes: ["settings-row"],
             container: page_container,
-            page_removed_signal: this.page_removed_signal.signal,
+            page_removed_signal: page_widget.shutdown_signal.signal,
 
             // Settings widgets can call this to close the window.
             close_settings: () => {
@@ -625,10 +620,10 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
             },
         };
 
-        let create_page = pages[name];
+        let create_page = pages[settings_page];
         if(create_page == null)
         {
-            console.error(`Invalid settings page name: ${name}`);
+            console.error(`Invalid settings page: ${settings_page}`);
             return;
         }
 
@@ -638,26 +633,19 @@ ppixiv.settings_dialog = class extends ppixiv.dialog_widget
         // settings menu scales better.  Don't recurse into nested buttons.
         for(let box_link of page_container.querySelectorAll(".settings-page > .box-link"))
             box_link.classList.add("allow-wrap");
-
-        return page_container;
-    }
-
-    shutdown()
-    {
-        super.shutdown();
-
-        // Shut down the page that was visible when we were closed.
-        if(this.page_removed_signal)
-            this.page_removed_signal.abort();
     }
 };
 
 // This is used when we're on the phone UI to show a single settings page.
 ppixiv.settings_page_dialog = class extends ppixiv.dialog_widget
 {
-    constructor({...options}={})
+    constructor({
+        settings_page,
+        ...options}={})
     {
         super({
+            header: _page_titles[settings_page],
+
             ...options,
             dialog_class: "settings-dialog-page",
 
@@ -665,6 +653,15 @@ ppixiv.settings_page_dialog = class extends ppixiv.dialog_widget
             // a back button instead of a close button.
             back_icon: true,
             template: ``
+        });
+
+        this.settings_container = this.querySelector(".scroll");
+        this.settings_container.classList.add("settings-page");
+
+        ppixiv.settings_dialog._fill_page({
+            settings_page,
+            page_widget: this,
+            page_container: this.settings_container,
         });
     }
 };
