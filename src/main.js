@@ -223,6 +223,18 @@ ppixiv.MainController = class
         if(initial_stylesheet)
             initial_stylesheet.remove();
        
+        // If we don't have a viewport tag, add it.  This makes Safari work more sanelywhen
+        // in landscape.  If we're native, this is already set, and we want to use the existing
+        // one or Safari doesn't always set the frame correctly.
+        if(ppixiv.ios && document.querySelector("meta[name='viewport']") == null)
+        {
+            // Set the viewport.
+            let meta = document.createElement("meta");
+            meta.setAttribute("name", "viewport");
+            meta.setAttribute("content", "viewport-fit=cover, initial-scale=1, user-scalable=no");
+            document.head.appendChild(meta);
+        }
+
         // Now that we've cleared the document and added our style so our background color is
         // correct, we can unhide the document.
         this.undo_temporarily_hide_document();
