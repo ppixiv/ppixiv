@@ -220,14 +220,10 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         this.refresh_focus();
     }
 
-    progress = (value) =>
+    progress = (available) =>
     {
-        if(this.seek_bar)
-        {
-            if(value == null)
-                value = 1;
-            this.seek_bar.set_loaded(value);
-        }
+        available ??= 1;
+        this.set_seek_bar({available});
     }
 
     // Once we draw a frame, hide the preview and show the canvas.  This avoids
@@ -240,12 +236,15 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             this.preview_img2.hidden = true;
         this.video.hidden = false;
 
-        if(this.seek_bar)
-        {
-            // Update the seek bar.
-            this.seek_bar.set_current_time(this.player.get_current_frame_time());
-            this.seek_bar.set_duration(this.player.get_seekable_duration());
-        }
+        this.update_seek_bar();
+    }
+
+    update_seek_bar()
+    {
+        // Update the seek bar.
+        let current_time = this.player.get_current_frame_time();
+        let duration = this.player.get_seekable_duration();
+        this.set_seek_bar({current_time, duration});
     }
 
     // This is sent manually by the UI handler so we can control focus better.

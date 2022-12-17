@@ -41,12 +41,6 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
 
         this.video.remove();
 
-        if(this.video_ui)
-        {
-            this.video_ui.shutdown();
-            this.video_ui = null;
-        }
-
         if(this.seek_bar)
         {
             this.seek_bar.set_callback(null);
@@ -70,6 +64,19 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
     seek_callback(pause, seconds)
     {
         this.seeking = pause;
+    }
+
+    set_seek_bar({current_time=null, duration=null, available=null}={})
+    {
+        if(this.seek_bar == null)
+            return;
+
+        if(current_time != null)
+            this.seek_bar.set_current_time(current_time);
+        if(duration != null)
+            this.seek_bar.set_duration(duration);
+        if(available != null)
+            this.seek_bar.set_loaded(available);
     }
 }
 
@@ -114,8 +121,8 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
 
         this.video_container.appendChild(this.video);
 
-        this.video.addEventListener("timeupdate", this.update_seek_bar);
-        this.video.addEventListener("progress", this.update_seek_bar);
+        this.video.addEventListener("timeupdate", () => this.update_seek_bar());
+        this.video.addEventListener("progress", () => this.update_seek_bar());
 
         // Clicking on mobile shows the menu, so use dblclick for pause.
         this.video_container.addEventListener(ppixiv.mobile? "dblclick":"click", this.toggle_pause);
@@ -221,16 +228,12 @@ ppixiv.viewer_video = class extends ppixiv.viewer_video_base
             this.video.poster = this.illust_data.mangaPages[0].urls.small;
     }
 
-    update_seek_bar = () =>
+    update_seek_bar()
     {
-        if(this.seek_bar != null)
-        {
-            // Update the seek bar.
-            let current_time = isNaN(this.video.currentTime)? 0:this.video.currentTime;
-            let duration = isNaN(this.video.duration)? 1:this.video.duration;
-            this.seek_bar.set_current_time(current_time);
-            this.seek_bar.set_duration(duration);
-        }
+        // Update the seek bar.
+        let current_time = isNaN(this.video.currentTime)? 0:this.video.currentTime;
+        let duration = isNaN(this.video.duration)? 1:this.video.duration;
+        this.set_seek_bar({current_time, duration});
     }
 
     toggle_mute()
