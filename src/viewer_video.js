@@ -6,6 +6,7 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
     {
         super({...options, template: `
             <div class="viewer viewer-video">
+                <div class=top-seek-bar></div>
                 <div class=video-container></div>
                 <div class=video-ui-container></div>
             </div>
@@ -18,9 +19,52 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
             container: this.container.querySelector(".video-ui-container"),
         });
 
-        this.seek_bar = this.video_ui.seek_bar;
-        this.seek_bar.set_current_time(0);
-        this.seek_bar.set_callback(this.seek_callback.bind(this));
+        this.video_ui.seek_bar.set_current_time(0);
+        this.video_ui.seek_bar.set_callback(this.seek_callback.bind(this));
+
+        if(ppixiv.mobile)
+        {
+            // This seek bar is used for mobile seeking.  It's placed at the top of the screen, so
+            // it's not obscured by the user's hand, and drags with a DragHandler similar to TouchScroller's
+            // dragging.  seek_bar itself doesn't trigger seeks here.
+            this.top_seek_bar = new seek_bar({
+                container: this.container.querySelector(".top-seek-bar"),
+            });
+    
+            this.seek_dragger = new ppixiv.DragHandler({
+                name: "seek-dragger",
+                element: this.container,
+                defer_delay_ms: 30,
+                ...this._signal,
+
+                ondragstart: () => {
+                    this.seek_callback(true, null);
+                    this.drag_remainder = 0;
+                    helpers.set_class(this.top_seek_bar.container, "dragging", true);
+                    return true;
+                },
+                ondrag: ({movementX}) => {
+                    let fraction = movementX / Math.min(window.innerWidth, window.innerHeight);
+
+                    let current_time = this._current_time + this.drag_remainder;
+                    let position = current_time / this._duration;
+                    position += fraction;
+                    position = helpers.clamp(position, 0, 1);
+
+                    let new_position = position * this._duration;
+                    this.seek_callback(true, new_position);
+
+                    // The video player may round the position.  See how far from the requested position
+                    // we ended up on, and apply it to the next drag, so drag inputs smaller than a frame
+                    // aren't lost.
+                    this.drag_remainder = new_position - this._current_time;
+                },
+                ondragend: () => {
+                    helpers.set_class(this.top_seek_bar.container, "dragging", false);
+                    this.seek_callback(false, null);
+                },
+            });
+        }
     }
 
     async load()
@@ -40,12 +84,7 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
         this._load_sentinel = null;
 
         this.video.remove();
-
-        if(this.seek_bar)
-        {
-            this.seek_bar.set_callback(null);
-            this.seek_bar = null;
-        }
+        this.video_ui.seek_bar.set_callback(null);
 
         super.shutdown();
     }
@@ -68,15 +107,28 @@ ppixiv.viewer_video_base = class extends ppixiv.viewer
 
     set_seek_bar({current_time=null, duration=null, available=null}={})
     {
-        if(this.seek_bar == null)
-            return;
-
         if(current_time != null)
-            this.seek_bar.set_current_time(current_time);
+            this._current_time = current_time;
         if(duration != null)
-            this.seek_bar.set_duration(duration);
+            this._duration = duration;
+
+        // If the seekable range changes during a drag, discard drag_remainder so we don't
+        // snap into the newly loaded area on the next pointer movement.
         if(available != null)
-            this.seek_bar.set_loaded(available);
+            this.drag_remainder = null;
+
+        for(let bar of [this.video_ui.seek_bar, this.top_seek_bar])
+        {
+            if(bar == null)
+                continue;
+
+            if(current_time != null)
+                bar.set_current_time(current_time);
+            if(duration != null)
+                bar.set_duration(duration);
+            if(available != null)
+                bar.set_loaded(available);
+        }
     }
 }
 

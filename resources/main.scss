@@ -419,6 +419,31 @@ input, textarea, [contenteditable] {
         height: 100%;
         touch-action: none;
     }
+
+    .top-seek-bar
+    {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 10px;
+        pointer-events: none;
+    
+        .seek-bar {
+            height: 4px;
+    
+            > .seek-parts
+            {
+                transition: transform .25s;
+                transform: scale(100%, 0%);
+                transform-origin: top;
+            }
+    
+            &.dragging > .seek-parts {
+                transform: scale(100%, 100%) !important;
+            }
+        }
+    }
 }
 
 // ppixiv.checkbox_widget:
@@ -484,11 +509,7 @@ input, textarea, [contenteditable] {
     }
 
     .seek-bar {
-        width: 100%;
-        box-sizing: content-box;
         height: 12px;
-        cursor: pointer;
-        position: relative;
 
         // If we're above the video UI, add some padding to make the seek bar easier to click.
         // If we're below, don't do this so we're flush against the bottom of the video UI.
@@ -526,26 +547,6 @@ input, textarea, [contenteditable] {
         // Scale to full size during drags.
         &.dragging > .seek-parts {
             transform: scale(100%, 100%) !important;
-        }
-
-        > .seek-parts {
-            width: 100%;
-            height: 100%;
-
-            > [data-seek-part]
-            {
-                height: 100%;
-                position: absolute;
-                left: 0;
-                top: 0;
-            }
-
-            > [data-seek-part="fill"] { background-color: #F00; }
-            > [data-seek-part="loaded"] { background-color: #A00; }
-            > [data-seek-part="empty"] {
-                background-color: rgba(0,0,0,0.25);
-                width: 100%;
-            }
         }
     }
 
@@ -590,6 +591,33 @@ input, textarea, [contenteditable] {
                 width: 100px;
                 flex: 1;
             }
+        }
+    }
+}
+
+.seek-bar {
+    width: 100%;
+    box-sizing: content-box;
+    cursor: pointer;
+    position: relative;
+
+    > .seek-parts {
+        width: 100%;
+        height: 100%;
+
+        > [data-seek-part]
+        {
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        > [data-seek-part="fill"] { background-color: #F00; }
+        > [data-seek-part="loaded"] { background-color: #A00; }
+        > [data-seek-part="empty"] {
+            background-color: rgba(0,0,0,0.25);
+            width: 100%;
         }
     }
 }

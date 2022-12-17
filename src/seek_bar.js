@@ -75,7 +75,6 @@ ppixiv.seek_bar = class extends widget
     // is null, remove the callback.
     set_callback(callback)
     {
-        this.container.hidden = callback == null;
         if(this.callback == callback)
             return;
 
