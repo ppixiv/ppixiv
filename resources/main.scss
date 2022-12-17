@@ -3256,9 +3256,12 @@ svg.heart-image .delete {
         // landscape.
         overflow: hidden;
 
-        transform: translateX(calc(var(--illust-hidden) * var(--animation-x)))               
-                translateY(calc(var(--illust-hidden) * var(--animation-y)))
-                scale(scale_value(var(--illust-hidden), 0, 1, 1, var(--animation-scale)));
+        transform:
+            translateX(calc(var(--illust-hidden) * var(--animation-x)))
+            translateY(calc(var(--illust-hidden) * var(--animation-y)))
+            scale(scale_value(var(--illust-hidden), 0, 1, 1, var(--animation-scale)))
+        ;
+        transform-origin: 0% 0%;
 
         // illust-hidden is 0 when we want to be visible and 1 when we want to be transparent.
         // We actually stay fully visible until it reaches 0.7, so we only start fading out near

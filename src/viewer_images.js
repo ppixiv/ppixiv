@@ -925,6 +925,32 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         return [x,y];
     }
 
+    get view_position()
+    {
+        // Animations always take up the whole view.
+        if(this._animations_running)
+            return new ppixiv.FixedDOMRect(0, 0, this.view_width, this.view_height);
+
+        let view_width = Math.max(this.view_width, 1);
+        let view_height = Math.max(this.view_height, 1);
+
+        let { zoom_pos } = this.get_current_actual_position();
+        let top_left = this.get_view_pos_from_image_pos([0,0], { pos: zoom_pos });
+        let bottom_right = this.get_view_pos_from_image_pos([1,1], { pos: zoom_pos });
+        top_left = [
+            helpers.clamp(top_left[0], 0, view_width), 
+            helpers.clamp(top_left[1], 0, view_height),
+        ];
+        bottom_right = [
+            helpers.clamp(bottom_right[0], 0, view_width), 
+            helpers.clamp(bottom_right[1], 0, view_height),
+        ];
+
+        return new ppixiv.FixedDOMRect(
+            top_left[0], top_left[1],
+            bottom_right[0], bottom_right[1]);
+    }
+
     _reposition({clamp_position=true}={})
     {
         if(this._image_container == null)

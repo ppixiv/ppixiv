@@ -134,7 +134,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         if(this.drag_image_changer)
             this.drag_image_changer.stop();
 
-        this.show_image(media_id, { restore_history, initial: !was_active });
+        await this.show_image(media_id, { restore_history, initial: !was_active });
 
         // Tell the dragger to transition us in.
         if(this.drag_to_exit)
@@ -379,7 +379,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // If we're not animating so we know the search page isn't visible, try to scroll the
         // search page to the image we're viewing, so it's ready if we start a transition to it.
         if(this.drag_to_exit)
-            this.drag_to_exit.showing_new_image();
+            this.drag_to_exit.scroll_search_to_thumbnail();
 
         // If we already have an old viewer, then we loaded an image, and then navigated again before
         // the new image was displayed.  Discard the new image and keep the old one, since it's what's
@@ -1210,7 +1210,7 @@ class ScreenIllustDragToExit
                 if(this.dragger.visible)
                 {
                     // Scroll the search view to the current image when we're not animating.
-                    this.showing_new_image();
+                    this.scroll_search_to_thumbnail();
                 }
                 else
                 {
@@ -1239,36 +1239,54 @@ class ScreenIllustDragToExit
     {
         // In case the image wasn't available when we tried to scroll to it, try again now.
         // Either this will scroll to the image and we can use its position, or we know it
-        // isn't in the list.  Only do this if we're completely visible (eg. we're hiding
-        // and not showing), not if the scroll would be visible.
-        if(this.dragger.position == 1 && this.parent.active)
-            main_controller.scroll_search_to_media_id(this.parent.data_source, this.parent.wanted_media_id);
+        // isn't in the list.
+        this.scroll_search_to_thumbnail();
 
-        // Set properties for the animation.
-        let x = 0, y = 0;
+        // If the view container is hidden, it may have transforms from the previous transition.
+        // Unset the animation properties so this doesn't affect our calculations here.
+        this.parent.container.style.setProperty("--animation-x", `0px`);
+        this.parent.container.style.setProperty("--animation-y", `0px`);
+        this.parent.container.style.setProperty("--animation-scale", "1");
+
+        // This gives us the portion of the viewer which actually contains an image.  We'll
+        // transition that region, so empty space is ignored by the transition.  If the viewer
+        // doesn't implement this, just use the view bounds.
+        let view_position = this.parent.viewer.view_position;
+        view_position ??= this.parent.viewer.container.getBoundingClientRect();
 
         // Try to position the animation to move towards the search thumbnail.
-        let scale = 0.5;
-        let rect = this._animation_target_rect;
-        if(rect)
+        let thumb_rect = this._animation_target_rect;
+        if(thumb_rect)
         {
-            // Shift up and left to put the center of the screen at 0x0:
-            x = -this.parent.container.offsetWidth/2;
-            y = -this.parent.container.offsetHeight/2;
-
-            // Then right and down to center it on the thumb:
-            x += rect.x + rect.width/2;
-            y += rect.y + rect.height/2;
-        
-            // Compare the screen size to the thumbnail size to figure out a rough scale, so if
-            // thumbnails are very big or small we'll generally scale to a similar size.
-            let width_ratio = rect.width / window.innerWidth;
-            let height_ratio = rect.height / window.innerHeight;
-            scale = (width_ratio + height_ratio) / 2;
+            // If the thumbnail is offscreen, ignore it.
+            let center_y = thumb_rect.top + thumb_rect.height/2;
+            if(center_y < 0 || center_y > window.innerHeight)
+            thumb_rect = null;
         }
 
-        this.parent.container.style.setProperty("--animation-x", `${x}px`);
-        this.parent.container.style.setProperty("--animation-y", `${y}px`);
+        if(thumb_rect == null)
+        {
+            // If we don't know where the thumbnail is, use a rect in the middle of the screen.
+            let width = view_position.width * 0.75;
+            let height = view_position.height * 0.75;
+            let x = (window.innerWidth - width) / 2;
+            let y =  (window.innerHeight - height) / 2;
+            thumb_rect = new ppixiv.FixedDOMRect(x, y, x + width, y + height);
+        }
+
+        let { x, y, width, height } = view_position;
+        let scale = Math.max(thumb_rect.width / width, thumb_rect.height / height);
+
+        // Shift the center of the image to 0x0:
+        let animation_x = -(x + width/2) * scale;
+        let animation_y = -(y + height/2) * scale;
+
+        // Align to the center of the thumb.
+        animation_x += thumb_rect.x + thumb_rect.width / 2;
+        animation_y += thumb_rect.y + thumb_rect.height / 2;
+
+        this.parent.container.style.setProperty("--animation-x", `${animation_x}px`);
+        this.parent.container.style.setProperty("--animation-y", `${animation_y}px`);
         this.parent.container.style.setProperty("--animation-scale", scale);
     }
 
@@ -1307,17 +1325,12 @@ class ScreenIllustDragToExit
         return this.dragger.finished;
     }
 
-    showing_new_image()
+    // Scroll the thumbnail onscreen in the search view if the search isn't currently visible.
+    scroll_search_to_thumbnail()
     {
-        if(this.is_animating || !this.parent.active)
+        if(this.is_animating || !this.parent.active || this.dragger.position < 1)
             return;
 
-        // We finished animating and we're showing the image.  Set the search view to show
-        // where we'll be if we start transitioning back, so it's ready if the back transition
-        // starts.  We don't want to wait for the gesture to do this, since it's harder to get
-        // it set up in time.  We can do this safely since we're the active screen.
-        //
-        // Our data source should match where we'll navigate to in navigate_to_search
         main_controller.scroll_search_to_media_id(this.parent.data_source, this.parent.wanted_media_id);
     }
 }
