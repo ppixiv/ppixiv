@@ -6782,8 +6782,10 @@ ppixiv.PropertyAnimation = class
             // Apply easing.
             let offset_with_easing = curve.evaluate(offset);
 
-            // Update the animation.
+            // Update the animation.  Snap to the start and end positions to remove rounding error.
             let new_position = helpers.scale(offset_with_easing, 0, 1, start_position, end_position);
+            if(Math.abs(new_position - start_position) < 0.00001) new_position = start_position;
+            if(Math.abs(new_position - end_position) < 0.00001) new_position = end_position;
             this._set_position(new_position);
 
             if(offset == 1)
