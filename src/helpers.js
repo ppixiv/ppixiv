@@ -5742,7 +5742,6 @@ ppixiv.TouchScroller = class
             // We can start the drag now.  Wait briefly to allow the other screen_illust draggers to
             // have a shot at them first, so they see quick flings and we see drags that have a slight
             // delay.
-            this.total_movement_during_delay = [0,0];
             this.drag_delay_timer = helpers.setTimeout(() => {
                 console.assert(this._state == "idle", `Expected to be idle, actually ${this._state}`);
                 console.assert(this._delaying_before_drag, `Expected to be in _delaying_before_drag`);
@@ -5902,11 +5901,7 @@ ppixiv.TouchScroller = class
             return;
 
         if(this._state != "dragging")
-        {
-            this.total_movement_during_delay[0] += Math.abs(e.movementX);
-            this.total_movement_during_delay[1] += Math.abs(e.movementY);
             return;
-        }
 
         // When we actually handle pointer movement, let IsolatedTapHandler know that this
         // press was handled by something.  This doesn't actually prevent any default behavior.
