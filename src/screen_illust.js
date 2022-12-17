@@ -1252,6 +1252,13 @@ class ScreenIllustDragToExit
         // transition that region, so empty space is ignored by the transition.  If the viewer
         // doesn't implement this, just use the view bounds.
         let view_position = this.parent.viewer.view_position;
+        if(view_position)
+        {
+            // Move the view position to where the view actually is on the screen.
+            let { left, top } = this.parent.viewer.container.getBoundingClientRect();
+            view_position.x += left;
+            view_position.y += top;
+        }
         view_position ??= this.parent.viewer.container.getBoundingClientRect();
 
         // Try to position the animation to move towards the search thumbnail.
