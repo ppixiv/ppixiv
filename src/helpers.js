@@ -4302,7 +4302,7 @@ ppixiv.pointer_listener = class
     // already happening that are over the element.
     //
     // This requires install_global_handler.
-    check()
+    check_missed_clicks()
     {
         // If no buttons are pressed that this listener cares about, stop.
         if(!(this.button_mask & pointer_listener.buttons))

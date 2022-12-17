@@ -413,7 +413,7 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         if(this.visible)
             return;
 
-        this.pointer_listener.check();
+        this.pointer_listener.check_missed_clicks();
 
         this.displayed_menu = this.container;
         this.visible = true;

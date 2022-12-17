@@ -206,7 +206,7 @@ ppixiv.image_viewer_base = class extends ppixiv.widget
         // When quick view displays an image on mousedown, we want to see the mousedown too
         // now that we're displayed.
         if(this.pointer_listener)
-            this.pointer_listener.check();
+            this.pointer_listener.check_missed_clicks();
 
         // A special case is when we have no images at all.  This happens when navigating
         // to a manga page and we don't have illust info yet, so we don't know anything about
