@@ -87,6 +87,9 @@ class APIServer:
         app.on_response_prepare.append(self.check_origin)
         app.on_shutdown.append(self.shutdown_requests)
 
+        # Handle all OPTIONS requests.
+        app.router.add_route('OPTIONS', '/{all:.*}', self._handle_options)
+
         # Set up routes.
         app.router.add_get('/file/{type:[^:]+}:{path:.+}', thumbs.handle_file)
         app.router.add_get('/thumb/{type:[^:]+}:{path:.+}', thumbs.handle_thumb)
@@ -124,6 +127,14 @@ class APIServer:
         finally:
             del self.running_requests[request.task]
 
+    async def _handle_options(self, request):
+        """
+        Handle CORS preflights.
+
+        This always returns success, and is just here to return CORS headers.
+        """
+        return web.Response(status=200)
+
     async def shutdown_requests(self, app):
         """
         Shut down any running requests.
@@ -137,9 +148,6 @@ class APIServer:
 
     def create_handler_for_command(self, handler):
         async def handle(request):
-            if request.method == 'OPTIONS':
-                return web.Response(status=200)
-
             if request.method != 'POST':
                 raise aiohttp.web.HTTPMethodNotAllowed(method=request.method, allowed_methods=('POST', 'OPTIONS'))
 
@@ -200,8 +208,8 @@ class APIServer:
             response.headers['Access-Control-Allow-Headers'] = 'Accept, Cache-Control, If-None-Match, If-Modified-Since, Origin, Range, X-Requested-With'
             response.headers['Access-Control-Expose-Headers'] = '*'
             response.headers['Access-Control-Max-Age'] = '1000000'
+            response.headers['Access-Control-Allow-Private-Network'] = 'true'
             response.headers['Vary'] = 'Origin, Referer'
-
 
     @web.middleware
     async def auth_middleware(self, request, handler):
