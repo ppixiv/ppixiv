@@ -729,7 +729,7 @@ class DragImageChanger
         this.dragger = new ppixiv.DragHandler({
             name: "image-changer",
             element: this.container,
-            onpointerdown: ({event}) => {
+            confirm_drag: ({event}) => {
                 // Stop if there's no image, if the screen wasn't able to load one.
                 if(this.main_viewer == null)
                     return false;
@@ -1190,11 +1190,11 @@ class ScreenIllustDragToExit
                 return settings.get("animations_enabled")? 200:0;
             },
             size: 500,
-            onpointerdown: ({event}) => {
-                // Don't do anything if the screen isn't active.
-                return this.parent._active && ppixiv.mobile;
-            },
             confirm_drag: ({event}) => {
+                // Don't do anything if the screen isn't active.
+                if(!this.parent._active || !ppixiv.mobile)
+                    return false;
+
                 return Math.abs(event.movementY) > Math.abs(event.movementX);
             },
 

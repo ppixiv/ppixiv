@@ -30,7 +30,7 @@ ppixiv.seek_bar = class extends widget
             // Don't delay the start of seek bar drags until the first pointer movement.
             deferred_start: () => false,
 
-            onpointerdown: () => {
+            confirm_drag: () => {
                 // Never start dragging while we have no callback.  This generally shouldn't happen
                 // since we should be hidden.
                 return this.callback != null;

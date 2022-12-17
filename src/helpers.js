@@ -4345,31 +4345,27 @@ ppixiv.pointer_listener = class
 // ppixiv.pointer_listener is complicated because it deals with overlapping LMB and RMB
 // presses, and a bunch of browser weirdness around context menus and other things that
 // a lot of UI doesn't need.  touch_listener is a simpler interface that only listens for
-// left-clicks and single touches.
-//
-// Unlike pointer_listener, this only sees initial presses, and won't see presses in
-// pointermove.
+// left-clicks.  Touch inputs will see multitouch if the multi flag is true.
 ppixiv.touch_listener = class
 {
     // callback(event) will be called each time buttons change.  The event will be the event
     // that actually triggered the state change, and can be preventDefaulted, etc.
-    constructor({element, callback, signal, ...options}={})
+    constructor({
+        element,
+        callback,
+        multi=false,
+        signal,
+    }={})
     {
         this.element = element;
-        this.pressed = 0;
         this.callback = callback;
+        this.multi = multi;
+        this.pressed_pointer_ids = new Set();        
         this.event_options = { };
         if(signal)
             this.event_options.signal = signal;
 
         this.element.addEventListener("pointerdown", this.onpointerevent, this.event_options);
-
-        if(options.signal)
-        {
-            options.signal.addEventListener("abort", (e) => {
-                this.unregister_events_while_pressed();
-            });
-        }
     }
 
     // Register events that we only register while one or more buttons are pressed.
@@ -4377,27 +4373,24 @@ ppixiv.touch_listener = class
     // We only register pointermove as needed, so we don't get called for every mouse
     // movement, and we only register pointerup as needed so we don't register a ton
     // of events on window.
-    register_events_while_pressed()
+    _update_events_while_pressed()
     {
-        // These need to go on window, so if a mouse button is pressed and that causes
-        // the element to be hidden, we still get the pointerup.
-        window.addEventListener("pointerup", this.onpointerevent, { capture: true, ...this.event_options });
-        window.addEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.event_options });
-        window.addEventListener("blur", this.onblur, this.event_options);
-    }
-
-    unregister_events_while_pressed()
-    {
-        window.removeEventListener("pointerup", this.onpointerevent, { capture: true, ...this.event_options });
-        window.removeEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.event_options });
-        window.removeEventListener("blur", this.onblur, this.event_options);
+        if(this.pressed_pointer_ids.size > 0)
+        {
+            // These need to go on window, so if a mouse button is pressed and that causes
+            // the element to be hidden, we still get the pointerup.
+            window.addEventListener("pointerup", this.onpointerevent, { capture: true, ...this.event_options });
+            window.addEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.event_options });
+            window.addEventListener("blur", this.onblur, this.event_options);
+        } else {
+            window.removeEventListener("pointerup", this.onpointerevent, { capture: true, ...this.event_options });
+            window.removeEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.event_options });
+            window.removeEventListener("blur", this.onblur, this.event_options);
+        }
     }
 
     onblur = (event) =>
     {
-        if(!this.pressed_pointer_id)
-            return;
-
         // Work around an iOS Safari bug: horizontal navigation drags don't always cancel pointer
         // events.  It sends pointerdown, but then never sends pointerup or pointercancel when it
         // takes over the drag, so it looks like the touch stays pressed forever.  This seems
@@ -4405,44 +4398,38 @@ ppixiv.touch_listener = class
         //
         // If this happens, we get a blur event, so if we get a blur event and we were still pressed,
         // send an emulated pointercancel event to end the drag.
-        console.warn("window.blur fired without a pointer event being cancelled, simulating it");
-        this.onpointerevent(new PointerEvent("pointercancel", {
-            pointerId: this.pressed_pointer_id,
-            button: 0,
-            buttons: 0,
-        }));
+        for(let pointer_id of this.pressed_pointer_ids)
+        {
+            console.warn(`window.blur for ${pointer_id} fired without a pointer event being cancelled, simulating it`);
+            this.onpointerevent(new PointerEvent("pointercancel", {
+                pointerId: pointer_id,
+                button: 0,
+                buttons: 0,
+            }));
+        }
     }
 
     onpointerevent = (event) =>
     {
-        let { buttons } = event;
-        let is_pressed = buttons & 1;
+        let is_pressed = event.type == "pointerdown";
 
-        // If we have a press already, ignore other inputs.
-        if(this.pressed_pointer_id != null && event.pointerId != this.pressed_pointer_id)
+        // Stop if this doesn't change the state of this pointer.
+        if(this.pressed_pointer_ids.has(event.pointerId) == is_pressed)
             return;
 
-        if(is_pressed == this.pressed)
+        // If this is a multitouch and multi isn't enabled, ignore it.
+        if(!this.multi && is_pressed && this.pressed_pointer_ids.size > 0)
             return;
-        this.pressed = is_pressed;
 
         // We need to register pointermove to see presses past the first.
         if(is_pressed)
-        {
-            this.pressed_pointer_id = event.pointerId;
-            this.register_events_while_pressed();
-        }
+            this.pressed_pointer_ids.add(event.pointerId);
         else
-        {
-            this.pressed_pointer_id = null;
-            this.unregister_events_while_pressed();
-        }
+            this.pressed_pointer_ids.delete(event.pointerId);
+        this._update_events_while_pressed();
 
-        // event.mouseButton is just for compatibility with pointer_listener.
-        event.mouseButton = 0;
         event.pressed = is_pressed;
         this.callback(event);
-        delete event.mouseButton;
         delete event.pressed;
     }
 }
@@ -5393,15 +5380,18 @@ ppixiv.DragHandler = class
 
         // Called on the initial press before starting the drag.  If set, returns true if the drag
         // should begin or false if it should be ignored.
-        onpointerdown,
+        confirm_drag=({event}) => true,
 
-        // This is called we were cancelled after onpointerdown by another dragger starting first.
+        // This is called if we were cancelled after confirm_drag by another dragger starting first.
         oncancelled,
 
-        // Called when the drag starts, which is the first pointer movement after onpointerdown.
+        // Called when the drag starts, which is the first pointer movement after confirm_drag.
         // If false is returned, the drag is cancelled.  If this happens when deferred_start is true,
         // the drag won't be started and won't interrupt other drags.
-        ondragstart = () => true,
+        //
+        // If the drag is starting due to defer_delay_ms, event is null because it's not starting
+        // as the result of a pointer event.
+        ondragstart = ({event}) => true,
 
         // ondrag({event, first})
         // first is true if this is the first pointer movement since this drag started.
@@ -5410,115 +5400,101 @@ ppixiv.DragHandler = class
         // Called when the drag is released.
         ondragend,
 
-        // Called when a touch that began a drag is released.  This is always called if
-        // onpointerdown returned true, even if the drag never actually began.
-        onpointerup,
+        // True if the caller is using this dragger for pinch gestures.
+        pinch=false,
 
         // If this returns true (the default), the drag will start on the first pointer movement.
         // If false, the drag will start immediately on pointerdown.
         deferred_start=() => true,
+
+        // If we're deferring the start of the drag, this is the minimum delay we need to see before
+        // pointer movements.  We'll ignore the drag if we see movement before this, and start the
+        // drag as soon as this period elapses.
+        defer_delay_ms=null,
     }={})
     {
         this.name = name;
         this.element = element;
-        this.captured_pointer_id = null;
-        this.onpointerdown = onpointerdown;
+        this.pointers = new Map();
+        this.confirm_drag = confirm_drag;
         this.oncancelled = oncancelled;
-        this.onpointerup = onpointerup;
         this.ondragstart = ondragstart;
         this.ondrag = ondrag;
         this.ondragend = ondragend;
+        this.pinch = pinch;
         this.deferred_start = deferred_start;
+        this.defer_delay_ms = defer_delay_ms;
+
+        this._drag_started = false;
+        this.drag_delay_timer = null;
 
         signal ??= (new AbortController().signal);
 
-        this.pointer_listener = new ppixiv.touch_listener({
+        this._touch_listener = new ppixiv.touch_listener({
             element,
             signal,
+            multi: true,
             callback: this._pointerevent,
         });
 
         signal.addEventListener("abort", () => this.cancel_drag());
     }
 
-    // If a drag is active, cancel it.
-    cancel_drag()
-    {
-        this._stop_dragging({interactive: false});
-    }
-
     _pointerevent = (e) =>
     {
-        if(e.pressed && this.captured_pointer_id == null)
+        // Ignore presses while another dragger is active.
+        if(ppixiv.RunningDrags.active_drag && ppixiv.RunningDrags.active_drag != this)
+            return;
+
+        if(e.pressed)
         {
-            if(this.onpointerdown)
+            if(this.pointers.size == 0)
             {
-                if(!this.onpointerdown({event: e}))
+                if(!this.confirm_drag({event: e}))
                     return;
             }
 
             this._start_dragging(e);
         } else {
-            if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
+            if(!this.pointers.has(e.pointerId))
                 return;
 
-            this._stop_dragging({ interactive: true, cancel: e.type == "pointercancel" });
+            this.pointers.delete(e.pointerId);
+
+            // If this was the last pointer, end the drag.
+            if(this.pointers.size == 0)
+                this._stop_dragging({ interactive: true, cancel: e.type == "pointercancel" });
         }
     }
 
-    // Return true if we think drags on element might trigger a scroll.  This doesn't
-    // include the document.
-    _is_element_inside_scroller(element)
-    {
-        let style = getComputedStyle(element);
-        if(style.position === "fixed")
-            return false;
-
-        let excludeStaticParent = style.position === "absolute";
-        while(element)
-        {
-            style = getComputedStyle(element);
-            let scrollable = style.overflowX == "auto" || style.overflowX == "scroll" || 
-                                style.overflowY == "auto" || style.overflowY == "scroll";
-
-            // This is only used for testing scrolling on mobile.  If touch-action is none,
-            // this won't be scrollable.  There are other values that won't scroll, but there
-            // are a lot of settings and this is all we use.
-            if(style.touchAction == "none")
-                scrollable = false;                            
-
-            if(scrollable && (!excludeStaticParent || style.position != "static"))
-                return true;
-
-            element = element.parentElement;
-            if(element == null)
-                break;
-
-            // Stop if we've reached the document scroller.
-            if(element == document.scrollingElement)
-                break;
-        }
-    
-        return false;
-    }
-    
     async _start_dragging(event)
     {
-        // We shouldn't be starting a drag while one is already in progress.
-        if(this.captured_pointer_id)
+        this.pointers.set(event.pointerId, {
+            x: event.clientX,
+            y: event.clientY,
+
+            // Pointer movements are thresholded: we don't get pointer movements until the
+            // touch has moved some minimum amount, and all movement until then will be
+            // bundled into the first pointermove event.  Ignore that first event, since it
+            // makes drags look jerky.
+            ignore_next_pointermove: true,
+        });
+
+        if(this.pinch && this.drag_delay_timer != null && this.pointers.size > 1)
         {
-            console.error("Unexpected start of drag");
-            return;
+            // We were in _delaying_before_drag and a second tap started.  Cancel the delay and
+            // start immediately for pinch zooming.
+            // console.log("Starting deferred drag due to multitouch");
+            helpers.clearTimeout(this.drag_delay_timer);
+            this.drag_delay_timer = null;
+            this._commit_start_dragging({event: null});
         }
 
-        // Don't start a new dragger while another one is active.
-        if(ppixiv.RunningDrags.active_drag)
+        if(this.pointers.size > 1)
             return;
 
-        this.captured_pointer_id = event.pointerId;
-        window.addEventListener("pointermove", this._pointermove);
-        this.first_pointer_movement = true;
-        this.sent_ondragstart = false;
+        window.addEventListener("pointermove", this._pointermove, this._signal);
+        this._drag_started = false;
 
         ppixiv.RunningDrags.add(this, ({other_dragger}) => {
             this.cancel_drag();
@@ -5530,13 +5506,22 @@ ppixiv.DragHandler = class
         // movement.  If we don't, start it now, otherwise we'll start it in pointermove later.
         if(!this.deferred_start())
             this._commit_start_dragging({event});
+        else if(this.defer_delay_ms != null)
+        {
+            // We're deferring the drag.  Start a timer to stop deferring after a timeout.
+            this.drag_delay_timer = helpers.setTimeout(() => {
+                this.drag_delay_timer = null;
+                
+                this._commit_start_dragging({event: null});
+            }, this.defer_delay_ms);
+        }
     }
 
     // Actually start the drag.  This may happen immediately on pointerdown or on the first pointermove.
     // event is a PointerEvent, but may be either pointerdown or pointermove.
     async _commit_start_dragging({event})
     {
-        if(this.sent_ondragstart)
+        if(this._drag_started)
             return;
 
         if(!this.ondragstart({event}))
@@ -5545,66 +5530,160 @@ ppixiv.DragHandler = class
             return;
         }
 
-        this.sent_ondragstart = true;
-
+        this._drag_started = true;
         ppixiv.RunningDrags.cancel_others(this);
     }
 
-    // A drag finished.  interactive is true if this is the user releasing it, or false
-    // if we're shutting down during a drag.  See if we should transition the image or undo.
-    // cancel is true if this is due to a pointercancel event.
+    // If a drag is active, cancel it.
+    cancel_drag()
+    {
+        this._stop_dragging({interactive: false});
+    }
+
+    // Stop any active or potential drag.
+    // 
+    // interactive is true if this is the user releasing it, or false if we're shutting
+    // down during a drag.  cancel is true if this is due to a pointercancel event.
     _stop_dragging({interactive=false, cancel=false}={})
     {
-        if(this.captured_pointer_id == null)
-            return;
-
-        if(this.captured_pointer_id != null)
-        {
-            this.element.releasePointerCapture(this.captured_pointer_id);
-            this.captured_pointer_id = null;
-        }
+        this.pointers.clear();
 
         window.removeEventListener("pointermove", this._pointermove);
 
         ppixiv.RunningDrags.remove(this);
 
-        // Only send ondragend if we sent ondragstart.
-        if(this.sent_ondragstart)
+        if(this.drag_delay_timer != null)
         {
-            this.sent_ondragstart = false;
+            helpers.clearTimeout(this.drag_delay_timer);
+            this.drag_delay_timer = null;
+        }
+        
+        // Only send ondragend if we sent ondragstart.
+        if(this._drag_started)
+        {
+            this._drag_started = false;
             if(this.ondragend)
                 this.ondragend({interactive, cancel});
         }
-
-        // Always send onpointerup, even if there was no actual drag.
-        if(this.onpointerup)
-            this.onpointerup();
     }
 
     _pointermove = (event) =>
     {
-        if(event.pointerId != this.captured_pointer_id)
+        let pointer_info = this.pointers.get(event.pointerId);
+        if(pointer_info == null)
             return;
 
-        let first = this.first_pointer_movement;
-        this.first_pointer_movement = false;
-    
-        // When we actually handle pointer movement, let IsolatedTapHandler know that this
-        // press was handled by something.  This doesn't actually prevent any default behavior.
-        event.preventDefault();
+        // On iOS, we can do this to allow dragging with a large press without waiting for
+        // the delay.  It's disabled for now since it might make the UI confusing.  It probably
+        // would work better if we had access to haptics.
+        /*
+        if(this.defer_delay_ms && this.drag_delay_timer != null && e.width > 50)
+        {
+            helpers.clearTimeout(this.drag_delay_timer);
+            this.drag_delay_timer = null;
+            this._commit_start_dragging({event: null});
+        }
+        */
 
+        if(this.defer_delay_ms != null && this.drag_delay_timer != null)
+        {
+            // We saw a pointer movement during the drag delay.  Ignore this drag.
+            this.cancel_drag();
+            return;
+        }
+        
         // Call ondragstart the first time we see pointer movement after we begin the drag.  This
         // is when the drag actually starts.  We don't do movement thresholding here since iOS already
         // does it (whether we want it to or not).
         this._commit_start_dragging({event});
     
         // Only handle this as a drag input if we've started treating this as a drag.
-        if(this.sent_ondragstart)
-            this.ondrag({event, first});
+        if(!this._drag_started)
+            return;
+
+        // When we actually handle pointer movement, let IsolatedTapHandler know that this
+        // press was handled by something.  This doesn't actually prevent any default behavior.
+        event.preventDefault();
+
+        let info = {
+            event,
+            first: pointer_info.ignore_next_pointermove,
+        };
+
+        pointer_info.ignore_next_pointermove = false;
+
+        // In pinch is enabled, add pinch info.
+        if(this.pinch)
+        {
+            // The center position and average distance at the start of the frame:
+            let previous_center_pos = this._pointer_center_pos;
+            let previous_radius = this._pointer_distance_from(previous_center_pos);
+
+            // Update this pointer.  This will update _pointer_center_pos.
+            pointer_info.x = event.clientX;
+            pointer_info.y = event.clientY;
+
+            // The center position and average distance at the end of the frame:
+            let { x, y } = this._pointer_center_pos;
+            let radius = this._pointer_distance_from({ x, y });
+
+            // The average pointer movement across the frame:
+            let movementX = x - previous_center_pos.x;
+            let movementY = y - previous_center_pos.y;
+
+            info = {
+                ...info,
+
+                // The average position and movement of all touches:
+                x, y, movementX, movementY,
+                radius, previous_radius,
+            };
+        }
+        else
+        {
+            info = {
+                ...info,
+
+                // When not in pinch (multitouch) mode, we only have one touch.  Use its position.
+                movementX: event.movementX,
+                movementY: event.movementY,
+                x: event.clientX,
+                y: event.clientY,
+                radius: 0,
+                previous_radius: 0,
+            }
+        }
+
+        this.ondrag(info);
     }
+
+    // Get the average position of all current touches.
+    get _pointer_center_pos()
+    {
+        let center_pos = {x: 0, y: 0};
+        for(let {x, y} of this.pointers.values())
+        {
+
+            center_pos.x += x;
+            center_pos.y += y;
+        }
+        center_pos.x /= this.pointers.size;
+        center_pos.y /= this.pointers.size;
+        return center_pos;
+    }
+
+    // Return the average distance of all current touches to the given position.
+    _pointer_distance_from(pos)
+    {
+        let result = 0;
+        for(let {x, y} of this.pointers.values())
+            result += helpers.distance(pos, {x,y});
+        result /= this.pointers.size;
+        return result;
+    }    
 };
 
-const FlingFriction = 10;
+const FlingFriction = 7;
 const FlingMinimumVelocity = 10;
 
 // Mobile panning, fling and pinch zooming.
@@ -5657,129 +5736,36 @@ ppixiv.TouchScroller = class
 
         this.velocity = {x: 0, y: 0};
         this.fling_velocity = new FlingVelocity();
-        this.pointers = new Map();
-        this._delaying_before_drag = false;
 
         // This is null if we're inactive, "dragging" if the user is dragging, or "animating" if we're
         // flinging and rebounding.
         this._state = "idle";
 
-        // Note that we don't use pointer_listener for this.  It's meant for mouse events
-        // and isn't optimized for multitouch.
-        this.container.addEventListener("pointerdown", this.onpointerdown, { signal });
-
         // Cancel any running fling if we're shut down while a fling is active.
-        signal.addEventListener("abort", (e) => {
-            this.cancel_fling();
-            this.cancel_drag();
-        }, { once: true });
-    }
+        signal.addEventListener("abort", (e) => this.cancel_fling(), { once: true });
 
-    // Register events that we only need during a drag.
-    _register_events()
-    {
-        window.addEventListener("pointermove", this.pointermove, { signal: this.shutdown_signal });        
-        window.addEventListener("pointerup", this.onpointerup, { signal: this.shutdown_signal });
-        window.addEventListener("pointercancel", this.onpointerup, { signal: this.shutdown_signal });
-    }
+        this.dragger = new ppixiv.DragHandler({
+            name: "TouchScroller",
+            element: container,
+            pinch: true,
+            defer_delay_ms: 30,
+            signal,
 
-    _unregister_events()
-    {
-        window.removeEventListener("pointermove", this.pointermove);
-        window.removeEventListener("pointerup", this.onpointerup);
-        window.removeEventListener("pointercancel", this.onpointerup);
-    }
-
-    // If we're delaying before a drag, cancel the drag_delay_timer and cancel the potential drag.
-    cancel_pending_drag = () =>
-    {
-        this._delaying_before_drag = false;
-
-        if(this.drag_delay_timer != null)
-        {
-            helpers.clearTimeout(this.drag_delay_timer);
-            this.drag_delay_timer = null;
-        }
-    }
-
-    onpointerdown = (e) =>
-    {
-        // Don't start a drag if one is already running.  Do continue if we're already dragging
-        // and this is the start of a pinch.
-        if(this._state != "dragging" && ppixiv.RunningDrags.active_drag)
-            return;
-
-        // If we were flinging, the user grabbed the fling and interrupted it.
-        if(this._state == "animating")
-            this.cancel_fling();
-
-        if(this.pointers.size == 0 && helpers.should_ignore_horizontal_drag(e))
-            return;
-
-        // On iOS, we can do this to allow dragging with a large press without waiting for
-        // the delay.  It's disabled for now since it might make the UI confusing.  It probably
-        // would work better if we had access to haptics.
-        /*
-        if(this._state != "dragging" && e.width > 50)
-        {
-            this.cancel_pending_drag();
-            ppixiv.RunningDrags.add(this, () => this.cancel_pending_drag());
-            ppixiv.RunningDrags.cancel_others(this);
-            this._set_state("dragging");
-        }
-        */
-
-        if(this._state == "idle" && this._delaying_before_drag && this.pointers.size > 0)
-        {
-            // We were in _delaying_before_drag and a second tap started.  Cancel the delay and
-            // start immediately for pinch zooming.
-            this.cancel_pending_drag();
-            this._set_state("dragging");
-            ppixiv.RunningDrags.cancel_others(this);
-        }
-        else if(this._state != "dragging" && !this._delaying_before_drag)
-        {
-            // We can start the drag now.  Wait briefly to allow the other screen_illust draggers to
-            // have a shot at them first, so they see quick flings and we see drags that have a slight
-            // delay.
-            this.drag_delay_timer = helpers.setTimeout(() => {
-                console.assert(this._state == "idle", `Expected to be idle, actually ${this._state}`);
-                console.assert(this._delaying_before_drag, `Expected to be in _delaying_before_drag`);
-                
-                ppixiv.RunningDrags.cancel_others(this);
-                this._delaying_before_drag = false;
-                this._set_state("dragging");
-            }, 30);
-
-            this._delaying_before_drag = true;
-        }
-
-        ppixiv.RunningDrags.add(this, () => this.cancel_pending_drag());
-
-        if(this.pointers.size == 0)
-            this._register_events();
-
-        this.pointers.set(e.pointerId, {
-            x: e.clientX,
-            y: e.clientY,
-
-            // Pointer movements are thresholded: we don't get pointer movements until the
-            // touch has moved some minimum amount, and all movement until then will be
-            // bundled into the first pointermove event.  Ignore that first event, since it
-            // makes drags look jerky.
-            ignore_next_pointermove: true,
+            confirm_drag: ({event}) => !helpers.should_ignore_horizontal_drag(event),
+            ondragstart: (...args) => this._ondragstart(...args),
+            ondrag: (...args) => this._ondrag(...args),
+            ondragend: (...args) => this._ondragend(...args),
         });
-        
-        // Kill any velocity when a new touch happens.
-        this.fling_velocity.reset();
+    }
 
-        // If the image fits onscreen on one or the other axis, don't allow panning on
-        // that axis.  This is the same as how our mouse panning works.  However, only
-        // enable this at the start of a drag: if axes are unlocked at the start, don't
-        // lock them as a result of pinch zooming.  Otherwise we'll start locking axes
-        // in the middle of dragging due to zooms.
-        let bounds = this.options.get_bounds();
-        this.drag_axes_locked = [bounds.width < 0.001, bounds.height < 0.001];
+    // Cancel any drag immediately without starting a fling.
+    cancel_drag()
+    {
+        if(this._state != "dragging")
+            return;
+
+        this.dragger.cancel_drag();
+        this._set_state("idle");
     }
 
     // Set the current state: "idle", "dragging" or "animating", running the
@@ -5788,11 +5774,6 @@ ppixiv.TouchScroller = class
     {
         if(state == this._state)
             return;
-
-        // Debugging a case where we end up in idle, but we're still the active dragger and think
-        // we have touches.
-        if(state == "idle" && this.pointers.size > 0)
-            console.warn("Invalid TouchScroller idle state");
 
         // Transition back to active, ending whichever state we were in before.
         if(state != "idle"      && this._change_state("idle", "active")) this.options.onactive(args);
@@ -5821,114 +5802,40 @@ ppixiv.TouchScroller = class
         return true;
     }
 
-    // Cancel any drag immediately without starting a fling.
-    cancel_drag()
+    _ondragstart()
+    {
+        // If we were flinging, the user grabbed the fling and interrupted it.
+        if(this._state == "animating")
+            this.cancel_fling();
+
+        this._set_state("dragging");
+
+        // Kill any velocity when a drag starts.
+        this.fling_velocity.reset();
+
+        // If the image fits onscreen on one or the other axis, don't allow panning on
+        // that axis.  This is the same as how our mouse panning works.  However, only
+        // enable this at the start of a drag: if axes are unlocked at the start, don't
+        // lock them as a result of pinch zooming.  Otherwise we'll start locking axes
+        // in the middle of dragging due to zooms.
+        let { width, height } = this.options.get_bounds();
+        this.drag_axes_locked = [width < 0.001, height < 0.001];
+        return true;
+    }
+
+    _ondrag({
+        first,
+        movementX, movementY,
+        x, y,
+        radius, previous_radius,
+    })
     {
         if(this._state != "dragging")
             return;
-
-        this._cancel_drag();
-        this._set_state("idle");
-    }
-
-    // Like cancel_drag, but don't change our state.  This is used if we're changing from
-    // dragging to animating, where we shouldn't return to idle in-between.
-    _cancel_drag()
-    {
-        this.cancel_pending_drag();
-
-        if(this._state != "dragging")
-            return;
-
-        this.pointers.clear();
-        this._unregister_events();
-        ppixiv.RunningDrags.remove(this);
-    }
-
-    // This also receives pointercancel.
-    onpointerup = (e) =>
-    {
-        // Ignore touches we don't know about.
-        if(!this.pointers.has(e.pointerId))
-            return;
-
-        this.pointers.delete(e.pointerId);
-
-        // If there are more touches active, keep dragging.  If this is the last pointer released, apply
-        // velocity to fling.
-        if(this.pointers.size > 0)
-            return;
-
-        this._unregister_events();
-
-        this.cancel_pending_drag();
-        ppixiv.RunningDrags.remove(this);
-
-        // The last touch was released.  If we were dragging, start flinging or rubber banding.
-        if(this._state == "dragging")
-            this.start_fling();
-    }
-
-    // Get the average position of all current touches.
-    get pointer_center_pos()
-    {
-        let center_pos = {x: 0, y: 0};
-        for(let {x, y} of this.pointers.values())
-        {
-
-            center_pos.x += x;
-            center_pos.y += y;
-        }
-        center_pos.x /= this.pointers.size;
-        center_pos.y /= this.pointers.size;
-        return center_pos;
-    }
-
-    // Return the average distance of all current touches to the given position.
-    pointer_distance_from(pos)
-    {
-        let result = 0;
-        for(let {x, y} of this.pointers.values())
-            result += helpers.distance(pos, {x,y});
-        result /= this.pointers.size;
-        return result;
-    }
-
-    pointermove = (e) =>
-    {
-        let pointer_info = this.pointers.get(e.pointerId);
-        if(pointer_info == null)
-            return;
-
-        if(this._state != "dragging")
-            return;
-
-        // When we actually handle pointer movement, let IsolatedTapHandler know that this
-        // press was handled by something.  This doesn't actually prevent any default behavior.
-        e.preventDefault();
-
-        // The center position and average distance at the start of the frame:
-        let old_center_pos = this.pointer_center_pos;
-        let old_average_distance_from_anchor = this.pointer_distance_from(old_center_pos);
-
-        // Update this pointer.  This will update pointer_center_pos.
-        pointer_info.x = e.clientX;
-        pointer_info.y = e.clientY;
 
         // Ignore the first pointer movement.
-        if(pointer_info.ignore_next_pointermove)
-        {
-            pointer_info.ignore_next_pointermove = false;
+        if(first)
             return;
-        }
-
-        // The center position and average distance at the end of the frame:
-        let new_center_pos = this.pointer_center_pos;
-        let new_average_distance_from_anchor = this.pointer_distance_from(new_center_pos);
-
-        // The average pointer movement across the frame:
-        let movementX = new_center_pos.x - old_center_pos.x;
-        let movementY = new_center_pos.y - old_center_pos.y;
 
         // We're overscrolling if we're out of bounds on either axis, so apply drag to
         // the pan.
@@ -5962,11 +5869,18 @@ ppixiv.TouchScroller = class
 
         // The zoom for this frame is the ratio of the change of the average distance from the
         // anchor, centered around the average touch position.
-        if(this.pointers.size > 1 && old_average_distance_from_anchor > 0)
+        if(previous_radius > 0)
         {
-            let ratio = new_average_distance_from_anchor / old_average_distance_from_anchor;
-            this.options.adjust_zoom({ratio, centerX: new_center_pos.x, centerY: new_center_pos.y});
+            let ratio = radius / previous_radius;
+            this.options.adjust_zoom({ratio, centerX: x, centerY: y});
         }
+    }
+
+    _ondragend(e)
+    {
+        // The last touch was released.  If we were dragging, start flinging or rubber banding.
+        if(this._state == "dragging")
+            this.start_fling();
     }
 
     get overscroll_strength() { return 0.994; }
@@ -5989,7 +5903,7 @@ ppixiv.TouchScroller = class
         // For regular flings after drags, we'll always have finished the drag, so this won't
         // do anything.  The internal _cancel_drag won't return us to idle, since we're about
         // to set animating.
-        this._cancel_drag();
+        this.dragger.cancel_drag();
 
         // Set the initial velocity to the average recent speed of all touches.
         this.velocity = this.fling_velocity.current_velocity;
@@ -5998,25 +5912,11 @@ ppixiv.TouchScroller = class
 
         console.assert(this.abort_fling == null);
         this.abort_fling = new AbortController();
-        this.run_fling(this.abort_fling.signal);
-    }
-
-    cancel_fling()
-    {
-        if(this._state != "animating")
-            return;
-
-        if(this.abort_fling)
-        {
-            this.abort_fling.abort();
-            this.abort_fling = null;
-        }
-
-        this._set_state("idle");
+        this._run_fling(this.abort_fling.signal);
     }
 
     // Handle a fling asynchronously.  Stop when the fling ends or signal is aborted.
-    async run_fling(signal)
+    async _run_fling(signal)
     {
         let previous_time = Date.now() / 1000;
         while(this._state == "animating")
@@ -6092,6 +5992,7 @@ ppixiv.TouchScroller = class
 
         return true;
     }
+
     // If we're out of bounds, push the position towards being in bounds.  Return true if
     // we were out of bounds.
     apply_position_bounce(duration, position)
@@ -6151,6 +6052,20 @@ ppixiv.TouchScroller = class
                position.y < bounds.top ||
                position.x > bounds.right ||
                position.y > bounds.bottom;
+    }
+
+    cancel_fling()
+    {
+        if(this._state != "animating")
+            return;
+
+        if(this.abort_fling)
+        {
+            this.abort_fling.abort();
+            this.abort_fling = null;
+        }
+
+        this._set_state("idle");
     }
 }
 
@@ -6216,10 +6131,6 @@ ppixiv.WidgetDragger = class
 
         start_offset=0,
         end_offset=1,
-
-        // If set, return true to handle the drag or false to ignore it.
-        onpointerdown = () => true,
-        onpointerup = () => null,
     }={})
     {
         this._visible = visible;
@@ -6294,8 +6205,6 @@ ppixiv.WidgetDragger = class
         this.dragger = new ppixiv.DragHandler({
             name,
             element: drag_node,
-            onpointerdown,
-            onpointerup,
             oncancelled,
 
             ondragstart: (args) => {
@@ -6335,6 +6244,9 @@ ppixiv.WidgetDragger = class
                     this.drag_animation.stop();
                     this._set_state("dragging");
                 }
+
+                if(this._state != "dragging")
+                    this._log_state_changes(`Expected dragging, in ${this._state}`);
 
                 // Drags should always be in the dragging state, and won't change state.
                 console.assert(this._state == "dragging", this._state);
@@ -6507,6 +6419,35 @@ ppixiv.WidgetDragger = class
         this._set_state("animating");
     }
 
+    _record_state_change(from, to)
+    {
+        // if(ppixiv.actor.debug_shutdown && !this._previous_shutdown_stack)
+        {
+            this._state_stacks ??= [];
+            try {
+                throw new Error();
+            } catch(e) {
+                this._state_stacks.push([from, to, e.stack]);
+                let max = 10;
+                if(this._state_stacks.length > max)
+                    this._state_stacks.splice(this._state_stacks.length - max);
+            }
+        }
+    }
+    
+    _log_state_changes(message)
+    {
+        if(!this._state_stacks)
+            return;
+
+        console.error("Error:", message);
+        for(let [from, to, stack] of this._state_stacks)
+        {
+            console.log(`From ${from} to ${to}, stack:`);
+            console.log(stack);
+        }
+    }
+
     // Set the current state: "idle", "dragging" or "animating", running the
     // appropriate callbacks.
     _set_state(state, ...args)
@@ -6529,6 +6470,8 @@ ppixiv.WidgetDragger = class
     {
         if(this._state != old_state)
             return false;
+
+        this._record_state_change(this._state, new_state);
 
         // console.warn(`state change: ${old_state} -> ${new_state}`);
         this._state = new_state;
