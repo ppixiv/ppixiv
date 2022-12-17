@@ -203,11 +203,8 @@ void termline::add_combining_character(int col, unsigned long chr)
      */
     if (!cc_free) {
         int n = size;
-
-        size_t tmpsize = size;
-        chars.resize(tmpsize+1);
-        assert(tmpsize <= INT_MAX);
-        size = tmpsize;
+        chars.resize(chars.size()+1);
+        size = chars.size();
 
         cc_free = n;
         while (n < size) {
@@ -535,7 +532,7 @@ shared_ptr<termline> Terminal::lineptr(int y, int screen_idx)
  */
 void Terminal::check_line_size(shared_ptr<termline> line)
 {
-    if(cols != cols)      // trivial optimization
+    if(cols != line->cols)      // trivial optimization
         resizeline(line, cols);
 }
 
