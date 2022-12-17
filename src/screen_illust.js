@@ -233,7 +233,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         else if(early_illust_data.illustType == "video")
             viewer_class = viewer_video;
         else
-            viewer_class = viewer_images;
+            viewer_class = ppixiv.mobile? ppixiv.viewer_images_mobile:ppixiv.viewer_images_desktop;
 
         let slideshow = helpers.args.location.hash.get("slideshow");
         let new_viewer = new viewer_class({
@@ -241,7 +241,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             container: this.view_container,
             slideshow,
             
-            wait_for_animations: () => {
+            wait_for_transitions: () => {
                 return this.drag_to_exit?.wait_for_animations_promise;
             },
 
