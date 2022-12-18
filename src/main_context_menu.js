@@ -178,7 +178,6 @@ ppixiv.main_context_menu = class extends ppixiv.widget
                     </div>
                     <div class=button-block>
                         <div class="button button-more enabled" data-popup="More...">
-                        
                             ${ helpers.create_icon("settings") }
                         </div>
                     </div>
@@ -265,25 +264,10 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         this.container.addEventListener("mouseover", this.onmouseover, true);
         this.container.addEventListener("mouseout", this.onmouseout, true);
 
-        // Refresh the menu when the view changes.
-        this.mode_observer = new MutationObserver((mutationsList, observer) => {
-            for(var mutation of mutationsList) {
-                if(mutation.type == "attributes")
-                {
-                    if(mutation.attributeName == "data-current-view")
-                        this.refresh();
-                }
-            }
-        });
-
         // Listen for the image viewer changing.  This is used for zooming.
         ppixiv.viewer_images.primary_changed.addEventListener("changed", (e) => {
             this.on_click_viewer = e.viewer;
         }, { signal: this.shutdown_signal.signal });
-
-        this.mode_observer.observe(document.body, {
-            attributes: true, childList: false, subtree: false
-        });
 
         // If the page is navigated while the popup menu is open, clear the ID the
         // user clicked on, so we refresh and show the default.
@@ -971,8 +955,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         
     get _is_zoom_ui_enabled()
     {
-        var view = document.documentElement.dataset.currentView;
-        return view == "illust" && this._on_click_viewer != null && this._on_click_viewer.slideshow_mode == null;
+        return this._on_click_viewer != null && this._on_click_viewer.slideshow_mode == null;
     }
 
     set_data_source(data_source)

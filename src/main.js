@@ -446,10 +446,6 @@ ppixiv.MainController = class
             this._ignore_clicks_until = Date.now() + 100;
         }
 
-        // Mark the current screen.  Other code can watch for this to tell which view is
-        // active.
-        document.documentElement.dataset.currentView = new_screen_name;
-
         let new_screen = this.screens[new_screen_name];
         
         this.current_screen_name = new_screen_name;
