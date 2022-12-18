@@ -5533,6 +5533,9 @@ ppixiv.DragHandler = class
         ppixiv.RunningDrags.cancel_others(this);
     }
 
+    // Return true if a drag is active.
+    get is_dragging() { return this._drag_started; }
+
     // If a drag is active, cancel it.
     cancel_drag()
     {
@@ -5898,11 +5901,15 @@ ppixiv.TouchScroller = class
             return;
         }
 
-        // If we're being called externally and not from a drag, a drag might be in progress.
-        // For regular flings after drags, we'll always have finished the drag, so this won't
-        // do anything.  The internal _cancel_drag won't return us to idle, since we're about
-        // to set animating.
-        this.dragger.cancel_drag();
+        // Don't start a fling if a drag is active.  this._state can be "dragging" if the drag
+        // just ended and we're transitioning into "animating", but don't do this if we're called
+        // while a drag is still active.  This happens the user double-clicks to zoom the image
+        // while still dragging;
+        if(this.dragger.is_dragging)
+        {
+            // console.log("Ignoring start_fling because a drag is still active");
+            return;
+        }
 
         // Set the initial velocity to the average recent speed of all touches.
         this.velocity = this.fling_velocity.current_velocity;
