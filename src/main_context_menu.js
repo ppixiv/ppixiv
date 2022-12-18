@@ -374,26 +374,20 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         this.refresh();
     }
 
-    context_menu_enabled_for_element(element)
+    _context_menu_enabled_for_element(element)
     {
-        while(element != null && element instanceof Element)
-        {
-            if(element.dataset.contextMenuTarget == "off")
-                return false;
-
-            if("contextMenuTarget" in element.dataset)
-                return true;
-
-            element = element.parentNode;
-        }
-        return false;
+        let target = element.closest("[data-context-menu-target]");
+        if(target == null || target.dataset.contextMenuTarget == "off")
+            return false;
+        else
+            return true;
     }
 
     pointerevent = (e) =>
     {
         if(e.pressed)
         {
-            if(!this.visible && !this.context_menu_enabled_for_element(e.target))
+            if(!this.visible && !this._context_menu_enabled_for_element(e.target))
                 return;
             
             if(!this.visible && e.mouseButton != 1)
