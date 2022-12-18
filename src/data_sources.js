@@ -378,6 +378,12 @@ ppixiv.data_source = class extends EventTarget
     // Return true if all pages have been loaded.
     get loaded_all_pages() { return this.first_empty_page != -1; }
 
+    // Return this data source's URL as a helpers.args.
+    get args()
+    {
+        return new helpers.args(this.url);        
+    }
+
     // Return a canonical URL for this data source.  If the canonical URL is the same,
     // the same instance of the data source should be used.
     //
@@ -4626,12 +4632,6 @@ ppixiv.data_sources.vview = class extends data_source
         return this.get_media_id_from_url(args) ?? this.id_list.get_first_id();
     }
 
-    // more streamlined but harder to get access to ourself
-    // XXX
-    xxxcreate_ui = ({ data_source, ...options }) => new class extends ppixiv.widget
-    {
-    };
-
     get ui()
     {
         return class extends ppixiv.widget
@@ -4814,13 +4814,13 @@ ppixiv.data_sources.vview = class extends data_source
                 clear_local_search_button.addEventListener("click", (e) => {
                     // Get the URL for the current folder and set it to a new URL, so it removes search
                     // parameters.
-                    let media_id = local_api.get_local_id_from_args(helpers.args.location, { get_folder: true });
+                    let media_id = local_api.get_local_id_from_args(data_source.args, { get_folder: true });
                     let args = new helpers.args("/", ppixiv.plocation);
                     local_api.get_args_for_id(media_id, args);
                     helpers.navigate(args);
                 });
 
-                let search_active = local_api.get_search_options_for_args(helpers.args.location).search_options != null;
+                let search_active = local_api.get_search_options_for_args(data_source.args).search_options != null;
                 helpers.set_class(clear_local_search_button, "disabled", !search_active);
 
                 this.querySelector(".copy-local-path").addEventListener("click", (e) => {
@@ -4848,7 +4848,7 @@ ppixiv.data_sources.vview = class extends data_source
     // we're restricted to listing tagged bookmarks.
     get bookmark_search_active()
     {
-        return helpers.args.location.hash.has("bookmarks") || local_api.local_info.bookmark_tag_searches_only;
+        return this.args.hash.has("bookmarks") || local_api.local_info.bookmark_tag_searches_only;
     }
 
     async fetch_bookmark_tag_counts()
