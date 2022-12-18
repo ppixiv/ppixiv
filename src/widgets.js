@@ -2437,7 +2437,13 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 {
     get needed_data() { return "partial"; }
 
-    constructor({ ...options })
+    constructor({
+        // If true, show less frequently used options that are hidden by default to reduce
+        // clutter.
+        show_extra=false,
+
+        ...options
+    })
     {
         super({...options,
             template: `
@@ -2446,14 +2452,9 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 </div>
         `});
 
-        this.menu_options = [];
-    }
 
-    // This is called before we become visible if alt is held while our button is pressed.
-    // We use this to hide some rarely-used options.
-    set_alt_pressed(pressed)
-    {
-        this.show_extra = pressed;
+        this.show_extra = show_extra;
+        this.menu_options = [];
     }
 
     create_menu_options()

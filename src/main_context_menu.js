@@ -328,6 +328,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
                 let dropdown = new more_options_dropdown_widget({
                     ...options,
                     parent: this,
+                    show_extra: this.alt_pressed,
                 });
 
                 dropdown.container.classList.add("popup-more-options-dropdown");
@@ -339,6 +340,8 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         });
 
         more_options_button.addEventListener("click", (e) => {
+            // Show rarely-used options if alt was pressed.
+            this.alt_pressed = e.altKey;
             this.more_options_dropdown_opener.visible = !this.more_options_dropdown_opener.visible;
         });
 
