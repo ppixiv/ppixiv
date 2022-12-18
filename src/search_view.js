@@ -426,10 +426,10 @@ ppixiv.search_view = class extends ppixiv.widget
     // each one is on.
     get_data_source_media_ids()
     {
-        let media_ids = [];
+        let all_media_ids = [];
         let media_id_pages = {};
         if(this.data_source == null)
-            return [media_ids, media_id_pages];
+            return { all_media_ids, media_id_pages };
 
         let id_list = this.data_source.id_list;
         let min_page = id_list.get_lowest_loaded_page();
@@ -451,18 +451,18 @@ ppixiv.search_view = class extends ppixiv.widget
                 {
                     for(let page_media_id of media_ids_on_page)
                     {
-                        media_ids.push(page_media_id);
+                        all_media_ids.push(page_media_id);
                         media_id_pages[page_media_id] = page;
                     }
                     continue;
                 }
 
-                media_ids.push(media_id);
+                all_media_ids.push(media_id);
                 media_id_pages[media_id] = page;
             }
         }
 
-        return [media_ids, media_id_pages];
+        return { all_media_ids, media_id_pages };
     }
 
     // If media_id is an expanded multi-page post, return the pages.  Otherwise, return null.
@@ -512,43 +512,34 @@ ppixiv.search_view = class extends ppixiv.widget
         if(all_media_ids.length == 0)
             return [];
 
-        let [first_nearby_media_id, last_nearby_media_id] = this.get_nearby_media_ids();
-        let [first_loaded_media_id, last_loaded_media_id] = this.get_loaded_media_ids();
-
-        // If we're restoring a scroll position, state.scroll_nearby_media_ids is a list of
-        // the IDs that were nearby when it was saved.  For the initial refresh, load the same
-        // range of nearby media IDs.
-        let args = helpers.args.location;
-        if(first_loaded_media_id == null && args.state.scroll?.nearby_media_ids != null)
-        {
-            // nearby_media_ids is all media IDs that were nearby.  Not all of them may be
-            // in the list now, eg. if we're only loading page 2 but some images from page 1
-            // were nearby before, so find the biggest matching range.
-            let first = helpers.find_first(args.state.scroll.nearby_media_ids, all_media_ids);
-            let last = helpers.find_last(args.state.scroll.nearby_media_ids, all_media_ids);
-            if(first != null && last != null)
-            {
-                // If the new results aren't similar to the search we're trying to restore, first
-                // and last might be very far apart.  This happens if we're on a shuffled search.
-                // Limit the distance these can be from each other so this doesn't explode if we're
-                // restoring a huge shuffled directory.
-                let distance = Math.abs(all_media_ids.indexOf(last) - all_media_ids.indexOf(first));
-                if(distance > 100)
-                {
-                    console.log("Clamping range for scroll restoration from", distance);
-                    last = all_media_ids[first+10];
-                }
-
-                first_nearby_media_id = first;
-                last_nearby_media_id = last;
-            }
-        }
-
         // Figure out the range of all_media_ids that we want to have loaded.
         let start_idx = 999999;
         let end_idx = 0;
 
+        // If this is the initial refresh and we have a saved scroll position, restore the list
+        // of nearby media IDs, so we're able to scroll to the right place.
+        let initial_refresh = Object.keys(this.thumbs).length == 0;
+        let args = helpers.args.location;
+        if(initial_refresh && args.state.scroll?.nearby_media_ids != null)
+        {
+            // nearby_media_ids is all media IDs that were nearby.  Not all of them may be
+            // in the list now, eg. if we're only loading page 2 but some images from page 1
+            // were nearby before, so find the biggest matching range.
+            //
+            // Skip this if the result is too far apart, so if the new results aren't similar
+            // to the old ones, we won't try to load thousands of results.  This can happen on
+            // shuffled searches.
+            let first_idx = helpers.find_first_idx(args.state.scroll.nearby_media_ids, all_media_ids);
+            let last_idx = helpers.find_last_idx(args.state.scroll.nearby_media_ids, all_media_ids);
+            if(first_idx != -1 && last_idx != -1 && Math.abs(first_idx - last_idx) < 100)
+            {
+                start_idx = first_idx;
+                end_idx = last_idx;
+            }
+        }
+
         // Start the range with thumbs that are already loaded, if any.
+        let [first_loaded_media_id, last_loaded_media_id] = this.get_loaded_media_ids();
         let first_loaded_media_id_idx = all_media_ids.indexOf(first_loaded_media_id);
         if(first_loaded_media_id_idx != -1)
             start_idx = Math.min(start_idx, first_loaded_media_id_idx);
@@ -582,6 +573,7 @@ ppixiv.search_view = class extends ppixiv.widget
         // if they weren't supplied by the data source (this happens with data_sources.vview if we're
         // using /api/ids).
         let chunk_size_fwd = 25;
+        let [first_nearby_media_id, last_nearby_media_id] = this.get_nearby_media_ids();
         if(last_loaded_media_id_idx != -1)
         {
             let last_nearby_media_id_idx = all_media_ids.indexOf(last_nearby_media_id);
@@ -773,7 +765,7 @@ ppixiv.search_view = class extends ppixiv.widget
         this.container.style.setProperty('--container-width', `${container_width}px`);
 
         // Get all media IDs from the data source.
-        let [all_media_ids, media_id_pages] = this.get_data_source_media_ids();
+        let { all_media_ids, media_id_pages } = this.get_data_source_media_ids();
 
         // Sanity check: there should never be any duplicate media IDs from the data source.
         // Refuse to continue if there are duplicates, since it'll break our logic badly and

@@ -2366,29 +2366,28 @@ ppixiv.helpers = {
         return helpers.clamp(helpers.scale(x, l1, h1, l2, h2), l2, h2);
     },
 
-    // Return the first value in A that exists in B.
-    find_first(A, B)
+    // Return the index (in B) of the first value in A that exists in B.
+    find_first_idx(A, B)
     {
-        for(let value of A)
+        for(let idx = 0; idx < A.length; ++idx)
         {
-            if(B.indexOf(value) != -1)
-                return value;
+            let idx2 = B.indexOf(A[idx]);
+            if(idx2 != -1)
+                return idx2;
         }
-        return null;
+        return -1;
     },
     
-    // Return the last value in A that exists in B.
-    find_last(A, B)
+    // Return the index (in B) of the last value in A that exists in B.
+    find_last_idx(A, B)
     {
-        A = Array.from(A);
-        A.reverse();
-
-        for(let value of A)
+        for(let idx = A.length-1; idx >= 0; --idx)
         {
-            if(B.indexOf(value) != -1)
-                return value;
+            let idx2 = B.indexOf(A[idx]);
+            if(idx2 != -1)
+                return idx2;
         }
-        return null;
+        return -1;
     },
 
     // pako/lib/zlib/crc32.js, MIT license: https://github.com/nodeca/pako/
