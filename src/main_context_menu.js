@@ -214,7 +214,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
                     </div>
                     
                     <div class=button-block>
-                        <div class="button button-bookmark-tags enabled" data-popup="Bookmark tags">
+                        <div class="button button-bookmark-tags" data-popup="Bookmark tags">
                             ${ helpers.create_icon("ppixiv:tag") }
                         </div>
                     </div>

@@ -1005,6 +1005,13 @@ ppixiv.dropdown_box_opener = class extends ppixiv.actor
                 container: document.body,
             });
 
+            // Stop if no widget was created.
+            if(this.box_widget == null)
+            {
+                this._visible = false;
+                return;
+            }
+
             this.box_widget.container.classList.add("dropdown-box");
             this.box = this.box_widget.container;
 
@@ -2362,6 +2369,7 @@ ppixiv.bookmark_tag_dropdown_opener = class extends ppixiv.actor
     {
         super({...options});
 
+        this.bookmark_tags_button = bookmark_tags_button;
         this.bookmark_buttons = bookmark_buttons;
         this._media_id = null;
 
@@ -2403,6 +2411,7 @@ ppixiv.bookmark_tag_dropdown_opener = class extends ppixiv.actor
             return;
 
         this._media_id = media_id;
+        helpers.set_class(this.bookmark_tags_button, "enabled", media_id != null);
 
         // Hide the dropdown if the image changes while it's open.
         this._opener.visible = false;
@@ -2410,7 +2419,7 @@ ppixiv.bookmark_tag_dropdown_opener = class extends ppixiv.actor
 
     _create_box = ({...options}) => {
         if(this._media_id == null)
-            throw new Error("Media ID not set");
+            return;
 
         return new ppixiv.bookmark_tag_list_dropdown_widget({
             ...options,
