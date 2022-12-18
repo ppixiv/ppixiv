@@ -157,10 +157,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         this.cancel_async_navigation();
 
-        // Stop showing the user in the context menu, and stop showing the current page.
-        if(main_controller.context_menu)
-            main_controller.context_menu.set_media_id(null);
-
         if(this.mobile_illust_ui)
         {
             this.mobile_illust_ui.media_id = null;
@@ -533,13 +529,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         
         // Tell the UI which page is being viewed.
         this.ui.media_id = this.current_media_id;
-
-        // Tell the context menu which user is being viewed.
-        if(main_controller.context_menu)
-        {
-            main_controller.context_menu.user_id = this.current_user_id;
-            main_controller.context_menu.set_media_id(this.current_media_id);
-        }
 
         if(this.mobile_illust_ui)
         {
@@ -1251,7 +1240,7 @@ class ScreenIllustDragToExit
         // This gives us the portion of the viewer which actually contains an image.  We'll
         // transition that region, so empty space is ignored by the transition.  If the viewer
         // doesn't implement this, just use the view bounds.
-        let view_position = this.parent.viewer.view_position;
+        let view_position = this.parent.viewer?.view_position;
         if(view_position)
         {
             // Move the view position to where the view actually is on the screen.
@@ -1259,7 +1248,7 @@ class ScreenIllustDragToExit
             view_position.x += left;
             view_position.y += top;
         }
-        view_position ??= this.parent.viewer.container.getBoundingClientRect();
+        view_position ??= this.parent.container.getBoundingClientRect();
 
         // Try to position the animation to move towards the search thumbnail.
         let thumb_rect = this._animation_target_rect;
@@ -1268,7 +1257,7 @@ class ScreenIllustDragToExit
             // If the thumbnail is offscreen, ignore it.
             let center_y = thumb_rect.top + thumb_rect.height/2;
             if(center_y < 0 || center_y > window.innerHeight)
-            thumb_rect = null;
+                thumb_rect = null;
         }
 
         if(thumb_rect == null)

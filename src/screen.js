@@ -9,10 +9,7 @@ ppixiv.screen = class extends ppixiv.widget
     }
 
     // Return the media ID being displayed, or null if none.
-    get displayed_media_id()
-    {
-        return null;
-    }
+    get displayed_media_id() { return null; }
 
     // Screens don't hide themselves when visible is false, but we still set visibility so
     // visible_recursively works.

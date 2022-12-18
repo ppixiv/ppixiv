@@ -13,6 +13,22 @@ ppixiv.UserCache = class extends EventTarget
         this.nonexistant_user_ids = { };
     }
 
+    async get_user_id_for_media_id(media_id)
+    {
+        if(media_id == null)
+            return null;
+
+        // If the media ID is a user ID, use it.
+        let { type, id } = helpers.parse_media_id(media_id);
+        if(type == "user")
+            return id;
+
+        // Fetch media info.  We don't need to coalesce these requests if this is called
+        // multiple times, since media_cache will do that for us.
+        let media_info = await media_cache.get_media_info(media_id, { full: false });
+        return media_info?.userId;
+    }
+
     // Call all illust_modified callbacks.
     call_user_modified_callbacks(user_id)
     {

@@ -609,8 +609,6 @@ ppixiv.screen_search = class extends ppixiv.screen
         this._active = false;
 
         this.search_view.deactivate();
-        if(main_controller.context_menu)
-            main_controller.context_menu.user_id = null;
     }
 
     async activate({ old_media_id })
@@ -973,11 +971,6 @@ class user_info_links extends ppixiv.widget
         // Stop if the user ID changed since we started this request.
         if(user_id != this._showing_user_id)
             return;
-
-        // Tell the context menu which user is being viewed (if we're viewing a user-specific
-        // search).
-        if(main_controller.context_menu)
-            main_controller.context_menu.user_id = user_id;
 
         let extra_links = this.get_extra_links({ user_info, data_source });
 

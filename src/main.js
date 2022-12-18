@@ -424,8 +424,6 @@ ppixiv.MainController = class
             message_widget.singleton.hide();
             
             this.data_source = data_source;
-            if(this.context_menu)
-                this.context_menu.set_data_source(data_source);
             
             if(this.data_source != null)
                 this.data_source.startup();
@@ -453,9 +451,6 @@ ppixiv.MainController = class
         document.documentElement.dataset.currentView = new_screen_name;
 
         let new_screen = this.screens[new_screen_name];
-
-        if(this.context_menu)
-            this.context_menu.set_media_id(media_id);
         
         this.current_screen_name = new_screen_name;
 
@@ -477,22 +472,31 @@ ppixiv.MainController = class
             window.dispatchEvent(e);
         }
 
-        if(new_screen != null)
+        new_screen.set_data_source(data_source);
+
+        if(this.context_menu)
         {
-            new_screen.set_data_source(data_source);
+            this.context_menu.set_data_source(this.data_source);
 
-            // Restore state from history if this is an initial load (which may be
-            // restoring a tab), for browser forward/back, or if we're exiting from
-            // quick view (which is like browser back).  This causes the pan/zoom state
-            // to be restored.
-            let restore_history = cause == "initialization" || cause == "history" || cause == "leaving-virtual";
-
-            await new_screen.activate({
-                media_id,
-                old_media_id,
-                restore_history,
-            });
+            // If we're showing a media ID, use it.  Otherwise, see if the screen is
+            // showing one.
+            let displayed_media_id = media_id;
+            displayed_media_id ??= new_screen.displayed_media_id;
+            this.context_menu.set_media_id(displayed_media_id);
         }
+
+        // Restore state from history if this is an initial load (which may be
+        // restoring a tab), for browser forward/back, or if we're exiting from
+        // quick view (which is like browser back).  This causes the pan/zoom state
+        // to be restored.
+        let restore_history = cause == "initialization" || cause == "history" || cause == "leaving-virtual";
+
+        // Activate the new screen.
+        await new_screen.activate({
+            media_id,
+            old_media_id,
+            restore_history,
+        });
 
         // Deactivate the old screen.
         if(old_screen != null && old_screen != new_screen)
@@ -525,6 +529,11 @@ ppixiv.MainController = class
                 args = new helpers.args("/");
             }
         }
+
+        // If this is a user ID, just go to the user page.
+        let { type, id } = helpers.parse_media_id(media_id);
+        if(type == "user")
+            return new helpers.args(`/users/${id}/artworks#ppixiv`);
 
         let old_media_id = this.data_source.get_current_media_id(args);
         let [old_illust_id] = helpers.media_id_to_illust_id_and_page(old_media_id);
@@ -734,10 +743,9 @@ ppixiv.MainController = class
         // This way, we actually use the URL for the illustration on this data source instead of
         // switching to /artworks.  This also applies to local image IDs, but not folders.
         url = helpers.get_url_without_language(url);
-        let illust = this.get_illust_at_element(a);
-        if(illust?.media_id)
+        let { media_id } = this.get_illust_at_element(a);
+        if(media_id)
         {
-            let media_id = illust.media_id;
             let args = new helpers.args(a.href);
             let screen = args.hash.has("view")? args.hash.get("view"):"illust";
             this.show_media(media_id, {
@@ -945,27 +953,22 @@ ppixiv.MainController = class
         screen.handle_onkeydown(e);
     }
 
-    // Return the illust_id and page or user_id of the image under element.  This can
-    // be an image in the search screen, or a page in the manga screen.
-    //
-    // If element is an illustration and also has the user ID attached, both the user ID
-    // and illust ID will be returned.
+    // Return the media ID under element.
     get_illust_at_element(element)
     {
-        let result = { };
         if(element == null)
-            return result;
+            return { };
 
         // Illustration search results have both the media ID and the user ID on it.
         let media_element = element.closest("[data-media-id]");
         if(media_element)
-            result.media_id = media_element.dataset.mediaId;
+            return { media_id: media_element.dataset.mediaId };
 
         let user_element = element.closest("[data-user-id]");
         if(user_element)
-            result.user_id = user_element.dataset.userId;
+            return { media_id: `user:${user_element.dataset.userId}` };
 
-        return result;
+        return { };
     }
 
     // Load binary resources into blobs, so we don't copy images into every

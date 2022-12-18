@@ -8,7 +8,7 @@
 // Not all items are available all the time.  This is a singleton class, so it's easy
 // for different parts of the UI to tell us when they're active.
 //
-// This also handles alt-mousewheel zooming.
+// This also handles mousewheel zooming.
 ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 {
     constructor({
@@ -131,7 +131,7 @@ ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
 // A helper for a simple right-click context menu.
 //
 // The menu opens on right click and closes when the button is released.
-ppixiv.popup_context_menu = class extends ppixiv.widget
+ppixiv.main_context_menu = class extends ppixiv.widget
 {
     // Names for buttons, for storing in this.buttons_down.
     buttons = ["lmb", "rmb", "mmb"];
@@ -236,6 +236,8 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         this.visible = false;
         this.hide = this.hide.bind(this);
+        this._on_click_viewer = null;
+        this._media_id = null;
 
         // Whether the left and right mouse buttons are pressed:
         this.buttons_down = {};
@@ -262,6 +264,127 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
         this.container.addEventListener("mouseover", this.onmouseover, true);
         this.container.addEventListener("mouseout", this.onmouseout, true);
+
+        // Refresh the menu when the view changes.
+        this.mode_observer = new MutationObserver((mutationsList, observer) => {
+            for(var mutation of mutationsList) {
+                if(mutation.type == "attributes")
+                {
+                    if(mutation.attributeName == "data-current-view")
+                        this.refresh();
+                }
+            }
+        });
+
+        // Listen for the image viewer changing.  This is used for zooming.
+        ppixiv.viewer_images.primary_changed.addEventListener("changed", (e) => {
+            this.on_click_viewer = e.viewer;
+        }, { signal: this.shutdown_signal.signal });
+
+        this.mode_observer.observe(document.body, {
+            attributes: true, childList: false, subtree: false
+        });
+
+        // If the page is navigated while the popup menu is open, clear the ID the
+        // user clicked on, so we refresh and show the default.
+        window.addEventListener("pp:popstate", (e) => {
+            if(this._clicked_media_id == null)
+                return;
+
+            this._set_temporary_illust(null);
+        });
+
+        this.button_view_manga = this.container.querySelector(".button-view-manga");
+        this.button_view_manga.addEventListener("click", this.clicked_view_manga);
+
+        this.button_fullscreen = this.container.querySelector(".button-fullscreen");
+        this.button_fullscreen.addEventListener("click", this.clicked_fullscreen);
+
+        this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle);
+        this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            ppixiv.phistory.back();
+        });
+
+        this.container.addEventListener("click", this.handle_link_click);
+        this.container.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent);
+
+        for(var button of this.container.querySelectorAll(".button-zoom-level"))
+            button.addEventListener("click", this.clicked_zoom_level);
+
+        this.avatar_widget = new avatar_widget({
+            container: this.container.querySelector(".avatar-widget-container"),
+            mode: "overlay",
+        });
+
+        // Set up the more options dropdown.
+        let more_options_button = this.container.querySelector(".button-more");
+        this.more_options_dropdown_opener = new ppixiv.dropdown_box_opener({
+            button: more_options_button,
+
+            create_box: ({...options}) => {
+                let dropdown = new more_options_dropdown_widget({
+                    ...options,
+                    parent: this,
+                });
+
+                dropdown.container.classList.add("popup-more-options-dropdown");
+                dropdown.set_media_id(this.effective_media_id);
+                dropdown.set_user_id(this.effective_user_id);
+
+                return dropdown;
+            },
+        });
+
+        more_options_button.addEventListener("click", (e) => {
+            this.more_options_dropdown_opener.visible = !this.more_options_dropdown_opener.visible;
+        });
+
+        this.illust_widgets = [
+            this.avatar_widget,
+            new like_button_widget({
+                contents: this.container.querySelector(".button-like"),
+            }),
+            new like_count_widget({
+                contents: this.container.querySelector(".button-like .count"),
+            }),
+            new context_menu_image_info_widget({
+                container: this.container.querySelector(".context-menu-image-info-container"),
+            }),
+            new bookmark_count_widget({
+                contents: this.container.querySelector(".button-bookmark.public .count")
+            }),
+        ];
+
+        this.illust_widgets.push(new view_in_explorer_widget({
+            contents: this.container.querySelector(".view-in-explorer"),
+        }));
+
+        // The bookmark buttons, and clicks in the tag dropdown:
+        this.bookmark_buttons = [];
+        for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
+        {
+            // The bookmark buttons, and clicks in the tag dropdown:
+            let bookmark_widget = new bookmark_button_widget({
+                contents: a,
+                bookmark_type: a.dataset.bookmarkType,
+            });
+
+            this.bookmark_buttons.push(bookmark_widget);
+            this.illust_widgets.push(bookmark_widget);
+        }
+
+        // Set up the bookmark tags dropdown.
+        this.bookmark_tags_dropdown_opener = new ppixiv.bookmark_tag_dropdown_opener({
+            parent: this,
+            bookmark_tags_button: this.container.querySelector(".button-bookmark-tags"),
+            bookmark_buttons: this.bookmark_buttons,
+        });
+        this.illust_widgets.push(this.bookmark_tags_dropdown_opener);
+
+        this.refresh();
     }
 
     context_menu_enabled_for_element(element)
@@ -408,8 +531,20 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         return null;
     }
 
-    show({x, y})
+    show({x, y, target})
     {
+        // If RMB is pressed while dragging LMB, stop dragging the window when we
+        // show the popup.
+        if(this.on_click_viewer != null)
+            this.on_click_viewer.stop_dragging();
+
+        // See if an element representing a user and/or an illust was under the cursor.
+        if(target != null)
+        {
+            let { media_id } = main_controller.get_illust_at_element(target);
+            this._set_temporary_illust(media_id);
+        }
+
         if(this.visible)
             return;
 
@@ -459,6 +594,9 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
         this.displayed_menu.style.transformOrigin = (pos[0]) + "px " + (pos[1]) + "px";
 
         hide_mouse_cursor_on_idle.disable_all("context-menu");
+
+        // Make sure we're up to date if we deferred an update while hidden.
+        this.refresh();
     }
 
     set_current_position()
@@ -643,6 +781,17 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
 
     hide()
     {
+        // For debugging, this can be set to temporarily force the context menu to stay open.
+        if(window.keep_context_menu_open)
+            return;
+
+        this._clicked_media_id = null;
+        this._cached_user_id = null;
+
+        // Don't refresh yet, so we try to not change the display while it fades out.
+        // We'll do the refresh the next time we're displayed.
+        // this.refresh();
+
         if(!this.visible)
             return;
 
@@ -671,136 +820,6 @@ ppixiv.popup_context_menu = class extends ppixiv.widget
     {
         e.preventDefault();
         e.stopPropagation();
-    }
-}
-
-ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
-{
-    constructor({...options})
-    {
-        super(options);
-
-        this._on_click_viewer = null;
-        this._media_id = null;
-
-        // Refresh the menu when the view changes.
-        this.mode_observer = new MutationObserver((mutationsList, observer) => {
-            for(var mutation of mutationsList) {
-                if(mutation.type == "attributes")
-                {
-                    if(mutation.attributeName == "data-current-view")
-                        this.refresh();
-                }
-            }
-        });
-
-        // Listen for the image viewer changing.  This is used for zooming.
-        ppixiv.viewer_images.primary_changed.addEventListener("changed", (e) => {
-            this.on_click_viewer = e.viewer;
-        }, { signal: this.shutdown_signal.signal });
-
-        this.mode_observer.observe(document.body, {
-            attributes: true, childList: false, subtree: false
-        });
-
-        // If the page is navigated while the popup menu is open, clear the ID the
-        // user clicked on, so we refresh and show the default.
-        window.addEventListener("pp:popstate", (e) => {
-            this._clicked_media_id = null;
-            this.refresh();
-        });
-
-        this.button_view_manga = this.container.querySelector(".button-view-manga");
-        this.button_view_manga.addEventListener("click", this.clicked_view_manga);
-
-        this.button_fullscreen = this.container.querySelector(".button-fullscreen");
-        this.button_fullscreen.addEventListener("click", this.clicked_fullscreen);
-
-        this.container.querySelector(".button-zoom").addEventListener("click", this.clicked_zoom_toggle);
-        this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            ppixiv.phistory.back();
-        });
-
-        this.container.addEventListener("click", this.handle_link_click);
-        this.container.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent);
-
-        for(var button of this.container.querySelectorAll(".button-zoom-level"))
-            button.addEventListener("click", this.clicked_zoom_level);
-
-        this.avatar_widget = new avatar_widget({
-            container: this.container.querySelector(".avatar-widget-container"),
-            mode: "overlay",
-        });
-
-        // Set up the more options dropdown.
-        let more_options_button = this.container.querySelector(".button-more");
-        this.more_options_dropdown_opener = new ppixiv.dropdown_box_opener({
-            button: more_options_button,
-
-            create_box: ({...options}) => {
-                let dropdown = new more_options_dropdown_widget({
-                    ...options,
-                    parent: this,
-                });
-
-                dropdown.container.classList.add("popup-more-options-dropdown");
-                dropdown.set_media_id(this.effective_media_id);
-                dropdown.set_user_id(this.effective_user_id);
-
-                return dropdown;
-            },
-        });
-
-        more_options_button.addEventListener("click", (e) => {
-            this.more_options_dropdown_opener.visible = !this.more_options_dropdown_opener.visible;
-        });
-
-        this.illust_widgets = [
-            this.avatar_widget,
-            new like_button_widget({
-                contents: this.container.querySelector(".button-like"),
-            }),
-            new like_count_widget({
-                contents: this.container.querySelector(".button-like .count"),
-            }),
-            new context_menu_image_info_widget({
-                container: this.container.querySelector(".context-menu-image-info-container"),
-            }),
-            new bookmark_count_widget({
-                contents: this.container.querySelector(".button-bookmark.public .count")
-            }),
-        ];
-
-        this.illust_widgets.push(new view_in_explorer_widget({
-            contents: this.container.querySelector(".view-in-explorer"),
-        }));
-
-        // The bookmark buttons, and clicks in the tag dropdown:
-        this.bookmark_buttons = [];
-        for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
-        {
-            // The bookmark buttons, and clicks in the tag dropdown:
-            let bookmark_widget = new bookmark_button_widget({
-                contents: a,
-                bookmark_type: a.dataset.bookmarkType,
-            });
-
-            this.bookmark_buttons.push(bookmark_widget);
-            this.illust_widgets.push(bookmark_widget);
-        }
-
-        // Set up the bookmark tags dropdown.
-        this.bookmark_tags_dropdown_opener = new ppixiv.bookmark_tag_dropdown_opener({
-            parent: this,
-            bookmark_tags_button: this.container.querySelector(".button-bookmark-tags"),
-            bookmark_buttons: this.bookmark_buttons,
-        });
-        this.illust_widgets.push(this.bookmark_tags_dropdown_opener);
-
-        this.refresh();
     }
 
     // Override ctrl-clicks inside the context menu.
@@ -862,34 +881,62 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     // info.  Otherwise, we'll show the info for the illust we're on, if any.
     get effective_media_id()
     {
-        if(this._clicked_media_id != null)
-            return this._clicked_media_id;
-        else
-            return this._media_id;
+        let media_id = this._clicked_media_id ?? this._media_id;
+        if(media_id == null)
+            return null;
+
+        // Don't return users this way.  They'll be returned by effective_user_id.
+        let { type } = helpers.parse_media_id(media_id);
+        if(type == "user")
+            return null;
+
+        return media_id;
     }
 
     get effective_user_id()
     {
-        if(this._clicked_user_id != null)
-            return this._clicked_user_id;
-        else if(this._user_id)
-            return this._user_id;
-        else
+        let media_id = this._clicked_media_id ?? this._media_id;
+        if(media_id == null)
             return null;
+
+        // If the media ID is a user, use it.
+        let { type, id } = helpers.parse_media_id(media_id);
+        if(type == "user")
+            return id;
+
+        // See if _load_user_id has loaded the user ID.
+        if(this._cached_user_id)
+            return this._cached_user_id;
+
+        return null;
     }
 
-    // When the effective illust ID changes, let our widgets know.
-    _effective_media_id_changed()
+    set cached_user_id(user_id)
     {
-        // If we're not visible, don't refresh an illust until we are, so we don't trigger
-        // data loads.  Do refresh even if we're hidden if we have no illust to clear
-        // the previous illust's display even if we're not visible, so it's not visible the
-        // next time we're displayed.
-        let media_id = this.effective_media_id;
-        if(!this.visible && media_id != null)
+        if(this._cached_user_id == user_id)
             return;
 
+        this._cached_user_id = user_id;
         this.refresh();
+    }
+
+    // If our media ID is an illust, load its info to get the user ID.
+    async _load_user_id()
+    {
+        let media_id = this.effective_media_id;
+        if(!this.visible)
+        {
+            this.cached_user_id = null;
+            return;
+        }
+
+        let user_id = await user_cache.get_user_id_for_media_id(media_id);
+
+        // Stop if the media ID changed.
+        if(media_id != this.effective_media_id)
+            return;
+
+        this.cached_user_id = user_id;
     }
 
     set_media_id(media_id)
@@ -898,7 +945,7 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
             return;
 
         this._media_id = media_id;
-        this._effective_media_id_changed();
+        this.refresh();
     }
 
     // Set the current viewer, or null if none.  If set, we'll activate zoom controls.
@@ -909,20 +956,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
     set on_click_viewer(viewer)
     {
         this._on_click_viewer = viewer;
-        this.refresh();
-    }
-
-    // Set the related user currently being viewed, or null if none.
-    get user_id()
-    {
-        return this._user_id;
-    }
-    set user_id(user_id)
-    {
-        if(this._user_id == user_id)
-            return;
-        this._user_id = user_id;
-
         this.refresh();
     }
 
@@ -1232,74 +1265,35 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this.refresh();
     }
 
-    show({target, ...options})
-    {
-        // When we hide, we clear which ID we want to display, but we don't refresh the
-        // display so it doesn't flicker while it fades out.  Refresh now instead, so
-        // we don't flash the previous ID if we need to wait for a load.
-        this._effective_media_id_changed();
-
-        // If RMB is pressed while dragging LMB, stop dragging the window when we
-        // show the popup.
-        if(this.on_click_viewer != null)
-            this.on_click_viewer.stop_dragging();
-
-        // See if an element representing a user and/or an illust was under the cursor.
-        if(target != null)
-        {
-            let { user_id, media_id } = main_controller.get_illust_at_element(target);
-            if(user_id != null)
-                this._set_temporary_user(user_id);
-
-            if(media_id != null)
-                this._set_temporary_illust(media_id);
-        }
-
-        super.show({...options});
-
-        // Make sure we're up to date if we deferred an update while hidden.
-        this._effective_media_id_changed();
-    }
-
     // Set an alternative illust ID to show.  This is effective until the context menu is hidden.
     // This is used to remember what the cursor was over when the context menu was opened when in
     // the search view.
-    async _set_temporary_illust(media_id)
+    _set_temporary_illust(media_id)
     {
-        // Store the media_id immediately, so it's available without waiting for image
-        // info to load.
+        if(this._clicked_media_id == media_id)
+            return;
+
         this._clicked_media_id = media_id;
+        this._cached_user_id = null;
 
-        this._effective_media_id_changed();
-    }
-
-    // Set an alternative user ID to show.  This is effective until the context menu is hidden.
-    async _set_temporary_user(user_id)
-    {
-        this._clicked_user_id = user_id;
         this.refresh();
     }
 
-    hide()
-    {
-        // For debugging, this can be set to temporarily force the context menu to stay open.
-        if(window.keep_context_menu_open)
-            return;
-
-        this._clicked_user_id = null;
-        this._clicked_media_id = null;
-
-        // Don't refresh yet, so we try to not change the display while it fades out.
-        // We'll do the refresh the next time we're displayed.
-        // this._effective_media_id_changed();
-
-        super.hide();
-    }
-    
     // Update selection highlight for the context menu.
     refresh()
     {
+        // If we're not visible, don't refresh an illust until we are, so we don't trigger
+        // data loads.  Do refresh even if we're hidden if we have no illust to clear
+        // the previous illust's display even if we're not visible, so it's not visible the
+        // next time we're displayed.
         let media_id = this.effective_media_id;
+        if(!this.visible && media_id != null)
+            return;
+
+        // If we haven't loaded the user ID yet, start it now.  This is async and we won't wait
+        // for it here.  It'll call refresh() again when it finishes.
+        this._load_user_id();
+            
         let user_id = this.effective_user_id;
         let info = media_id? media_cache.get_media_info_sync(media_id, { full: false }):null;
 
@@ -1399,7 +1393,6 @@ ppixiv.main_context_menu = class extends ppixiv.popup_context_menu
         this._on_click_viewer.zoom_set_level(e.currentTarget.dataset.level, {x: e.clientX, y: e.clientY});
         this.refresh();
     }
-
 
     // Return the illust ID whose parent the parent button will go to.
     get folder_id_for_parent()
