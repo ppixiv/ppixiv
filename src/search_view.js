@@ -572,8 +572,8 @@ ppixiv.search_view = class extends ppixiv.widget
             end_idx = 0;
         }
 
-        // If the last loaded image is nearby, we've scrolled near the end of what's loaded, so
-        // add another chunk of images to the list.
+        // If the last loaded image is nearby (or if we have no nearby images yet),  we've scrolled near the
+        // end of what's loaded, so add another chunk of images to the list.
         //
         // The chunk size is the number of thumbs we'll create at a time.
         //
@@ -585,7 +585,7 @@ ppixiv.search_view = class extends ppixiv.widget
         if(last_loaded_media_id_idx != -1)
         {
             let last_nearby_media_id_idx = all_media_ids.indexOf(last_nearby_media_id);
-            if(last_nearby_media_id_idx == last_loaded_media_id_idx)
+            if(last_nearby_media_id == null || last_nearby_media_id_idx == last_loaded_media_id_idx)
                 end_idx += chunk_size_fwd;
         }
 
@@ -598,7 +598,7 @@ ppixiv.search_view = class extends ppixiv.widget
         if(first_loaded_media_id_idx != -1)
         {
             let first_nearby_media_id_idx = all_media_ids.indexOf(first_nearby_media_id);
-            if(first_nearby_media_id_idx == first_loaded_media_id_idx)
+            if(first_nearby_media_id == null || first_nearby_media_id_idx == first_loaded_media_id_idx)
                 start_idx -= chunk_size_back;
         }
 
