@@ -833,7 +833,7 @@ ppixiv.data_source = class extends EventTarget
     // need to know this to figure out whether an item is selected or not.
     //
     // If a key begins with #, it's placed in the hash rather than the query.
-    set_item(link, {type=null, current_url=null, ...options}={})
+    set_item(link, {type=null, ...options}={})
     {
         // If no type is specified, link itself is the link.
         if(type != null)
@@ -847,12 +847,9 @@ ppixiv.data_source = class extends EventTarget
         }
 
         // The URL we're adjusting:
-        if(current_url == null)
-            current_url = this.url;
+        let args = new helpers.args(this.url);
 
         // Adjust the URL for this button.
-        let args = new helpers.args(new URL(current_url));
-
         let { args: new_args, button_is_selected } = this.set_item_in_url(args, options);
 
         helpers.set_class(link, "selected", button_is_selected);
@@ -1666,7 +1663,7 @@ ppixiv.data_sources.rankings = class extends data_source
                     return mode;
                 }
 
-                let current_args = helpers.args.location;
+                let current_args = new helpers.args(this.url);
 
                 // The current content type: all, illust, manga, ugoira
                 let current_content = current_args.query.get("content") || "all";
@@ -1721,7 +1718,6 @@ ppixiv.data_sources.rankings = class extends data_source
                     data_source.set_item(button, {
                         fields: {mode: mode_enabled},
                         toggle: true,
-                        current_url: current_args.url,
                         classes: [ages_toggle], // only show if enabled
                         adjust_url: (args) => {
                             // If we're in R18, clicking this would remove the mode field entirely.  Instead,
@@ -1809,7 +1805,6 @@ ppixiv.data_sources.rankings = class extends data_source
                             data_source.set_item(button, {
                                 fields: {mode},
                                 default_values: {mode: "daily"},
-                                current_url: current_args.url,
                             });
                         }
 
@@ -2205,8 +2200,6 @@ ppixiv.data_sources.artist = class extends data_source
 
                     add_tag_link(tag_info)
                     {
-                        let current_args = helpers.args.location;
-
                         // Skip tags with very few posts.  This list includes every tag the author
                         // has ever used, and ends up being pages long with tons of tags that were
                         // only used once.
@@ -2234,7 +2227,7 @@ ppixiv.data_sources.artist = class extends data_source
                             data_type: "artist-tag",
                         });
 
-                        data_source.set_item(a, { fields: {"tag": tag != "All"? tag:null}, current_url: current_args.url });
+                        data_source.set_item(a, { fields: {"tag": tag != "All"? tag:null} });
 
                         if(tag == "All")
                             a.dataset["default"] = 1;
@@ -2832,10 +2825,6 @@ ppixiv.data_source_bookmarks_base = class extends data_source
                 {
                     refresh_tags()
                     {
-                        // Refresh the bookmark tag list.  Remove the page number from these buttons.
-                        let current_url = new URL(data_source.url);
-                        current_url.searchParams.delete("p");
-
                         for(let tag of this.container.querySelectorAll(".tag-entry"))
                             tag.remove();
 
@@ -2859,8 +2848,6 @@ ppixiv.data_source_bookmarks_base = class extends data_source
 
                     add_tag_link(tag)
                     {
-                        let current_args = helpers.args.location;
-
                         let label;
                         if(tag == null)
                             label = "All bookmarks";
@@ -2884,10 +2871,9 @@ ppixiv.data_source_bookmarks_base = class extends data_source
                         if(tag == "")
                             tag = "未分類"; // Uncategorized
 
-                            data_source.set_item(a, {
+                        data_source.set_item(a, {
                             url_format: "users/id/bookmarks/type/tag",
                             fields: {"/tag": tag},
-                            current_url: current_args.url
                         });
 
                         this.container.appendChild(a);
@@ -3193,17 +3179,13 @@ ppixiv.data_sources.new_illust = class extends data_source
                     </div>
                 `});
 
-                let current_args = helpers.args.location;
-
                 data_source.set_item(this.container, { type: "new-illust-type-illust", fields: {type: null} });
                 data_source.set_item(this.container, { type: "new-illust-type-manga", fields: {type: "manga"} });
         
                 data_source.set_item(this.container, { type: "new-illust-ages-r18", toggle: true, url_format: "path",
                     fields: {"/path": "new_illust_r18.php"},
                     default_values: {"/path": "new_illust.php"},
-                    current_url: current_args.url,
                 });
-       
             }
         }
     }
@@ -3302,8 +3284,6 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
 
                     add_tag_link(tag)
                     {
-                        let current_args = helpers.args.location;
-
                         // Work around Pixiv always returning a follow tag named "null" for some users.
                         if(tag == "null")
                             return;
@@ -3323,7 +3303,7 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
                         if(label == "All tags")
                             a.dataset.default = 1;
 
-                            data_source.set_item(a, { fields: {"tag": tag}, current_url: current_args.url });
+                        data_source.set_item(a, { fields: {"tag": tag} });
 
                         this.container.appendChild(a);
                     };
@@ -3335,14 +3315,12 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
                     create_box: ({...options}) => new follow_tag_dropdown({data_source, ...options}),
                 });
 
-                let current_args = helpers.args.location;
                 data_source.set_item(this.container, {
                     type: "bookmarks-new-illust-ages-r18",
                     toggle: true,
                     url_format: "path",
                     fields: {"/path": "bookmark_new_illust_r18.php"},
                     default_values: {"/path": "bookmark_new_illust.php"},
-                    current_url: current_args.url,
                 });
             }
         }
@@ -4048,8 +4026,6 @@ ppixiv.data_sources.follows = class extends data_source
 
                     refresh_following_tags()
                     {
-                        let current_args = helpers.args.location;
-        
                         let tag_list = this.container;
                         for(let tag of tag_list.querySelectorAll(".tag-entry"))
                             tag.remove();
@@ -4077,7 +4053,7 @@ ppixiv.data_sources.follows = class extends data_source
                                 a.dataset.default = 1;
                             }
         
-                            data_source.set_item(a, { fields: {"tag": tag}, current_url: current_args.url });
+                            data_source.set_item(a, { fields: {"tag": tag} });
         
                             tag_list.appendChild(a);
                         };
@@ -4691,72 +4667,70 @@ ppixiv.data_sources.vview = class extends data_source
                 // The search history dropdown for local searches.
                 new local_search_box_widget({ container: this.querySelector(".tag-search-box-container") });
         
-                let current_args = helpers.args.location;
-
                 data_source.setup_dropdown(this.querySelector(".file-type-button"), [{
                     create_options: { label: "All",           data_type: "local-type-all", dataset: { default: "1"} },
-                    setup_options: { fields: {"#type": null}, current_url: current_args.url },
+                    setup_options: { fields: {"#type": null} },
                 }, {
                     create_options: { label: "Videos",        data_type: "local-type-videos" },
-                    setup_options: { fields: {"#type": "videos"}, current_url: current_args.url },
+                    setup_options: { fields: {"#type": "videos"} },
                 }, {
                     create_options: { label: "Images",        data_type: "local-type-images" },
-                    setup_options: { fields: {"#type": "images"}, current_url: current_args.url },
+                    setup_options: { fields: {"#type": "images"} },
                 }]);
 
                 data_source.setup_dropdown(this.querySelector(".aspect-ratio-button"), [{
                     create_options: { label: "All",           data_type: "local-aspect-ratio-all", dataset: { default: "1"} },
-                    setup_options: { fields: {"#aspect-ratio": null}, current_url: current_args.url },
+                    setup_options: { fields: {"#aspect-ratio": null} },
                 }, {
                     create_options: { label: "Landscape",     data_type: "local-aspect-ratio-landscape" },
-                    setup_options: { fields: {"#aspect-ratio": `3:2...`}, current_url: current_args.url },
+                    setup_options: { fields: {"#aspect-ratio": `3:2...`} },
                 }, {
                     create_options: { label: "Portrait",      data_type: "local-aspect-ratio-portrait" },
-                    setup_options: { fields: {"#aspect-ratio": `...2:3`}, current_url: current_args.url },
+                    setup_options: { fields: {"#aspect-ratio": `...2:3`} },
                 }]);
 
                 data_source.setup_dropdown(this.querySelector(".image-size-button"), [{
                     create_options: { label: "All",           dataset: { default: "1"} },
-                    setup_options: { fields: {"#pixels": null}, current_url: current_args.url },
+                    setup_options: { fields: {"#pixels": null} },
                 }, {
                     create_options: { label: "High-res" },
-                    setup_options: { fields: {"#pixels": "4000000..."}, current_url: current_args.url },
+                    setup_options: { fields: {"#pixels": "4000000..."} },
                 }, {
                     create_options: { label: "Medium-res" },
-                    setup_options: { fields: {"#pixels": "1000000...3999999"}, current_url: current_args.url },
+                    setup_options: { fields: {"#pixels": "1000000...3999999"} },
                 }, {
                     create_options: { label: "Low-res" },
-                    setup_options: { fields: {"#pixels": "...999999"}, current_url: current_args.url },
+                    setup_options: { fields: {"#pixels": "...999999"} },
                 }]);
 
                 data_source.setup_dropdown(this.querySelector(".sort-button"), [{
                     create_options: { label: "Name",           dataset: { default: "1"} },
-                    setup_options: { fields: {"#order": null}, current_url: current_args.url },
+                    setup_options: { fields: {"#order": null} },
                 }, {
                     create_options: { label: "Name (inverse)" },
-                    setup_options: { fields: {"#order": "-normal"}, current_url: current_args.url },
+                    setup_options: { fields: {"#order": "-normal"} },
                 }, {
                     create_options: { label: "Newest" },
-                    setup_options: { fields: {"#order": "-ctime"}, current_url: current_args.url },
+                    setup_options: { fields: {"#order": "-ctime"} },
 
                 }, {
                     create_options: { label: "Oldest" },
-                    setup_options: { fields: {"#order": "ctime"}, current_url: current_args.url },
+                    setup_options: { fields: {"#order": "ctime"} },
 
                 }, {
                     create_options: { label: "New bookmarks" },
-                    setup_options: { fields: {"#order": "bookmarked-at"}, current_url: current_args.url,
+                    setup_options: { fields: {"#order": "bookmarked-at"},
                         // If a bookmark sort is selected, also enable viewing bookmarks.
                         adjust_url: (args) => args.hash.set("bookmarks", 1),
                     },
                 }, {
                     create_options: { label: "Old bookmarks" },
-                    setup_options: { fields: {"#order": "-bookmarked-at"}, current_url: current_args.url,
+                    setup_options: { fields: {"#order": "-bookmarked-at"},
                         adjust_url: (args) => args.hash.set("bookmarks", 1),
                     },
                 }, {
                     create_options: { label: "Shuffle", icon: "shuffle" },
-                    setup_options: { fields: {"#order": "shuffle"}, toggle: true, current_url: current_args.url },
+                    setup_options: { fields: {"#order": "shuffle"}, toggle: true },
                 }]);
 
                 class bookmark_tag_dropdown extends tag_dropdown_widget
@@ -4791,8 +4765,6 @@ ppixiv.data_sources.vview = class extends data_source
 
                     add_tag_link(tag)
                     {
-                        let current_args = helpers.args.location;
-
                         let tag_count = this.data_source.bookmark_tag_counts[tag];
 
                         let tag_name = tag;
@@ -4819,7 +4791,6 @@ ppixiv.data_sources.vview = class extends data_source
 
                             this.data_source.set_item(a, {
                             fields: {"#bookmark-tag": tag},
-                            current_url: current_args.url,
                         });
 
                         this.container.appendChild(a);
@@ -4859,7 +4830,7 @@ ppixiv.data_sources.vview = class extends data_source
                 // Hide the "copy local path" button if we don't have one.
                 this.querySelector(".copy-local-path").hidden = data_source.local_path == null;
 
-                data_source.set_item(this.container, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true, current_url: current_args.url,
+                data_source.set_item(this.container, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true,
                     adjust_url: (args) => {
                         // If the button is exiting bookmarks, remove bookmark-tag too.
                         if(!args.hash.has("bookmarks"))
