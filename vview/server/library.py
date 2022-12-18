@@ -985,7 +985,10 @@ class Library:
             # To match other shuffles, sort folders first.  Since we're doing this before converting
             # to entries, we need to sort a mixed list of SearchDirEntry and Paths.
             def folders_first(item):
-                if isinstance(item, windows_search.SearchDirEntry):
+                if item is windows_search.SearchTimeout:
+                    # This is ignored, so it doesn't matter where it goes.
+                    return 0
+                elif isinstance(item, windows_search.SearchDirEntry):
                     return not item.is_dir()
                 else:
                     return not item['is_directory']
