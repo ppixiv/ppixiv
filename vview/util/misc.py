@@ -582,7 +582,7 @@ def add_root_logging_handler(handler):
     a hierarchy of loggers and handlers, but every handler has its own format and filters and
     you can't simply set them once on the root logger.
     """
-    formatter = logging.Formatter('%(task_name)20s %(logTime)8.3f %(levelname)s:%(name)-30s: %(message)s')
+    formatter = logging.Formatter('%(task_name)20s %(logTime)8.3f %(levelname)8s:%(name)-30s: %(message)s')
     handler.setFormatter(formatter)
     handler.addFilter(log_filter)
     logging.root.addHandler(handler)
