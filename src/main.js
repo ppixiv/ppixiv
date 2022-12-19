@@ -423,25 +423,18 @@ ppixiv.MainController = class
                 this.data_source.startup();
         }
 
-        // Update the media ID with the current manga page, if any.
-        let media_id = data_source.get_current_media_id(args);
-        let page = args.hash.has("page")? parseInt(args.hash.get("page"))-1:0;
-        media_id = helpers.get_media_id_for_page(media_id, page);
+        // The media ID we're displaying if we're going to screen_illust:
+        let media_id = null;
+        if(new_screen_name == "illust")
+            media_id = data_source.get_current_media_id(args);
 
+        // If we're entering screen_search, ignore clicks for a while.  See window_onclick_capture.
         if(new_screen_name == "search")
-        {
-            // If we're on search, we don't care what image is current.  Clear media_id so we
-            // tell context_menu that we're not viewing anything, so it disables bookmarking.
-            media_id = null;
-
-            // Remember that we're entering screen_search.  See window_onclick_capture.
             this._ignore_clicks_until = Date.now() + 100;
-        }
 
         console.log(`Showing screen: ${new_screen_name}, data source: ${this.data_source.name}, cause: ${cause}, media ID: ${media_id ?? "(none)"}`);
 
         let new_screen = this.screens[new_screen_name];
-        
         this.current_screen_name = new_screen_name;
 
         if(new_screen != old_screen)
