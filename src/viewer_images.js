@@ -9,15 +9,18 @@ class ImagesContainer extends ppixiv.widget
     {
         super({...options, template: `
             <div class=inner-image-container>
-                <img class="filtering displayed-image main-image">
+                <img class="filtering displayed-image main-image" hidden>
                 <img class="filtering displayed-image inpaint-image">
-                <img class="filtering displayed-image low-res-preview">
+                <img class="filtering displayed-image low-res-preview" hidden>
             </div>
         `});
 
         this.main_img = this.container.querySelector(".main-image");
         this.inpaint_img = this.container.querySelector(".inpaint-image");
         this.preview_img = this.container.querySelector(".low-res-preview");
+
+        // Set the images to blank, so they don't show as broken images until they're set up.
+        this.set_image_urls(null, null, null);
     }
 
     shutdown()
@@ -43,8 +46,8 @@ class ImagesContainer extends ppixiv.widget
 
     set_image_urls(image_url, inpaint_url, preview_url)
     {
-        this.image_src = image_url || "";
-        this.inpaint_src = inpaint_url || "";
+        this.image_src = image_url ?? helpers.blank_image;
+        this.inpaint_src = inpaint_url ?? helpers.blank_image;
         this.preview_img.src = preview_url || helpers.blank_image;
     }
 
@@ -150,6 +153,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this._zoom_level = settings.get("zoom-level", "cover");
         }
 
+        this._image_container = new ImagesContainer({ container: this._crop_box });
         this._editing_container = new ImageEditingOverlayContainer({
             container: this._crop_box,
         });
@@ -314,20 +318,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
         this._custom_animation = pan;
 
+        // Set the size of the image box and crop.
+        this._set_image_box_size();
+        this._update_crop();
+
         // When quick view displays an image on mousedown, we want to see the mousedown too
         // now that we're displayed.
         if(this._pointer_listener)
             this._pointer_listener.check_missed_clicks();
-
-        // A special case is when we have no images at all.  This happens when navigating
-        // to a manga page and we don't have illust info yet, so we don't know anything about
-        // the page.
-        if(url == null && preview_url == null)
-        {
-            this._remove_images();
-            this.ready.accept(true);
-            return;
-        }
 
         // Don't show low-res previews during slideshows.
         if(this._slideshow_mode)
@@ -338,10 +336,22 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(!local_api.should_preload_thumbs(this.media_id, preview_url))
             preview_url = null;
 
-        // Create an ImagesContainer, which holds the actual images.  Don't give this a container,
-        // since we don't want to add it to the tree just yet.
-        let images_container = new ImagesContainer({ parent: this });
-        image_container.set_image_urls(url, inpaint_url, preview_url);
+        // Set the image URLs.
+        this._image_container.set_image_urls(url, inpaint_url, preview_url);
+
+        // Set the initial zoom and image position if we haven't yet.
+        if(!this._initial_position_set)
+        {
+            this._set_initial_image_position(this._should_restore_history);
+            this._initial_position_set = true;
+        }
+
+        this._reposition();
+
+        // If the main image is already displayed, the image was already displayed and we're just
+        // refreshing.
+        if(this._displayed_image == "main")
+            return;
 
         // Wait until the preview image (if we have one) is ready.  This will finish quickly
         // if it's preloaded.
@@ -354,7 +364,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(!ppixiv.viewer_images.decoding)
         {
             try {
-                await images_container.preview_img.decode();
+                await this._image_container.preview_img.decode();
             } catch(e) {
                 // Ignore exceptions from aborts.
             }
@@ -374,9 +384,9 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         let decode_promise = null;
         if(!ppixiv.mobile)
         {
-            if(url != null && images_container.complete)
+            if(url != null && this._image_container.complete)
             {
-                decode_promise = this._decode_img(images_container);
+                decode_promise = this._decode_img(this._image_container);
 
                 // See if it finishes quickly.
                 img_ready = await helpers.await_with_timeout(decode_promise, 50) != "timed-out";
@@ -384,22 +394,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             signal.check();
         }
 
-        // We're ready to finalize the new URLs by removing the old images and adding the
-        // new ones.
-        this._remove_images();
-        this._image_container = images_container;
-
-        // Add the image box.  Make sure this is added at the beginning, so it's underneath
-        // the editor.
-        this._crop_box.insertAdjacentElement("afterbegin", this._image_container.container);
-
-        // Set the size of the image box.
-        this._set_image_box_size();
-
-        this._update_crop();
-
         // If the main image is already ready, show it.  Otherwise, show the preview image.
-        this._set_displayed_image(img_ready? "main":"preview");
+        this._displayed_image = img_ready? "main":"preview";
 
         // Let our caller know that we're showing something.
         this.ready.accept(true);
@@ -407,39 +403,24 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // See if we have an animation to run.
         this._refresh_animation();
 
-        // If we didn't start an animation, see if we need to set the initial image position.
-        // Do this atomically with updating the images.  Don't restore the position if we're
-        // displaying the same image, so we don't interrupt the user interacting with the image.
-        if(!this._initial_position_set)
-        {
-            this._set_initial_image_position(this._should_restore_history);
-            this._initial_position_set = true;
-        }
+        // If the main image is already being displayed, we're done.
+        if(this._displayed_image == "main")
+            return;
 
         // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
         // until we actually display it so it doesn't run while there's nothing visible.
         if(this._slideshow_mode)
             this.pause_animation = true;
 
-        // Set the initial image position.
-        this._reposition();
-
-        // If the main image is already being displayed, we're done.
-        if(img_ready)
-        {
-            this.pause_animation = false;
-            return;
-        }
-
         // If we don't have a main URL, stop here.  We only have the preview to display.
         if(url == null)
             return;
 
-        // If the image isn't downloaded, load it now.  images_container.decode will do this
+        // If the image isn't downloaded, load it now.  this._image_container.decode will do this
         // too, but it doesn't support AbortSignal.
-        if(!images_container.complete)
+        if(!this._image_container.complete)
         {
-            let result = await helpers.wait_for_image_load(images_container.main_img, signal);
+            let result = await helpers.wait_for_image_load(this._image_container.main_img, signal);
             if(result != null)
                 return;
 
@@ -448,7 +429,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // Wait for any transitions to complete before switching to the full image, so we don't
         // do it in the middle of transitions.  This helps prevent frame hitches on mobile.  On
-        // we may have already displayed the full image, but this is only important for mobile.
+        // desktop we may have already displayed the full image, but this is only important for
+        // mobile.
         await this._wait_for_transitions();
         signal.check();
 
@@ -459,21 +441,31 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // If we already have decode_promise, we already started the decode, so just wait for that
         // to finish.
         if(!decode_promise)
-            decode_promise = this._decode_img(images_container);
+            decode_promise = this._decode_img(this._image_container);
         await decode_promise;
         signal.check();
 
         // If we paused an animation, resume it.
         this.pause_animation = false;
 
-        this._set_displayed_image("main");
+        this._displayed_image = "main";
     }
 
     // Set whether the main image or preview image are visible.
-    _set_displayed_image(displayed_image)
+    set _displayed_image(displayed_image)
     {
         this._image_container.main_img.hidden = displayed_image != "main";
         this._image_container.preview_img.hidden = displayed_image != "preview";
+    }
+
+    get _displayed_image()
+    {
+        if(!this._image_container.main_img.hidden)
+            return "main";
+        else if(!this._image_container.preview_img.hidden)
+            return "preview";
+        else
+            return null;
     }
 
     async _decode_img(img)
@@ -494,13 +486,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     _remove_images()
     {
         this._cancel_save_to_history();
-
-        // Remove the image container.
-        if(this._image_container)
-        {
-            this._image_container.shutdown();
-            this._image_container = null;
-        }
     }
 
     get _page()
@@ -538,7 +523,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             viewer_images.set_primary(null);
 
         this._stop_animation();
-        this._remove_images();
+        this._cancel_save_to_history();
         
         this._refresh_image.abort();
 
@@ -1179,7 +1164,6 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         }
 
         this._center_pos = center_pos;
-        this._reposition();
     }
 
     // Save the pan and zoom state to history.
