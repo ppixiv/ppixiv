@@ -45,14 +45,14 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
 
         this.toggle_slideshow_button = this.container.querySelector(".button-toggle-slideshow");
         this.toggle_slideshow_button.addEventListener("click", (e) => {
-            main_controller.toggle_slideshow();
+            ppixiv.app.toggle_slideshow();
             this.parent.hide();
             this.refresh();
         });
 
         this.toggle_loop_button = this.container.querySelector(".button-toggle-loop");
         this.toggle_loop_button.addEventListener("click", (e) => {
-            main_controller.loop_slideshow();
+            ppixiv.app.loop_slideshow();
             this.parent.hide();
             this.refresh();
         });
@@ -125,10 +125,10 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
 
         let button_view_manga = this.container.querySelector(".button-view-manga");
         button_view_manga.dataset.popup = "View manga pages";
-        button_view_manga.hidden = !main_controller.navigate_out_enabled;
+        button_view_manga.hidden = !ppixiv.app.navigate_out_enabled;
 
-        helpers.set_class(this.toggle_slideshow_button, "selected", main_controller.slideshow_mode == "1");
-        helpers.set_class(this.toggle_loop_button, "selected", main_controller.slideshow_mode == "loop");
+        helpers.set_class(this.toggle_slideshow_button, "selected", ppixiv.app.slideshow_mode == "1");
+        helpers.set_class(this.toggle_loop_button, "selected", ppixiv.app.slideshow_mode == "loop");
         helpers.set_class(this.container.querySelector(".button-bookmark"), "enabled", true);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
@@ -174,7 +174,7 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
 
     clicked_view_manga = (e) =>
     {
-        main_controller.navigate_out();
+        ppixiv.app.navigate_out();
     }
 }
 

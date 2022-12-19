@@ -346,7 +346,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         image_preloader.singleton.set_current_image(media_id);
 
         // Make sure the URL points to this image.
-        let args = main_controller.get_media_url(media_id);
+        let args = ppixiv.app.get_media_url(media_id);
         helpers.navigate(args, { add_to_history: false, send_popstate: false });
 
         // Speculatively load the next image, which is what we'll show if you press page down, so
@@ -457,7 +457,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return true;
         }
 
-        main_controller.show_media(new_media_id, {
+        ppixiv.app.show_media(new_media_id, {
             add_to_history: false,
         });
         return true;
@@ -672,7 +672,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.pending_navigation = null;
 
         // Go to the new illustration.
-        main_controller.show_media(new_media_id);
+        ppixiv.app.show_media(new_media_id);
         return { media_id: new_media_id };
     }
 
@@ -1208,7 +1208,7 @@ class ScreenIllustDragToExit
                     if(this.parent._active)
                     {
                         let args = new helpers.args(this.parent.data_source.search_url.toString());
-                        main_controller.navigate_from_image_to_search(args);
+                        ppixiv.app.navigate_from_image_to_search(args);
                     }
 
                     // See if we want to remove the viewer now that the animation has finished.
@@ -1291,7 +1291,7 @@ class ScreenIllustDragToExit
         if(this.parent.wanted_media_id == null)
             return null;
 
-        return main_controller.get_rect_for_media_id(this.parent.wanted_media_id);
+        return ppixiv.app.get_rect_for_media_id(this.parent.wanted_media_id);
     }
 
     // The screen was set active or inactive.
@@ -1326,6 +1326,6 @@ class ScreenIllustDragToExit
         if(this.is_animating || !this.parent.active || this.dragger.position < 1)
             return;
 
-        main_controller.scroll_search_to_media_id(this.parent.data_source, this.parent.wanted_media_id);
+        ppixiv.app.scroll_search_to_media_id(this.parent.data_source, this.parent.wanted_media_id);
     }
 }

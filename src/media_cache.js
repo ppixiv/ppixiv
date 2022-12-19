@@ -93,7 +93,7 @@ ppixiv.MediaCache = class extends EventTarget
         {
             this._media_ids_loaded = new Set();
 
-            helpers.setTimeout(() => {
+            realSetTimeout(() => {
                 let e = new Event("infoloaded");
                 e.mediaIds = Array.from(this._media_ids_loaded);
                 this._media_ids_loaded = null;
@@ -383,9 +383,8 @@ ppixiv.MediaCache = class extends EventTarget
         // ID you're getting.
         illust_data.mediaId = media_id;
         delete illust_data.id;
-
-        // 
         delete illust_data.userIllusts;
+
         guess_image_url.get.add_info(illust_data);
 
         this._check_illust_data(illust_data);

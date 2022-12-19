@@ -522,7 +522,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         // See if an element representing a user and/or an illust was under the cursor.
         if(target != null)
         {
-            let { media_id } = main_controller.get_illust_at_element(target);
+            let { media_id } = ppixiv.app.get_illust_at_element(target);
             this._set_temporary_illust(media_id);
         }
 
@@ -991,7 +991,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         if(media_id == null)
         {
             let node = this._get_hovered_element();
-            media_id = main_controller.get_illust_at_element(node).media_id;
+            media_id = ppixiv.app.get_illust_at_element(node).media_id;
         }
 
         // All of these hotkeys require Ctrl.

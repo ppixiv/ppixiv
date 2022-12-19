@@ -323,7 +323,7 @@ class thumbnail_ui_desktop extends ppixiv.widget
     refresh_slideshow_button()
     {
         let node = this.container.querySelector("A.slideshow");
-        node.href = main_controller.slideshow_url.url;
+        node.href = ppixiv.app.slideshow_url.url;
     }
 
     // Refresh the highlight for the "expand all posts" button.
@@ -389,7 +389,7 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
 
         this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refresh_search());
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
-        this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(main_controller.slideshow_url));
+        this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(ppixiv.app.slideshow_url));
         this.container.querySelector(".menu").addEventListener("click", (e) => new mobile_edit_search_dialog());
 
         this.container.querySelector(".back-button").addEventListener("click", () => {
@@ -683,12 +683,12 @@ ppixiv.screen_search = class extends ppixiv.screen
 
     refresh_search = () =>
     {
-        main_controller.refresh_current_data_source({remove_search_page: true});
+        ppixiv.app.refresh_current_data_source({remove_search_page: true});
     }
 
     refresh_search_from_page = () =>
     {
-        main_controller.refresh_current_data_source({remove_search_page: false});
+        ppixiv.app.refresh_current_data_source({remove_search_page: false});
     }
         
     refresh_ui = () =>
@@ -801,7 +801,7 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
 {
     static show()
     {
-        let slideshow_args = main_controller.slideshow_url;
+        let slideshow_args = ppixiv.app.slideshow_url;
         if(slideshow_args == null)
             return;
 
@@ -888,7 +888,7 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         for(let button of this.container.querySelectorAll(".navigation-button"))
         {
             let url = new URL(button.href);
-            let data_source_class = page_manager.singleton().get_data_source_for_url(url);
+            let data_source_class = ppixiv.data_source.get_data_source_for_url(url);
 
             if(current_data_source instanceof data_source_class)
                 return button;
@@ -928,7 +928,7 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
     // We always show the primary data source.
     get data_source()
     {
-        return main_controller.data_source;
+        return ppixiv.app.data_source;
     }
 
     recreate_ui()

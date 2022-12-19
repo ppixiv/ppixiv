@@ -556,7 +556,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
 
         // The dblclick should have set the data source to this entry.  Grab the
         // data source.
-        let data_source = main_controller.data_source;
+        let data_source = ppixiv.app.data_source;
         console.log("data source for double click:", data_source);
 
         // Load the first page.  This will overlap with the search loading it, and
@@ -568,7 +568,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         let media_ids = data_source.id_list.media_ids_by_page.get(1);
         console.log("files for double click:", media_ids?.length);
         if(media_ids != null)
-            main_controller.show_media(media_ids[0], {add_to_history: true, source: "dblclick"});
+            ppixiv.app.show_media(media_ids[0], {add_to_history: true, source: "dblclick"});
     }
 };
 

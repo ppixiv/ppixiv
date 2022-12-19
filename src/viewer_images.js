@@ -511,7 +511,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
             let new_page = e.code == "End"? illust_data.pageCount - 1:0;
             let new_media_id = helpers.get_media_id_for_page(this.media_id, new_page);
-            main_controller.show_media(new_media_id);
+            ppixiv.app.show_media(new_media_id);
             return;
         }
     }
@@ -1192,7 +1192,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(this._save_to_history_id)
             return;
 
-        this._save_to_history_id = helpers.setTimeout(() => {
+        this._save_to_history_id = realSetTimeout(() => {
             this._save_to_history_id = null;
 
             // Work around a Chrome bug: updating history causes the mouse cursor to become visible
@@ -1213,7 +1213,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     {
         if(this._save_to_history_id != null)
         {
-            helpers.clearTimeout(this._save_to_history_id);
+            realClearTimeout(this._save_to_history_id);
             this._save_to_history_id = null;
         }
     }

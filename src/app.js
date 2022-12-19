@@ -1,51 +1,12 @@
 "use strict";
 
-// This handles high-level navigation and controlling the different screens.
-ppixiv.MainController = class
+// This is the main top-level app controller.
+ppixiv.App = class
 {
     constructor()
     {
-        this.initial_setup();
-    }
-
-    async initial_setup()
-    {
-        console.log(`${ppixiv.native? "vview":"ppixiv"} setup`);
-        console.log("Browser:", navigator.userAgent);
-
-        // "Stay" for iOS leaves a <script> node containing ourself in the document.  Remove it for
-        // consistency with other script managers.
-        for(let node of document.querySelectorAll("script[id *= 'Stay']"))
-            node.remove();
-
-        // If we're not active, just see if we need to add our button, and stop without messing
-        // around with the page more than we need to.
-        if(!page_manager.singleton().active)
-        {
-            console.log("ppixiv is currently disabled");
-            await helpers.wait_for_content_loaded();
-            this.setup_disabled_ui();
-            return;
-        }
-
-        // Run cleanup_environment.  This will try to prevent the underlying page scripts from
-        // making network requests or creating elements, and apply other irreversible cleanups
-        // that we don't want to do before we know we're going to proceed.
-        helpers.cleanup_environment();
-
-        // Install polyfills.  Make sure we only do this if we're active, so we don't
-        // inject polyfills into Pixiv when we're not active.
-        install_polyfills();
-
-        // Hide the bright white document until we've loaded our stylesheet.
-        if(!ppixiv.native)
-            this.temporarily_hide_document();
-
-        // Wait for DOMContentLoaded to continue.
-        await helpers.wait_for_content_loaded();
-
-        // Continue with full initialization.
-        await this.setup();
+        ppixiv.app = this;
+        this.setup();
     }
 
     // This is where the actual UI starts.
@@ -53,15 +14,22 @@ ppixiv.MainController = class
     {
         console.log(`${ppixiv.native? "vview":"ppixiv"} controller setup`);
 
+        // Hide the bright white document until we've loaded our stylesheet.
+        if(!ppixiv.native)
+            this.temporarily_hide_document();
+
+        // Wait for DOMContentLoaded.
+        await helpers.wait_for_content_loaded();
+
+        // Install polyfills.
+        ppixiv.install_polyfills();
+
         // Create singletons.
         ppixiv.settings = new ppixiv.Settings();
         ppixiv.media_cache = new ppixiv.MediaCache();
         ppixiv.user_cache = new ppixiv.UserCache();
         ppixiv.send_image = new ppixiv.SendImage();
         
-        // Create the page manager.
-        page_manager.singleton();
-
         // Run any one-time settings migrations.
         settings.migrate();
 
@@ -157,9 +125,9 @@ ppixiv.MainController = class
             let newURL = new URL(ppixiv.plocation);
 
             // If we're active but we're on a page that isn't directly supported, redirect to
-            // a supported page.
-            if(page_manager.singleton().get_data_source_for_url(ppixiv.plocation) == null)
-                newURL = page_manager.singleton().fallback_url;
+            // a supported page.  This should be synced with Startup.refresh_disabled_ui.
+            if(ppixiv.data_source.get_data_source_for_url(ppixiv.plocation) == null)
+                newURL = new URL("/ranking.php?mode=daily#ppixiv", window.location);
 
             // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
             // URL, and we're active by default.  Add #ppixiv to the URL.  If we don't do this, we'll
@@ -303,7 +271,7 @@ ppixiv.MainController = class
         // This returns the data source, but just call set_current_data_source so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.plocation.toString());
-        page_manager.singleton().create_data_source_for_url(ppixiv.plocation, {force: true, remove_search_page});
+        ppixiv.data_source.create_data_source_for_url(ppixiv.plocation, {force: true, remove_search_page});
 
         // Screens store their scroll position in args.state.scroll.  On refresh, clear it
         // so we scroll to the top when we refresh.
@@ -394,7 +362,7 @@ ppixiv.MainController = class
         var old_media_id = old_screen? old_screen.displayed_media_id:null;
 
         // Get the data source for the current URL.
-        let data_source = page_manager.singleton().create_data_source_for_url(ppixiv.plocation);
+        let data_source = ppixiv.data_source.create_data_source_for_url(ppixiv.plocation);
 
         // Figure out which screen to display.
         var new_screen_name;
@@ -414,7 +382,7 @@ ppixiv.MainController = class
 
                 // If the old data source was transient, discard it.
                 if(this.data_source.transient)
-                    page_manager.singleton().discard_data_source(this.data_source);
+                    ppixiv.data_source.discard_data_source(this.data_source);
             }
 
             this.data_source = data_source;
@@ -961,7 +929,7 @@ ppixiv.MainController = class
             if(!dataURL.startsWith || !dataURL.startsWith("data:"))
                 continue;
 
-            let result = await helpers.fetch(dataURL);
+            let result = await realFetch(dataURL);
             let blob = await result.blob(); 
 
             let blobURL = URL.createObjectURL(blob);
@@ -998,75 +966,6 @@ ppixiv.MainController = class
     {
         document.documentElement.style.filter = "";
         document.documentElement.style.backgroundColor = "";
-    }
-    
-    // When we're disabled, but available on the current page, add the button to enable us.
-    async setup_disabled_ui(logged_out=false)
-    {
-        // Wait for DOMContentLoaded for body.
-        await helpers.wait_for_content_loaded();
-
-        // On mobile, we're always active if possible, so don't add the disabled UI.
-        if(ppixiv.mobile)
-            return;
-
-        // On most pages, we show our button in the top corner to enable us on that page.  Clicking
-        // it on a search page will switch to us on the same search.
-        var disabled_ui = helpers.create_node(resources['resources/disabled.html']);
-        helpers.replace_inlines(disabled_ui);
-
-        this.refresh_disabled_ui(disabled_ui);
-
-        document.body.appendChild(disabled_ui);
-
-        // Newer Pixiv pages update the URL without navigating, so refresh our button with the current
-        // URL.  We should be able to do this in popstate, but that API has a design error: it isn't
-        // called on pushState, only on user navigation, so there's no way to tell when the URL changes.
-        // This results in the URL changing when it's clicked, but that's better than going to the wrong
-        // page.
-        disabled_ui.addEventListener("focus", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
-        window.addEventListener("pp:popstate", (e) => { this.refresh_disabled_ui(disabled_ui); }, true);
-
-        if(page_manager.singleton().available_for_url(ppixiv.plocation))
-        {
-            // Remember that we're disabled in this tab.  This way, clicking the "return
-            // to Pixiv" button will remember that we're disabled.  We do this on page load
-            // rather than when the button is clicked so this works when middle-clicking
-            // the button to open a regular Pixiv page in a tab.
-            //
-            // Only do this if we're available and disabled, which means the user disabled us.
-            // If we wouldn't be available on this page at all, don't store it.
-            page_manager.singleton().store_ppixiv_disabled(true);
-        }
-
-        // If we're showing this and we know we're logged out, show a message on click.
-        // This doesn't work if we would be inactive anyway, since we don't know whether
-        // we're logged in, so the user may need to click the button twice before actually
-        // seeing this message.
-        if(logged_out)
-        {
-            disabled_ui.querySelector("a").addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                this.show_logged_out_message(true);
-            });
-        }
-    };
-
-    refresh_disabled_ui(disabled_ui)
-    {
-        // If we're on a page that we don't support, like the top page, rewrite the link to switch to
-        // a page we do support.  Otherwise, replace the hash with #ppixiv.
-        console.log(ppixiv.plocation.toString());
-        if(page_manager.singleton().available_for_url(ppixiv.plocation))
-        {
-            let url = ppixiv.plocation;
-            url.hash = "#ppixiv";
-            disabled_ui.querySelector("a").href = url;
-        }
-        else
-            disabled_ui.querySelector("a").href = page_manager.singleton().fallback_url;
     }
 
     // When viewing an image, toggle the slideshow on or off.

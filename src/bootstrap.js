@@ -158,6 +158,9 @@ async function Bootstrap(env)
         create_xhr_handler();
     });
 
+    console.log(`${ppixiv.native? "vview":"ppixiv"} setup`);
+    console.log("Browser:", navigator.userAgent);
+
     // Create the main controller.
-    run_script(`ppixiv.main_controller = new ppixiv.MainController();`, { path: "controller" });
+    run_script(`new ppixiv.AppStartup();`, { path: "controller" });
 }

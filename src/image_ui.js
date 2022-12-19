@@ -191,9 +191,7 @@ ppixiv.image_ui = class extends ppixiv.widget
         for(let button of this.container.querySelectorAll(".download-button"))
             button.addEventListener("click", this.clicked_download);
         this.container.querySelector(".download-manga-button").addEventListener("click", this.clicked_download);
-        this.container.querySelector(".view-manga-button").addEventListener("click", (e) => {
-            main_controller.navigate_out();
-        });
+        this.container.querySelector(".view-manga-button").addEventListener("click", (e) => ppixiv.app.navigate_out());
 
         // Don't propagate wheel events if the contents can scroll, so moving the scroller doesn't change the
         // image.  Most of the time the contents will fit, so allow changing the page if there's no need to

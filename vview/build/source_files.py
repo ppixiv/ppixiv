@@ -1,4 +1,5 @@
 source_files = [
+    'src/app_startup.js',
     'src/polyfills.js',
     'src/actions.js',
     'src/helpers.js',
@@ -41,11 +42,10 @@ source_files = [
     'src/tag_search_dropdown_widget.js',
     'src/saved_search_tags.js',
     'src/tag_translations.js',
-    'src/page_manager.js',
     'src/image_preloading.js',
     'src/whats_new.js',
     'src/send_image.js',
-    'src/main.js',
+    'src/app.js',
     'src/slideshow.js',
     'src/extra_image_data.js',
 ]

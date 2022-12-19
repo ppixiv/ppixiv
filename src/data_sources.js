@@ -337,6 +337,178 @@ class tag_dropdown_widget extends ppixiv.widget
 // load all of them as a single page.
 ppixiv.data_source = class extends EventTarget
 {
+    static data_sources_by_canonical_url = {};
+
+    // Create the data source for a given URL.
+    //
+    // If we've already created a data source for this URL, the same one will be
+    // returned.
+    static create_data_source_for_url(url, {
+        // If force is true, we'll always create a new data source, replacing any
+        // previously created one.
+        force=false,
+
+        // If remove_search_page is true, the data source page number in url will be
+        // ignored, returning to page 1.  This only matters for data sources that support
+        // a start page.
+        remove_search_page=false,
+    }={})
+    {
+        let args = new helpers.args(url);
+
+        let data_source_class = this.get_data_source_for_url(url);
+        if(data_source_class == null)
+        {
+            console.error("Unexpected path:", url.pathname);
+            return;
+        }
+
+        // Canonicalize the URL to see if we already have a data source for this URL.  We only
+        // keep one data source around for each canonical URL (eg. search filters).
+        let canonical_url = data_source_class.get_canonical_url(url, { remove_search_page: true }).url.toString();
+        if(!force && canonical_url in this.data_sources_by_canonical_url)
+        {
+            // console.log("Reusing data source for", url.toString());
+            let data_source = this.data_sources_by_canonical_url[canonical_url];
+            if(data_source)
+            {
+                // If the URL has a page number in it, only return it if this data source can load the
+                // page the caller wants.  If we have a data source that starts at page 10 and the caller
+                // wants page 1, the data source probably won't be able to load it since pages are always
+                // contiguous.
+                let page = data_source.get_start_page(args);
+                if(!data_source.can_load_page(page))
+                    console.log(`Not using cached data source because it can't load page ${page}`);
+                else
+                    return data_source;
+            }
+        }
+        
+        // The search page isn't part of the canonical URL, but keep it in the URL we create
+        // the data source with, so it starts at the current page.
+        let base_url = data_source_class.get_canonical_url(url, { remove_search_page }).url.toString();
+        let source = new data_source_class(base_url);
+
+        this.data_sources_by_canonical_url[canonical_url] = source;
+        return source;
+    }
+
+    // If we have the given data source cached, discard it, so it'll be recreated
+    // the next time it's used.
+    static discard_data_source(data_source)
+    {
+        let urls_to_remove = [];
+        for(let url in this.data_sources_by_canonical_url)
+        {
+            if(this.data_sources_by_canonical_url[url] === data_source)
+                urls_to_remove.push(url);
+        }
+
+        for(let url of urls_to_remove)
+            delete this.data_sources_by_canonical_url[url];
+    }
+
+    // Return the data source for a URL, or null if the page isn't supported.
+    static get_data_source_for_url(url)
+    {
+        // url is usually document.location, which for some reason doesn't have .searchParams.
+        var url = new URL(url);
+        url = helpers.get_url_without_language(url);
+
+        let first_part = helpers.get_page_type_from_url(url);
+        if(first_part == "artworks")
+        {
+            let args = new helpers.args(url);
+            if(args.hash.get("manga"))
+                return ppixiv.data_sources.manga;
+            else
+                return ppixiv.data_sources.current_illust;
+        }
+        else if(first_part == "users")
+        {
+            // This is one of:
+            //
+            // /users/12345
+            // /users/12345/artworks
+            // /users/12345/illustrations
+            // /users/12345/manga
+            // /users/12345/bookmarks
+            // /users/12345/following
+            //
+            // All of these except for bookmarks are handled by data_sources.artist.
+            let mode = helpers.get_path_part(url, 2);
+            if(mode == "following")
+                return ppixiv.data_sources.follows;
+
+            if(mode != "bookmarks")
+                return ppixiv.data_sources.artist;
+
+            // Handle a special case: we're called by early_controller just to find out if
+            // the current page is supported or not.  This happens before window.global_data
+            // exists, so we can't check if we're viewing our own bookmarks or someone else's.
+            // In this case we don't need to, since the caller just wants to see if we return
+            // a data source or not.
+            if(window.global_data == null)
+                return ppixiv.data_sources.bookmarks;
+
+            // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
+            // we're viewing all bookmarks, so use data_sources.bookmarks_merged.  Otherwise,
+            // use data_sources.bookmarks.
+            var args = new helpers.args(url);
+            var user_id = helpers.get_path_part(url, 1);
+            if(user_id == null)
+                user_id = window.global_data.user_id;
+            var viewing_own_bookmarks = user_id == window.global_data.user_id;
+            var both_public_and_private = viewing_own_bookmarks && args.hash.get("show-all") != "0";
+            return both_public_and_private? ppixiv.data_sources.bookmarks_merged:ppixiv.data_sources.bookmarks;
+
+        }
+        else if(url.pathname == "/new_illust.php" || url.pathname == "/new_illust_r18.php")
+            return ppixiv.data_sources.new_illust;
+        else if(url.pathname == "/bookmark_new_illust.php" || url.pathname == "/bookmark_new_illust_r18.php")
+            return ppixiv.data_sources.new_works_by_following;
+        else if(first_part == "tags")
+            return ppixiv.data_sources.search;
+        else if(url.pathname == "/discovery")
+            return ppixiv.data_sources.discovery;
+        else if(url.pathname == "/discovery/users")
+            return ppixiv.data_sources.discovery_users;
+        else if(url.pathname == "/bookmark_detail.php")
+        {
+            // If we've added "recommendations" to the hash info, this was a recommendations link.
+            let args = new helpers.args(url);
+            if(args.hash.get("recommendations"))
+                return ppixiv.data_sources.related_illusts;
+            else
+                return ppixiv.data_sources.related_favorites;
+        }
+        else if(url.pathname == "/ranking.php")
+            return ppixiv.data_sources.rankings;
+        else if(url.pathname == "/search_user.php")
+            return ppixiv.data_sources.search_users;
+        else if(url.pathname.startsWith("/request/complete"))
+            return ppixiv.data_sources.completed_requests;
+        else if(url.pathname.startsWith(local_api.path))
+        {
+            let args = new helpers.args(url);
+            if(args.path == "/similar")
+                return ppixiv.data_sources.vview_similar;
+            else
+                return ppixiv.data_sources.vview;
+        }
+        else if(first_part == "")
+        {
+            // Data sources that don't have a corresponding Pixiv page:
+            let args = new helpers.args(url);
+            if(args.hash_path == "/edits")
+                return ppixiv.data_sources.edited_images;
+            else
+                return null;
+        }
+        else
+            return null;
+    }
+
     constructor(url)
     {
         super();

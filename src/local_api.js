@@ -790,7 +790,7 @@ ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
             // Cancel any queued reconnection.
             if(this.reconnect_id != null)
             {
-                helpers.clearTimeout(this.reconnect_id);
+                realClearTimeout(this.reconnect_id);
                 this.reconnect_id = null;
             }
         }
@@ -804,7 +804,7 @@ ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
         let reconnect_delay = Math.pow(this.reconnection_attempts, 2);
         // console.log("Reconnecting in", reconnect_delay);
         
-        this.reconnect_id = helpers.setTimeout(() => {
+        this.reconnect_id = realSetTimeout(() => {
             this.reconnect_id = null;
             this.connect();
         }, reconnect_delay*1000);
@@ -817,7 +817,7 @@ ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
         // Cancel any queued reconnection.
         if(this.reconnect_id != null)
         {
-            helpers.clearTimeout(this.reconnect_id);
+            realClearTimeout(this.reconnect_id);
             this.reconnect_id = null;
         }
 

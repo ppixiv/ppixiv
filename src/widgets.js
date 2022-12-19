@@ -862,7 +862,7 @@ ppixiv.message_widget = class extends widget
 
         this.container.classList.add("show");
         this.container.classList.remove("centered");
-        this.timer = helpers.setTimeout(() => {
+        this.timer = realSetTimeout(() => {
             this.container.classList.remove("show");
         }, 3000);
     }
@@ -871,7 +871,7 @@ ppixiv.message_widget = class extends widget
     {
         if(this.timer != null)
         {
-            helpers.clearTimeout(this.timer);
+            realClearTimeout(this.timer);
             this.timer = null;
         }
     }
@@ -2698,7 +2698,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     checked: helpers.args.location.hash.get("slideshow") == "1",
                     onclick: () => {
-                        main_controller.toggle_slideshow();
+                        ppixiv.app.toggle_slideshow();
                         this.refresh();
                     },
                 });
@@ -2713,7 +2713,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     hide_if_unavailable: true,
                     onclick: () => {
-                        main_controller.loop_slideshow();
+                        ppixiv.app.loop_slideshow();
                         this.refresh();
                     },
                 });
@@ -2817,7 +2817,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
 
         // These are in the top-level menu on mobile.  Don't show these if we're on the search
         // view either, since they want to actually be on the illust view, not hovering a thumbnail.
-        let screen_name = main_controller.get_displayed_screen({ name: true })
+        let screen_name = ppixiv.app.get_displayed_screen({ name: true })
         if(!ppixiv.mobile && screen_name == "illust")
         {
             this.menu_options.push(menu_options.toggle_slideshow());

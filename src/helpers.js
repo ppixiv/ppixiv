@@ -425,7 +425,7 @@ ppixiv.helpers = {
         //
         // If we revoke the URL now, or with a small timeout, Firefox sometimes just doesn't show
         // the save dialog, and there's no way to know when we can, so just use a large timeout.
-        helpers.setTimeout(() => {
+        realSetTimeout(() => {
             window.URL.revokeObjectURL(blobUrl);
             a.remove();
         }, 1000);
@@ -505,14 +505,14 @@ ppixiv.helpers = {
         return new Promise((accept, reject) => {
             let timeout = null;
             let abort = () => {
-                helpers.clearTimeout(timeout);
+                realClearTimeout(timeout);
                 reject("aborted");
             };
     
             if(signal != null)
                 signal.addEventListener("abort", abort, { once: true });
 
-            timeout = helpers.setTimeout(() => {
+            timeout = realSetTimeout(() => {
                 if(signal)
                     signal.removeEventListener("abort", abort, { once: true });
                 accept();
@@ -603,13 +603,13 @@ ppixiv.helpers = {
         if(signal && signal.aborted)
             return;
 
-        let id = setInterval(callback, ms);
+        let id = realSetInterval(callback, ms);
 
         if(signal)
         {
             // Clear the interval when the signal is aborted.
             signal.addEventListener("abort", () => {
-                clearInterval(id);
+                realClearInterval(id);
             }, { once: true });
         }
 
@@ -635,14 +635,14 @@ ppixiv.helpers = {
             if(this.id == null)
                 return;
     
-            helpers.clearTimeout(this.id);
+            realClearTimeout(this.id);
             this.id = null;
         }
     
         set(ms)
         {
             this.clear();
-            this.id = helpers.setTimeout(this.run_func, ms);
+            this.id = realSetTimeout(this.run_func, ms);
         }
     },
     
@@ -674,240 +674,6 @@ ppixiv.helpers = {
         });
     },
 
-    // Try to stop the underlying page from doing things (it just creates unnecessary network
-    // requests and spams errors to the console), and undo damage to the environment that it
-    // might have done before we were able to start.
-    cleanup_environment: function()
-    {
-        if(ppixiv.native)
-        {
-            // We're running in a local environment and not on Pixiv, so we don't need to do
-            // this stuff.  Just add stubs for the functions we'd set up here.
-            helpers.fetch = window.fetch;
-            helpers.setTimeout = window.setTimeout.bind(window);
-            helpers.setInterval = window.setInterval.bind(window);
-            helpers.clearTimeout = window.clearTimeout.bind(window);
-            helpers.requestAnimationFrame = window.requestAnimationFrame.bind(window);
-            helpers.cancelAnimationFrame = window.cancelAnimationFrame.bind(window);
-            helpers.Image = window.Image;
-
-            window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
-            return;
-        }
-
-        // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
-        // nastiness (like searching for installed polyfills--which we install--and adding wrappers
-        // around them).  Break this by defining a webpackJsonp property that can't be set.  It
-        // won't stop the page from running everything, but it keeps it from getting far enough
-        // for the weirder scripts to run.
-        //
-        // Also, some Pixiv pages set an onerror to report errors.  Disable it if it's there,
-        // so it doesn't send errors caused by this script.  Remove _send and _time, which
-        // also send logs.  It might have already been set (TamperMonkey in Chrome doesn't
-        // implement run-at: document-start correctly), so clear it if it's there.
-        for(let key of ["onerror", "onunhandledrejection", "_send", "_time", "webpackJsonp", "touchJsonp"])
-        {
-            window[key] = null;
-
-            // Use an empty setter instead of writable: false, so errors aren't triggered all the time.
-            Object.defineProperty(window, key, {
-                get: function() { return null; },
-                set: function(value) { },
-            });
-        }
-
-        // Try to unwrap functions that might have been wrapped by page scripts.
-        function unwrap_func(obj, name, { ignore_missing=false }={})
-        {
-            // Both prototypes and instances might be wrapped.  If this is an instance, look
-            // at the prototype to find the original.
-            let orig_func = obj.__proto__ && obj.__proto__[name]? obj.__proto__[name]:obj[name];
-            if(!orig_func)
-            {
-                if(!ignore_missing)
-                    console.log("Couldn't find function to unwrap:", name);
-                return;
-            }
-
-            if(!orig_func.__sentry_original__)
-                return;
-
-            while(orig_func.__sentry_original__)
-                orig_func = orig_func.__sentry_original__;
-            obj[name] = orig_func;
-        }
-
-        // Delete owned properties on an object.  This removes wrappers around class functions
-        // like document.addEventListener, so it goes back to the browser implementation, and
-        // freezes the object to prevent them from being added in the future.
-        function delete_overrides(obj)
-        {
-            for(let prop of Object.getOwnPropertyNames(obj))
-            {
-                try {
-                    delete obj[prop];
-                } catch(e) {
-                    // A couple properties like document.location are normal and can't be deleted.
-                }
-            }
-
-            try {
-                Object.freeze(obj);
-            } catch(e) {
-                console.error(`Error freezing ${obj}: ${e}`);
-            }
-        }
-
-        try {
-            unwrap_func(window, "fetch");
-            unwrap_func(window, "setTimeout");
-            unwrap_func(window, "setInterval");
-            unwrap_func(window, "clearInterval");
-            unwrap_func(window, "requestAnimationFrame");
-            unwrap_func(window, "cancelAnimationFrame");
-            unwrap_func(EventTarget.prototype, "addEventListener");
-            unwrap_func(EventTarget.prototype, "removeEventListener");
-            unwrap_func(XMLHttpRequest.prototype, "send");
-
-            // We might get here before the mangling happens, which means it might happen
-            // in the future.  Freeze the objects to prevent this.
-            Object.freeze(EventTarget.prototype);
-
-            // Delete wrappers on window.history set by the site, and freeze it so they can't
-            // be added.
-            delete_overrides(window.history);
-            delete_overrides(window.document);
-
-            // Pixiv wraps console.log, etc., which breaks all logging since it causes them to all
-            // appear to come from the wrapper.  Remove these if they're present and try to prevent
-            // it from happening later.
-            for(let name of Object.keys(window.console))
-                unwrap_func(console, name, { ignore_missing: true });
-            Object.freeze(window.console);
-
-            // Some Pixiv pages load jQuery and spam a bunch of error due to us stopping
-            // their scripts.  Try to replace jQuery's exception hook with an empty one to
-            // silence these.  This won't work if jQuery finishes loading after we do, but
-            // that's not currently happening, so this is all we do for now.
-            if("jQuery" in window)
-                jQuery.Deferred.exceptionHook = () => { };
-        } catch(e) {
-            console.error("Error unwrapping environment", e);
-        }
-
-        // Try to kill the React scheduler that Pixiv uses.  It uses a MessageChannel to run itself,
-        // so we can disable it by disabling MessagePort.postmessage.  This seems to happen early
-        // enough to prevent the first scheduler post from happening.
-        //
-        // Store the real postMessage, so we can still use it ourself.
-        try {
-            window.MessagePort.prototype.realPostMessage = window.MessagePort.prototype.postMessage;
-            window.MessagePort.prototype.postMessage = (msg) => { };
-        } catch(e) {
-            console.error("Error disabling postMessage", e);
-        }
-
-        // Disable requestAnimationFrame.  This can also be used by the React scheduler.
-        helpers.requestAnimationFrame = window.requestAnimationFrame.bind(window);
-        window.requestAnimationFrame = (func) => { };
-
-        helpers.cancelAnimationFrame = window.cancelAnimationFrame.bind(window);
-        window.cancelAnimationFrame = (id) => { };
-
-        // Disable the page's timers.  This helps prevent things like GTM from running.
-        helpers.setTimeout = window.setTimeout.bind(window);
-        window.setTimeout = (f, ms) => { return -1; };
-
-        helpers.setInterval = window.setInterval.bind(window);
-        window.setInterval = (f, ms) => { return -1; };
-
-        helpers.clearTimeout = window.clearTimeout.bind(window);
-        window.clearTimeout = () => { };
-
-        try {
-            window.addEventListener = Window.prototype.addEventListener.bind(window);
-            window.removeEventListener = Window.prototype.removeEventListener.bind(window);
-        } catch(e) {
-            // This fails on iOS.  That's OK, since Pixiv's mobile site doesn't mess
-            // with these (and since we can't write to these, it wouldn't be able to either).
-        }
-
-        helpers.Image = window.Image;
-        window.Image = function() { };
-
-        // Replace window.fetch with a dummy to prevent some requests from happening.  Store it
-        // in helpers.fetch so we can use it.
-        helpers.fetch = window.fetch.bind(window);
-        class dummy_fetch
-        {
-            sent() { return this; }
-        };
-        dummy_fetch.prototype.ok = true;
-        window.fetch = function() { return new dummy_fetch(); };
-
-        // We don't use XMLHttpRequest.  Disable it to make sure the page doesn't.
-        window.XMLHttpRequest = function() { };
-
-        // Similarly, prevent it from creating script and style elements.  Sometimes site scripts that
-        // we can't disable keep running and do things like loading more scripts or adding stylesheets.
-        // Use realCreateElement to bypass this.
-        let origCreateElement = window.HTMLDocument.prototype.createElement;
-        window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
-        window.HTMLDocument.prototype.createElement = function(type, options)
-        {
-            // Prevent the underlying site from creating new script and style elements.
-            if(type == "script" || type == "style")
-            {
-                // console.warn("Disabling createElement " + type);
-                throw new ElementDisabled("Element disabled");
-            }
-            return origCreateElement.apply(this, arguments);
-        };
-
-        // Catch and discard ElementDisabled.
-        //
-        // This is crazy: the error event doesn't actually receive the unhandled exception.
-        // We have to examine the message to guess whether an error is ours.
-        window.addEventListener("error", (e) => {
-            if(e.message && e.message.indexOf("Element disabled") == -1)
-                return;
-
-            e.preventDefault();
-            e.stopPropagation();
-        }, true);
-
-        // We have to hit things with a hammer to get Pixiv's scripts to stop running, which
-        // causes a lot of errors.  Silence all errors that have a stack within Pixiv's sources,
-        // as well as any errors from ElementDisabled.
-        window.addEventListener("error", (e) => {
-            let silence_error = false;
-            if(e.filename && e.filename.indexOf("s.pximg.net") != -1)
-                silence_error = true;
-
-            if(silence_error)
-            {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                return;
-            }
-        }, true);
-
-        window.addEventListener("unhandledrejection", (e) => {
-            let silence_error = false;
-            if(e.reason && e.reason.stack && e.reason.stack.indexOf("s.pximg.net") != -1)
-                silence_error = true;
-            if(e.reason && e.reason.message == "Element disabled")
-                silence_error = true;
-
-            if(silence_error)
-            {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                return;
-            }
-        }, true);
-    },
-    
     add_style: function(name, css)
     {
         let style = helpers.create_style(css);
@@ -1252,9 +1018,8 @@ ppixiv.helpers = {
             options = {};
 
         // Usually we'll use helpers.fetch, but fall back on window.fetch in case we haven't
-        // called block_network_requests yet.  This happens if main_controller.setup needs
-        // to fetch the page.
-        let fetch = helpers.fetch || window.fetch;
+        // called block_network_requests yet.  This happens if App.setup needs to fetch the page.
+        let fetch = window.realFetch ?? window.fetch;
 
         let data = { };
         data.method = options.method || "GET";
@@ -2540,7 +2305,7 @@ ppixiv.helpers = {
             let abort = () => {
                 abort_signal.removeEventListener("aborted", abort);
                 if(frame_id != null)
-                    helpers.cancelAnimationFrame(frame_id);
+                    realCancelAnimationFrame(frame_id);
                 resolve(false);
             };
             if(abort_signal)
@@ -2555,7 +2320,7 @@ ppixiv.helpers = {
                     return;
                 }
 
-                frame_id = helpers.requestAnimationFrame(check);
+                frame_id = realRequestAnimationFrame(check);
             };
             check();
         });
@@ -2566,7 +2331,7 @@ ppixiv.helpers = {
     async await_with_timeout(promise, ms)
     {
         let sleep = new Promise((accept, reject) => {
-            helpers.setTimeout(() => {
+            realSetTimeout(() => {
                 accept("timed-out");
             }, ms);
         });
@@ -2619,7 +2384,7 @@ ppixiv.helpers = {
     
             let abort = () => {
                 if(id != null)
-                    helpers.cancelAnimationFrame(id);
+                    realCancelAnimationFrame(id);
 
                 accept(false);
             };
@@ -2631,7 +2396,7 @@ ppixiv.helpers = {
                 return;
             }
     
-            id = helpers.requestAnimationFrame((time) => {
+            id = realRequestAnimationFrame((time) => {
                 if(signal)
                     signal.removeEventListener("abort", abort);
                 accept(true);
@@ -3546,14 +3311,14 @@ ppixiv.hover_with_delay = class
         // If the opposite event is pending, cancel it.
         if(this.hover_timeout != null)
         {
-            helpers.clearTimeout(this.hover_timeout);
+            realClearTimeout(this.hover_timeout);
             this.hover_timeout = null;
         }
 
         this.real_hover_state = hovering;
         this.pending_hover = hovering;
         let delay = hovering? this.delay_enter:this.delay_exit;
-        this.hover_timeout = helpers.setTimeout(() => {
+        this.hover_timeout = realSetTimeout(() => {
             this.pending_hover = null;
             this.hover_timeout = null;
             helpers.set_class(this.element, "hover", this.real_hover_state);
@@ -4157,7 +3922,7 @@ ppixiv.pointer_listener = class
             options.signal.addEventListener("abort", (e) => {
                 // If we have a block_contextmenu_timer timer running when we're cancelled, remove it.
                 if(this.block_contextmenu_timer != null)
-                    helpers.clearTimeout(this.block_contextmenu_timer);
+                    realClearTimeout(this.block_contextmenu_timer);
             });
         }
         
@@ -4283,11 +4048,11 @@ ppixiv.pointer_listener = class
         this.blocking_context_menu_until_timer = true;
         if(this.block_contextmenu_timer != null)
         {
-            helpers.clearTimeout(this.block_contextmenu_timer);
+            realClearTimeout(this.block_contextmenu_timer);
             this.block_contextmenu_timer = null;
         }
 
-        this.block_contextmenu_timer = helpers.setTimeout(() => {
+        this.block_contextmenu_timer = realSetTimeout(() => {
             this.block_contextmenu_timer = null;
 
             // console.log("Releasing context menu after timer");
@@ -4516,7 +4281,7 @@ ppixiv.global_key_listener = class
         
         // If key is already pressed, run the callback.  Defer this so we don't call
         // it while the caller is still registering.
-        helpers.setTimeout(() => {
+        realSetTimeout(() => {
             // Stop if the listener was unregistered before we got here.
             if(!this.get_listeners_for_key(key).has(listener))
                 return;
@@ -5484,7 +5249,7 @@ ppixiv.DragHandler = class
             // We were in _delaying_before_drag and a second tap started.  Cancel the delay and
             // start immediately for pinch zooming.
             // console.log("Starting deferred drag due to multitouch");
-            helpers.clearTimeout(this.drag_delay_timer);
+            realClearTimeout(this.drag_delay_timer);
             this.drag_delay_timer = null;
             this._commit_start_dragging({event: null});
         }
@@ -5508,7 +5273,7 @@ ppixiv.DragHandler = class
         else if(this.defer_delay_ms != null)
         {
             // We're deferring the drag.  Start a timer to stop deferring after a timeout.
-            this.drag_delay_timer = helpers.setTimeout(() => {
+            this.drag_delay_timer = realSetTimeout(() => {
                 this.drag_delay_timer = null;
                 
                 this._commit_start_dragging({event: null});
@@ -5556,7 +5321,7 @@ ppixiv.DragHandler = class
 
         if(this.drag_delay_timer != null)
         {
-            helpers.clearTimeout(this.drag_delay_timer);
+            realClearTimeout(this.drag_delay_timer);
             this.drag_delay_timer = null;
         }
         
@@ -5581,7 +5346,7 @@ ppixiv.DragHandler = class
         /*
         if(this.defer_delay_ms && this.drag_delay_timer != null && e.width > 50)
         {
-            helpers.clearTimeout(this.drag_delay_timer);
+            realClearTimeout(this.drag_delay_timer);
             this.drag_delay_timer = null;
             this._commit_start_dragging({event: null});
         }
@@ -7072,7 +6837,7 @@ ppixiv.IsolatedTapHandler = class
         if(this._timeout_id != -1)
             return;
 
-        this._timeout_id = helpers.setTimeout(() => {
+        this._timeout_id = realSetTimeout(() => {
             if(this.signal.aborted)
                 return;
 
@@ -7115,7 +6880,7 @@ ppixiv.IsolatedTapHandler = class
     {
         if(this._timeout_id == -1)
             return;
-        helpers.clearTimeout(this._timeout_id);
+        realClearTimeout(this._timeout_id);
         this._timeout_id= -1;
     }
 };

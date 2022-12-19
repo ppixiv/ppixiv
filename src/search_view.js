@@ -145,7 +145,7 @@ ppixiv.search_view = class extends ppixiv.widget
                 if(e.pointerType != "mouse")
                     return;
 
-                let { media_id } = main_controller.get_illust_at_element(e.target);
+                let { media_id } = ppixiv.app.get_illust_at_element(e.target);
                 if(media_id == null)
                     return;
 
@@ -153,7 +153,7 @@ ppixiv.search_view = class extends ppixiv.widget
                 e.preventDefault();
                 // e.stopImmediatePropagation();
 
-                main_controller.show_media(media_id, { add_to_history: true });
+                ppixiv.app.show_media(media_id, { add_to_history: true });
             },
         });
 
@@ -386,11 +386,11 @@ ppixiv.search_view = class extends ppixiv.widget
     {
         if(this.scroll_position_timer != -1)
         {
-            helpers.clearTimeout(this.scroll_position_timer);
+            realClearTimeout(this.scroll_position_timer);
             this.scroll_position_timer = -1;
         }
 
-        this.scroll_position_timer = helpers.setTimeout(() => {
+        this.scroll_position_timer = realSetTimeout(() => {
             this.store_scroll_position();
         }, 100);
     }
