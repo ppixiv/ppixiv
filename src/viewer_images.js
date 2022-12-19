@@ -1829,10 +1829,7 @@ ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
 
                 this._center_pos[0] = x;
                 this._center_pos[1] = y;
-        
-                // TouchScroller handles pushing us back in bounds, so we don't clamp the
-                // position here.
-                this._reposition({clamp_position: false});
+                this._reposition();
             },
 
             // Zoom by the given factor, centered around the given client position.
@@ -1859,7 +1856,7 @@ ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
                 // Restore the center position.
                 this.set_image_position([viewX, viewY], center);
 
-                this._reposition({clamp_position: false});
+                this._reposition();
             },
 
             onanimationfinished: () => {
@@ -2011,6 +2008,16 @@ ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
                 move_to_target: true,
             }
         });
+    }
+
+    _reposition({clamp_position=true, ...options}={})
+    {
+        // Don't clamp the view position if we're repositioned while the touch scroller
+        // is active.  It handles overscroll and is allowed to go out of bounds.
+        if(this.touch_scroller.state != "idle")
+            clamp_position = false;
+
+        return super._reposition({clamp_position, ...options});
     }
 
     // The mobile UI is always in locked zoom mode.
