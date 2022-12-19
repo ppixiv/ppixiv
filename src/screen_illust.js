@@ -321,7 +321,6 @@ ppixiv.screen_illust = class extends ppixiv.screen
         helpers.set_class(document.body,  "force-ui", window.debug_show_ui);
 
         let media_id = new_viewer.media_id;
-        console.log(`Showing image ${media_id}`);
 
         // Dismiss any message when changing images.
         if(this.current_media_id != media_id)

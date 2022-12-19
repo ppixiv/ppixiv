@@ -407,8 +407,6 @@ ppixiv.MainController = class
         // If the data source is changing, set it up.
         if(this.data_source != data_source)
         {
-            console.log("New data source.  Screen:", new_screen_name, "Cause:", cause);
-
             if(this.data_source != null)
             {
                 // Shut down the old data source.
@@ -428,8 +426,6 @@ ppixiv.MainController = class
             if(this.data_source != null)
                 this.data_source.startup();
         }
-        else
-            console.log("Same data source.  Screen:", new_screen_name, "Cause:", cause);
 
         // Update the media ID with the current manga page, if any.
         let media_id = data_source.get_current_media_id(args);
@@ -445,6 +441,8 @@ ppixiv.MainController = class
             // Remember that we're entering screen_search.  See window_onclick_capture.
             this._ignore_clicks_until = Date.now() + 100;
         }
+
+        console.log(`Showing screen: ${new_screen_name}, data source: ${this.data_source.name}, cause: ${cause}, media ID: ${media_id ?? "(none)"}`);
 
         let new_screen = this.screens[new_screen_name];
         

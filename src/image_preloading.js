@@ -262,7 +262,7 @@ ppixiv.image_preloader = class
             if(updated_preload_list.indexOf(preload) != -1)
                 continue;
 
-            console.log("Cancelling preload:", preload.url);
+            // console.log("Cancelling preload:", preload.url);
             preload.cancel();
 
             // Preloads stay in the list until the cancellation completes.
@@ -387,7 +387,7 @@ ppixiv.image_preloader = class
         {
             this.guessed_preload = new img_preloader(guessed_url, () => {
                 // The image load failed.  Let guessed_preload know.
-                console.info("Guessed image load failed");
+                // console.info("Guessed image load failed");
                 guess_image_url.get.guessed_url_incorrect(media_id);
             });
             this.guessed_preload.start();
