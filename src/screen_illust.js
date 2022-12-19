@@ -1176,7 +1176,7 @@ class ScreenIllustDragToExit
             visible: false,
             direction: "down", // down to make visible, up to hide
             duration: () => {
-                return settings.get("animations_enabled")? 200:0;
+                return settings.get("animations_enabled")? 250:0;
             },
             size: 500,
             confirm_drag: ({event}) => {

@@ -3263,7 +3263,7 @@ svg.heart-image .delete {
         
         // Fade the background to black when we're active.
         background-color: rgba(0, 0, 0,
-            scale_value(var(--illust-hidden), 0.2, 0.6, 1, 0));
+            scale_value(var(--illust-hidden), .3, 1, 1, 0));
     }
 
     // Transitions for the viewer.  Don't move the container itself, since the background
@@ -3286,7 +3286,7 @@ svg.heart-image .delete {
         // We actually stay fully visible until it reaches 0.7, so we only start fading out near
         // the end of the animation.  This results in opacity values outside the 0-1 range, which
         // will just be clipped.
-        opacity: scale_value(var(--illust-hidden), 0.4, 1, 1, 0);
+        opacity: scale_value(var(--illust-hidden), 0, 1, 1, 0);
 
         // If enabled, round the top edge of the element to match the screen dimensions.
         html.mobile &  .viewer .rounded-box {
