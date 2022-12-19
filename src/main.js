@@ -417,10 +417,6 @@ ppixiv.MainController = class
                     page_manager.singleton().discard_data_source(this.data_source);
             }
 
-            // If we were showing a message for the old data source, it might be persistent,
-            // so clear it.
-            message_widget.singleton.hide();
-            
             this.data_source = data_source;
             
             if(this.data_source != null)
@@ -450,9 +446,6 @@ ppixiv.MainController = class
 
         if(new_screen != old_screen)
         {
-            // Dismiss any message when changing screens.
-            message_widget.singleton.hide();
-
             // Let the screens know whether they're current.  Screens don't use visible
             // directly (visibility is controlled by animations instead), but this lets
             // visible_recursively know if the hierarchy is visible.

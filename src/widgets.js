@@ -847,6 +847,9 @@ ppixiv.message_widget = class extends widget
         });
 
         this.timer = null;
+
+        // Dismiss messages when changing screens.
+        window.addEventListener("screenchanged", (e) => this.hide(), this._signal);
     }
 
     show(message)
