@@ -41,10 +41,11 @@ class ImagesContainer extends ppixiv.widget
         super.shutdown();
     }
 
-    set_image_urls(image_url, inpaint_url)
+    set_image_urls(image_url, inpaint_url, preview_url)
     {
         this.image_src = image_url || "";
         this.inpaint_src = inpaint_url || "";
+        this.preview_img.src = preview_url || helpers.blank_image;
     }
 
     // Set the image URLs.  If set to null, use a blank image instead so we don't trigger
@@ -340,12 +341,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Create an ImagesContainer, which holds the actual images.  Don't give this a container,
         // since we don't want to add it to the tree just yet.
         let images_container = new ImagesContainer({ parent: this });
-        images_container.set_image_urls(url, inpaint_url);
-
-        // Create the low-res preview.  This loads the thumbnail underneath the main image.  Don't set the
-        // "filtering" class, since using point sampling for the thumbnail doesn't make sense.  If preview_url
-        // is null, just use a blank image.
-        images_container.preview_img.src = preview_url? preview_url:helpers.blank_image;
+        image_container.set_image_urls(url, inpaint_url, preview_url);
 
         // Wait until the preview image (if we have one) is ready.  This will finish quickly
         // if it's preloaded.
