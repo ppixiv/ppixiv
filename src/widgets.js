@@ -2690,7 +2690,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                 });
             },
 
-            toggle_slideshow: () => {
+            toggleSlideshow: () => {
                 return new menu_option_toggle({
                     ...shared_options,
                     label: "Slideshow",
@@ -2698,7 +2698,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     checked: helpers.args.location.hash.get("slideshow") == "1",
                     onclick: () => {
-                        ppixiv.app.toggle_slideshow();
+                        ppixiv.app.toggleSlideshow();
                         this.refresh();
                     },
                 });
@@ -2713,7 +2713,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
                     requires_image: true,
                     hide_if_unavailable: true,
                     onclick: () => {
-                        ppixiv.app.loop_slideshow();
+                        ppixiv.app.loopSlideshow();
                         this.refresh();
                     },
                 });
@@ -2820,7 +2820,7 @@ ppixiv.more_options_dropdown_widget = class extends ppixiv.illust_widget
         let screen_name = ppixiv.app.get_displayed_screen({ name: true })
         if(!ppixiv.mobile && screen_name == "illust")
         {
-            this.menu_options.push(menu_options.toggle_slideshow());
+            this.menu_options.push(menu_options.toggleSlideshow());
             this.menu_options.push(menu_options.toggle_loop());
         }
         if(!ppixiv.mobile)

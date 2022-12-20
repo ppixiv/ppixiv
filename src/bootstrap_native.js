@@ -38,6 +38,9 @@ window.NativeLoader = class
         for(let path of init.source_files)
             source_fetches[path] = this.fetch_source(path);
 
+        for(let path of Object.values(init.modules))
+            source_fetches[path] = this.fetch_source(path, { add_source_url: false });
+
         for(let [path, url] of Object.entries(init.resources))
             source_fetches[path] = this.load_resource(path, url);
 

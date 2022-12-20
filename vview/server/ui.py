@@ -1,6 +1,6 @@
 # This handles serving the UI so it can be run independently.
 
-import aiohttp, asyncio, base64, os, json, mimetypes
+import aiohttp, asyncio, base64, glob, os, json, mimetypes
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from ..util import misc
@@ -24,6 +24,7 @@ def add_routes(router):
     router.add_get('/client/init.js', handle_source_files)
     router.add_get('/client/{path:.*\.css}', handle_css)
     router.add_get('/client/{path:.*}', handle_client)
+    router.add_get('/web/{path:.*}', handle_client)
 
     router.add_get('/', handle_resource('resources/index.html'))
     router.add_get('/similar', handle_resource('resources/index.html'))
@@ -69,6 +70,24 @@ def get_source_files():
 
     return results
 
+def get_modules():
+    modules = {}
+    modules_top = Path('web/vview')
+    for root, dirs, files in os.walk(modules_top):
+        for file in files:
+            # web/vview/module/path.js -> [vview/module/path.js] = /web/vview/module/path.js?timestamp
+            path = Path(root) / file
+            relative_path = path.relative_to(modules_top)
+            module_name = 'vview' / relative_path
+            
+            url_path = '/web/vview' / relative_path
+            suffix = _get_path_timestamp_suffix(path)
+            modules[module_name.as_posix()] = url_path.as_posix() + suffix
+
+    from pprint import pprint
+    pprint(modules)
+    return modules
+
 def get_resources():
     build = Build()
 
@@ -89,6 +108,7 @@ def get_resources():
 def handle_source_files(request):
     init = {
         'source_files': get_source_files(),
+        'modules': get_modules(),
         'resources': get_resources(),
     }
     source_files_json = json.dumps(init, indent=4) + '\n'
@@ -112,8 +132,12 @@ def handle_client(request):
         cache_control = 'no-store'
 
     if path.parts[0] == 'js':
+        # XXX: Remove this once everything is converted to modules in web/vview.
         path = Path(*path.parts[1:])
         path = 'src' / path
+    elif path.parts[0] == 'vview':
+        path = Path(*path.parts[1:])
+        path = 'web/vview' / path
     elif path.parts[0] == 'resources':
         # OK
         pass

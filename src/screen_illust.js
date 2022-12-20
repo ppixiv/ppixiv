@@ -346,7 +346,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
         image_preloader.singleton.set_current_image(media_id);
 
         // Make sure the URL points to this image.
-        let args = ppixiv.app.get_media_url(media_id);
+        let args = ppixiv.app.getMediaURL(media_id);
         helpers.navigate(args, { add_to_history: false, send_popstate: false });
 
         // Speculatively load the next image, which is what we'll show if you press page down, so
@@ -1291,7 +1291,7 @@ class ScreenIllustDragToExit
         if(this.parent.wanted_media_id == null)
             return null;
 
-        return ppixiv.app.get_rect_for_media_id(this.parent.wanted_media_id);
+        return ppixiv.app.getRectForMediaId(this.parent.wanted_media_id);
     }
 
     // The screen was set active or inactive.

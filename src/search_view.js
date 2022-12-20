@@ -1669,7 +1669,7 @@ ppixiv.search_view = class extends ppixiv.widget
     };
 
     // Return the bounding rectangle for the given media_id.
-    get_rect_for_media_id(media_id)
+    getRectForMediaId(media_id)
     {
         let thumb = this.get_thumbnail_for_media_id(media_id, { fallback_on_p1: true });
         if(thumb == null)

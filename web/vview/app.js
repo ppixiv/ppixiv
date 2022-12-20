@@ -1,7 +1,15 @@
-"use strict";
+import {
+    helpers, local_api, muting, phistory, resources,
+    main_context_menu,
+    link_this_tab_popup, send_here_popup,
+    screen_search, screen_illust
+} from 'vview/ppixiv-imports.js';
+
+import install_polyfills from 'vview/misc/polyfills.js';
+import WhatsNew from 'vview/widgets/whats-new.js';
 
 // This is the main top-level app controller.
-ppixiv.App = class
+export default class App
 {
     constructor()
     {
@@ -16,13 +24,13 @@ ppixiv.App = class
 
         // Hide the bright white document until we've loaded our stylesheet.
         if(!ppixiv.native)
-            this.temporarily_hide_document();
+            this._temporarilyHideDocument();
 
         // Wait for DOMContentLoaded.
         await helpers.wait_for_content_loaded();
 
         // Install polyfills.
-        ppixiv.install_polyfills();
+        install_polyfills();
 
         // Create singletons.
         ppixiv.settings = new ppixiv.Settings();
@@ -31,17 +39,17 @@ ppixiv.App = class
         ppixiv.send_image = new ppixiv.SendImage();
         
         // Run any one-time settings migrations.
-        settings.migrate();
+        ppixiv.settings.migrate();
 
         // Set up the pointer_listener singleton.
-        pointer_listener.install_global_handler();
+        ppixiv.pointer_listener.install_global_handler();
         new ppixiv.global_key_listener;
 
         // Set up iOS movementX/movementY handling.
         new ppixiv.PointerEventMovement();
 
         // If enabled, cache local info which tells us what we have access to.
-        await local_api.load_local_info();
+        await ppixiv.local_api.load_local_info();
 
         // If login is required to do anything, no API calls will succeed.  Stop now and
         // just redirect to login.  This is only for the local API.
@@ -75,10 +83,10 @@ ppixiv.App = class
         helpers.set_class(document.body, "hide-r18", !window.global_data.include_r18);
         helpers.set_class(document.body, "hide-r18g", !window.global_data.include_r18g);
 
-        this.set_device_properties();
-        settings.addEventListener("avoid-statusbar", this.set_device_properties);
-        window.addEventListener("orientationchange", this.set_device_properties);
-        new ResizeObserver(this.set_device_properties).observe(document.documentElement);
+        this.setDeviceProperties();
+        ppixiv.settings.addEventListener("avoid-statusbar", this.setDeviceProperties);
+        window.addEventListener("orientationchange", this.setDeviceProperties);
+        new ResizeObserver(this.setDeviceProperties).observe(document.documentElement);
 
         // On mobile, disable long press opening the context menu and starting drags.
         if(ppixiv.mobile)
@@ -97,14 +105,14 @@ ppixiv.App = class
         {
             preload = JSON.parse(preload.getAttribute("content"));
             for(var preload_user_id in preload.user)
-                user_cache.add_user_data(preload.user[preload_user_id]);
+                ppixiv.user_cache.add_user_data(preload.user[preload_user_id]);
             for(var preload_illust_id in preload.illust)
                 media_cache.add_media_info_full(preload.illust[preload_illust_id]);
         }
 
         window.addEventListener("click", this.window_onclick_capture);
-        window.addEventListener("popstate", this.window_redirect_onpopstate, true);
-        window.addEventListener("pp:popstate", this.window_onpopstate);
+        window.addEventListener("popstate", this.windowRedirectPopstate, true);
+        window.addEventListener("pp:popstate", this.windowPopstate);
 
         window.addEventListener("keyup", this.redirect_event_to_screen, true);
         window.addEventListener("keydown", this.redirect_event_to_screen, true);
@@ -117,7 +125,7 @@ ppixiv.App = class
         window.addEventListener("blur", refresh_focus);
         refresh_focus();
 
-        this.current_screen_name = null;
+        this.currentScreenName = null;
 
         // Update the initial URL.
         if(!ppixiv.native)
@@ -144,7 +152,7 @@ ppixiv.App = class
         }
         
         // Don't restore the scroll position.  We handle this ourself.
-        window.history.scrollRestoration = "manual";  // not ppixiv.phistory
+        window.history.scrollRestoration = "manual";  // not phistory
        
         // If we're running on Pixiv, remove Pixiv's content from the page and move it into a
         // dummy document.
@@ -160,7 +168,7 @@ ppixiv.App = class
         html.location = ppixiv.plocation;
 
         // Load image resources into blobs.
-        await this.load_resource_blobs();
+        await this.loadResourceBlobs();
 
         // Add the blobs for binary resources as CSS variables.
         helpers.add_style("image-styles", `
@@ -182,14 +190,14 @@ ppixiv.App = class
         `);
 
         // Add the main stylesheet.
-        let main_stylesheet = resources['resources/main.scss'];
-        document.head.appendChild(helpers.create_style(main_stylesheet, { id: "main" }));
+        let mainStylesheet = resources['resources/main.scss'];
+        document.head.appendChild(helpers.create_style(mainStylesheet, { id: "main" }));
 
         // If we're running natively, index.html included an initial stylesheet to set the background
         // color.  Remove it now that we have our real stylesheet.
-        let initial_stylesheet = document.querySelector("#initial-style");
-        if(initial_stylesheet)
-            initial_stylesheet.remove();
+        let initialStylesheet = document.querySelector("#initial-style");
+        if(initialStylesheet)
+            initialStylesheet.remove();
        
         // If we don't have a viewport tag, add it.  This makes Safari work more sanelywhen
         // in landscape.  If we're native, this is already set, and we want to use the existing
@@ -205,15 +213,15 @@ ppixiv.App = class
 
         // Now that we've cleared the document and added our style so our background color is
         // correct, we can unhide the document.
-        this.undo_temporarily_hide_document();
+        this._undoTemporarilyHideDocument();
 
         // Create the shared title.  This is set by helpers.set_page_title.
         if(document.querySelector("title") == null)
             document.head.appendChild(document.createElement("title"));
         
         // Create the shared page icon.  This is set by set_page_icon.
-        let document_icon = document.head.appendChild(document.createElement("link"));
-        document_icon.setAttribute("rel", "icon");
+        let documentIcon = document.head.appendChild(document.createElement("link"));
+        documentIcon.setAttribute("rel", "icon");
 
         helpers.add_clicks_to_search_history(document.body);
          
@@ -227,7 +235,7 @@ ppixiv.App = class
         send_here_popup.setup();
 
         // Set the whats-new-updated class.
-        ppixiv.whats_new.handle_last_viewed_version();
+        WhatsNew.handleLastViewedVersion();
 
         // Create the screens.
         this.screen_search = new screen_search({ container: document.body });
@@ -239,7 +247,7 @@ ppixiv.App = class
         };
 
         // Create the data source for this page.
-        this.set_current_data_source("initialization");
+        this.setCurrentDataSource("initialization");
     };
 
     // Pixiv puts listeners on popstate which we can't always remove, and can get confused and reload
@@ -248,7 +256,7 @@ ppixiv.App = class
     // Try to work around this by capturing popstate events and stopping the event, then redirecting
     // them to our own pp:popstate event, which is what we listen for.  This prevents anything other than
     // a capturing listener from seeing popstate.
-    window_redirect_onpopstate = (e) =>
+    windowRedirectPopstate = (e) =>
     {
         e.stopImmediatePropagation();
 
@@ -256,19 +264,19 @@ ppixiv.App = class
         e.target.dispatchEvent(e2);
     }
 
-    window_onpopstate = (e) =>
+    windowPopstate = (e) =>
     {
         // Set the current data source and state.
-        this.set_current_data_source(e.navigationCause || "history");
+        this.setCurrentDataSource(e.navigationCause || "history");
     }
 
-    async refresh_current_data_source({remove_search_page=false}={})
+    async refreshCurrentDataSource({remove_search_page=false}={})
     {
         if(this.data_source == null)
             return;
 
         // Create a new data source for the same URL, replacing the previous one.
-        // This returns the data source, but just call set_current_data_source so
+        // This returns the data source, but just call setCurrentDataSource so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.plocation.toString());
         ppixiv.data_source.create_data_source_for_url(ppixiv.plocation, {force: true, remove_search_page});
@@ -279,10 +287,10 @@ ppixiv.App = class
         delete args.state.scroll;
         helpers.navigate(args, { add_to_history: false, cause: "refresh-data-source", send_popstate: false });
 
-        await this.set_current_data_source("refresh");
+        await this.setCurrentDataSource("refresh");
     }
 
-    set_device_properties = () =>
+    setDeviceProperties = () =>
     {
         let insets = helpers.safe_area_insets;
 
@@ -324,7 +332,7 @@ ppixiv.App = class
         // Set the fullscreen mode.
         if(notch)
             document.documentElement.dataset.fullscreenMode = "notch";
-        else if(settings.get("avoid-statusbar"))
+        else if(ppixiv.settings.get("avoid-statusbar"))
             document.documentElement.dataset.fullscreenMode = "safe-area";
         else
             document.documentElement.dataset.fullscreenMode = "none";
@@ -333,32 +341,32 @@ ppixiv.App = class
     // Create a data source for the current URL and activate it.
     //
     // This is called on startup, and in onpopstate where we might be changing data sources.
-    async set_current_data_source(cause)
+    async setCurrentDataSource(cause)
     {
         // If we're called again before a previous call finishes, let the previous call
         // finish first.
-        let token = this._set_current_data_source_token = new Object();
+        let token = this._setCurrentDataSource_token = new Object();
 
-        // Wait for any other running set_current_data_source calls to finish.
-        while(this._set_current_data_source_promise != null)
-            await this._set_current_data_source_promise;
+        // Wait for any other running setCurrentDataSource calls to finish.
+        while(this._setCurrentDataSource_promise != null)
+            await this._setCurrentDataSource_promise;
 
         // If token doesn't match anymore, another call was made, so ignore this call.
-        if(token !== this._set_current_data_source_token)
+        if(token !== this._setCurrentDataSource_token)
             return;
 
-        let promise = this._set_current_data_source_promise = this._set_current_data_source(cause);
+        let promise = this._setCurrentDataSource_promise = this._setCurrentDataSource(cause);
         promise.finally(() => {
-            if(promise == this._set_current_data_source_promise)
-                this._set_current_data_source_promise = null;
+            if(promise == this._setCurrentDataSource_promise)
+                this._setCurrentDataSource_promise = null;
         });
         return promise;
     }
 
-    async _set_current_data_source(cause)
+    async _setCurrentDataSource(cause)
     {
         // Remember what we were displaying before we start changing things.
-        var old_screen = this.screens[this.current_screen_name];
+        var old_screen = this.screens[this.currentScreenName];
         var old_media_id = old_screen? old_screen.displayed_media_id:null;
 
         // Get the data source for the current URL.
@@ -392,18 +400,18 @@ ppixiv.App = class
         }
 
         // The media ID we're displaying if we're going to screen_illust:
-        let media_id = null;
+        let mediaId = null;
         if(new_screen_name == "illust")
-            media_id = data_source.get_current_media_id(args);
+        mediaId = data_source.get_current_media_id(args);
 
         // If we're entering screen_search, ignore clicks for a while.  See window_onclick_capture.
         if(new_screen_name == "search")
             this._ignore_clicks_until = Date.now() + 100;
 
-        console.log(`Showing screen: ${new_screen_name}, data source: ${this.data_source.name}, cause: ${cause}, media ID: ${media_id ?? "(none)"}`);
+        console.log(`Showing screen: ${new_screen_name}, data source: ${this.data_source.name}, cause: ${cause}, media ID: ${mediaId ?? "(none)"}`);
 
         let new_screen = this.screens[new_screen_name];
-        this.current_screen_name = new_screen_name;
+        this.currentScreenName = new_screen_name;
 
         if(new_screen != old_screen)
         {
@@ -428,7 +436,7 @@ ppixiv.App = class
 
             // If we're showing a media ID, use it.  Otherwise, see if the screen is
             // showing one.
-            let displayed_media_id = media_id;
+            let displayed_media_id = mediaId;
             displayed_media_id ??= new_screen.displayed_media_id;
             this.context_menu.set_media_id(displayed_media_id);
         }
@@ -441,7 +449,7 @@ ppixiv.App = class
 
         // Activate the new screen.
         await new_screen.activate({
-            media_id,
+            media_id: mediaId,
             old_media_id,
             restore_history,
         });
@@ -451,22 +459,22 @@ ppixiv.App = class
             old_screen.deactivate();
     }
 
-    get_rect_for_media_id(media_id)
+    getRectForMediaId(mediaId)
     {
-        return this.screen_search.get_rect_for_media_id(media_id);
+        return this.screen_search.getRectForMediaId(mediaId);
     }
     
     // Return the URL to display a media ID.
-    get_media_url(media_id, {screen="illust", temp_view=false}={})
+    getMediaURL(mediaId, {screen="illust", temp_view=false}={})
     {
-        console.assert(media_id != null, "Invalid illust_id", media_id);
+        console.assert(mediaId != null, "Invalid illust_id", mediaId);
 
         let args = helpers.args.location;
 
         // Check if this is a local ID.
-        if(helpers.is_media_id_local(media_id))
+        if(helpers.is_media_id_local(mediaId))
         {
-            if(helpers.parse_media_id(media_id).type == "folder")
+            if(helpers.parse_media_id(mediaId).type == "folder")
             {
                 // If we're told to show a folder: ID, always go to the search page, not the illust page.
                 screen = "search";
@@ -479,21 +487,21 @@ ppixiv.App = class
         }
 
         // If this is a user ID, just go to the user page.
-        let { type, id } = helpers.parse_media_id(media_id);
+        let { type, id } = helpers.parse_media_id(mediaId);
         if(type == "user")
             return new helpers.args(`/users/${id}/artworks#ppixiv`);
 
         let old_media_id = this.data_source.get_current_media_id(args);
         let [old_illust_id] = helpers.media_id_to_illust_id_and_page(old_media_id);
 
-        // Update the URL to display this media_id.  This stays on the same data source,
+        // Update the URL to display this mediaId.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
         this._set_active_screen_in_url(args, screen);
-        this.data_source.set_current_media_id(media_id, args);
+        this.data_source.set_current_media_id(mediaId, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
-        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
+        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(mediaId);
         if(page == null)
             args.hash.delete("page");
         else
@@ -521,9 +529,9 @@ ppixiv.App = class
     // Show an illustration by ID.
     //
     // This actually just sets the history URL.  We'll do the rest of the work in popstate.
-    show_media(media_id, {add_to_history=false, ...options}={})
+    show_media(mediaId, {add_to_history=false, ...options}={})
     {
-        let args = this.get_media_url(media_id, options);
+        let args = this.getMediaURL(mediaId, options);
         helpers.navigate(args, { add_to_history });
     }
 
@@ -563,14 +571,14 @@ ppixiv.App = class
 
     get navigate_out_enabled()
     {
-        if(this.current_screen_name != "illust" || this.data_source == null)
+        if(this.currentScreenName != "illust" || this.data_source == null)
             return false;
 
-        let media_id = this.data_source.get_current_media_id(helpers.args.location);
-        if(media_id == null)
+        let mediaId = this.data_source.get_current_media_id(helpers.args.location);
+        if(mediaId == null)
             return false;
             
-        let info = media_cache.get_media_info_sync(media_id, { full: false });
+        let info = media_cache.get_media_info_sync(mediaId, { full: false });
         if(info == null)
             return false;
 
@@ -583,24 +591,24 @@ ppixiv.App = class
         if(!this.navigate_out_enabled)
             return;
             
-        let media_id = this.data_source.get_current_media_id(helpers.args.location);
-        if(media_id == null)
+        let mediaId = this.data_source.get_current_media_id(helpers.args.location);
+        if(mediaId == null)
             return;
 
-        let args = helpers.get_url_for_id(media_id, { manga: true });
+        let args = helpers.get_url_for_id(mediaId, { manga: true });
         this.navigate_from_image_to_search(args);
     }
 
     // This is called by screen_illust when it wants screen_search to try to display a
     // media ID in a data source, so it's ready for a transition to start.  This only
     // has an effect if search isn't already active.
-    scroll_search_to_media_id(data_source, media_id)
+    scroll_search_to_media_id(data_source, mediaId)
     {
-        if(this.current_screen_name == "search")
+        if(this.currentScreenName == "search")
             return;
 
         this.screen_search.set_data_source(data_source);
-        this.screen_search.scroll_to_media_id(media_id);
+        this.screen_search.scroll_to_media_id(mediaId);
     }
 
     // Navigate to args.
@@ -614,7 +622,7 @@ ppixiv.App = class
     {
         // If phistory.permanent isn't active, just navigate normally.  This is only used
         // on mobile.
-        if(!ppixiv.phistory.permanent)
+        if(!phistory.permanent)
         {
             helpers.navigate(args);
             return;
@@ -622,14 +630,14 @@ ppixiv.App = class
 
         // Compare the canonical URLs, so we'll return to the entry in history even if the search
         // page doesn't match.
-        let previous_url = ppixiv.phistory.previous_state_url;
+        let previous_url = phistory.previous_state_url;
         let canonical_previous_url = previous_url? data_source.get_canonical_url(previous_url):null;
         let canonical_new_url = data_source.get_canonical_url(args.url);
         let same_url = helpers.are_urls_equivalent(canonical_previous_url, canonical_new_url);
         if(same_url)
         {
             console.log("Navigated search is last in history, going there instead");
-            ppixiv.phistory.back();
+            phistory.back();
         }
         else
         {
@@ -921,7 +929,7 @@ ppixiv.App = class
 
     // Load binary resources into blobs, so we don't copy images into every
     // place they're used.
-    async load_resource_blobs()
+    async loadResourceBlobs()
     {
         // Load data URLs into blobs.
         for(let [name, dataURL] of Object.entries(ppixiv.resources))
@@ -937,23 +945,7 @@ ppixiv.App = class
         }
     }
 
-    show_logged_out_message(force)
-    {
-        // Unless forced, don't show the message if we've already shown it recently.
-        // A session might last for weeks, so we don't want to force it to only be shown
-        // once, but we don't want to show it repeatedly.
-        let last_shown = window.sessionStorage.showed_logout_message || 0;
-        let time_since_shown = Date.now() - last_shown;
-        let hours_since_shown = time_since_shown / (60*60*1000);
-        if(!force && hours_since_shown < 6)
-            return;
-
-        window.sessionStorage.showed_logout_message = Date.now();
-
-        alert("Please log in to use ppixiv.");
-    }
-
-    temporarily_hide_document()
+    _temporarilyHideDocument()
     {
         if(document.documentElement == null)
             return;
@@ -962,23 +954,23 @@ ppixiv.App = class
         document.documentElement.style.backgroundColor = "#000";
     }
 
-    undo_temporarily_hide_document()
+    _undoTemporarilyHideDocument()
     {
         document.documentElement.style.filter = "";
         document.documentElement.style.backgroundColor = "";
     }
 
     // When viewing an image, toggle the slideshow on or off.
-    toggle_slideshow()
+    toggleSlideshow()
     {
         // Add or remove slideshow=1 from the hash.  If we're not on the illust view, use
         // the URL of the image the user clicked, otherwise modify the current URL.
         let args = helpers.args.location;
-        let viewing_illust = this.current_screen_name == "illust";
+        let viewing_illust = this.currentScreenName == "illust";
         if(viewing_illust)
             args = helpers.args.location;
         else
-            args = this.get_media_url(this.media_id);
+            args = this.getMediaURL(this.media_id);
 
         let enabled = args.hash.get("slideshow") == "1"; // not hold
         if(enabled)
@@ -991,14 +983,14 @@ ppixiv.App = class
         helpers.navigate(args, { add_to_history: !viewing_illust, cause: "toggle slideshow" });
     }
 
-    get slideshow_mode()
+    get slideshowMode()
     {
         return helpers.args.location.hash.get("slideshow");
     }
 
-    loop_slideshow()
+    loopSlideshow()
     {
-        if(this.current_screen_name != "illust")
+        if(this.currentScreenName != "illust")
             return;
 
         let args = helpers.args.location;
@@ -1015,7 +1007,7 @@ ppixiv.App = class
     //
     // This is usually used from a search, and displays a slideshow for the current
     // search.  It can also be called while on an illust from slideshow_staging_dialog.
-    get slideshow_url()
+    get slideshowURL()
     {
         let data_source = this.data_source;
         if(data_source == null)

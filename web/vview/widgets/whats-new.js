@@ -1,6 +1,7 @@
-"use strict";
+import { helpers } from 'vview/ppixiv-imports.js';
+import widget from 'vview/widgets/widget.js';
 
-let _update_history = [
+let updateHistory = [
     {
         version: 172,
         text: `
@@ -336,21 +337,21 @@ This can be enabled in preferences, and may become the default in a future relea
     },
 ];
 
-ppixiv.whats_new = class extends ppixiv.widget
+export default class WhatsNew extends widget
 {
     // Return the newest revision that exists in history.  This is always the first
     // history entry.
-    static latest_history_revision()
+    static latestHistoryRevision()
     {
-        return _update_history[0].version;
+        return updateHistory[0].version;
     }
 
     // Return the latest interesting history entry.
     //
     // We won't highlight the "what's new" icon for boring history entries.
-    static latest_interesting_history_revision()
+    static latestInterestingHistoryRevision()
     {
-        for(let history of _update_history)
+        for(let history of updateHistory)
         {
             if(history.boring)
                 continue;
@@ -364,23 +365,22 @@ ppixiv.whats_new = class extends ppixiv.widget
 
     // Set html[data-whats-new-updated] for highlights when there are What's New updates.
     // This updates automatically if whats-new-last-viewed-version is updated.
-    static handle_last_viewed_version()
+    static handleLastViewedVersion()
     {
         let refresh = () => {
             //let whats_new_button = this.container.querySelector(".settings-page-button[data-page='whats_new']");
-            let last_viewed_version = settings.get("whats-new-last-viewed-version", 0);
+            let lastViewedVersion = ppixiv.settings.get("whats-new-last-viewed-version", 0);
     
             // This was stored as a string before, since it came from GM_info.script.version.  Make
             // sure it's an integer.
-            last_viewed_version = parseInt(last_viewed_version);
+            lastViewedVersion = parseInt(lastViewedVersion);
     
-            let new_updates = last_viewed_version < whats_new.latest_interesting_history_revision();
-            helpers.set_dataset(document.documentElement.dataset, "whatsNewUpdated", new_updates);
+            let newUpdates = lastViewedVersion < WhatsNew.latestInterestingHistoryRevision();
+            helpers.set_dataset(document.documentElement.dataset, "whatsNewUpdated", newUpdates);
         };
         refresh();
-        settings.addEventListener("whats-new-last-viewed-version", refresh);
+        ppixiv.settings.addEventListener("whats-new-last-viewed-version", refresh);
     }
-
 
     constructor({...options}={}) 
     {
@@ -392,15 +392,15 @@ ppixiv.whats_new = class extends ppixiv.widget
         `});
 
         this.container.addEventListener("click", this.onclick);
-        settings.set("whats-new-last-viewed-version", whats_new.latest_history_revision());
+        ppixiv.settings.set("whats-new-last-viewed-version", WhatsNew.latestHistoryRevision());
 
         this.refresh();
     }
 
     onclick = (e) =>
     {
-        let explanation_button = e.target.closest(".explanation-button");
-        if(explanation_button)
+        let explanationButton = e.target.closest(".explanation-button");
+        if(explanationButton)
         {
             e.preventDefault();
             e.stopPropagation();
@@ -412,16 +412,16 @@ ppixiv.whats_new = class extends ppixiv.widget
 
     refresh()
     {
-        let items_box = this.container.querySelector(".contents");
-        for(let node of items_box.querySelectorAll(".item"))
+        let itemsBox = this.container.querySelector(".contents");
+        for(let node of itemsBox.querySelectorAll(".item"))
             node.remove();
 
-        let github_top_url = "https://github.com/ppixiv/ppixiv/";
+        let githubTopURL = "https://github.com/ppixiv/ppixiv/";
 
-        for(let idx = 0; idx < _update_history.length; ++idx)
+        for(let idx = 0; idx < updateHistory.length; ++idx)
         {
-            let update = _update_history[idx];
-            let previous_update = _update_history[idx+1];
+            let update = updateHistory[idx];
+            let previousUpdate = updateHistory[idx+1];
             let entry = this.create_template({name: "item", html: `
                 <div class=item>
                     <a class=rev href=#></a>
@@ -433,12 +433,11 @@ ppixiv.whats_new = class extends ppixiv.widget
             rev.innerText = "r" + update.version;
 
             // Link to the change list between this revision and the next revision that has release notes.
-            let previous_version = previous_update? ("r" + previous_update.version):"r1";
-            rev.href = `${github_top_url}/compare/${previous_version}...r${update.version}`;
+            let previousVersion = previousUpdate? ("r" + previousUpdate.version):"r1";
+            rev.href = `${githubTopURL}/compare/${previousVersion}...r${update.version}`;
 
             entry.querySelector(".text").innerHTML = update.text;
-            items_box.appendChild(entry);
+            itemsBox.appendChild(entry);
         }
     }
-};
-
+}

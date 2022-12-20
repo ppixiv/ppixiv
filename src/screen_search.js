@@ -323,7 +323,7 @@ class thumbnail_ui_desktop extends ppixiv.widget
     refresh_slideshow_button()
     {
         let node = this.container.querySelector("A.slideshow");
-        node.href = ppixiv.app.slideshow_url.url;
+        node.href = ppixiv.app.slideshowURL.url;
     }
 
     // Refresh the highlight for the "expand all posts" button.
@@ -389,7 +389,7 @@ let thumbnail_ui_mobile = class extends ppixiv.widget
 
         this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refresh_search());
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
-        this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(ppixiv.app.slideshow_url));
+        this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(ppixiv.app.slideshowURL));
         this.container.querySelector(".menu").addEventListener("click", (e) => new mobile_edit_search_dialog());
 
         this.container.querySelector(".back-button").addEventListener("click", () => {
@@ -628,9 +628,9 @@ ppixiv.screen_search = class extends ppixiv.screen
         this.search_view.scroll_to_media_id(media_id);
     }
 
-    get_rect_for_media_id(media_id)
+    getRectForMediaId(media_id)
     {
-        return this.search_view.get_rect_for_media_id(media_id);
+        return this.search_view.getRectForMediaId(media_id);
     }
     
     set_data_source(data_source)
@@ -801,7 +801,7 @@ ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
 {
     static show()
     {
-        let slideshow_args = ppixiv.app.slideshow_url;
+        let slideshow_args = ppixiv.app.slideshowURL;
         if(slideshow_args == null)
             return;
 

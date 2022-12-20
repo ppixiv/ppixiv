@@ -1,5 +1,3 @@
-"use strict";
-
 // Encode a Pixiv video to MJPEG, using an MKV container.
 //
 // Other than having to wrangle the MKV format, this is easy: the source files appear to always
@@ -7,22 +5,28 @@
 // than the loss Pixiv forces by reencoding everything to JPEG).  The result is standard and plays
 // in eg. VLC, but it's not a WebM file and browsers don't support it.  These can also be played
 // when reading from the local API, since it'll decode these videos and turn them back into a ZIP.
-ppixiv.ugoira_downloader_mjpeg = class
+
+console.log("imported");
+import encodeMKV from "vview/misc/encode_mkv.js";
+import ZipImageDownloader from 'vview/misc/zip-image-downloader.js';
+
+export default class PixivUgoiraDownloader
 {
-    constructor(illust_data, progress)
+    constructor(illustData, progress)
     {
-        this.illust_data = illust_data;
+        this.illustData = illustData;
         this.onprogress = progress;
-        this.metadata = illust_data.ugoiraMetadata;
-        this.mime_type = illust_data.ugoiraMetadata.mime_type;
+        this.metadata = illustData.ugoiraMetadata;
+        this.mimeType = illustData.ugoiraMetadata.mimeType;
         this.frames = [];
 
-        this.load_all_frames();
+        this.loadAllFrames();
     }
 
-    async load_all_frames()
+    async loadAllFrames()
     {
-        message_widget.singleton.show(`Downloading video...`);
+        // XXX
+        // message_widget.singleton.show(`Downloading video...`);
 
         let downloader = new ZipImageDownloader(this.metadata.originalSrc, {
             onprogress: (progress) => {
@@ -39,37 +43,38 @@ ppixiv.ugoira_downloader_mjpeg = class
         
         while(1)
         {
-            let file = await downloader.get_next_frame();
+            let file = await downloader.getNextFrame();
             if(file == null)
                 break;
             this.frames.push(file);
         }
 
-        message_widget.singleton.hide();
+        // XXX
+        // message_widget.singleton.hide();
 
-        // Some posts have the wrong dimensions in illust_data (63162632).  If we use it, the resulting
+        // Some posts have the wrong dimensions in illustData (63162632).  If we use it, the resulting
         // file won't play.  Decode the first image to find the real resolution.
         var img = document.createElement("img");
-        var blob = new Blob([this.frames[0]], {type: this.mime_type || "image/png"});
-        var first_frame_url = URL.createObjectURL(blob);
-        img.src = first_frame_url;
+        var blob = new Blob([this.frames[0]], {type: this.mimeType || "image/png"});
+        var firstFrameURL = URL.createObjectURL(blob);
+        img.src = firstFrameURL;
 
-        await helpers.wait_for_image_load(img);
+        await ppixiv.helpers.wait_for_image_load(img);
 
-        URL.revokeObjectURL(first_frame_url);
+        URL.revokeObjectURL(firstFrameURL);
         let width = img.naturalWidth;
         let height = img.naturalHeight;
 
         try {
-            var encoder = new encode_mkv(width, height);
+            var encoder = new encodeMKV(width, height);
             
             // Add each frame to the encoder.
-            var frame_count = this.illust_data.ugoiraMetadata.frames.length;
-            for(var frame = 0; frame < frame_count; ++frame)
+            var frameCount = this.illustData.ugoiraMetadata.frames.length;
+            for(var frame = 0; frame < frameCount; ++frame)
             {
-                var frame_data = this.frames[frame];
+                var frameData = this.frames[frame];
                 let duration = this.metadata.frames[frame].delay;
-                encoder.add(frame_data, duration);
+                encoder.add(frameData, duration);
             };
 
             // There's no way to encode the duration of the final frame of an MKV, which means the last frame
@@ -80,13 +85,13 @@ ppixiv.ugoira_downloader_mjpeg = class
             //
             // In theory we could set the "invisible" bit on this frame ("decoded but not displayed"), but that
             // doesn't seem to be used, at least not by VLC.
-            var frame_data = this.frames[frame_count-1];
-            encoder.add(frame_data, 0);
+            var frameData = this.frames[frameCount-1];
+            encoder.add(frameData, 0);
             
             // Build the file.
             var mkv = encoder.build();
-            var filename = this.illust_data.userName + " - " + this.illust_data.illustId + " - " + this.illust_data.illustTitle + ".mkv";
-            helpers.save_blob(mkv, filename);
+            var filename = this.illustData.userName + " - " + this.illustData.illustId + " - " + this.illustData.illustTitle + ".mkv";
+            ppixiv.helpers.save_blob(mkv, filename);
         } catch(e) {
             console.error(e);
         };

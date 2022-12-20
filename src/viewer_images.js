@@ -209,7 +209,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         } = this.options;
 
         this._should_restore_history = restore_history;
-        this._slideshow_mode = slideshow;
+        this._slideshowMode = slideshow;
         this._onnextimage = onnextimage;
 
         // Tell the inpaint editor about the image.
@@ -328,7 +328,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this._pointer_listener.check_missed_clicks();
 
         // Don't show low-res previews during slideshows.
-        if(this._slideshow_mode)
+        if(this._slideshowMode)
             preview_url = url;
         
         // If this is a local image, ask local_api whether we should use the preview image for quick
@@ -409,7 +409,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
         // until we actually display it so it doesn't run while there's nothing visible.
-        if(this._slideshow_mode)
+        if(this._slideshowMode)
             this.pause_animation = true;
 
         // If we don't have a main URL, stop here.  We only have the preview to display.
@@ -1222,9 +1222,9 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     {
         // Decide which animation mode to use.
         let animation_mode;
-        if(this._slideshow_mode == "loop")
+        if(this._slideshowMode == "loop")
             animation_mode = "loop";
-        else if(this._slideshow_mode != null)
+        else if(this._slideshowMode != null)
             animation_mode = "slideshow";
         else if(ppixiv.settings.get("auto_pan"))
             animation_mode = "auto-pan";
@@ -1628,7 +1628,7 @@ ppixiv.viewer_images_desktop = class extends ppixiv.viewer_images
 
     _pointerevent = (e) =>
     {
-        if(e.mouseButton != 0 || this._slideshow_mode)
+        if(e.mouseButton != 0 || this._slideshowMode)
             return;
 
         if(e.pressed && this.captured_pointer_id == null)
@@ -1763,7 +1763,7 @@ ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
         super(options);
 
         this.container.addEventListener("pointerdown", (e) => {
-            if(this._slideshow_mode || !this._animations_running)
+            if(this._slideshowMode || !this._animations_running)
                 return;
 
             // Taps during panning animations stop the animation.  Mark them as partially
@@ -1779,14 +1779,14 @@ ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
 
             onactive: () => {
                 // Stop pan animations if the touch scroller becomes active.
-                if(!this._slideshow_mode)
+                if(!this._slideshowMode)
                     this._stop_animation();
             },
 
             // Return the current position in client coordinates.
             get_position: () => {
                 // We're about to start touch dragging, so stop any running pan.  Don't stop slideshows.
-                if(!this._slideshow_mode)
+                if(!this._slideshowMode)
                     this._stop_animation();
 
                 let x = this._center_pos[0] * this.current_width;
@@ -1801,7 +1801,7 @@ ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
             // Set the current position in client coordinates.
             set_position: ({x, y}) =>
             {
-                if(this._slideshow_mode)
+                if(this._slideshowMode)
                     return;
 
                 this._stop_animation();
@@ -1819,7 +1819,7 @@ ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
             // Zoom by the given factor, centered around the given client position.
             adjust_zoom: ({ratio, centerX, centerY}) =>
             {
-                if(this._slideshow_mode)
+                if(this._slideshowMode)
                     return;
 
                 this._stop_animation();
@@ -1943,7 +1943,7 @@ ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
 
     toggle_zoom(e)
     {
-        if(this._slideshow_mode)
+        if(this._slideshowMode)
             return;
 
         // Stop any animation first, so we adjust the zoom relative to the level we finalize

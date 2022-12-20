@@ -374,8 +374,10 @@ ppixiv.settings_widgets = {
 
                 return widget;
             },
-            whats_new: () => {
-                let widget = new whats_new({
+            whats_new: async() => {
+                let { default: WhatsNew } = await ppixiv.importModule("vview/widgets/whats-new.js");
+
+                let widget = new WhatsNew({
                     ...global_options,
                 });
 

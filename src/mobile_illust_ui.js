@@ -43,16 +43,16 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
 
         this.container.querySelector(".button-view-manga").addEventListener("click", this.clicked_view_manga);
 
-        this.toggle_slideshow_button = this.container.querySelector(".button-toggle-slideshow");
-        this.toggle_slideshow_button.addEventListener("click", (e) => {
-            ppixiv.app.toggle_slideshow();
+        this.toggleSlideshow_button = this.container.querySelector(".button-toggle-slideshow");
+        this.toggleSlideshow_button.addEventListener("click", (e) => {
+            ppixiv.app.toggleSlideshow();
             this.parent.hide();
             this.refresh();
         });
 
         this.toggle_loop_button = this.container.querySelector(".button-toggle-loop");
         this.toggle_loop_button.addEventListener("click", (e) => {
-            ppixiv.app.loop_slideshow();
+            ppixiv.app.loopSlideshow();
             this.parent.hide();
             this.refresh();
         });
@@ -127,8 +127,8 @@ let mobile_illust_ui_top_page = class extends ppixiv.widget
         button_view_manga.dataset.popup = "View manga pages";
         button_view_manga.hidden = !ppixiv.app.navigate_out_enabled;
 
-        helpers.set_class(this.toggle_slideshow_button, "selected", ppixiv.app.slideshow_mode == "1");
-        helpers.set_class(this.toggle_loop_button, "selected", ppixiv.app.slideshow_mode == "loop");
+        helpers.set_class(this.toggleSlideshow_button, "selected", ppixiv.app.slideshowMode == "1");
+        helpers.set_class(this.toggle_loop_button, "selected", ppixiv.app.slideshowMode == "loop");
         helpers.set_class(this.container.querySelector(".button-bookmark"), "enabled", true);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so

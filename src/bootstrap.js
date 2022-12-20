@@ -91,6 +91,25 @@ async function Bootstrap(env)
         return success;
     }
 
+    // Load modules into script nodes with the "internal" type.  These will be loaded
+    // by AppStartup.
+    for(let [name, path] of Object.entries(env.init.modules))
+    {
+        let source = env.resources[path];
+        if(!source)
+        {
+            console.error("Source file missing:", path);
+            continue;
+        }
+
+        let script = document.createElement("script");
+        script.type = "vview/module";
+        script.dataset.module = name;
+        script.dataset.sourceRoot = "https://desktop.zewt.org/web/";
+        script.textContent = source;
+        document.documentElement.appendChild(script);
+    }
+
     // Create window.ppixiv.
     run_script(`window.ppixiv = ${JSON.stringify(ppixiv)}`, { path: "environment" });
 

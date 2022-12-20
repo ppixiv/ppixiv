@@ -495,7 +495,8 @@ ppixiv.actions = class
 
         if(download_type == "MKV")
         {
-            new ugoira_downloader_mjpeg(illust_data);
+            let { default: PixivUgoiraDownloader } = await ppixiv.importModule("vview/misc/pixiv-ugoira-downloader.js");
+            new PixivUgoiraDownloader(illust_data);
             return;
         }
 
@@ -566,6 +567,7 @@ ppixiv.actions = class
         }
 
         // Create the ZIP.
+        let { default: create_zip } = await ppixiv.importModule("vview/misc/create_zip.js");
         var zip = new create_zip(filenames, results);
         var filename = user_info.name + " - " + illust_data.illustId + " - " + illust_data.illustTitle + ".zip";
         helpers.save_blob(zip, filename);

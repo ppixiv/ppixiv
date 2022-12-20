@@ -95,6 +95,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             source = this.illust_data.ugoiraMetadata.originalSrc;
         }
 
+        let { default: ZipImagePlayer } = await ppixiv.importModule("vview/widgets/zip-image-player.js");
+
         // Create the player.
         this.player = new ZipImagePlayer({
             metadata: this.illust_data.ugoiraMetadata,
@@ -110,9 +112,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             onfinished: () => onnextimage(this),
         });            
 
-        this.player.video_interface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abort_controller.signal });
+        this.player.videoInterface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abort_controller.signal });
 
-        this.video_ui.video_changed({player: this, video: this.player.video_interface});
+        this.video_ui.video_changed({player: this, video: this.player.videoInterface});
 
         this.refresh_focus();
     }
@@ -242,8 +244,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
     update_seek_bar()
     {
         // Update the seek bar.
-        let current_time = this.player.get_current_frame_time();
-        let duration = this.player.get_seekable_duration();
+        let current_time = this.player.getCurrentFrameTime();
+        let duration = this.player.getSeekableDuration();
         this.set_seek_bar({current_time, duration});
     }
 
@@ -272,7 +274,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             case "Digit9": speed = 2.00; break;
             }
 
-            this.player.set_speed(speed);
+            this.player.setSpeed(speed);
             return;
         }
 
@@ -301,7 +303,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
                 return;
 
             this.pause();
-            this.player.set_current_frame(this.player.get_frame_count() - 1);
+            this.player.setCurrentFrame(this.player.getFrameCount() - 1);
             return;
 
         case "KeyQ":
@@ -312,10 +314,10 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
                 return;
 
             this.pause();
-            var current_frame = this.player.get_current_frame();
+            var current_frame = this.player.getCurrentFrame();
             var next = e.code == "KeyW";
             var new_frame = current_frame + (next?+1:-1);
-            this.player.set_current_frame(new_frame);
+            this.player.setCurrentFrame(new_frame);
             return;
         }
     }
@@ -369,7 +371,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         this.refresh_focus();
 
         if(seconds != null)
-            this.player.set_current_frame_time(seconds);
+            this.player.setCurrentFrameTime(seconds);
     };
 }
 

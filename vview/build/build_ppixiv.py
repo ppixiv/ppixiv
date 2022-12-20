@@ -436,13 +436,32 @@ class Build(object):
         result.append(f'env.version = "{self.get_release_version()}";')
         result.append('env.resources = {};\n')
 
+        output_resources = collections.OrderedDict()
+
+        # Find modules, and add their contents as resources.
+        modules = {}
+        modules_top = Path('web/vview')
+        for root, dirs, files in os.walk(modules_top):
+            for file in files:
+                path = Path(root) / file
+
+                # web/vview/module/path.js -> vview/module/path.js
+                relative_path = path.relative_to(modules_top)
+                url_path = 'vview' / relative_path
+                modules[url_path.as_posix()] = url_path.as_posix()
+
+                with path.open('rt', encoding='utf-8') as input_file:
+                    script = input_file.read()
+
+                script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), path.as_posix())
+                script = to_javascript_string(script)
+                output_resources[url_path.as_posix()] = script
+
         # Add the list of source files to resources, so bootstrap.js knows what to load.
         init = {
             'source_files': source_files,
+            'modules': modules,
         }
-        result.append(f'env.init = {json.dumps(init, indent=4)};\n')
-
-        output_resources = collections.OrderedDict()
 
         # Add resources.  These are already encoded as JavaScript strings, including quotes
         # around the string), so just add them directly.
@@ -459,6 +478,8 @@ class Build(object):
                     script = to_javascript_string(script)
 
                 output_resources[fn] = script
+
+        result.append(f'env.init = {json.dumps(init, indent=4)};\n')
 
         # Output resources.  We do it this way instead of just putting everything in a dictionary
         # and JSON-encoding the dictionary so that source files are output in a readable format.  If

@@ -949,7 +949,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         
     get _is_zoom_ui_enabled()
     {
-        return this._on_click_viewer != null && this._on_click_viewer.slideshow_mode == null;
+        return this._on_click_viewer != null && this._on_click_viewer.slideshowMode == null;
     }
 
     set_data_source(data_source)

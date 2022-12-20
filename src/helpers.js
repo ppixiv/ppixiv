@@ -2155,32 +2155,6 @@ ppixiv.helpers = {
         return -1;
     },
 
-    // pako/lib/zlib/crc32.js, MIT license: https://github.com/nodeca/pako/
-    _crcTable: (() =>
-    {
-        let table = [];
-        for(let n = 0; n < 256; n++)
-        {
-            let c = n;
-            for(let k = 0; k < 8; k++)
-            {
-                c = ((c&1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
-            }
-            table[n] = c;
-        }
-
-        return table;
-    })(),
-
-    crc32(buf)
-    {
-        let crc = 0 ^ (-1);
-        for(let i = 0; i < buf.length; i++)
-            crc = (crc >>> 8) ^ ppixiv.helpers._crcTable[(crc ^ buf[i]) & 0xFF];
-    
-        return crc ^ (-1); // >>> 0;
-    },
-    
     // Return a promise that waits for the given event on node.
     wait_for_event(node, name, { abort_signal=null }={})
     {

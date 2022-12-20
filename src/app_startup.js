@@ -1,3 +1,363 @@
+
+// This loads a dictionary of modules:
+//
+// {
+//     "module/path": "module source"
+// }
+//
+// The modules can then be imported, and import each other with their given paths.
+// This allows us to load modules packaged within our user script, and import then
+// mostly normally.
+//
+// One limitation is that relative paths won't work.  All imports need to use the
+// path given when the module is loaded.  This is a limitation of import maps.
+//
+// See ModuleImporterShim for a polyfill for browsers that don't support import maps.
+class ModuleImporter
+{
+    constructor()
+    {
+        // We're not using Babel for this code path, but if it's loaded, make sure it's
+        // not messing with script tags.
+        if(window.Babel)
+            Babel.disableScriptTags();
+
+        this._knownModules = new Set();
+    }
+
+    load(scripts)
+    {
+        let imports = { };
+        for(let [path, {source}] of Object.entries(scripts))
+        {
+            let blob = new Blob([source], { type: "application/javascript" });
+            let blobURL = URL.createObjectURL(blob);
+            imports[path] = blobURL;
+            this._knownModules.add(path);
+        }
+
+        // Generate an import map for our scripts.
+        let importMap = document.realCreateElement("script");
+        importMap.type = "importmap";
+        importMap.textContent = JSON.stringify({ imports }, null, 4);
+        document.head.appendChild(importMap);
+    }
+
+    import = async(modulePath) =>
+    {
+        // This code path uses the browser's built-in import maps, but we still expect to see
+        // all imports during loading.
+        if(!this._knownModules.has(modulePath))
+            throw new TypeError("Dynamic module doesn't exist: " + modulePath);
+
+        return import(modulePath);
+    }
+}
+
+// This implements ModuleImporter for browsers that don't support import maps.
+//
+// This is complicated.  We need to parse each source file and replace imports for
+// each module with a blob URL for that module.  However, circular imports mean we
+// don't know all blob URLs in time: to generate module1's imports we need module2's
+// URL, but to create module2's URL we need module1's URL.  To work around this we
+// parse out the exports from each module, and generate a shim module for each that
+// dynamically imports the module URL (which is known by the time the module is imported)
+// and exports the original symbols.
+class ModuleImporterShim
+{
+    constructor()
+    {
+        this._info = new Map();
+    }
+
+    static async loadBabel()
+    {
+        if(this.Babel)
+            return this.Babel;
+
+        let Babel = await this._fetchBabel();
+        Babel.disableScriptTags();
+        return Babel;
+    }
+
+    // Fetch Babel if it wasn't packaged.
+    static _fetchBabel()
+    {
+        // Stop if Babel is already loaded.
+        if(window.Babel)
+            return window.Babel;
+
+        // If we're already loading it, return the running fetch.
+        if(this._babelPromise)
+            return this._babelPromise;
+
+        console.log("Loading Babel...");
+        return this._babelPromise = new Promise((accept, reject) => {
+            let babel = document.realCreateElement("script");
+            babel.src = "https://unpkg.com/@babel/standalone@7.20.6/babel.js";
+            babel.crossOrigin = true;
+            
+            // The entire rest of the world uses base64 to encode SHA hashes.
+            babel.integrity = "sha256-zPE9CoD1Tjcxc1WB5hd9X2p/h4seD2gnUg0IOmOrO/c=";
+            document.head.appendChild(babel);
+            babel.onload = () => {
+                // Take the interface out of globals and return it.
+                let Babel = window.Babel;
+                delete window.Babel;
+                accept(Babel);
+            };
+            babel.onerror = (e) => {
+                reject(e);
+            };
+        });
+    }
+
+    // This finds the exports in each script.
+    _findExportsPlugin = ({ types }) =>
+    {
+        return {
+            visitor: {
+                ExportDeclaration: (path) =>
+                {
+                    // XXX: these are all probably the wrong way to get these
+
+                    // export function foo()
+                    if(path.node.declaration?.id)
+                    {
+                        // console.log(`${this.processing} exports declaration:`, path.node.declaration.id.name);
+                        this.currentScriptInfo.exports.push(path.node.declaration.id.name);
+                    }
+
+                    // export { foo, bar }
+                    let specs = path.node.specifiers;
+                    if(specs != null)
+                    {
+                        for(let spec of specs)
+                        {
+                            // console.log(`${this.processing} exports:`, spec.exported.name);
+                            this.currentScriptInfo.exports.push(spec.exported.name);
+                        }
+                    }
+                },
+
+                // Remember if this module has a default export.
+                ExportDefaultDeclaration: (path) => {
+                    // console.log(`${this.processing} exports default`);
+                    this.currentScriptInfo.exportsDefault = true;
+                },
+
+                ImportDeclaration: (path) =>
+                {
+                    const source = path.get('source');
+                    if(source.node === null)
+                        return;
+
+                    let importPath = source.node.value;
+                    this.currentScriptInfo.imports.push(importPath);
+                },
+
+            }
+        }
+    }
+
+    // Remap imports in each script to blob URLs.
+    _remapImportsPlugin = ({ types }) =>
+    {
+        return {
+            visitor: {
+                ImportDeclaration: (path) =>
+                {
+                    const source = path.get('source');
+                    if(source.node === null)
+                        return;
+
+                    // If we've already processed imports for this file and have a blob URL for it, just
+                    // use it.
+                    let importPath = source.node.value;
+                    let importInfo = this._info.get(importPath);
+
+                    if(importInfo == null)
+                    {
+                        // XXX: why is filename blank? same reason for source maps missing the filename?
+                        let { start } = path.node.loc;
+                        throw new Error(`${start.line}: import "${importPath}" doesn't exist`);
+                    }
+
+                    console.assert(importInfo.importWrapperURL);
+                    source.replaceWith(types.stringLiteral(importInfo.importWrapperURL));
+                },
+            }
+        };
+    }
+
+    _generateImportWrapper(importPath)
+    {
+        let importInfo = this._info.get(importPath);
+        let { exports, exportsDefault } = importInfo;
+
+        // Import the module this is a stub for.
+        let importStub = ``;
+
+        importStub += "try {\n";
+
+        importStub += `
+// Stub for ${importPath}
+let url = window._importMappings[${JSON.stringify(importPath)}];
+// console.log("Importing (for ${importPath}):", url);
+var module = await import(url);
+// console.log("Imported ${importPath}");
+        `;
+        importStub += '} catch(e) { console.log("buh", e); }';
+
+        // Re-export its named exports:
+        if(exports.length > 0)
+        {
+            importStub += `
+let { ${exports.join(", ")} } = module;
+export { ${exports.join(", ")} };
+            `;
+        }
+
+        // Re-export its default export:
+        if(exportsDefault)
+        {
+            importStub += `
+let _default = module.default;
+export default _default;
+`;
+        }
+
+        // Add a dummy source URL, so these make sense in the inspector.
+        importStub += `//# sourceURL=${window.origin}/shims/${importPath}`;
+
+        let stubBlob = new Blob([importStub], { type: "application/javascript" });
+        let importWrapperURL = URL.createObjectURL(stubBlob);
+        console.log("Import wrapper URL:", importPath, importWrapperURL);
+        importInfo.importWrapperURL = importWrapperURL;
+    }
+
+    // Load a set of scripts.  Return a mapping from script names to blob URLs.
+    async load(scripts)
+    {
+        let Babel = await ModuleImporterShim.loadBabel();
+        Babel.registerPlugin("find-exports", this._findExportsPlugin);
+        Babel.registerPlugin("remap-imports", this._remapImportsPlugin);
+
+        // This accumulates mappings from paths to blob URLs, and is global because it's
+        // used by stubs.
+        window._importMappings ??= { };
+
+        // Pass 1: find exports
+        for(let [path, { source }] of Object.entries(scripts))
+        {
+            this.processing = path;
+            let scriptInfo = {
+                imports: [],
+                exports: [],
+            };
+
+            // Store scriptInfo so the plugin can access it.
+            this.currentScriptInfo = scriptInfo;
+
+            try {
+                let { ast } = Babel.transform(source, {
+                    filename: path,
+                    plugins: ['find-exports'],
+                    ast: true,
+                    code: false,
+                });
+
+                // Stash the AST so it can be reused for the second pass.
+                scriptInfo.ast = ast;
+            } finally {
+                this.processing = null;
+                this.currentScriptInfo = null;
+            }
+            this._info.set(path, scriptInfo);
+        }
+        console.log("Info:", this._info);
+
+        // Check for recursive imports.  This is possible to import with some shenanigans, but
+        // it's a pain and I don't need it just yet.
+        let checkForRecursion = (path, stack) =>
+        {
+            let alreadyOnStack = stack.indexOf(path) != -1;
+            stack.push(path);
+
+            try {
+                if(alreadyOnStack)
+                    throw new Error("Import recursion detected: " + stack.join(" -> "));
+        
+                let info = this._info.get(path);
+                for(let import_path of info.imports)
+                    checkForRecursion(import_path, stack);
+            } finally {
+                stack.pop();
+            }
+        }
+
+        for(let path of this._info.keys())
+            checkForRecursion(path, []);
+
+        // Create a shim loader for each file.
+        for(let path of Object.keys(scripts))
+            this._generateImportWrapper(path);
+
+        // Pass 2: remap imports
+        //
+        // This reused the AST from the first pass.
+        // XXX: but we don't get sourcesContent if we do that
+        for(let [path, {source, sourceRoot}] of Object.entries(scripts))
+        {
+            let importInfo = this._info.get(path);
+
+            let result = Babel.transform(source, {
+            //let result = Babel.transformFromAst(importInfo.ast, null, {
+                filename: path,
+                plugins: ['remap-imports'],
+                sourceType: "module",
+                generatorOpts: {
+                    sourceFileName: path,
+                    sourceMaps: "inline",
+                    //sourceRoot,
+
+                    // Make sure Babel doesn't try to fetch remote source maps.
+                    inputSourceMap: false,
+                }
+            });
+
+            let { code, map } = result;
+
+            // Why isn't Babel filling this in?
+            map.file = path;
+
+            map = JSON.stringify(map);
+            let encodedSourceMap = btoa(map);
+            let sourceMap = `//# sourceMappingURL=data:application/json;base64,${encodedSourceMap}`
+            code += "\n";
+            code += sourceMap;
+
+            let blob = new Blob([code], { type: "application/javascript" });
+            importInfo.blobURL = URL.createObjectURL(blob);
+            console.log("Real URL:", path, importInfo.blobURL);
+
+
+            // Store this blob URL so it can be imported by stubs.
+            window._importMappings[path] = importInfo.blobURL;
+        }
+    }
+
+    // Dynamically import a loaded module.
+    import = async(modulePath) =>
+    {
+        let module_info = this._info.get(modulePath);
+        if(module_info == null)
+            throw new TypeError("Dynamic module doesn't exist: " + modulePath);
+
+        return await import(module_info.importWrapperURL);
+    }
+};
+
 // Early setup.  If we're running in a user script, this is the entry point for regular
 // app code that isn't running in the script sandbox, where we interact with the page
 // normally and don't need to worry about things like unsafeWindow.
@@ -36,10 +396,55 @@ ppixiv.AppStartup = class
         // that we don't want to do before we know we're going to proceed.
         this._cleanup_environment();
 
+        await this.loadModules();
+
         // Run the app.
-        new ppixiv.App();
+        let { default: App } = await ppixiv.importModule("vview/app.js");
+
+        console.log("Launching app");
+        new App();
     }
     
+    async loadModules()
+    {
+        let scripts = { };
+
+        // Collect modules added to the document by bootstrap.js.
+        for(let node of document.querySelectorAll("[type='vview/module']"))
+        {
+            let source = node.innerText;
+            let sourceRoot = node.dataset.sourceRoot;
+            scripts[node.dataset.module] = {
+                source, sourceRoot
+            };
+                
+            node.remove();
+        }
+
+        // TODO: enable for older FF + iOS
+        let useShim = true;
+        let moduleProcessorClass = useShim? ModuleImporterShim:ModuleImporter;
+        let processor = new moduleProcessorClass();
+        ppixiv.importModule = processor.import;
+
+        await processor.load(scripts);
+
+        // Force all scripts to be imported.  This is just so we catch errors early.
+        for(let path of Object.keys(scripts))
+        {
+            console.log(path);
+            if(path != "vview/misc/pixiv-ugoira-downloader.js")
+            continue; // XXX
+                //console.log("foo");
+            try {
+                await ppixiv.importModule(path);
+            } catch(e) {
+                console.error("error", e);
+            }
+        }
+        console.log("--- done loading");
+    }
+
     // Block until DOMContentLoaded.
     _wait_for_content_loaded()
     {
@@ -129,9 +534,25 @@ ppixiv.AppStartup = class
                 e.preventDefault();
                 e.stopPropagation();
 
-                this.show_logged_out_message(true);
+                this.showLoggedOutMessage(true);
             });
         }
+    }
+
+    showLoggedOutMessage(force)
+    {
+        // Unless forced, don't show the message if we've already shown it recently.
+        // A session might last for weeks, so we don't want to force it to only be shown
+        // once, but we don't want to show it repeatedly.
+        let lastShown = window.sessionStorage.showedLogoutMessage || 0;
+        let timeSinceShown = Date.now() - lastShown;
+        let hoursSinceShown = timeSinceShown / (60*60*1000);
+        if(!force && hoursSinceShown < 6)
+            return;
+
+        window.sessionStorage.showedLogoutMessage = Date.now();
+
+        alert("Please log in to use ppixiv.");
     }
 
     refresh_disabled_ui(disabled_ui)

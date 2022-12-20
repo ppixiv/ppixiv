@@ -1,6 +1,6 @@
 "use strict";
 
-ppixiv.install_polyfills = function()
+export default function installPolyfills()
 {
     // Make IDBRequest an async generator.
     //
