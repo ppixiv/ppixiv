@@ -1,7 +1,9 @@
-"use strict";
+import widget from 'vview/widgets/widget.js';
+import { helpers } from 'vview/ppixiv-imports.js';
+import SavedSearchTags from 'vview/misc/saved-search-tags.js';
 
 // Handle showing the search history and tag edit dropdowns.
-ppixiv.tag_search_box_widget = class extends ppixiv.widget
+export class TagSearchBoxWidget extends widget
 {
     constructor({...options})
     {
@@ -32,7 +34,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             button: this.input_element,
 
             create_box: ({...options}) => {
-                let dropdown = new tag_search_dropdown_widget({
+                let dropdown = new TagSearchDropdownWidget({
                     input_element: this.container,
                     parent: this,
                     saved_position: this.saved_dropdown_position,
@@ -111,7 +113,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
             return;
 
         // Add this tag to the recent search list.
-        saved_search_tags.add(tags);
+        SavedSearchTags.add(tags);
 
         // If we're submitting by pressing enter on an input element, unfocus it and
         // close any widgets inside it (tag dropdowns).
@@ -127,7 +129,7 @@ ppixiv.tag_search_box_widget = class extends ppixiv.widget
     }
 }
 
-ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
+class TagSearchDropdownWidget extends widget
 {
     constructor({input_element, saved_position, ...options})
     {
@@ -178,15 +180,15 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             let width = parseInt(this.container.style.width);
             if(isNaN(width))
                 width = 600;
-            settings.set("tag-dropdown-width", width);
+            ppixiv.settings.set("tag-dropdown-width", width);
         });
         observer.observe(this.container, { attributes: true });
 
         // Restore input-dropdown's width.
-        this.input_dropdown.style.width = settings.get("tag-dropdown-width", "400px");
+        this.input_dropdown.style.width = ppixiv.settings.get("tag-dropdown-width", "400px");
 
         // tag-dropdown-width may have "px" baked into it.  Use parseInt to remove it.
-        let width = settings.get("tag-dropdown-width", "400");
+        let width = ppixiv.settings.get("tag-dropdown-width", "400");
         width = parseInt(width);
 
         this.container.style.setProperty('--width', `${width}px`);
@@ -321,14 +323,14 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             // Find its index in the list.
             let move_after_idx = -1;
             if(entry_to_place_after.group_name)
-                move_after_idx = saved_search_tags.find_index({group: entry_to_place_after.group_name});
+                move_after_idx = SavedSearchTags.find_index({group: entry_to_place_after.group_name});
             else if(entry_to_place_after.dataset.tag)
-                move_after_idx = saved_search_tags.find_index({tag: entry_to_place_after.dataset.tag});
+                move_after_idx = SavedSearchTags.find_index({tag: entry_to_place_after.dataset.tag});
 
             if(move_after_idx != -1)
             {
                 // Move the tag after move_after_idx.
-                saved_search_tags.move(this.dragging_tag, move_after_idx+1);
+                SavedSearchTags.move(this.dragging_tag, move_after_idx+1);
                 return;
             }
         }
@@ -383,8 +385,8 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 return; // cancelled
             
             // Group names identify the group, so don't allow adding a group that already exists.
-            // saved_search_tags.add won't allow this, but check so we can tell the user.
-            let tag_groups = new Set(saved_search_tags.get_all_groups().keys());
+            // SavedSearchTags.add won't allow this, but check so we can tell the user.
+            let tag_groups = new Set(SavedSearchTags.get_all_groups().keys());
             if(tag_groups.has(label))
             {
                 message_widget.singleton.show(`Group "${label}" already exists`);
@@ -392,7 +394,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             }
 
             // Add the group.
-            saved_search_tags.add(null, { group: label });
+            SavedSearchTags.add(null, { group: label });
 
             // The edit will update automatically, but that happens async and may not have
             // completed yet.  Force an update now so we can scroll the new group into view.
@@ -436,7 +438,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             {
                 e.stopPropagation();
                 e.preventDefault();
-                saved_search_tags.move_group(tag_section.group_name, { down: move_group_down != null });
+                SavedSearchTags.move_group(tag_section.group_name, { down: move_group_down != null });
                 return;
             }
 
@@ -451,7 +453,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 // it.  Otherwise, ask the user.
                 //
                 // maybe only expand one group at a time
-                let tag_groups = new Set(saved_search_tags.get_all_groups().keys());
+                let tag_groups = new Set(SavedSearchTags.get_all_groups().keys());
                 tag_groups.delete(null); // ignore the recents group
                 let add_to_group = "Saved tags";
                 if(tag_groups.size == 1)
@@ -461,10 +463,10 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                     // For now, add to the bottommost uncollapsed group.  This is a group which is
                     // closest to recents, where the user should be able to see where the tag he
                     // saved went.
-                    let all_groups = new Set(saved_search_tags.get_all_groups().keys());
+                    let all_groups = new Set(SavedSearchTags.get_all_groups().keys());
                     all_groups.delete(null);
 
-                    let collapsed_groups = saved_search_tags.get_collapsed_tag_groups();
+                    let collapsed_groups = SavedSearchTags.get_collapsed_tag_groups();
                     add_to_group = null;
                     for(let group of all_groups)
                     {
@@ -485,14 +487,14 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 console.log(`Adding search "${entry.dataset.tag}" to group "${add_to_group}"`);
 
                 // If the group we're adding to is collapsed, uncollapse it.
-                if(saved_search_tags.get_collapsed_tag_groups().has(add_to_group))
+                if(SavedSearchTags.get_collapsed_tag_groups().has(add_to_group))
                 {
                     console.log(`Uncollapsing group ${add_to_group} because we're adding to it`);
-                    saved_search_tags.set_tag_group_collapsed(add_to_group, false);
+                    SavedSearchTags.set_tag_group_collapsed(add_to_group, false);
                 }
 
                 // Add or change the tag to a saved tag.
-                saved_search_tags.add(entry.dataset.tag, {group: add_to_group, add_to_end: true});
+                SavedSearchTags.add(entry.dataset.tag, {group: add_to_group, add_to_end: true});
 
                 // We tried to keep the new tag in view, but scroll it into view if it isn't, such as
                 // if we had to expand the group and the scroll position is in the wrong place now.
@@ -514,7 +516,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                     return; // cancelled
 
                 new_tags = new_tags.trim();
-                saved_search_tags.modify_tag(entry.dataset.tag, new_tags);                
+                SavedSearchTags.modify_tag(entry.dataset.tag, new_tags);                
                 return;
             }
 
@@ -527,13 +529,13 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
                 if(entry != null)
                 {
-                    saved_search_tags.remove(entry.dataset.tag);
+                    SavedSearchTags.remove(entry.dataset.tag);
                     return;
                 }
 
                 // This isn't a tag, so it must be a group.  If the group has no items in it, just remove
                 // it.  If it does have items, confirm first.
-                let tags_in_group = saved_search_tags.get_all_groups().get(tag_section.group_name);
+                let tags_in_group = SavedSearchTags.get_all_groups().get(tag_section.group_name);
                 if(tags_in_group.length > 0)
                 {
                     let header, text = null;
@@ -555,7 +557,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
                 console.log("Deleting group:", tag_section.group_name);
                 console.log("Containing tags:", tags_in_group);
-                saved_search_tags.delete_group(tag_section.group_name);
+                SavedSearchTags.delete_group(tag_section.group_name);
 
                 return;
             }
@@ -574,7 +576,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 if(new_group_name == null || new_group_name == tag_section.group_name)
                     return; // cancelled
 
-                saved_search_tags.rename_group(tag_section.group_name, new_group_name);
+                SavedSearchTags.rename_group(tag_section.group_name, new_group_name);
                 return;
             }
         }
@@ -584,7 +586,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         {
             e.stopPropagation();
             e.preventDefault();
-            saved_search_tags.set_tag_group_collapsed(tag_section.group_name, "toggle");
+            SavedSearchTags.set_tag_group_collapsed(tag_section.group_name, "toggle");
             return;
         }
     }
@@ -786,7 +788,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
                 en: tag.tag_translation
             };
         }
-        tag_translations.get().add_translations_dict(translations);
+        ppixiv.tag_translations.get().add_translations_dict(translations);
 
         // Store the results.
         this.current_autocomplete_results = [];
@@ -1054,7 +1056,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
 
         let autocompleted_tags = this.current_autocomplete_results || [];
 
-        let tags_by_group = saved_search_tags.get_all_groups();
+        let tags_by_group = SavedSearchTags.get_all_groups();
 
         let all_saved_tags = [];
         for(let saved_tag of tags_by_group.values())
@@ -1084,7 +1086,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         let translated_tags;
         if(this.dragging_tag == null)
         {
-            translated_tags = await tag_translations.get().get_translations(all_tags, "en");
+            translated_tags = await ppixiv.tag_translations.get().get_translations(all_tags, "en");
         
             // Check if we were aborted while we were loading tags.
             if(abort_signal.aborted)
@@ -1124,7 +1126,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
             if(group_name == null)
                 continue;
 
-            let collapsed = saved_search_tags.get_collapsed_tag_groups().has(group_name);
+            let collapsed = SavedSearchTags.get_collapsed_tag_groups().has(group_name);
             this.input_dropdown_contents.appendChild(this.create_separator(group_name, {
                 icon: collapsed? "mat:folder":"mat:folder_open",
                 is_user_section: true,
@@ -1141,7 +1143,7 @@ ppixiv.tag_search_dropdown_widget = class extends ppixiv.widget
         }
 
         // Show recent searches.  This group always exists, but hide it if it's empty.
-        let recents_collapsed = saved_search_tags.get_collapsed_tag_groups().has(null);
+        let recents_collapsed = SavedSearchTags.get_collapsed_tag_groups().has(null);
         let recent_tags = tags_by_group.get(null);
         if(recent_tags.length)
             this.input_dropdown_contents.appendChild(this.create_separator("Recent tags", {

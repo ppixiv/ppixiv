@@ -232,10 +232,48 @@ export default _default;
 
         let stubBlob = new Blob([importStub], { type: "application/javascript" });
         let importWrapperURL = URL.createObjectURL(stubBlob);
-        console.log("Import wrapper URL:", importPath, importWrapperURL);
+        // console.log("Import wrapper URL:", importPath, importWrapperURL);
         importInfo.importWrapperURL = importWrapperURL;
     }
 
+
+    static base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+    // 2022 and we still don't have a usable base64 API
+    static encodeBase64(utf8)
+    {
+        let base64Chars = this.base64Chars;
+        let encoder = new TextEncoder();
+        let bytes = encoder.encode(utf8);
+
+        let result = "";
+        let i = 0;
+        while(i < bytes.length)
+        {
+            let chr1 = bytes[i++];
+            let chr2 = bytes[i++];
+            let chr3 = bytes[i++];
+
+            let enc1 = chr1 >> 2;
+            let enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+            let enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+            let enc4 = chr3 & 63;
+
+            result += base64Chars[enc1] + base64Chars[enc2] + base64Chars[enc3] + base64Chars[enc4];
+        }
+
+        if((bytes.length % 3) == 2)
+        {
+            result = result.slice(0, result.length-1);
+            result += '=';
+        }
+        else if((bytes.length % 3) == 1)
+        {
+            result = result.slice(0, result.length-2);
+            result += '==';
+        }
+        return result;
+    }    
     // Load a set of scripts.  Return a mapping from script names to blob URLs.
     async load(scripts)
     {
@@ -277,6 +315,17 @@ export default _default;
         }
         console.log("Info:", this._info);
 
+        // Check that all imports exist.
+        for(let [path, info] of this._info.entries())
+        {
+            for(let importPath of info.imports)
+            {
+                let info = this._info.get(importPath);
+                if(info == null)
+                    throw new Error(`xxx ${path} import ${importPath} doesn't exist`);
+            }
+        }
+
         // Check for recursive imports.  This is possible to import with some shenanigans, but
         // it's a pain and I don't need it just yet.
         let checkForRecursion = (path, stack) =>
@@ -289,8 +338,9 @@ export default _default;
                     throw new Error("Import recursion detected: " + stack.join(" -> "));
         
                 let info = this._info.get(path);
-                for(let import_path of info.imports)
-                    checkForRecursion(import_path, stack);
+                console.assert(info);
+                for(let importPath of info.imports)
+                    checkForRecursion(importPath, stack);
             } finally {
                 stack.pop();
             }
@@ -298,7 +348,7 @@ export default _default;
 
         for(let path of this._info.keys())
             checkForRecursion(path, []);
-
+        
         // Create a shim loader for each file.
         for(let path of Object.keys(scripts))
             this._generateImportWrapper(path);
@@ -331,16 +381,20 @@ export default _default;
             // Why isn't Babel filling this in?
             map.file = path;
 
-            map = JSON.stringify(map);
-            let encodedSourceMap = btoa(map);
+            // object -> JSON -> UTF-8 -> base64
+            // How is there still no usable base64 API?
+            map = JSON.stringify(map, null, 4);
+            let sourceMapBlob = new Blob([map], { type: "application/json" });
+            let sourceMapBlobUrl = URL.createObjectURL(sourceMapBlob);
+
+            let encodedSourceMap = ModuleImporterShim.encodeBase64(map);
             let sourceMap = `//# sourceMappingURL=data:application/json;base64,${encodedSourceMap}`
             code += "\n";
             code += sourceMap;
 
             let blob = new Blob([code], { type: "application/javascript" });
             importInfo.blobURL = URL.createObjectURL(blob);
-            console.log("Real URL:", path, importInfo.blobURL);
-
+            // console.log("Real URL:", path, importInfo.blobURL);
 
             // Store this blob URL so it can be imported by stubs.
             window._importMappings[path] = importInfo.blobURL;
@@ -432,10 +486,6 @@ ppixiv.AppStartup = class
         // Force all scripts to be imported.  This is just so we catch errors early.
         for(let path of Object.keys(scripts))
         {
-            console.log(path);
-            if(path != "vview/misc/pixiv-ugoira-downloader.js")
-            continue; // XXX
-                //console.log("foo");
             try {
                 await ppixiv.importModule(path);
             } catch(e) {

@@ -1678,10 +1678,14 @@ ppixiv.viewer_images_desktop = class extends ppixiv.viewer_images
             if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
                 return;
 
-            // Tell hide_mouse_cursor_on_idle that the mouse cursor should be hidden, even though the
+            // Tell HideMouseCursorOnIdle that the mouse cursor should be hidden, even though the
             // cursor may have just been moved.  This prevents the cursor from appearing briefly and
             // disappearing every time a zoom is released.
-            track_mouse_movement.singleton.simulate_inactivity();
+            // XXX
+            (async() => {
+                let { TrackMouseMovement } = await ppixiv.importModule("vview/misc/hide-mouse-cursor-on-idle.js");
+                TrackMouseMovement.singleton.simulate_inactivity();
+            })();
            
             this.stop_dragging();
         }

@@ -358,7 +358,7 @@ ppixiv.search_view = class extends ppixiv.widget
         {
             // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
             // try to scroll the search screen to the image that was displayed.
-            if(this.scroll_to_media_id(old_media_id))
+            if(this.scrollToMediaId(old_media_id))
             {
                 console.log("Restored scroll position to:", old_media_id);
                 return;
@@ -1066,7 +1066,7 @@ ppixiv.search_view = class extends ppixiv.widget
             // move the button he clicked around.  If we're collapsing a later page, scroll
             // the first page onscreen so we don't end up in a random scroll position two pages down.
             if(page != 0)
-                this.scroll_to_media_id(helpers.get_media_id_first_page(media_id));
+                this.scrollToMediaId(helpers.get_media_id_first_page(media_id));
         }
     }
 
@@ -1555,7 +1555,7 @@ ppixiv.search_view = class extends ppixiv.widget
             // Quick hack to look up translations, since we're not async:
             (async() => {
                 if(muted_tag)
-                    muted_tag = await tag_translations.get().get_translation(muted_tag);
+                    muted_tag = await ppixiv.tag_translations.get_translation(muted_tag);
                 muted_label.textContent = muted_tag? muted_tag:info.userName;
             })();
 
@@ -1640,7 +1640,7 @@ ppixiv.search_view = class extends ppixiv.widget
 
     // Scroll to media_id if it's available.  This is called when we display the thumbnail view
     // after coming from an illustration.
-    scroll_to_media_id(media_id)
+    scrollToMediaId(media_id)
     {
         // Make sure this image has a thumbnail created if possible.
         this.refresh_images({ forced_media_id: media_id });

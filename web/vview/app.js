@@ -7,6 +7,12 @@ import {
 
 import install_polyfills from 'vview/misc/polyfills.js';
 import WhatsNew from 'vview/widgets/whats-new.js';
+import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
+import { TagSearchBoxWidget } from 'vview/widgets/tag-search-dropdown.js';
+import SavedSearchTags from 'vview/misc/saved-search-tags.js';
+import TagTranslations from 'vview/misc/tag-translations.js';
+import ScreenIllust from 'vview/screen-illust/screen-illust.js';
+import ScreenSearch from 'vview/screen-search/screen-search.js';
 
 // This is the main top-level app controller.
 export default class App
@@ -37,7 +43,13 @@ export default class App
         ppixiv.media_cache = new ppixiv.MediaCache();
         ppixiv.user_cache = new ppixiv.UserCache();
         ppixiv.send_image = new ppixiv.SendImage();
+        ppixiv.tag_translations = new TagTranslations();
         
+        // XXX: Phase these out
+        ppixiv.HideMouseCursorOnIdle = HideMouseCursorOnIdle;
+        ppixiv.TagSearchBoxWidget = TagSearchBoxWidget;
+        ppixiv.SavedSearchTags = SavedSearchTags;
+
         // Run any one-time settings migrations.
         ppixiv.settings.migrate();
 
@@ -107,7 +119,7 @@ export default class App
             for(var preload_user_id in preload.user)
                 ppixiv.user_cache.add_user_data(preload.user[preload_user_id]);
             for(var preload_illust_id in preload.illust)
-                media_cache.add_media_info_full(preload.illust[preload_illust_id]);
+                ppixiv.media_cache.add_media_info_full(preload.illust[preload_illust_id]);
         }
 
         window.addEventListener("click", this.window_onclick_capture);
@@ -238,8 +250,8 @@ export default class App
         WhatsNew.handleLastViewedVersion();
 
         // Create the screens.
-        this.screen_search = new screen_search({ container: document.body });
-        this.screen_illust = new screen_illust({ container: document.body });
+        this.screen_search = new ScreenSearch({ container: document.body });
+        this.screen_illust = new ScreenIllust({ container: document.body });
 
         this.screens = {
             search: this.screen_search,
@@ -367,7 +379,7 @@ export default class App
     {
         // Remember what we were displaying before we start changing things.
         var old_screen = this.screens[this.currentScreenName];
-        var old_media_id = old_screen? old_screen.displayed_media_id:null;
+        var old_media_id = old_screen? old_screen.displayedMediaId:null;
 
         // Get the data source for the current URL.
         let data_source = ppixiv.data_source.create_data_source_for_url(ppixiv.plocation);
@@ -428,7 +440,7 @@ export default class App
             window.dispatchEvent(e);
         }
 
-        new_screen.set_data_source(data_source);
+        new_screen.setDataSource(data_source);
 
         if(this.context_menu)
         {
@@ -436,9 +448,9 @@ export default class App
 
             // If we're showing a media ID, use it.  Otherwise, see if the screen is
             // showing one.
-            let displayed_media_id = mediaId;
-            displayed_media_id ??= new_screen.displayed_media_id;
-            this.context_menu.set_media_id(displayed_media_id);
+            let displayedMediaId = mediaId;
+            displayedMediaId ??= new_screen.displayedMediaId;
+            this.context_menu.set_media_id(displayedMediaId);
         }
 
         // Restore state from history if this is an initial load (which may be
@@ -578,7 +590,7 @@ export default class App
         if(mediaId == null)
             return false;
             
-        let info = media_cache.get_media_info_sync(mediaId, { full: false });
+        let info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
         if(info == null)
             return false;
 
@@ -607,8 +619,8 @@ export default class App
         if(this.currentScreenName == "search")
             return;
 
-        this.screen_search.set_data_source(data_source);
-        this.screen_search.scroll_to_media_id(mediaId);
+        this.screen_search.setDataSource(data_source);
+        this.screen_search.scrollToMediaId(mediaId);
     }
 
     // Navigate to args.
@@ -631,8 +643,8 @@ export default class App
         // Compare the canonical URLs, so we'll return to the entry in history even if the search
         // page doesn't match.
         let previous_url = phistory.previous_state_url;
-        let canonical_previous_url = previous_url? data_source.get_canonical_url(previous_url):null;
-        let canonical_new_url = data_source.get_canonical_url(args.url);
+        let canonical_previous_url = previous_url? ppixiv.data_source.get_canonical_url(previous_url):null;
+        let canonical_new_url = ppixiv.data_source.get_canonical_url(args.url);
         let same_url = helpers.are_urls_equivalent(canonical_previous_url, canonical_new_url);
         if(same_url)
         {

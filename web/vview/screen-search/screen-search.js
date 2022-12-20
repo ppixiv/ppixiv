@@ -1,0 +1,415 @@
+import { helpers } from 'vview/ppixiv-imports.js';
+import DesktopSearchUI from 'vview/screen-search/desktop-search-ui.js';
+import MobileSearchUI from 'vview/screen-search/mobile-search-ui.js';
+
+// The search UI.
+export default class ScreenSearch extends ppixiv.screen
+{
+    constructor(options)
+    {
+        super({...options, template: `
+            <div inert class="screen screen-search-container">
+                <!-- The tree widget for local navigation: -->
+                <div class=local-navigation-box hidden></div>
+
+                <vv-container class=title-bar-container></vv-container>
+
+                <div class="search-results scroll-container">
+                    <div class=top-ui-box hidden></div>
+
+                    <vv-container class=thumbnail-container-box></vv-container>
+                </div>
+
+                <div class=mobile-navigation-bar-container></div>
+            </div>
+        `});
+
+        ppixiv.user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
+        
+        // Add the top search UI if we're on desktop.
+        if(!ppixiv.mobile)
+        {
+            let topUiBox = this.container.querySelector(".top-ui-box");
+            topUiBox.hidden = false;
+
+            this.desktopSearchUi = new DesktopSearchUI({
+                container: topUiBox,
+            });
+
+            // Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
+            // of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
+            // affect opening the UI.
+            new ppixiv.hover_with_delay(topUiBox, 0, 0.25);
+            
+            // Set --ui-box-height to the container's height, which is used by the hover style.
+            let resize = new ResizeObserver(() => {
+                topUiBox.style.setProperty('--ui-box-height', `${topUiBox.offsetHeight}px`);
+            }).observe(topUiBox);
+            this.shutdown_signal.signal.addEventListener("abort", () => resize.disconnect());
+
+            // The ui-on-hover class enables the hover style if it's enabled.
+            let refreshUiOnHover = () => helpers.set_class(topUiBox, "ui-on-hover", ppixiv.settings.get("ui-on-hover") && !ppixiv.mobile);
+            ppixiv.settings.addEventListener("ui-on-hover", refreshUiOnHover, { signal: this.shutdown_signal.signal });
+            refreshUiOnHover();
+        }
+
+        if(ppixiv.mobile)
+        {
+            this.titleBarWidget = new class extends ppixiv.widget {
+                constructor({...options}={})
+                {
+                    super({
+                        ...options,
+                        template: `
+                            <div class=title-bar>
+                                <div class=title-stretch>
+                                    <div class=title></div>
+                                </div>
+                                <div class=data-source-ui></div>
+                            </div>
+                        `
+                    });
+                }
+
+                apply_visibility()
+                {
+                    helpers.set_class(this.container, "shown", this._visible);
+                }
+            }({
+                container: this.container.querySelector(".title-bar-container"),
+            });
+
+            let navigationBarContainer = this.container.querySelector(".mobile-navigation-bar-container");
+            this.thumbnailUiMobile = new MobileSearchUI({
+                container: navigationBarContainer,
+            });
+
+            // Set the height on the nav bar and title for transitions to use.
+            helpers.set_height_as_property(this.querySelector(".title-bar"), "--title-height", {
+                ...this._signal,
+                target: this.container,
+            });
+            helpers.set_height_as_property(this.thumbnailUiMobile.container, "--nav-bar-height", {
+                ...this._signal,
+                target: this.container,
+            });
+    
+            let onchange = () =>
+            {
+                let shown = !this.scroll_listener.scrolled_forwards;
+                this.thumbnailUiMobile.visible = shown;
+                this.titleBarWidget.visible = shown;
+            };
+            
+            let scroller = this.querySelector(".search-results");
+            this.scroll_listener = new ppixiv.ScrollListener({
+                scroller,
+                parent: this,
+                onchange,
+                sticky_ui_node: this.querySelector(".title-bar"),
+            });
+            onchange();
+        }
+
+        ppixiv.muting.singleton.addEventListener("mutes-changed", this.refreshUiForUserId);
+
+        // Zoom the thumbnails on ctrl-mousewheel:
+        this.container.addEventListener("wheel", (e) => {
+            if(!e.ctrlKey)
+                return;
+    
+            e.preventDefault();
+            e.stopImmediatePropagation();
+    
+            let manga_view = this.dataSource?.name == "manga";
+            ppixiv.settings.adjust_zoom(manga_view? "manga-thumbnail-size":"thumbnail-size", e.deltaY > 0);
+        }, { passive: false });
+
+        this.container.addEventListener("keydown", (e) => {
+            let zoom = helpers.is_zoom_hotkey(e);
+            if(zoom != null)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                let manga_view = this.dataSource?.name == "manga";
+                ppixiv.settings.adjust_zoom(manga_view? "manga-thumbnail-size":"thumbnail-size", zoom < 0);
+            }
+        });
+
+        // If the local API is enabled and tags aren't restricted, set up the directory tree sidebar.
+        //
+        // We don't currently show the local navigation panel on mobile.  The UI isn't set up for
+        // it, and it causes thumbnails to flicker while scrolling for some reason.
+        if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only && !ppixiv.mobile)
+        {
+            let local_navigation_box = this.container.querySelector(".local-navigation-box");
+
+            // False if the user has hidden the navigation tree.  Default to false on mobile, since
+            // it takes up a lot of screen space.  Also default to false if we were initially opened
+            // as a similar image search.
+            this.local_navigation_visible = !ppixiv.mobile && ppixiv.plocation.pathname != "/similar";
+
+            this.local_nav_widget = new ppixiv.local_navigation_widget({
+                container: local_navigation_box,
+            });
+
+            // Hack: if the local API isn't enabled, hide the local navigation box completely.  This shouldn't
+            // be needed since it'll hide itself, but this prevents it from flashing onscreen and animating
+            // away when the page loads.  That'll still happen if you have the local API enabled and you're on
+            // a Pixiv page, but this avoids the visual glitch for most users.  I'm not sure how to fix this
+            // cleanly.
+            local_navigation_box.hidden = false;
+        }
+
+        this.search_view = new ppixiv.search_view({
+            container: this.container.querySelector(".thumbnail-container-box"),
+        });
+    }
+
+    get active()
+    {
+        return this._active;
+    }
+
+    deactivate()
+    {
+        super.deactivate();
+        if(!this._active)
+            return;
+        this._active = false;
+
+        this.search_view.deactivate();
+    }
+
+    async activate({ old_media_id })
+    {
+        console.log("Showing search, came from media ID:", old_media_id);
+
+        super.activate();
+
+        this._active = true;
+        this.refresh_ui();
+
+        await this.search_view.activate({ old_media_id });
+    }
+
+    scrollToMediaId(media_id)
+    {
+        this.search_view.scrollToMediaId(media_id);
+    }
+
+    getRectForMediaId(media_id)
+    {
+        return this.search_view.getRectForMediaId(media_id);
+    }
+    
+    setDataSource(data_source)
+    {
+        if(this.dataSource == data_source)
+            return;
+
+        // Remove listeners from the old data source.
+        if(this.dataSource != null)
+            this.dataSource.removeEventListener("updated", this.dataSource_updated);
+
+        this.dataSource = data_source;
+
+        this.search_view.set_data_source(data_source);
+        if(this.desktopSearchUi)
+            this.desktopSearchUi.setDataSource(data_source);
+
+        if(this.current_data_source_ui)
+        {
+            this.current_data_source_ui.shutdown();
+            this.current_data_source_ui = null;
+        }
+    
+        if(this.dataSource == null)
+        {
+            this.refresh_ui();
+            return;
+        }
+
+        if(ppixiv.mobile)
+        {
+            if(this.dataSource.ui)
+            {
+                let data_source_ui_container = this.container.querySelector(".title-bar .data-source-ui");
+                this.current_data_source_ui = new this.dataSource.ui({
+                    data_source: this.dataSource,
+                    container: data_source_ui_container,
+                });
+            }
+        }
+        // Listen to the data source loading new pages, so we can refresh the list.
+        this.dataSource.addEventListener("updated", this.dataSource_updated);
+        this.refresh_ui();
+    };
+
+    data_source_updated = () =>
+    {
+        this.refresh_ui();
+    }
+
+    refresh_search = () =>
+    {
+        ppixiv.app.refresh_current_data_source({remove_search_page: true});
+    }
+
+    refresh_search_from_page = () =>
+    {
+        ppixiv.app.refresh_current_data_source({remove_search_page: false});
+    }
+        
+    refresh_ui = () =>
+    {
+        // Update the title even if we're not active, so it's up to date for transitions.
+        if(this.titleBarWidget)
+        {
+            if(this.dataSource?.get_displaying_text != null)
+            {
+                let text = this.dataSource?.get_displaying_text();
+                this.titleBarWidget.container.querySelector(".title").replaceChildren(text);
+            }
+        }
+
+        if(!this.active)
+            return;
+
+        if(this.desktopSearchUi)
+            this.desktopSearchUi.refreshUi();
+        if(this.thumbnailUiMobile)
+            this.thumbnailUiMobile.refreshUi();
+
+        this.dataSource.set_page_icon();
+        helpers.set_page_title(this.dataSource.page_title || "Loading...");
+        
+        // Refresh whether we're showing the local navigation widget and toggle button.
+        helpers.set_dataset(this.container.dataset, "showNavigation", this.can_show_local_navigation && this.local_navigation_visible);
+
+        this.refreshUiForUserId();
+    };
+
+    refreshUiForUserId()
+    {
+        if(this.desktopSearchUi == null)
+            return;
+
+        this.desktopSearchUi.userInfoLinks.setUserIdAndDataSource({userId: this.viewingUserId, dataSource: this.dataSource});
+    }
+    
+    get can_show_local_navigation()
+    {
+        return this.dataSource?.is_vview && !local_api?.local_info?.bookmark_tag_searches_only;
+    }
+
+    // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
+    get viewingUserId()
+    {
+        if(this.dataSource == null)
+            return null;
+        return this.dataSource.viewingUserId;
+    }
+
+    // If the data source has an associated artist, return the "user:ID" for the user, so
+    // when we navigate back to an earlier search, pulse_thumbnail will know which user to
+    // flash.
+    get displayedMediaId()
+    {
+        if(this.dataSource == null)
+            return super.displayedMediaId;
+
+        let user_id = this.dataSource.viewingUserId;
+        if(user_id != null)
+            return "user:" + user_id;
+
+        let folder_id = this.dataSource.viewing_folder;
+        if(folder_id != null)
+            return folder_id;
+    
+        return super.displayedMediaId;
+    }
+
+    async handleKeydown(e)
+    {
+        if(e.repeat)
+            return;
+
+        if(this.dataSource.name == "vview")
+        {
+            // Pressing ^F while on the local search focuses the search box.
+            if(e.code == "KeyF" && e.ctrlKey)
+            {
+                this.container.querySelector(".local-tag-search-box input").focus();
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            // Pressing ^V while on the local search pastes into the search box.  We don't do
+            // this for other searches since this is the only one I find myself wanting to do
+            // often.
+            if(e.code == "KeyV" && e.ctrlKey)
+            {
+                let text = await navigator.clipboard.readText();
+                let input = this.container.querySelector(".local-tag-search-box input");
+                input.value = text;
+                local_api.navigate_to_tag_search(text, {add_to_history: false});
+            }
+        }
+    }
+}
+
+// Set the page URL to a slideshow, but don't actually start the slideshow.  This lets the
+// user bookmark the slideshow URL before the illust ID changes from "*" to an actual ID.
+// This is mostly just a workaround for an iOS UI bug: there's no way to create a home
+// screen bookmark for a link, only for a URL that's already loaded.
+//
+// This is usually used from the search screen, but there's currently no good place to put
+// it there, so it's inside the settings menu and technically can be accessed while viewing
+// an image.
+ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
+{
+    static show()
+    {
+        let slideshow_args = ppixiv.app.slideshowURL;
+        if(slideshow_args == null)
+            return;
+
+        // Set the slideshow URL without sending popstate, so it'll be the current browser URL
+        // that can be bookmarked but we won't actually navigate to it.  We don't want to navigate
+        // to it since that'll change the placeholder "*" illust ID to a real illust ID, which
+        // isn't what we want to bookmark.
+        helpers.navigate(slideshow_args, { send_popstate: false });
+
+        new slideshow_staging_dialog();
+    }
+
+    constructor({...options}={})
+    {
+        super({...options, header: "Slideshow",
+        template: `
+            <div class=items>
+                This page can be bookmarked. or added to the home screen on iOS.<br>
+                <br>
+                The bookmark will begin a slideshow with the current search.
+            </div>
+        `});
+
+        this.url = helpers.args.location;
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        if(!this.visible)
+        {
+            // If the URL is still pointing at the slideshow, back out to restore the original
+            // URL.  This is needed if we're exiting from the user clicking out of the dialog,
+            // but don't do it if we're exiting from browser back.
+            if(helpers.args.location.toString() == this.url.toString())
+                ppixiv.phistory.back();
+        }
+    }
+};

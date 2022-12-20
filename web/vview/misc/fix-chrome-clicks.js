@@ -13,7 +13,7 @@
 // We mimic Chrome's click detection behavior: an element is counted as a click if
 // the mouseup event is an ancestor of the element that was clicked, or vice versa.
 // This is different from Firefox which uses the distance the mouse has moved.
-ppixiv.fix_chrome_clicks = class 
+export default class FixChromeClicks
 {
     constructor(container)
     {
@@ -23,7 +23,7 @@ ppixiv.fix_chrome_clicks = class
             return;
 
         this.container = container;
-        this.pressed_node = null;
+        this.pressedNode = null;
 
         // Since the pointer events API is ridiculous and doesn't send separate pointerdown
         // events for each mouse button, we have to listen to all clicks in window in order
@@ -41,25 +41,25 @@ ppixiv.fix_chrome_clicks = class
     // mouse up might happen on another node after the mouse down happened in our
     // node.  We only register these while a button is pressed in our node, so we
     // don't have global pointer event handlers installed all the time.
-    start_waiting_for_release()
+    startWaitingForRelease()
     {
-        if(this.pressed_node != null)
+        if(this.pressedNode != null)
         {
-            console.warn("Unexpected call to start_waiting_for_release");
+            console.warn("Unexpected call to startWaitingForRelease");
             return;
         }
         window.addEventListener("pointerup", this.onpointer, true);
         window.addEventListener("pointermove", this.onpointer, true);
     }
 
-    stop_waiting_for_release()
+    stopWaitingForRelease()
     {
-        if(this.pressed_node == null)
+        if(this.pressedNode == null)
             return;
 
         window.removeEventListener("pointerup", this.onpointer, true);
         window.removeEventListener("pointermove", this.onpointer, true);
-        this.pressed_node = null;
+        this.pressedNode = null;
     }
 
     // The pointer events API is nonsensical: button presses generate pointermove
@@ -72,59 +72,59 @@ ppixiv.fix_chrome_clicks = class
         {
             // Start listening to move events.  We only need this while a button
             // is pressed.
-            this.start_waiting_for_release();
+            this.startWaitingForRelease();
         }
 
         if(e.buttons & 1)
         {
             // The primary button is pressed, so remember what element we were on.
-            if(this.pressed_node == null)
+            if(this.pressedNode == null)
             {
                 // console.log("mousedown", e.target.id);
-                this.pressed_node = e.target;
+                this.pressedNode = e.target;
             }
             return;
         }
 
-        if(this.pressed_node == null)
+        if(this.pressedNode == null)
             return;
 
-        var pressed_node = this.pressed_node;
+        var pressedNode = this.pressedNode;
 
         // The button was released.  Unregister our temporary event listeners.
-        this.stop_waiting_for_release();
+        this.stopWaitingForRelease();
 
-        // console.log("released:", e.target.id, "after click on", pressed_node.id);
+        // console.log("released:", e.target.id, "after click on", pressedNode.id);
 
-        var released_node = e.target;
-        var click_target = null;
-        if(helpers.is_above(released_node, pressed_node))
-            click_target = released_node;
-        else if(helpers.is_above(pressed_node, released_node))
-            click_target = pressed_node;
+        var releasedNode = e.target;
+        var clickTarget = null;
+        if(ppixiv.helpers.is_above(releasedNode, pressedNode))
+            clickTarget = releasedNode;
+        else if(ppixiv.helpers.is_above(pressedNode, releasedNode))
+            clickTarget = pressedNode;
 
-        if(click_target == null)
+        if(clickTarget == null)
         {
-            // console.log("No target for", pressed_node, "and", released_node);
+            // console.log("No target for", pressedNode, "and", releasedNode);
             return;
         }
 
         // If the click target is above our container, stop.
-        if(helpers.is_above(click_target, this.container))
+        if(ppixiv.helpers.is_above(clickTarget, this.container))
             return;
 
         // Why is cancelling the event not preventing mouse events and click events?
         e.preventDefault();
-        // console.log("do click on", click_target.id, e.defaultPrevented, e.type);
-        this.send_click_event(click_target, e);
+        // console.log("do click on", clickTarget.id, e.defaultPrevented, e.type);
+        this.sendClickEvent(clickTarget, e);
     }
 
     oncontextmenu = (e) =>
     {
-        if(this.pressed_node != null && !e.defaultPrevented)
+        if(this.pressedNode != null && !e.defaultPrevented)
         {
             console.log("Not sending click because the context menu was opened");
-            this.pressed_node = null;
+            this.pressedNode = null;
         }
     }
 
@@ -151,21 +151,20 @@ ppixiv.fix_chrome_clicks = class
         e.stopImmediatePropagation();
     }
 
-    send_click_event(target, source_event)
+    sendClickEvent(target, sourceEvent)
     {
-        var e = new MouseEvent("click", source_event);
+        var e = new MouseEvent("click", sourceEvent);
         e.synthetic = true;
         target.dispatchEvent(e);
     }
-
 
     shutdown()
     {
         if(!this.enabled)
             return;
 
-        this.stop_waiting_for_release();
-        this.pressed_node = null;
+        this.stopWaitingForRelease();
+        this.pressedNode = null;
 
         this.container.removeEventListener("pointerup", this.onpointer, true);
         this.container.removeEventListener("pointerdown", this.onpointer, true);

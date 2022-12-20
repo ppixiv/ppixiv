@@ -1,14 +1,15 @@
-"use strict";
-
 // A singleton that keeps track of whether the mouse has moved recently.
 //
 // Dispatch "mouseactive" on window when the mouse has moved recently and
 // "mouseinactive" when it hasn't.
-ppixiv.track_mouse_movement = class
+
+import { helpers } from 'vview/ppixiv-imports.js';
+
+export class TrackMouseMovement
 {
     constructor()
     {
-        track_mouse_movement._singleton = this;
+        TrackMouseMovement._singleton = this;
 
         this.force_hidden_until = null;
         this.set_mouse_anchor_timeout = -1;
@@ -18,7 +19,7 @@ ppixiv.track_mouse_movement = class
     }
 
     static _singleton = null;
-    static get singleton() { return track_mouse_movement._singleton; }
+    static get singleton() { return TrackMouseMovement._singleton; }
 
     // True if the mouse is stationary.  This corresponds to the mouseinactive event.
     get stationary() { return !this._active; }
@@ -116,7 +117,7 @@ ppixiv.track_mouse_movement = class
 
 // Hide the mouse cursor when it hasn't moved briefly, to get it out of the way.
 // This only hides the cursor over element.
-ppixiv.hide_mouse_cursor_on_idle = class
+export class HideMouseCursorOnIdle
 {
     static instances = new Set();
     constructor(element)
@@ -124,25 +125,25 @@ ppixiv.hide_mouse_cursor_on_idle = class
         if(ppixiv.mobile)
             return;
 
-        hide_mouse_cursor_on_idle.add_style();
-        hide_mouse_cursor_on_idle.instances.add(this);
+        HideMouseCursorOnIdle.add_style();
+        HideMouseCursorOnIdle.instances.add(this);
 
-        this.track = new track_mouse_movement();
+        this.track = new TrackMouseMovement();
         
         this.element = element;
 
         window.addEventListener("mouseactive", this.refresh_cursor_stationary);
         window.addEventListener("mouseinactive", this.refresh_cursor_stationary);
 
-        settings.addEventListener("no-hide-cursor", hide_mouse_cursor_on_idle.update_from_settings);
-        hide_mouse_cursor_on_idle.update_from_settings();
+        ppixiv.settings.addEventListener("no-hide-cursor", HideMouseCursorOnIdle.update_from_settings);
+        HideMouseCursorOnIdle.update_from_settings();
     }
 
     static disabled_by = new Set();
 
     static add_style()
     {
-        if(hide_mouse_cursor_on_idle.global_style)
+        if(HideMouseCursorOnIdle.global_style)
             return;
 
         // Create the style to hide the mouse cursor.  This hides the mouse cursor on .hide-cursor,
@@ -166,7 +167,7 @@ ppixiv.hide_mouse_cursor_on_idle = class
             .hide-cursor * { cursor: inherit !important; }
         `);
 
-        hide_mouse_cursor_on_idle.global_style = style;
+        HideMouseCursorOnIdle.global_style = style;
     }
 
     static update_from_settings()
@@ -174,7 +175,7 @@ ppixiv.hide_mouse_cursor_on_idle = class
         // If no-hide-cursor is true, disable the style that hides the cursor.  We track cursor
         // hiding and set the local hide-cursor style even if cursor hiding is disabled, so
         // other UI can use it, like video seek bars.
-        hide_mouse_cursor_on_idle.global_style.disabled = !this.is_enabled;
+        HideMouseCursorOnIdle.global_style.disabled = !this.is_enabled;
     }
 
     // Temporarily disable hiding all mouse cursors.  source is a key for the UI that's doing
@@ -186,7 +187,7 @@ ppixiv.hide_mouse_cursor_on_idle = class
 
         this.disabled_by.delete(source);
         this.update_from_settings();
-        for(let instance of hide_mouse_cursor_on_idle.instances)
+        for(let instance of HideMouseCursorOnIdle.instances)
             instance.refresh_hide_cursor();
     }
 
@@ -197,7 +198,7 @@ ppixiv.hide_mouse_cursor_on_idle = class
 
         this.disabled_by.add(source);
         this.update_from_settings();
-        for(let instance of hide_mouse_cursor_on_idle.instances)
+        for(let instance of HideMouseCursorOnIdle.instances)
             instance.refresh_hide_cursor();
     }
 
@@ -213,7 +214,7 @@ ppixiv.hide_mouse_cursor_on_idle = class
 
     static get is_enabled()
     {
-        return !settings.get("no-hide-cursor") && this.disabled_by.size == 0;
+        return !ppixiv.settings.get("no-hide-cursor") && this.disabled_by.size == 0;
     }
 
     refresh_cursor_stationary = (e) =>
@@ -226,8 +227,8 @@ ppixiv.hide_mouse_cursor_on_idle = class
         // cursor-stationary means the mouse isn't moving, whether or not we're hiding
         // the cursor when it's stationary.  hide-cursor is set to actually hide the cursor
         // and UI elements that are hidden with the cursor.
-        let stationary = track_mouse_movement.singleton.stationary;
-        let hidden = stationary && hide_mouse_cursor_on_idle.is_enabled;
+        let stationary = TrackMouseMovement.singleton.stationary;
+        let hidden = stationary && HideMouseCursorOnIdle.is_enabled;
         helpers.set_class(this.element, "hide-cursor", hidden);
         helpers.set_class(this.element, "show-cursor", !hidden);
 
@@ -235,4 +236,3 @@ ppixiv.hide_mouse_cursor_on_idle = class
         helpers.set_class(this.element, "cursor-active", !stationary);
     }
 }
-

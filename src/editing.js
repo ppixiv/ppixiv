@@ -318,9 +318,9 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         // Disable hiding the mouse cursor when editing is enabled.  This also prevents
         // the top button row from being hidden.
         if(showing_crop || showing_inpaint)
-            hide_mouse_cursor_on_idle.disable_all("image-editing");
+            HideMouseCursorOnIdle.disable_all("image-editing");
         else
-            hide_mouse_cursor_on_idle.enable_all("image-editing");
+            HideMouseCursorOnIdle.enable_all("image-editing");
     }
 
     // Store the current data as an undo state.

@@ -6,7 +6,6 @@
 // in eg. VLC, but it's not a WebM file and browsers don't support it.  These can also be played
 // when reading from the local API, since it'll decode these videos and turn them back into a ZIP.
 
-console.log("imported");
 import encodeMKV from "vview/misc/encode_mkv.js";
 import ZipImageDownloader from 'vview/misc/zip-image-downloader.js';
 

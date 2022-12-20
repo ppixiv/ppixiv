@@ -283,7 +283,7 @@ ppixiv.MediaCache = class extends EventTarget
 
             illust_data = illust_result.body;
         }
-        tag_translations.get().add_translations(illust_data.tags.tags);
+        ppixiv.tag_translations.add_translations(illust_data.tags.tags);
 
         // If we have extra data stored for this image, load it.
         let extra_data = await extra_image_data.get.load_all_pages_for_illust(illust_id);

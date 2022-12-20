@@ -893,7 +893,7 @@ function remove_recent_local_search(search)
 
 
 // local_search_box_widget and local_search_dropdown_widget are dumb copy-pastes
-// of tag_search_box_widget and tag_search_dropdown_widget.  They're simpler and
+// of TagSearchBoxWidget and TagSearchDropdownWidget.  They're simpler and
 // much less used, and it didn't seem worth creating a shared base class for these.
 ppixiv.local_search_box_widget = class extends ppixiv.widget
 {

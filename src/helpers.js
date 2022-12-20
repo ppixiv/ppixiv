@@ -1712,7 +1712,7 @@ ppixiv.helpers = {
 
             let tag = helpers._get_search_tags_from_url(url);
             console.log("Adding to tag search history:", tag);
-            saved_search_tags.add(tag);
+            ppixiv.SavedSearchTags.add(tag);
         });
     },
 

@@ -1,18 +1,10 @@
-"use strict";
+import { helpers } from 'vview/ppixiv-imports.js';
 
-ppixiv.tag_translations = class
+export default class TagTranslations
 {
-    // Return the singleton, creating it if needed.
-    static get()
-    {
-        if(tag_translations._singleton == null)
-            tag_translations._singleton = new tag_translations();
-        return tag_translations._singleton;
-    };
-
     constructor()
     {
-        this.db = new key_storage("ppixiv-tag-translations");
+        this.db = new ppixiv.key_storage("ppixiv-tag-translations");
 
         // Firefox's private mode is broken: instead of making storage local to the session and
         // not saved to disk, it just disables IndexedDB entirely, which is lazy and breaks pages.
@@ -108,7 +100,7 @@ ppixiv.tag_translations = class
     async get_tag_info(tags)
     {
         // If the user has disabled translations, don't return any.
-        if(settings.get("disable-translations"))
+        if(ppixiv.settings.get("disable-translations"))
             return {};
 
         let result = {};
@@ -183,7 +175,7 @@ ppixiv.tag_translations = class
     // original tag.
     async get_translation(tag, language="en")
     {
-        let translated_tags = await tag_translations.get().get_translations([tag], "en");
+        let translated_tags = await this.get_translations([tag], "en");
         if(translated_tags[tag])
             return translated_tags[tag];
         else

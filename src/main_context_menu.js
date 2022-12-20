@@ -259,7 +259,11 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         new key_listener("Control", this.ctrl_pressed);
 
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
-        new fix_chrome_clicks(this.container);
+        // XXX
+        (async() => {
+            let { default: FixChromeClicks } = await ppixiv.importModule("vview/misc/fix-chrome-clicks.js");
+            new FixChromeClicks(this.container);
+        })();
 
         this.container.addEventListener("mouseover", this.onmouseover, true);
         this.container.addEventListener("mouseout", this.onmouseout, true);
@@ -574,7 +578,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         // Adjust the fade-in so it's centered around the centered element.
         this.displayed_menu.style.transformOrigin = (pos[0]) + "px " + (pos[1]) + "px";
 
-        hide_mouse_cursor_on_idle.disable_all("context-menu");
+        HideMouseCursorOnIdle.disable_all("context-menu");
 
         // Make sure we're up to date if we deferred an update while hidden.
         this.refresh();
@@ -781,7 +785,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         this.apply_visibility();
 
         this.displayed_menu = null;
-        hide_mouse_cursor_on_idle.enable_all("context-menu");
+        HideMouseCursorOnIdle.enable_all("context-menu");
         this.buttons_down = {};
         ClassFlags.get.set("hide-ui", false);
         window.removeEventListener("blur", this.window_onblur);

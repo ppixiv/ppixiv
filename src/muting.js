@@ -342,7 +342,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
                 tags_to_translate.push(mute.value);
         }
 
-        let translated_tags = await tag_translations.get().get_translations(tags_to_translate);
+        let translated_tags = await ppixiv.tag_translations.get_translations(tags_to_translate);
 
         let create_muted_tag_entry = (tag, tag_list_container) =>
         {
@@ -608,7 +608,7 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
     async refresh_for_data(tags, user_id, username)
     {
         // Do a batch lookup of muted tag translations.
-        let translated_tags = await tag_translations.get().get_translations(tags);
+        let translated_tags = await ppixiv.tag_translations.get_translations(tags);
 
         let create_entry = (label, is_muted) =>
         {

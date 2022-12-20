@@ -870,7 +870,7 @@ ppixiv.data_source = class extends EventTarget
 
     // If we're viewing a page specific to a user (an illustration or artist page), return
     // the user ID we're viewing.  This can change when refreshing the UI.
-    get viewing_user_id()
+    get viewingUserId()
     {
         return null;
     };
@@ -1339,7 +1339,7 @@ ppixiv.data_sources.discovery = class extends data_source
         for(let thumb of thumbs)
             media_ids.push(helpers.illust_id_to_media_id(thumb.id));
 
-        tag_translations.get().add_translations_dict(result.body.tagTranslation);
+        ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
         this.add_page(page, media_ids);
     };
 
@@ -1429,7 +1429,7 @@ ppixiv.data_sources.related_illusts = class extends data_source
         for(let thumb of thumbs)
             media_ids.push(helpers.illust_id_to_media_id(thumb.id));
 
-        tag_translations.get().add_translations_dict(result.body.tagTranslation);
+        ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
         this.add_page(page, media_ids);
     };
 
@@ -1514,7 +1514,7 @@ ppixiv.data_sources.discovery_users = class extends data_source
             });
 
             // This one includes tag translations.
-            tag_translations.get().add_translations_dict(result.body.tagTranslation);
+            ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
         }
 
         if(result.error)
@@ -2102,7 +2102,7 @@ ppixiv.data_sources.artist = class extends data_source
 
     get supports_start_page() { return true; }
 
-    get viewing_user_id()
+    get viewingUserId()
     {
         // /users/13245
         return helpers.get_path_part(this.url, 1);
@@ -2134,13 +2134,13 @@ ppixiv.data_sources.artist = class extends data_source
         let current_tag = this.current_tag;
         if(current_tag != null)
         {
-            this.translated_tags = await tag_translations.get().get_translations([current_tag], "en");
+            this.translated_tags = await ppixiv.tag_translations.get_translations([current_tag], "en");
             this.call_update_listeners();
         }
 
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.user_info = await user_cache.get_user_info_full(this.viewing_user_id);
+        this.user_info = await user_cache.get_user_info_full(this.viewingUserId);
 
         // Update to refresh our page title, which uses user_info.
         this.call_update_listeners();
@@ -2166,7 +2166,7 @@ ppixiv.data_sources.artist = class extends data_source
             // to complete, since we don't need to and it'll cause the search view to take longer to
             // appear.
             let media_ids = this.pages[page-1] || [];
-            media_cache.batch_get_media_info_partial(media_ids, { user_id: this.viewing_user_id });
+            media_cache.batch_get_media_info_partial(media_ids, { user_id: this.viewingUserId });
 
             // Register this page.
             this.add_page(page, media_ids);
@@ -2183,7 +2183,7 @@ ppixiv.data_sources.artist = class extends data_source
                 type == "illust"?"illusts":
                 "manga";
 
-            var request_url = "/ajax/user/" + this.viewing_user_id + "/" + type_for_url + "/tag";
+            var request_url = "/ajax/user/" + this.viewingUserId + "/" + type_for_url + "/tag";
             var result = await helpers.get_request(request_url, {
                 tag: tag,
                 offset: (page-1)*48,
@@ -2221,7 +2221,7 @@ ppixiv.data_sources.artist = class extends data_source
         if(this.accepting_requests)
         {
             links.push({
-                url: new URL(`/users/${this.viewing_user_id}/request#no-ppixiv`, ppixiv.plocation),
+                url: new URL(`/users/${this.viewingUserId}/request#no-ppixiv`, ppixiv.plocation),
                 type: "request",
                 label: "Accepting requests",
             });
@@ -2232,7 +2232,7 @@ ppixiv.data_sources.artist = class extends data_source
     {
         let type = this.viewing_type;
 
-        let result = await helpers.get_request("/ajax/user/" + this.viewing_user_id + "/profile/all", {});
+        let result = await helpers.get_request("/ajax/user/" + this.viewingUserId + "/profile/all", {});
 
         // Remember if this user is accepting requests, so we can add a link.
         this.accepting_requests = result.body.request.showRequestTab;
@@ -2282,7 +2282,7 @@ ppixiv.data_sources.artist = class extends data_source
     async load_booth()
     {
         let booth_request = await helpers.get_request("https://api.booth.pm/pixiv/shops/show.json", {
-            pixiv_user_id: this.viewing_user_id,
+            pixiv_user_id: this.viewingUserId,
             adult: "include",
             limit: 24,
         });
@@ -2290,7 +2290,7 @@ ppixiv.data_sources.artist = class extends data_source
         let booth = await booth_request;
         if(booth.error)
         {
-            console.log(`Error reading Booth profile for ${this.viewing_user_id}`);
+            console.log(`Error reading Booth profile for ${this.viewingUserId}`);
             return;
         }
 
@@ -2344,7 +2344,7 @@ ppixiv.data_sources.artist = class extends data_source
                         big: true,
                         mode: "dropdown",
                     });
-                    this.avatar_widget.set_user_id(data_source.viewing_user_id);
+                    this.avatar_widget.set_user_id(data_source.viewingUserId);
                 }
 
                 class tag_dropdown extends tag_dropdown_widget
@@ -2430,7 +2430,7 @@ ppixiv.data_sources.artist = class extends data_source
     get ui_info()
     {
         return {
-            user_id: this.viewing_user_id,
+            user_id: this.viewingUserId,
         }
     }
 
@@ -2439,7 +2439,7 @@ ppixiv.data_sources.artist = class extends data_source
     {
         // Get user info.  We probably have this on this.user_info, but that async load
         // might not be finished yet.
-        let user_info = await user_cache.get_user_info_full(this.viewing_user_id);
+        let user_info = await user_cache.get_user_info_full(this.viewingUserId);
         console.log("Loading tags for user", user_info.userId);
 
         // Load this artist's common tags.
@@ -2447,7 +2447,7 @@ ppixiv.data_sources.artist = class extends data_source
 
         // Mark the tags in this.post_tags that the user has searched for recently, so they can be
         // marked in the UI.
-        let user_tag_searches = saved_search_tags.get_all_used_tags();
+        let user_tag_searches = ppixiv.SavedSearchTags.get_all_used_tags();
         for(let tag of this.post_tags)
             tag.recent = user_tag_searches.has(tag.tag);
 
@@ -2462,7 +2462,7 @@ ppixiv.data_sources.artist = class extends data_source
         let tags = [];
         for(let tag_info of this.post_tags)
             tags.push(tag_info.tag);
-        this.translated_tags = await tag_translations.get().get_translations(tags, "en");
+        this.translated_tags = await ppixiv.tag_translations.get_translations(tags, "en");
 
         // Refresh the tag list now that it's loaded.
         this.dispatchEvent(new Event("_refresh_ui"));
@@ -2500,7 +2500,7 @@ ppixiv.data_sources.artist = class extends data_source
                 },
             });
         }
-        tag_translations.get().add_translations(translations);
+        ppixiv.tag_translations.add_translations(translations);
 
         // Cache the results on the user info.
         user_info.frequentTags = result.body;
@@ -2706,7 +2706,7 @@ ppixiv.data_source_bookmarks_base = class extends data_source
         this.fetch_bookmark_tag_counts();
         
         // Load the user's info.  We don't need to wait for this to finish.
-        let user_info_promise = user_cache.get_user_info_full(this.viewing_user_id);
+        let user_info_promise = user_cache.get_user_info_full(this.viewingUserId);
         user_info_promise.then((user_info) => {
             // Stop if we were deactivated before this finished.
             if(!this.active)
@@ -2752,7 +2752,7 @@ ppixiv.data_source_bookmarks_base = class extends data_source
             this.load_bookmark_tag_counts(data_source_bookmarks_base.cached_bookmark_tag_counts);
         
         // Fetch bookmark tags.  We can do this in parallel with everything else.
-        var url = "/ajax/user/" + this.viewing_user_id + "/illusts/bookmark/tags";
+        var url = "/ajax/user/" + this.viewingUserId + "/illusts/bookmark/tags";
         var result = await helpers.get_request(url, {});
 
         // Cache this if we're viewing our own bookmarks, so we can display them while
@@ -2859,7 +2859,7 @@ ppixiv.data_source_bookmarks_base = class extends data_source
     async request_bookmarks(page, rest)
     {
         let data = this.get_bookmark_query_params(page, rest);
-        let url = `/ajax/user/${this.viewing_user_id}/illusts/bookmarks`;
+        let url = `/ajax/user/${this.viewingUserId}/illusts/bookmarks`;
         let result = await helpers.get_request(url, data);
 
         if(this.viewing_own_bookmarks())
@@ -3070,11 +3070,11 @@ ppixiv.data_source_bookmarks_base = class extends data_source
     get ui_info()
     {
         return {
-            user_id: this.viewing_own_bookmarks()? null:this.viewing_user_id,
+            user_id: this.viewing_own_bookmarks()? null:this.viewingUserId,
         }
     }
 
-    get viewing_user_id()
+    get viewingUserId()
     {
         // /users/13245/bookmarks
         //
@@ -3086,7 +3086,7 @@ ppixiv.data_source_bookmarks_base = class extends data_source
     // Return true if we're viewing our own bookmarks.
     viewing_own_bookmarks()
     {
-        return this.viewing_user_id == window.global_data.user_id;
+        return this.viewingUserId == window.global_data.user_id;
     }
 
     // Don't show bookmark icons for the user's own bookmarks.  Every image on that page
@@ -3395,7 +3395,7 @@ ppixiv.data_sources.new_works_by_following = class extends data_source
         let data = result.body;
 
         // Add translations.
-        tag_translations.get().add_translations_dict(data.tagTranslation);
+        ppixiv.tag_translations.add_translations_dict(data.tagTranslation);
 
         // Store bookmark tags.
         this.bookmark_tags = data.page.tags;
@@ -3547,7 +3547,7 @@ ppixiv.data_sources.search = class extends data_source
         // data source is created, not every time we navigate back to the search.
         let tag = this._search_tags;
         if(tag)
-            saved_search_tags.add(tag);
+            ppixiv.SavedSearchTags.add(tag);
 
         this.cache_search_title();
     }
@@ -3603,7 +3603,7 @@ ppixiv.data_sources.search = class extends data_source
         let tags = this._search_tags;
         if(tags)
         {
-            tags = await tag_translations.get().translate_tag_list(tags, "en");
+            tags = await ppixiv.tag_translations.translate_tag_list(tags, "en");
             var tag_list = document.createElement("span");
             for(let tag of tags)
             {
@@ -3699,7 +3699,7 @@ ppixiv.data_sources.search = class extends data_source
                 translation: body.tagTranslation[tag],
             });
         }
-        tag_translations.get().add_translations(translations);
+        ppixiv.tag_translations.add_translations(translations);
 
         // /tag/TAG/illustrations returns results in body.illust.
         // /tag/TAG/artworks returns results in body.illustManga.
@@ -4038,7 +4038,7 @@ ppixiv.data_sources.search = class extends data_source
                 });
 
                 // Create the tag dropdown for the search page input.
-                this.tag_search_box = new tag_search_box_widget({ container: this.querySelector(".tag-search-box-container") });
+                this.tag_search_box = new ppixiv.TagSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
 
                 // Fill the search box with the current tag.
                 //
@@ -4076,7 +4076,7 @@ ppixiv.data_sources.follows = class extends data_source
         return true;
     }
 
-    get viewing_user_id()
+    get viewingUserId()
     {
         if(helpers.get_path_part(this.url, 0) == "users")
         {
@@ -4096,7 +4096,7 @@ ppixiv.data_sources.follows = class extends data_source
     {
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.user_info = await user_cache.get_user_info_full(this.viewing_user_id);
+        this.user_info = await user_cache.get_user_info_full(this.viewingUserId);
 
         // Update to refresh our page title, which uses user_info.
         this.call_update_listeners();
@@ -4105,7 +4105,7 @@ ppixiv.data_sources.follows = class extends data_source
         var rest = query_args.get("rest") || "show";
         let acceptingRequests = query_args.get("acceptingRequests") || "0";
 
-        var url = "/ajax/user/" + this.viewing_user_id + "/following";
+        var url = "/ajax/user/" + this.viewingUserId + "/following";
         let args = {
             offset: this.estimated_items_per_page*(page-1),
             limit: this.estimated_items_per_page,
@@ -4258,13 +4258,13 @@ ppixiv.data_sources.follows = class extends data_source
     get ui_info()
     {
         return {
-            user_id: this.viewing_self? null:this.viewing_user_id,
+            user_id: this.viewing_self? null:this.viewingUserId,
         }
     }
 
     get viewing_self()
     {
-        return this.viewing_user_id == window.global_data.user_id;
+        return this.viewingUserId == window.global_data.user_id;
     }
 
     get page_title()
@@ -4499,7 +4499,7 @@ ppixiv.data_sources.completed_requests = class extends data_source
             user_cache.add_user_data(user);
 
         await media_cache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
-        tag_translations.get().add_translations_dict(result.body.tagTranslation);
+        ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
 
         let media_ids = [];
         let request_ids = result.body.page[showing == "latest"? "requestIds":"recommendRequestIds"];

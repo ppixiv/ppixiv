@@ -17,11 +17,11 @@
 // Putting recent tags first allows the older simple tag list format to have the same
 // meaning, so no migrations are needed.
 
-ppixiv.saved_search_tags = class
+export default class SavedSearchTags
 {
     static data()
     {
-        return settings.get("recent-tag-searches") || [];;
+        return ppixiv.settings.get("recent-tag-searches") || [];;
     }
 
     // Return a map of all recent and saved tags, mapping from group names to lists
@@ -68,7 +68,7 @@ ppixiv.saved_search_tags = class
                 data.push(tag);
         }
 
-        settings.set("recent-tag-searches", data);
+        ppixiv.settings.set("recent-tag-searches", data);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
@@ -96,7 +96,7 @@ ppixiv.saved_search_tags = class
         if(this._disable_adding_search_tags || tag == "")
             return;
 
-        let recent_tags = settings.get("recent-tag-searches") || [];
+        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
 
         // If tag is already in the list as a recent tag, remove it.
         if(tag != null)
@@ -140,7 +140,7 @@ ppixiv.saved_search_tags = class
             }
         }
 
-        settings.set("recent-tag-searches", recent_tags);
+        ppixiv.settings.set("recent-tag-searches", recent_tags);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
@@ -164,7 +164,7 @@ ppixiv.saved_search_tags = class
             return;
 
         data[idx] = new_tags;
-        settings.set("recent-tag-searches", data);
+        ppixiv.settings.set("recent-tag-searches", data);
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
         message_widget.singleton.show(`Saved tag updated`);
     }
@@ -221,9 +221,9 @@ ppixiv.saved_search_tags = class
 
         let count = end_idx - start_idx;
 
-        let recent_tags = settings.get("recent-tag-searches") || [];
+        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
         recent_tags.splice(start_idx, count);
-        settings.set("recent-tag-searches", recent_tags);
+        ppixiv.settings.set("recent-tag-searches", recent_tags);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
         message_widget.singleton.show(`Group "${group}" deleted`);
@@ -242,9 +242,9 @@ ppixiv.saved_search_tags = class
             return;
         }
 
-        let recent_tags = settings.get("recent-tag-searches") || [];
+        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
         recent_tags[from_idx].name = to;
-        settings.set("recent-tag-searches", recent_tags);
+        ppixiv.settings.set("recent-tag-searches", recent_tags);
 
         // If this group was collapsed, rename it in collapsed-tag-groups.
         let collapsed_groups = this.get_collapsed_tag_groups();
@@ -252,7 +252,7 @@ ppixiv.saved_search_tags = class
         {
             collapsed_groups.delete(from);
             collapsed_groups.add(to);
-            settings.set("collapsed-tag-groups", [...collapsed_groups]);
+            ppixiv.settings.set("collapsed-tag-groups", [...collapsed_groups]);
         }
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
@@ -260,7 +260,7 @@ ppixiv.saved_search_tags = class
 
     static move_group(group, { down })
     {
-        let data = settings.get("recent-tag-searches") || [];
+        let data = ppixiv.settings.get("recent-tag-searches") || [];
 
         let groups = this.get_all_groups(data);
         let tag_groups = Array.from(groups.keys());
@@ -290,7 +290,7 @@ ppixiv.saved_search_tags = class
 
     static get_collapsed_tag_groups()
     {
-        return new Set(settings.get("collapsed-tag-groups") || []);
+        return new Set(ppixiv.settings.get("collapsed-tag-groups") || []);
     }
     
     // group_name can be null to collapse recents.  If collapse is "toggle", toggle the current value.
@@ -307,11 +307,11 @@ ppixiv.saved_search_tags = class
         else
             collapsed_groups.delete(group_name);
             
-        settings.set("collapsed-tag-groups", [...collapsed_groups]);
+        ppixiv.settings.set("collapsed-tag-groups", [...collapsed_groups]);
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
 
-    // This is a hack used by tag_search_box_widget to temporarily disable adding to history.
+    // This is a hack used by TagSearchBoxWidget to temporarily disable adding to history.
     static disable_adding_search_tags(value)
     {
         this._disable_adding_search_tags = value;
@@ -325,7 +325,7 @@ ppixiv.saved_search_tags = class
     // Return the group name if tag is a saved tag, otherwise null.
     static group_name_for_tag(tag)
     {
-        let recent_tags = settings.get("recent-tag-searches") || [];
+        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
 
         let in_group = null;
         for(let recent_tag of recent_tags)
@@ -346,13 +346,13 @@ ppixiv.saved_search_tags = class
     static remove(tag)
     {
         // Remove tag from the list.  There should normally only be one.
-        let recent_tags = settings.get("recent-tag-searches") || [];
+        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
         let idx = recent_tags.indexOf(tag);
         if(idx == -1)
             return;
 
         recent_tags.splice(idx, 1);
-        settings.set("recent-tag-searches", recent_tags);
+        ppixiv.settings.set("recent-tag-searches", recent_tags);
         
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
@@ -361,7 +361,7 @@ ppixiv.saved_search_tags = class
     static move(tag, to_idx)
     {
         // Remove tag from the list.  There should normally only be one.
-        let recent_tags = settings.get("recent-tag-searches") || [];
+        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
         let idx = recent_tags.indexOf(tag);
         if(idx == -1)
             return;
@@ -376,7 +376,7 @@ ppixiv.saved_search_tags = class
 
         recent_tags.splice(to_idx, 0, tag);
 
-        settings.set("recent-tag-searches", recent_tags);
+        ppixiv.settings.set("recent-tag-searches", recent_tags);
         
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
@@ -385,7 +385,7 @@ ppixiv.saved_search_tags = class
     // doesn't exist.
     static find_index({tag, group, data=null})
     {
-        data ??= settings.get("recent-tag-searches") || [];
+        data ??= ppixiv.settings.get("recent-tag-searches") || [];
 
         for(let idx = 0; idx < data.length; ++idx)
         {

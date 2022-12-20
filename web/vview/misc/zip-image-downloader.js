@@ -1,8 +1,5 @@
-
 // Download a ZIP, returning files as they download in the order they're stored
 // in the ZIP.
-//import foo from "vview/misc/zip-image-downloader.js";
-//console.log(encodeMKV);
 
 // A wrapper for the clunky ReadableStream API that lets us do at basic
 // thing that API forgot about: read a given number of bytes at a time.

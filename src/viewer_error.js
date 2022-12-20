@@ -77,7 +77,7 @@ ppixiv.viewer_error = class extends ppixiv.viewer
 
         if(muted_tag)
         {
-            let translated_tag = await tag_translations.get().get_translation(muted_tag);
+            let translated_tag = await ppixiv.tag_translations.get_translation(muted_tag);
             this.error_text.innerText = translated_tag;
         }
         else if(muted_user)

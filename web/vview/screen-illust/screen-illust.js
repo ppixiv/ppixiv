@@ -1,7 +1,7 @@
-"use strict";
+import { helpers } from 'vview/ppixiv-imports.js';
 
 // The main UI.  This handles creating the viewers and the global UI.
-ppixiv.screen_illust = class extends ppixiv.screen
+export default class ScreenIllust extends ppixiv.screen
 {
     constructor(options)
     {
@@ -23,38 +23,38 @@ ppixiv.screen_illust = class extends ppixiv.screen
             </div>
         `});
         
-        this.current_media_id = null;
-        this.latest_navigation_direction_down = true;
+        this.currentMediaId = null;
+        this.latestNavigationDirectionDown = true;
 
         // Create a UI box and put it in its container.
-        var ui_container = this.container.querySelector(".ui");
-        this.ui = new image_ui({ container: ui_container });
+        let uiContainer = this.container.querySelector(".ui");
+        this.ui = new ppixiv.image_ui({ container: uiContainer });
         
         // Make sure the hover UI isn't shown on mobile.
         if(ppixiv.mobile)
-            ui_container.hidden = true;
+            uiContainer.hidden = true;
 
-        user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
-        media_cache.addEventListener("mediamodified", this.refresh_ui, { signal: this.shutdown_signal.signal });
-        settings.addEventListener("recent-bookmark-tags", this.refresh_ui, { signal: this.shutdown_signal.signal });
+        ppixiv.user_cache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdown_signal.signal });        
+        ppixiv.media_cache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdown_signal.signal });
+        ppixiv.settings.addEventListener("recent-bookmark-tags", this.refreshUi, { signal: this.shutdown_signal.signal });
 
-        this.view_container = this.container.querySelector(".view-container");
+        this.viewContainer = this.container.querySelector(".view-container");
 
         // Remove the "flash" class when the page change indicator's animation finishes.
-        let page_change_indicator = this.container.querySelector(".page-change-indicator");
-        page_change_indicator.addEventListener("animationend", (e) => {
-            page_change_indicator.classList.remove("flash");
+        let pageChangeIndicator = this.container.querySelector(".page-change-indicator");
+        pageChangeIndicator.addEventListener("animationend", (e) => {
+            pageChangeIndicator.classList.remove("flash");
         });
 
         // Desktop UI:
         if(!ppixiv.mobile)
         {
             // Fullscreen on double-click.
-            this.view_container.addEventListener("dblclick", () => {
+            this.viewContainer.addEventListener("dblclick", () => {
                 helpers.toggle_fullscreen();
             });
 
-            new hide_mouse_cursor_on_idle(this.container.querySelector(".mouse-hidden-box"));
+            new ppixiv.HideMouseCursorOnIdle(this.container.querySelector(".mouse-hidden-box"));
 
             this.container.addEventListener("wheel", this.onwheel, { passive: false });
         }
@@ -62,48 +62,48 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // Mobile UI:
         if(ppixiv.mobile)
         {
-            // Create this before mobile_illust_ui so its drag handler is registered first.
+            // Create this before mobileIllustUi so its drag handler is registered first.
             // This makes image change drags take priority over opening the menu.
-            this.drag_image_changer = new DragImageChanger({ parent: this });
+            this.dragImageChanger = new DragImageChanger({ parent: this });
 
-            this.mobile_illust_ui = new mobile_illust_ui({
+            this.mobileIllustUi = new ppixiv.mobile_illust_ui({
                 container: this.container,
                 transition_target: this.container,
             });
 
             // Toggle zoom on double-tap.
-            this.double_tap_handler = new ppixiv.MobileDoubleTapHandler({
-                container: this.view_container,
+            this.doubleTapHandler = new ppixiv.MobileDoubleTapHandler({
+                container: this.viewContainer,
                 signal: this.shutdown_signal.signal,
                 ondbltap: (e) => this.viewer.toggle_zoom(e),
             });
 
-            new IsolatedTapHandler({
-                node: this.view_container,
+            new ppixiv.IsolatedTapHandler({
+                node: this.viewContainer,
                 callback: (e) => {
                     // Show or hide the menu on isolated taps.  Note that most of the time, hiding
-                    // will happen in mobile_illust_ui's oncancelled handler, when a press triggers
+                    // will happen in mobileIllustUi's oncancelled handler, when a press triggers
                     // another scroller (usually TouchScroller).  But, we also handle it here as a
                     // fallback in case that doesn't happen, such as if we're on a video.
-                    this.mobile_illust_ui.toggle();
+                    this.mobileIllustUi.toggle();
                 },
             });
         }
 
         // This handles transitioning between this and the search view.
-        this.drag_to_exit = new ScreenIllustDragToExit({ parent: this });
+        this.dragToExit = new ScreenIllustDragToExit({ parent: this });
 
         this.deactivate();
     }
 
-    set_data_source(data_source)
+    setDataSource(data_source)
     {
         if(data_source == this.data_source)
             return;
 
         if(this.data_source != null)
         {
-            this.data_source.removeEventListener("updated", this.data_source_updated);
+            this.data_source.removeEventListener("updated", this.dataSourceUpdated);
             this.data_source = null;
         }
 
@@ -112,9 +112,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         if(this.data_source != null)
         {
-            this.data_source.addEventListener("updated", this.data_source_updated);
+            this.data_source.addEventListener("updated", this.dataSourceUpdated);
 
-            this.refresh_ui();
+            this.refreshUi();
         }
     }
 
@@ -131,14 +131,14 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // If we have a drag handler for mobile, cancel any drag or animation in progress
         // if the image changes externally or if we're deactivated.
-        if(this.drag_image_changer)
-            this.drag_image_changer.stop();
+        if(this.dragImageChanger)
+            this.dragImageChanger.stop();
 
-        await this.show_image(media_id, { restore_history, initial: !was_active });
+        await this.showImage(media_id, { restore_history, initial: !was_active });
 
         // Tell the dragger to transition us in.
-        if(this.drag_to_exit)
-            this.drag_to_exit.activate();
+        if(this.dragToExit)
+            this.dragToExit.activate();
     }
 
     deactivate()
@@ -152,93 +152,93 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // If we have a drag handler for mobile, cancel any drag or animation in progress
         // if the image changes externally or if we're deactivated.
-        if(this.drag_image_changer)
-            this.drag_image_changer.stop();
+        if(this.dragImageChanger)
+            this.dragImageChanger.stop();
 
-        this.cancel_async_navigation();
+        this.cancelAsyncNavigation();
 
-        if(this.mobile_illust_ui)
+        if(this.mobileIllustUi)
         {
-            this.mobile_illust_ui.media_id = null;
-            this.mobile_illust_ui.set_data_source(null);
+            this.mobileIllustUi.media_id = null;
+            this.mobileIllustUi.set_data_source(null);
         }
 
         // Tell the dragger to transition us out.
-        if(this.drag_to_exit)
-            this.drag_to_exit.deactivate();
+        if(this.dragToExit)
+            this.dragToExit.deactivate();
 
-        this.cleanup_image();
+        this.cleanupImage();
         
         // We leave editing on when navigating between images, but turn it off when we exit to
         // the search.
-        settings.set("image_editing_mode", null);
+        ppixiv.settings.set("image_editing_mode", null);
     }
 
     // Remove the viewer if we no longer want to be displaying it.
-    cleanup_image()
+    cleanupImage()
     {
         if(this._active)
             return;
 
         // Don't remove the viewer if it's still being shown in the exit animation.
-        if(this.drag_to_exit?.is_animating)
+        if(this.dragToExit?.isAnimating)
             return;
 
-        this.remove_viewer();
+        this.removeViewer();
 
         this.wanted_media_id = null;
-        this.current_media_id = null;
+        this.currentMediaId = null;
 
-        this.refresh_ui();
+        this.refreshUi();
 
         // Tell the preloader that we're not displaying an image anymore.  This prevents the next
         // image displayed from triggering speculative loading, which we don't want to do when
         // clicking an image in the thumbnail view.
-        image_preloader.singleton.set_current_image(null);
-        image_preloader.singleton.set_speculative_image(null);
+        ppixiv.image_preloader.singleton.set_current_image(null);
+        ppixiv.image_preloader.singleton.set_speculative_image(null);
 
         // If remote quick view is active, cancel it if we leave the image.
-        if(settings.get("linked_tabs_enabled"))
+        if(ppixiv.settings.get("linked_tabs_enabled"))
         {
             ppixiv.send_image.send_message({
                 message: "send-image",
                 action: "cancel",
-                to: settings.get("linked_tabs", []),
+                to: ppixiv.settings.get("linked_tabs", []),
             });
         }
     }
 
     // Create a viewer for media_id and begin loading it asynchronously.
-    create_viewer({ media_id, early_illust_data, ...options }={})
+    createViewer({ media_id, early_illust_data, ...options }={})
     {
-        let viewer_class;
+        let viewerClass;
 
-        let is_muted = early_illust_data && this.should_hide_muted_image(early_illust_data).is_muted;
-        let is_error = early_illust_data == null;
-        if(is_muted)
+        let isMuted = early_illust_data && this.shouldHideMutedImage(early_illust_data).isMuted;
+        let isError = early_illust_data == null;
+        if(isMuted)
         {
-            viewer_class = viewer_error;
+            viewerClass = viewer_error;
         }
-        else if(is_error)
+        else if(isError)
         {
-            viewer_class = viewer_error;
-            options = { ...options, error: media_cache.get_media_load_error(media_id) };
+            viewerClass = viewer_error;
+            options = { ...options, error: ppixiv.media_cache.get_media_load_error(media_id) };
         }
         else if(early_illust_data.illustType == 2)
-            viewer_class = viewer_ugoira;
+            viewerClass = viewer_ugoira;
         else if(early_illust_data.illustType == "video")
-            viewer_class = viewer_video;
+            viewerClass = viewer_video;
         else
-            viewer_class = ppixiv.mobile? ppixiv.viewer_images_mobile:ppixiv.viewer_images_desktop;
+            viewerClass = ppixiv.mobile? ppixiv.viewer_images_mobile:ppixiv.viewer_images_desktop;
 
         let slideshow = helpers.args.location.hash.get("slideshow");
-        let new_viewer = new viewer_class({
+        let newViewer = new viewerClass({
             media_id,
-            container: this.view_container,
+            container: this.viewContainer,
             slideshow,
             
             wait_for_transitions: () => {
-                return this.drag_to_exit?.wait_for_animations_promise;
+                return this.dragToExit?.waitForAnimationsPromise;
             },
 
             onnextimage: async (finished_viewer) => {
@@ -254,58 +254,58 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 }                
 
                 // The viewer wants to go to the next image, normally during slideshows.
-                let manga = settings.get("slideshow_skips_manga")? "skip-to-first":"normal";
-                return await this.navigate_to_next(1, { flash_at_end: false, manga });
+                let manga = ppixiv.settings.get("slideshow_skips_manga")? "skip-to-first":"normal";
+                return await this.navigateToNext(1, { flash_at_end: false, manga });
             },
             ...options,
         });
         
-        new_viewer.load();
+        newViewer.load();
 
-        return new_viewer;
+        return newViewer;
     }
 
     // Show a media ID.
-    async show_image(media_id, { restore_history=false, initial=false }={})
+    async showImage(media_id, { restore_history=false, initial=false }={})
     {
         console.assert(media_id != null);
 
         // If we previously set a pending navigation, this navigation overrides it.
-        this.cancel_async_navigation();
+        this.cancelAsyncNavigation();
 
         // Remember that this is the image we want to be displaying.  Do this before going
         // async, so everything knows what we're trying to display immediately.
         this.wanted_media_id = media_id;
 
-        if(await this.load_first_image(media_id))
+        if(await this.loadFirstImage(media_id))
             return;
 
         // Get very basic illust info.  This is enough to tell which viewer to use, how
         // many pages it has, and whether it's muted.  This will always complete immediately
         // if we're coming from a search or anywhere else that will already have this info,
         // but it can block if we're loading from scratch.
-        let early_illust_data = await media_cache.get_media_info(media_id, { full: false });
+        let early_illust_data = await ppixiv.media_cache.get_media_info(media_id, { full: false });
 
         // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
         if(!this.active || this.wanted_media_id != media_id)
         {
-            console.log("show_image: illust ID or page changed while async, stopping");
+            console.log("showImage: illust ID or page changed while async, stopping");
             return;
         }
 
         // Make sure the dragger isn't active, since changing main viewers while a drag is active
         // would cause confusing behavior.
-        if(this.drag_image_changer)
-            this.drag_image_changer.stop();
+        if(this.dragImageChanger)
+            this.dragImageChanger.stop();
 
         // If we weren't given a viewer to use, create one.
-        let new_viewer = this.create_viewer({
+        let newViewer = this.createViewer({
             early_illust_data,
             media_id,
             restore_history,
         });
 
-        this.show_image_viewer({ new_viewer, initial });
+        this.showImageViewer({ newViewer, initial });
     }
 
     // Show a viewer.
@@ -313,37 +313,37 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // If initial is first, this is the first image we're displaying after becoming visible,
     // usually from clicking a search result.  If it's false, we were already active and are
     // just changing images.
-    show_image_viewer({ new_viewer=null, initial=false }={})
+    showImageViewer({ newViewer=null, initial=false }={})
     {
-        if(new_viewer == this.viewer)
+        if(newViewer == this.viewer)
             return;
 
         helpers.set_class(document.body,  "force-ui", window.debug_show_ui);
 
-        let media_id = new_viewer.media_id;
+        let media_id = newViewer.media_id;
 
         // Dismiss any message when changing images.
-        if(this.current_media_id != media_id)
-            message_widget.singleton.hide();
+        if(this.currentMediaId != media_id)
+            ppixiv.message_widget.singleton.hide();
 
         this.wanted_media_id = media_id;
-        this.current_media_id = media_id;
+        this.currentMediaId = media_id;
 
         // This should always be available, because the caller always looks up media info
         // in order to create the viewer, which means we don't have to go async here.  If
         // this returns null, it should always mean we're viewing an image's error page.
-        let early_illust_data = media_cache.get_media_info_sync(media_id, { full: false });
+        let early_illust_data = ppixiv.media_cache.get_media_info_sync(media_id, { full: false });
         helpers.set_title_and_icon(early_illust_data);
 
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
         helpers.set_class(document.body, "dot", helpers.tags_contain_dot(early_illust_data?.tagList));
 
         // If linked tabs are active, send this image.
-        if(settings.get("linked_tabs_enabled"))
-            ppixiv.send_image.send_image(media_id, settings.get("linked_tabs", []), "temp-view");
+        if(ppixiv.settings.get("linked_tabs_enabled"))
+            ppixiv.send_image.send_image(media_id, ppixiv.settings.get("linked_tabs", []), "temp-view");
 
         // Tell the preloader about the current image.
-        image_preloader.singleton.set_current_image(media_id);
+        ppixiv.image_preloader.singleton.set_current_image(media_id);
 
         // Make sure the URL points to this image.
         let args = ppixiv.app.getMediaURL(media_id);
@@ -357,44 +357,44 @@ ppixiv.screen_illust = class extends ppixiv.screen
         // doing extra loads every time you load a single illustration.
         if(!initial || helpers.is_media_id_local(media_id))
         {
-            // get_navigation may block to load more search results.  Run this async without
+            // getNavigation may block to load more search results.  Run this async without
             // waiting for it.
             (async() => {
-                let new_media_id = await this.get_navigation(this.latest_navigation_direction_down);
+                let newMediaId = await this.getNavigation(this.latestNavigationDirectionDown);
 
-                // Let image_preloader handle speculative loading.  If new_media_id is null,
+                // Let image_preloader handle speculative loading.  If newMediaId is null,
                 // we're telling it that we don't need to load anything.
-                image_preloader.singleton.set_speculative_image(new_media_id);
+                ppixiv.image_preloader.singleton.set_speculative_image(newMediaId);
             })();
         }
 
         this.current_user_id = early_illust_data?.userId;
-        this.refresh_ui();
+        this.refreshUi();
 
         // If we're not animating so we know the search page isn't visible, try to scroll the
         // search page to the image we're viewing, so it's ready if we start a transition to it.
-        if(this.drag_to_exit)
-            this.drag_to_exit.scroll_search_to_thumbnail();
+        if(this.dragToExit)
+            this.dragToExit.scrollSearchToThumbnail();
 
         // If we already have an old viewer, then we loaded an image, and then navigated again before
         // the new image was displayed.  Discard the new image and keep the old one, since it's what's
         // being displayed.
-        if(this.old_viewer && this.viewer)
+        if(this.oldViewer && this.viewer)
         {
             this.viewer.shutdown();
             this.viewer = null;
         }
         else
-            this.old_viewer = this.viewer;
+            this.oldViewer = this.viewer;
 
-        this.viewer = new_viewer;
+        this.viewer = newViewer;
 
-        let old_viewer = this.old_viewer;
+        let oldViewer = this.oldViewer;
 
         // If we already had a viewer, hide the new one until the new one is ready to be displayed.
         // We'll make it visible below at the same time the old viewer is removed, so we don't show
         // both at the same time.
-        if(this.old_viewer)
+        if(this.oldViewer)
             this.viewer.visible = false;
 
         this.viewer.ready.finally(async() => {
@@ -402,30 +402,30 @@ ppixiv.screen_illust = class extends ppixiv.screen
             await helpers.sleep(0);
 
             // Allow this to be called multiple times.
-            if(this.old_viewer == null)
+            if(this.oldViewer == null)
                 return;
 
             // The new viewer is displaying an image, so we can remove the old viewer now.
             //
             // If this isn't the main viewer anymore, another one was created and replaced this one
             // (the old viewer check above), so don't do anything.
-            if(this.viewer !== new_viewer || old_viewer !== this.old_viewer)
+            if(this.viewer !== newViewer || oldViewer !== this.oldViewer)
                 return;
 
             this.viewer.visible = true;
-            this.old_viewer.shutdown();
-            this.old_viewer = null;
+            this.oldViewer.shutdown();
+            this.oldViewer = null;
         });
 
         this.viewer.active = this._active;
 
         // Refresh the UI now that we have a new viewer.
-        this.refresh_ui();
+        this.refreshUi();
     }
 
     // Take the current viewer out of the screen.  It'll still be active and in the document.
     // This is used by DragImageChanger to change the current viewer into a preview viewer.
-    take_viewer()
+    takeViewer()
     {
         let viewer = this.viewer;
         this.viewer = null;
@@ -436,7 +436,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // This allows viewing shuffled results.  This can be a Pixiv illust ID of *, or
     // a local ID with a filename of *.  Load the initial data source page if it's not
     // already loaded, and navigate to the first result.
-    async load_first_image(media_id)
+    async loadFirstImage(media_id)
     {
         if(helpers.is_media_id_local(media_id))
         {
@@ -450,38 +450,38 @@ ppixiv.screen_illust = class extends ppixiv.screen
 
         // This will load results if needed, skip folders so we only pick images, and return
         // the first ID.
-        let new_media_id = await this.data_source.get_or_load_neighboring_media_id(null, true);
-        if(new_media_id == null)
+        let newMediaId = await this.data_source.get_or_load_neighboring_media_id(null, true);
+        if(newMediaId == null)
         {
-            message_widget.singleton.show("Couldn't find an image to view");
+            ppixiv.message_widget.singleton.show("Couldn't find an image to view");
             return true;
         }
 
-        ppixiv.app.show_media(new_media_id, {
+        ppixiv.app.show_media(newMediaId, {
             add_to_history: false,
         });
         return true;
     }
 
-    // Reeturn true if we're allowing a muted image to be displayed, because the user
+    // Return true if we're allowing a muted image to be displayed, because the user
     // clicked to override it in the mute view.
-    get view_muted()
+    get viewMuted()
     {
         return helpers.args.location.hash.get("view-muted") == "1";
     }
 
-    should_hide_muted_image(early_illust_data)
+    shouldHideMutedImage(early_illust_data)
     {
-        let muted_tag = muting.singleton.any_tag_muted(early_illust_data.tagList);
-        let muted_user = muting.singleton.is_muted_user_id(early_illust_data.userId);
-        if(this.view_muted || (!muted_tag && !muted_user))
-            return { is_muted: false };
+        let muted_tag = ppixiv.muting.singleton.any_tag_muted(early_illust_data.tagList);
+        let muted_user = ppixiv.muting.singleton.is_muted_user_id(early_illust_data.userId);
+        if(this.viewMuted || (!muted_tag && !muted_user))
+            return { isMuted: false };
 
-        return { is_muted: true, muted_tag: muted_tag, muted_user: muted_user };
+        return { isMuted: true, muted_tag: muted_tag, muted_user: muted_user };
     }
     
     // Remove the old viewer, if any.
-    remove_viewer()
+    removeViewer()
     {
         if(this.viewer != null)
         {
@@ -489,16 +489,16 @@ ppixiv.screen_illust = class extends ppixiv.screen
             this.viewer = null;
         }
 
-        if(this.old_viewer != null)
+        if(this.oldViewer != null)
         {
-            this.old_viewer.shutdown();
-            this.old_viewer = null;
+            this.oldViewer.shutdown();
+            this.oldViewer = null;
         }
     }
 
     // If we started navigating to a new image and were delayed to load data (either to load
     // the image or to load a new page), cancel it and stay where we are.
-    cancel_async_navigation()
+    cancelAsyncNavigation()
     {
         // If we previously set a pending navigation, this navigation overrides it.
         if(this.pending_navigation == null)
@@ -508,9 +508,9 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.pending_navigation = null;
     }
 
-    data_source_updated = () =>
+    dataSourceUpdated = () =>
     {
-        this.refresh_ui();
+        this.refreshUi();
     }
 
     get active()
@@ -519,7 +519,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     }
 
     // Refresh the UI for the current image.
-    refresh_ui = (e) =>
+    refreshUi = (e) =>
     {
         // Don't refresh if the thumbnail view is active.  We're not visible, and we'll just
         // step over its page title, etc.
@@ -527,21 +527,21 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;
         
         // Tell the UI which page is being viewed.
-        this.ui.media_id = this.current_media_id;
+        this.ui.media_id = this.currentMediaId;
 
-        if(this.mobile_illust_ui)
+        if(this.mobileIllustUi)
         {
-            this.mobile_illust_ui.user_id = this.current_user_id;
-            this.mobile_illust_ui.media_id = this.current_media_id;
-            this.mobile_illust_ui.set_data_source(this.data_source);
+            this.mobileIllustUi.user_id = this.current_user_id;
+            this.mobileIllustUi.media_id = this.currentMediaId;
+            this.mobileIllustUi.set_data_source(this.data_source);
         }
 
         // Update the disable UI button to point at the current image's illustration page.
         var disable_button = this.container.querySelector(".disable-ui-button");
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(this.current_media_id);
+        let [illust_id] = helpers.media_id_to_illust_id_and_page(this.currentMediaId);
         disable_button.href = `/artworks/${illust_id}#no-ppixiv`;
 
-        if(this.current_media_id == null)
+        if(this.currentMediaId == null)
             return;
 
         this.ui.refresh();
@@ -553,15 +553,15 @@ ppixiv.screen_illust = class extends ppixiv.screen
             return;        
 
         let down = e.deltaY > 0;
-        this.navigate_to_next(down, { manga: e.shiftKey? "skip-to-first":"normal" });
+        this.navigateToNext(down, { manga: e.shiftKey? "skip-to-first":"normal" });
     }
 
-    get displayed_media_id()
+    get displayedMediaId()
     {
         return this.wanted_media_id;
     }
 
-    handle_onkeydown(e)
+    handleKeydown(e)
     {
         // Let the viewer handle the input first.
         if(this.viewer && this.viewer.onkeydown)
@@ -571,7 +571,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
                 return;
         }
 
-        this.ui.handle_onkeydown(e);
+        this.ui.handleKeydown(e);
         if(e.defaultPrevented)
             return;
         
@@ -585,7 +585,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             e.preventDefault();
             e.stopPropagation();
 
-            this.navigate_to_next(false, { manga: e.shiftKey? "skip-to-first":"normal" });
+            this.navigateToNext(false, { manga: e.shiftKey? "skip-to-first":"normal" });
             break;
 
         case "ArrowRight":
@@ -594,7 +594,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
             e.preventDefault();
             e.stopPropagation();
 
-            this.navigate_to_next(true, { manga: e.shiftKey? "skip-to-first":"normal" });
+            this.navigateToNext(true, { manga: e.shiftKey? "skip-to-first":"normal" });
             break;
         }
     }
@@ -602,14 +602,14 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // Get the media_id and page navigating down (or up) will go to.
     //
     // This may trigger loading the next page of search results, if we've reached the end.
-    async get_navigation(down, { navigate_from_media_id=null, manga="normal", loop=false }={})
+    async getNavigation(down, { navigate_from_media_id=null, manga="normal", loop=false }={})
     {
         // Check if we're just changing pages within the same manga post.
         // If we have a target media_id, move relative to it.  Otherwise, move relative to the
         // displayed image.  This way, if we navigate repeatedly before a previous navigation
         // finishes, we'll keep moving rather than waiting for each navigation to complete.
         navigate_from_media_id ??= this.wanted_media_id;
-        navigate_from_media_id ??= this.current_media_id;
+        navigate_from_media_id ??= this.currentMediaId;
 
         // Get the next (or previous) illustration after the current one.
         if(!loop)
@@ -631,7 +631,7 @@ ppixiv.screen_illust = class extends ppixiv.screen
     // Navigate to the next or previous image.
     //
     // manga is a manga skip mode.  See illust_id_list.get_neighboring_media_id.
-    async navigate_to_next(down, { manga="normal", flash_at_end=true }={})
+    async navigateToNext(down, { manga="normal", flash_at_end=true }={})
     {
         // Loop if we're in slideshow mode, otherwise stop when we reach the end.
         let loop = helpers.args.location.hash.get("slideshow") != null;
@@ -641,23 +641,23 @@ ppixiv.screen_illust = class extends ppixiv.screen
             manga = "skip-past";
 
         // Remember whether we're navigating forwards or backwards, for preloading.
-        this.latest_navigation_direction_down = down;
+        this.latestNavigationDirectionDown = down;
 
-        this.cancel_async_navigation();
+        this.cancelAsyncNavigation();
 
         let pending_navigation = this.pending_navigation = new Object();
 
         // See if we should change the manga page.  This may block if it needs to load
         // the next page of search results.
-        let new_media_id = await this.get_navigation(down, { manga, loop });
+        let newMediaId = await this.getNavigation(down, { manga, loop });
     
         // If we didn't get a page, we're at the end of the search results.  Flash the
         // indicator to show we've reached the end and stop.
-        if(new_media_id == null)
+        if(newMediaId == null)
         {
             console.log("Reached the end of the list");
             if(flash_at_end)
-                this.flash_end_indicator(down, "last-image");
+                this.flashEndIndicator(down, "last-image");
             return { reached_end: true };
         }
 
@@ -672,11 +672,11 @@ ppixiv.screen_illust = class extends ppixiv.screen
         this.pending_navigation = null;
 
         // Go to the new illustration.
-        ppixiv.app.show_media(new_media_id);
-        return { media_id: new_media_id };
+        ppixiv.app.show_media(newMediaId);
+        return { media_id: newMediaId };
     }
 
-    flash_end_indicator(down, icon)
+    flashEndIndicator(down, icon)
     {
         let indicator = this.container.querySelector(".page-change-indicator");
         indicator.dataset.icon = icon;
@@ -719,7 +719,7 @@ class DragImageChanger
             element: this.container,
             confirm_drag: ({event}) => {
                 // Stop if there's no image, if the screen wasn't able to load one.
-                if(this.main_viewer == null)
+                if(this.mainViewer == null)
                     return false;
 
                 if(helpers.should_ignore_horizontal_drag(event))
@@ -741,9 +741,9 @@ class DragImageChanger
     }
 
     // Get the distance between one viewer and the next.
-    get viewer_distance()
+    get viewerDistance()
     {
-        return this.parent.view_container.offsetWidth + this.image_gap;
+        return this.parent.viewContainer.offsetWidth + this.image_gap;
     }
 
     // Return the additional space between viewers.
@@ -756,13 +756,13 @@ class DragImageChanger
 
     // The main viewer is the one active in the screen.  this.drag_distance is relative to
     // it, and it's always in this.viewers during drags.
-    get main_viewer() { return this.parent.viewer; }
+    get mainViewer() { return this.parent.viewer; }
 
     // The image changed externally or the screen is becoming inactive, so stop any drags and animations.
     stop()
     {
         this.dragger.cancel_drag();
-        this.cancel_animation();
+        this.cancelAnimation();
     }
 
     ondragstart({event})
@@ -778,18 +778,18 @@ class DragImageChanger
         if(this.animations == null)
         {
             // We weren't animating, so this is a new drag.  Start the list off with the main viewer.
-            this.viewers = [this.main_viewer];
+            this.viewers = [this.mainViewer];
             return true;
         }
 
         // Another drag started while the previous drag's transition was still happening.
         // Stop the animation, and set the drag_distance to where the animation was stopped.
-        this.cancel_animation();
+        this.cancelAnimation();
         return true;
     }
 
     // If an animation is running, cancel it.
-    cancel_animation()
+    cancelAnimation()
     {
         if(!this.animations)
             return;
@@ -803,11 +803,11 @@ class DragImageChanger
 
         // If a drag is active, set drag_distance to the X position of the main viewer to match
         // the drag to where the animation was.
-        if(this.drag_distance != null && this.main_viewer)
+        if(this.drag_distance != null && this.mainViewer)
         {
-            let main_transform = new DOMMatrix(getComputedStyle(this.main_viewer.container).transform);
+            let main_transform = new DOMMatrix(getComputedStyle(this.mainViewer.container).transform);
             this.drag_distance = main_transform.e; // X translation
-            this.refresh_drag_position();
+            this.refreshDragPosition();
         }
 
         // Remove the animations.
@@ -842,41 +842,41 @@ class DragImageChanger
         // towards fling sampling, but skip it for the visual drag.
         if(!first)
             this.drag_distance += x;
-        this.add_viewers_if_needed();
-        this.refresh_drag_position();
+        this._addViewersIfNeeded();
+        this.refreshDragPosition();
     }
 
-    get_viewer_x(viewer_index)
+    getViewerX(viewer_index)
     {
         // This offset from the main viewer.  Viewers above are negative and below
         // are positive.
-        let relative_idx = viewer_index - this.main_viewer_index;
+        let relative_idx = viewer_index - this.mainViewerIndex;
 
-        let x = this.viewer_distance * relative_idx;
+        let x = this.viewerDistance * relative_idx;
         x += this.drag_distance;
         return x;
     }
 
     // Update the positions of all viewers during a drag.
-    refresh_drag_position()
+    refreshDragPosition()
     {
         for(let idx = 0; idx < this.viewers.length; ++idx)
         {
             let viewer = this.viewers[idx];
 
-            let x = this.get_viewer_x(idx);
+            let x = this.getViewerX(idx);
             viewer.container.style.transform = `translateX(${x}px)`;
             viewer.visible = true;
         }
     }
 
     // Return the index of the main viewer in this.viewers.
-    get main_viewer_index()
+    get mainViewerIndex()
     {
-        return this._find_viewer_index(this.main_viewer);
+        return this._findViewerIndex(this.mainViewer);
     }
 
-    _find_viewer_index(viewer)
+    _findViewerIndex(viewer)
     {
         let index = this.viewers.indexOf(viewer);
         if(index == -1)
@@ -889,7 +889,7 @@ class DragImageChanger
     }
 
     // Add a new viewer if we've dragged far enough to need one.
-    async add_viewers_if_needed()
+    async _addViewersIfNeeded()
     {
         // If we're already adding a viewer, don't try to add another until it finishes.
         if(this.adding_viewer)
@@ -901,20 +901,20 @@ class DragImageChanger
         //
         // The right edge of the leftmost viewer, including the gap between images.  If this is
         // 0, it's just above the screen.
-        let left_viewer_edge = this.get_viewer_x(-1) + this.viewer_distance;
+        let left_viewer_edge = this.getViewerX(-1) + this.viewerDistance;
         let add_forwards = null;
         if(left_viewer_edge > drag_threshold)
             add_forwards = false;
 
         // The left edge of the rightmost viewer.
-        let right_viewer_edge = this.get_viewer_x(this.viewers.length) - this.image_gap;
+        let right_viewer_edge = this.getViewerX(this.viewers.length) - this.image_gap;
         if(right_viewer_edge < window.innerWidth - drag_threshold)
             add_forwards = true;
 
         // If the user drags multiple times quickly, the drag target may be past the end.
         // Add a viewer for it as soon as it's been dragged to, even though it may be well
         // off-screen, so we're able to transition to it.
-        let target_viewer_index = this.current_drag_target();
+        let target_viewer_index = this.currentDragTarget();
         if(target_viewer_index < 0)
             add_forwards = false;
         else if(target_viewer_index >= this.viewers.length)
@@ -936,9 +936,9 @@ class DragImageChanger
         let media_id, early_illust_data;
         try {
             // Get the next or previous media ID.
-            media_id = await this.parent.get_navigation(add_forwards, { navigate_from_media_id: neighbor_media_id });
+            media_id = await this.parent.getNavigation(add_forwards, { navigate_from_media_id: neighbor_media_id });
             if(media_id != null)
-                early_illust_data = await media_cache.get_media_info(media_id, { full: false });
+                early_illust_data = await ppixiv.media_cache.get_media_info(media_id, { full: false });
         } finally {
             // Stop if the viewer list changed while we were loading.
             if(this.viewers !== viewers)
@@ -952,14 +952,14 @@ class DragImageChanger
             // There's nothing in this direction, so remember that this is the boundary.  Once we
             // do this, overscroll will activate in this direction.
             if(add_forwards)
-                this.bounds[1] = this.viewer_distance * (this.viewers.length - 1 - this.main_viewer_index);
+                this.bounds[1] = this.viewerDistance * (this.viewers.length - 1 - this.mainViewerIndex);
             else
-                this.bounds[0] = this.viewer_distance * (0 - this.main_viewer_index);
+                this.bounds[0] = this.viewerDistance * (0 - this.mainViewerIndex);
 
             return;
         }
 
-        let viewer = this.parent.create_viewer({
+        let viewer = this.parent.createViewer({
             early_illust_data,
             media_id,
         });
@@ -972,27 +972,27 @@ class DragImageChanger
         viewers.splice(add_forwards? viewers.length:0, 0, viewer);
 
         // Set the initial position.
-        this.refresh_drag_position();        
+        this.refreshDragPosition();        
     }
 
-    remove_viewers()
+    removeViewers()
     {
         // Shut down viewers.  Leave the main one alone, since it's owned by the screen.
         for(let viewer of this.viewers)
         {
-            if(viewer != this.main_viewer)
+            if(viewer != this.mainViewer)
                 viewer.shutdown();
         }
         this.viewers = [];
 
-        // Clear adding_viewer.  If an add_viewers_if_needed call is running, it'll see that
+        // Clear adding_viewer.  If an _addViewersIfNeeded call is running, it'll see that
         // this.viewers changed and stop.
         this.adding_viewer = false;
     }
 
     // Get the viewer index that we'd want to go to if the user released the drag now.
     // This may be past the end of the current viewer list.
-    current_drag_target()
+    currentDragTarget()
     {
         // If the user flung horizontally, move relative to the main viewer.
         let recent_velocity = this.recent_pointer_movement.current_velocity.x;
@@ -1000,9 +1000,9 @@ class DragImageChanger
         if(Math.abs(recent_velocity) > threshold)
         {
             if(recent_velocity > threshold)
-                return this.main_viewer_index - 1;
+                return this.mainViewerIndex - 1;
             else if(recent_velocity < -threshold)
-                return this.main_viewer_index + 1;
+                return this.mainViewerIndex + 1;
         }
 
         // There hasn't been a fling recently, so land on the viewer which is closest to
@@ -1014,7 +1014,7 @@ class DragImageChanger
         let closest_viewer_distance = 999999;
         for(let idx = 0; idx < this.viewers.length; ++idx)
         {
-            let x = this.get_viewer_x(idx);
+            let x = this.getViewerX(idx);
             let center = x + window.innerWidth/2;
             let distance = Math.abs((window.innerWidth / 2) - center);
             if(distance < closest_viewer_distance)
@@ -1036,7 +1036,7 @@ class DragImageChanger
         let dragged_to_viewer = null;
         if(interactive && !cancel)
         {
-            let target_viewer_index = this.current_drag_target();
+            let target_viewer_index = this.currentDragTarget();
             if(target_viewer_index >= 0 && target_viewer_index < this.viewers.length)
                 dragged_to_viewer = this.viewers[target_viewer_index];
         }
@@ -1051,8 +1051,8 @@ class DragImageChanger
         if(!interactive)
         {
             this.drag_distance = 0;
-            this.cancel_animation();
-            this.remove_viewers();
+            this.cancelAnimation();
+            this.removeViewers();
             return;
         }
 
@@ -1060,11 +1060,11 @@ class DragImageChanger
         // image, transition back to normal.
         if(dragged_to_viewer)
         {
-            // Set latest_navigation_direction_down to true if we're navigating forwards or false
+            // Set latestNavigationDirectionDown to true if we're navigating forwards or false
             // if we're navigating backwards.  This is a hint for speculative loading.
-            let old_main_index = this.main_viewer_index;
-            let new_main_index = this._find_viewer_index(dragged_to_viewer);
-            this.parent.latest_navigation_direction_down = new_main_index > old_main_index;
+            let old_main_index = this.mainViewerIndex;
+            let new_main_index = this._findViewerIndex(dragged_to_viewer);
+            this.parent.latestNavigationDirectionDown = new_main_index > old_main_index;
 
             // The drag was released and we're selecting dragged_to_viewer.  Make it active immediately,
             // without waiting for the animation to complete.  This lets the UI update quickly, and
@@ -1073,30 +1073,30 @@ class DragImageChanger
             //
             // Take the main viewer to turn it into a preview.  It's in this.viewers, and this prevents
             // the screen from shutting it down when we activate the new viewer.
-            this.parent.take_viewer();
+            this.parent.takeViewer();
 
             // Make our neighboring viewer primary.
-            this.parent.show_image_viewer({ new_viewer: dragged_to_viewer });
+            this.parent.showImageViewer({ newViewer: dragged_to_viewer });
         }
 
         let duration = 400;
         let animations = [];
 
-        let main_viewer_index = this.main_viewer_index;
+        let mainViewerIndex = this.mainViewerIndex;
         for(let idx = 0; idx < this.viewers.length; ++idx)
         {
             let viewer = this.viewers[idx];
 
             // This offset from the main viewer.  Viewers above are negative and below
             // are positive.
-            let this_idx = idx - main_viewer_index;
+            let this_idx = idx - mainViewerIndex;
 
             // The animation starts at the current translateX.
             let start_x = new DOMMatrix(getComputedStyle(viewer.container).transform).e;
-            //let start_x = this.get_viewer_x(idx);
+            //let start_x = this.getViewerX(idx);
 
             // Animate everything to their default positions relative to the main image.
-            let end_x = this.viewer_distance * this_idx;
+            let end_x = this.viewerDistance * this_idx;
 
             // Estimate a curve to match the fling.
             let easing = ppixiv.Bezier2D.find_curve_for_velocity({
@@ -1148,7 +1148,7 @@ class DragImageChanger
             animation.cancel();
         }
 
-        this.remove_viewers();
+        this.removeViewers();
     }
 };
 
@@ -1159,14 +1159,14 @@ class ScreenIllustDragToExit
     {
         this.parent = parent;
 
-        this.dragger = new WidgetDragger({
+        this.dragger = new ppixiv.WidgetDragger({
             name: "drag-to-exit",
             node: [
                 this.parent.container,
                 this.parent.querySelector(".fade-search"),
             ],
             drag_node: this.parent.container,
-            size: () => this._drag_distance,
+            size: () => this._dragDistance,
 
             animated_property: "--illust-hidden",
             animated_property_inverted: true,
@@ -1175,7 +1175,7 @@ class ScreenIllustDragToExit
             visible: false,
             direction: "down", // down to make visible, up to hide
             duration: () => {
-                return settings.get("animations_enabled")? 250:0;
+                return ppixiv.settings.get("animations_enabled")? 250:0;
             },
             size: 500,
             confirm_drag: ({event}) => {
@@ -1188,17 +1188,17 @@ class ScreenIllustDragToExit
 
             onactive: () => {
                 // Close the menu bar if it's open when a drag starts.
-                if(this.parent.mobile_illust_ui)
-                    this.parent.mobile_illust_ui.hide();
+                if(this.parent.mobileIllustUi)
+                    this.parent.mobileIllustUi.hide();
 
-                this._config_animation();
+                this._configAnimation();
             },
 
             oninactive: () => {
                 if(this.dragger.visible)
                 {
                     // Scroll the search view to the current image when we're not animating.
-                    this.scroll_search_to_thumbnail();
+                    this.scrollSearchToThumbnail();
                 }
                 else
                 {
@@ -1212,23 +1212,23 @@ class ScreenIllustDragToExit
                     }
 
                     // See if we want to remove the viewer now that the animation has finished.
-                    this.parent.cleanup_image();
+                    this.parent.cleanupImage();
                 }
             },
         });
     }
 
-    get _drag_distance()
+    get _dragDistance()
     {
         return document.documentElement.clientHeight * .25;
     }
 
-    _config_animation()
+    _configAnimation()
     {
         // In case the image wasn't available when we tried to scroll to it, try again now.
         // Either this will scroll to the image and we can use its position, or we know it
         // isn't in the list.
-        this.scroll_search_to_thumbnail();
+        this.scrollSearchToThumbnail();
 
         // If the view container is hidden, it may have transforms from the previous transition.
         // Unset the animation properties so this doesn't affect our calculations here.
@@ -1250,7 +1250,7 @@ class ScreenIllustDragToExit
         view_position ??= this.parent.container.getBoundingClientRect();
 
         // Try to position the animation to move towards the search thumbnail.
-        let thumb_rect = this._animation_target_rect;
+        let thumb_rect = this._animationTargetRect;
         if(thumb_rect)
         {
             // If the thumbnail is offscreen, ignore it.
@@ -1286,7 +1286,7 @@ class ScreenIllustDragToExit
     }
 
     // Return the rect we'll want to transition towards, if known.
-    get _animation_target_rect()
+    get _animationTargetRect()
     {
         if(this.parent.wanted_media_id == null)
             return null;
@@ -1308,22 +1308,22 @@ class ScreenIllustDragToExit
             this.dragger.hide();
     }
 
-    get is_animating()
+    get isAnimating()
     {
         return this.dragger.animation_playing;
     }
 
     // Return a promise that resolves when there's no animation running, or null if
     // no animation is active.
-    get wait_for_animations_promise()
+    get waitForAnimationsPromise()
     {
         return this.dragger.finished;
     }
 
     // Scroll the thumbnail onscreen in the search view if the search isn't currently visible.
-    scroll_search_to_thumbnail()
+    scrollSearchToThumbnail()
     {
-        if(this.is_animating || !this.parent.active || this.dragger.position < 1)
+        if(this.isAnimating || !this.parent.active || this.dragger.position < 1)
             return;
 
         ppixiv.app.scroll_search_to_media_id(this.parent.data_source, this.parent.wanted_media_id);
