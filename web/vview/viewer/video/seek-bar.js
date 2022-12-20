@@ -1,6 +1,6 @@
-"use strict";
+import { helpers } from 'vview/ppixiv-imports.js';
 
-ppixiv.seek_bar = class extends widget
+export default class SeekBar extends ppixiv.widget
 {
     constructor({...options})
     {

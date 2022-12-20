@@ -1,8 +1,6 @@
 import {
     helpers, local_api, muting, phistory, resources,
-    main_context_menu,
     link_this_tab_popup, send_here_popup,
-    screen_search, screen_illust
 } from 'vview/ppixiv-imports.js';
 
 import install_polyfills from 'vview/misc/polyfills.js';
@@ -13,6 +11,7 @@ import SavedSearchTags from 'vview/misc/saved-search-tags.js';
 import TagTranslations from 'vview/misc/tag-translations.js';
 import ScreenIllust from 'vview/screen-illust/screen-illust.js';
 import ScreenSearch from 'vview/screen-search/screen-search.js';
+import ContextMenu from 'vview/context-menu.js';
 
 // This is the main top-level app controller.
 export default class App
@@ -132,10 +131,10 @@ export default class App
 
         window.addEventListener("keydown", this.onkeydown);
 
-        let refresh_focus = () => { helpers.set_class(document.body, "focused", document.hasFocus()); };
-        window.addEventListener("focus", refresh_focus);
-        window.addEventListener("blur", refresh_focus);
-        refresh_focus();
+        let refreshFocus = () => { helpers.set_class(document.body, "focused", document.hasFocus()); };
+        window.addEventListener("focus", refreshFocus);
+        window.addEventListener("blur", refreshFocus);
+        refreshFocus();
 
         this.currentScreenName = null;
 
@@ -241,7 +240,7 @@ export default class App
 
         // Create the popup menu.
         if(!ppixiv.mobile)
-            this.context_menu = new main_context_menu({container: document.body});
+            this.context_menu = new ContextMenu({container: document.body});
 
         link_this_tab_popup.setup();
         send_here_popup.setup();
@@ -282,7 +281,7 @@ export default class App
         this.setCurrentDataSource(e.navigationCause || "history");
     }
 
-    async refreshCurrentDataSource({remove_search_page=false}={})
+    async refreshCurrentDataSource({removeSearchPage=false}={})
     {
         if(this.data_source == null)
             return;
@@ -291,7 +290,7 @@ export default class App
         // This returns the data source, but just call setCurrentDataSource so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.plocation.toString());
-        ppixiv.data_source.create_data_source_for_url(ppixiv.plocation, {force: true, remove_search_page});
+        ppixiv.data_source.create_data_source_for_url(ppixiv.plocation, {force: true, removeSearchPage});
 
         // Screens store their scroll position in args.state.scroll.  On refresh, clear it
         // so we scroll to the top when we refresh.
@@ -379,7 +378,7 @@ export default class App
     {
         // Remember what we were displaying before we start changing things.
         var old_screen = this.screens[this.currentScreenName];
-        var old_media_id = old_screen? old_screen.displayedMediaId:null;
+        var oldMediaId = old_screen? old_screen.displayedMediaId:null;
 
         // Get the data source for the current URL.
         let data_source = ppixiv.data_source.create_data_source_for_url(ppixiv.plocation);
@@ -457,13 +456,13 @@ export default class App
         // restoring a tab), for browser forward/back, or if we're exiting from
         // quick view (which is like browser back).  This causes the pan/zoom state
         // to be restored.
-        let restore_history = cause == "initialization" || cause == "history" || cause == "leaving-virtual";
+        let restoreHistory = cause == "initialization" || cause == "history" || cause == "leaving-virtual";
 
         // Activate the new screen.
         await new_screen.activate({
-            media_id: mediaId,
-            old_media_id,
-            restore_history,
+            mediaId,
+            oldMediaId,
+            restoreHistory,
         });
 
         // Deactivate the old screen.
@@ -503,13 +502,13 @@ export default class App
         if(type == "user")
             return new helpers.args(`/users/${id}/artworks#ppixiv`);
 
-        let old_media_id = this.data_source.get_current_media_id(args);
-        let [old_illust_id] = helpers.media_id_to_illust_id_and_page(old_media_id);
+        let oldMediaId = this.data_source.get_current_media_id(args);
+        let [old_illust_id] = helpers.media_id_to_illust_id_and_page(oldMediaId);
 
         // Update the URL to display this mediaId.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
-        this._set_active_screen_in_url(args, screen);
+        this._setActiveScreenInUrl(args, screen);
         this.data_source.set_current_media_id(mediaId, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
@@ -560,7 +559,7 @@ export default class App
         return null;
     }
 
-    _set_active_screen_in_url(args, screen)
+    _setActiveScreenInUrl(args, screen)
     {
         // If this is the default, just remove it.
         if(screen == this.data_source.default_screen)
@@ -614,7 +613,7 @@ export default class App
     // This is called by screen_illust when it wants screen_search to try to display a
     // media ID in a data source, so it's ready for a transition to start.  This only
     // has an effect if search isn't already active.
-    scroll_search_to_media_id(data_source, mediaId)
+    scrollSearchToMediaId(data_source, mediaId)
     {
         if(this.currentScreenName == "search")
             return;
@@ -711,12 +710,12 @@ export default class App
         // This way, we actually use the URL for the illustration on this data source instead of
         // switching to /artworks.  This also applies to local image IDs, but not folders.
         url = helpers.get_url_without_language(url);
-        let { media_id } = this.get_illust_at_element(a);
-        if(media_id)
+        let { mediaId } = this.get_illust_at_element(a);
+        if(mediaId)
         {
             let args = new helpers.args(a.href);
             let screen = args.hash.has("view")? args.hash.get("view"):"illust";
-            this.show_media(media_id, {
+            this.show_media(mediaId, {
                 screen: screen,
                 add_to_history: true
             });
@@ -930,11 +929,11 @@ export default class App
         // Illustration search results have both the media ID and the user ID on it.
         let media_element = element.closest("[data-media-id]");
         if(media_element)
-            return { media_id: media_element.dataset.mediaId };
+            return { mediaId: media_element.dataset.mediaId };
 
         let user_element = element.closest("[data-user-id]");
         if(user_element)
-            return { media_id: `user:${user_element.dataset.userId}` };
+            return { mediaId: `user:${user_element.dataset.userId}` };
 
         return { };
     }

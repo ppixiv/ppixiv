@@ -5499,6 +5499,8 @@ ppixiv.TouchScroller = class
         });
     }
 
+    get state() { return this._state; }
+
     // Cancel any drag immediately without starting a fling.
     cancel_drag()
     {

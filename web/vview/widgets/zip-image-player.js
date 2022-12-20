@@ -1,7 +1,8 @@
 import { helpers } from 'vview/ppixiv-imports.js';
+import ZipImageDownloader from 'vview/misc/zip-image-downloader.js';
 
 // This gives a small subset of HTMLVideoPlayer's API to control the video, so
-// video_ui can work with this in the same way as a regular video.
+// VideoUI can work with this in the same way as a regular video.
 class ZipVideoInterface extends EventTarget
 {
     constructor(player)
@@ -70,8 +71,6 @@ export default class ZipImagePlayer
 
     async load()
     {
-        let { default: ZipImageDownloader } = await ppixiv.importModule("vview/misc/zip-image-downloader.js");
-
         console.log(this.op);
         this.downloader = new ZipImageDownloader(this.op.source, {
             signal: this.op.signal,

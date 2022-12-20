@@ -1,12 +1,8 @@
-"use strict";
+import ViewerVideoBase from 'vview/viewer/video/viewer-video-base.js';
+import ZipImagePlayer from 'vview/widgets/zip-image-player.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
-
-
-
-
-
-
-ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
+export default class ViewerUgoira extends ViewerVideoBase
 {
     constructor({...options})
     {
@@ -19,9 +15,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         this.video.style.width = "100%";
         this.video.style.height = "100%";
         this.video.style.objectFit = "contain";
-        this.video_container.appendChild(this.video);
+        this.videoContainer.appendChild(this.video);
 
-        this.video.addEventListener(ppixiv.mobile? "dblclick":"click", this.toggle_pause);
+        this.video.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         let args = helpers.args.location;
@@ -31,7 +27,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         // from this.want_playing so we stay paused after seeking if we were paused at the start.
         this.seeking = false;
 
-        window.addEventListener("visibilitychange", this.refresh_focus.bind(this), { signal: this.shutdown_signal.signal });
+        window.addEventListener("visibilitychange", this.refreshFocus.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     async load()
@@ -49,13 +45,13 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         // of the video.
         //
         // First, show the thumbnail if we're on Pixiv:
-        let local = helpers.is_media_id_local(this.media_id);
+        let local = helpers.is_media_id_local(this.mediaId);
         if(!local)
         {
             // Load early data to show the low-res preview quickly.  This is a simpler version of
             // what viewer_images does.
             let load_sentinel = this._load_sentinel = new Object();
-            let early_illust_data = await media_cache.get_media_info(this.media_id, { full: false });
+            let early_illust_data = await ppixiv.media_cache.get_media_info(this.mediaId, { full: false });
             if(load_sentinel !== this._load_sentinel)
                 return;
             this.create_preview_images(early_illust_data.previewUrls[0], null);
@@ -66,7 +62,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
 
         // Load full data.
         let { slideshow=false, onnextimage=null } = this.options;
-        let load_sentinel = await super.load(this.media_id, {
+        let load_sentinel = await super.load(this.mediaId, {
             slideshow,
             onnextimage: () => onnextimage(this),
         });
@@ -76,9 +72,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
 
         // Now show the poster if we're local, or change to the original image on Pixiv.
         if(local)
-            this.create_preview_images(this.illust_data.urls.poster, null);
+            this.create_preview_images(this.mediaInfo.urls.poster, null);
         else
-            this.create_preview_images(this.illust_data.previewUrls[0], this.illust_data.urls.original);
+            this.create_preview_images(this.mediaInfo.previewUrls[0], this.mediaInfo.urls.original);
 
         // This can be used to abort ZipImagePlayer's download.
         this.abort_controller = new AbortController;
@@ -88,22 +84,20 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         {
             // The local API returns a separate path for these, since it doesn't have
             // illust_data.ugoiraMetadata.
-            source = this.illust_data.mangaPages[0].urls.mjpeg_zip;
+            source = this.mediaInfo.mangaPages[0].urls.mjpeg_zip;
         }
         else
         {
-            source = this.illust_data.ugoiraMetadata.originalSrc;
+            source = this.mediaInfo.ugoiraMetadata.originalSrc;
         }
-
-        let { default: ZipImagePlayer } = await ppixiv.importModule("vview/widgets/zip-image-player.js");
 
         // Create the player.
         this.player = new ZipImagePlayer({
-            metadata: this.illust_data.ugoiraMetadata,
+            metadata: this.mediaInfo.ugoiraMetadata,
             autoStart: false,
             source: source,
             local: local,
-            mime_type: this.illust_data.ugoiraMetadata?.mime_type,
+            mime_type: this.mediaInfo.ugoiraMetadata?.mime_type,
             signal: this.abort_controller.signal,
             autosize: true,
             canvas: this.video,
@@ -114,9 +108,9 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
 
         this.player.videoInterface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abort_controller.signal });
 
-        this.video_ui.video_changed({player: this, video: this.player.videoInterface});
+        this.videoUi.video_changed({player: this, video: this.player.videoInterface});
 
-        this.refresh_focus();
+        this.refreshFocus();
     }
 
     shutdown()
@@ -180,12 +174,12 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             img1.style.height = "100%";
             img1.style.objectFit = "contain";
             img1.src = url1;
-            this.video_container.appendChild(img1);
+            this.videoContainer.appendChild(img1);
             this.preview_img1 = img1;
 
             // Allow clicking the previews too, so if you click to pause the video before it has enough
             // data to start playing, it'll still toggle to paused.
-            img1.addEventListener(ppixiv.mobile? "dblclick":"click", this.toggle_pause);
+            img1.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
         }
 
         if(url2)
@@ -197,8 +191,8 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             img2.style.height = "100%";
             img2.style.objectFit = "contain";
             img2.src = url2;
-            this.video_container.appendChild(img2);
-            img2.addEventListener(ppixiv.mobile? "dblclick":"click", this.toggle_pause);
+            this.videoContainer.appendChild(img2);
+            img2.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
             this.preview_img2 = img2;
 
             // Wait for the high-res image to finish loading.
@@ -219,13 +213,13 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             this.player.rewind();
 
         // Refresh playback, since we pause while the viewer isn't visible.
-        this.refresh_focus();
+        this.refreshFocus();
     }
 
     progress = (available) =>
     {
         available ??= 1;
-        this.set_seek_bar({available});
+        this.setSeekBar({available});
     }
 
     // Once we draw a frame, hide the preview and show the canvas.  This avoids
@@ -246,7 +240,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
         // Update the seek bar.
         let current_time = this.player.getCurrentFrameTime();
         let duration = this.player.getSeekableDuration();
-        this.set_seek_bar({current_time, duration});
+        this.setSeekBar({current_time, duration});
     }
 
     // This is sent manually by the UI handler so we can control focus better.
@@ -284,7 +278,7 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             e.stopPropagation();
             e.preventDefault();
 
-            this.set_want_playing(!this.want_playing);
+            this.setWantPlaying(!this.want_playing);
 
             return;
         case "Home":
@@ -324,16 +318,16 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
 
     play()
     {
-        this.set_want_playing(true);
+        this.setWantPlaying(true);
     }
 
     pause()
     {
-        this.set_want_playing(false);
+        this.setWantPlaying(false);
     }
 
     // Set whether the user wants the video to be playing or paused.
-    set_want_playing(value)
+    setWantPlaying(value)
     {
         if(this.want_playing != value)
         {
@@ -346,12 +340,12 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
             this.want_playing = value;
         }
 
-        this.refresh_focus();
+        this.refreshFocus();
     }
 
-    refresh_focus()
+    refreshFocus()
     {
-        super.refresh_focus();
+        super.refreshFocus();
 
         if(this.player == null)
             return;
@@ -364,11 +358,11 @@ ppixiv.viewer_ugoira = class extends ppixiv.viewer_video_base
     };
 
     // This is called when the user interacts with the seek bar.
-    seek_callback(pause, seconds)
+    seekCallback(pause, seconds)
     {
-        super.seek_callback(pause, seconds);
+        super.seekCallback(pause, seconds);
 
-        this.refresh_focus();
+        this.refreshFocus();
 
         if(seconds != null)
             this.player.setCurrentFrameTime(seconds);

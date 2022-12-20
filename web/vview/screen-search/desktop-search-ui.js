@@ -97,12 +97,12 @@ export default class DesktopSearchUI extends ppixiv.widget
             container: this.querySelector(".user-links"),
         });
 
-        this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", this.parent.refresh_search_from_page);
+        this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", () => this.parent.refreshSearchFromPage());
         this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
             this.parent.search_view.toggle_expanding_media_ids_by_default();
         });
 
-        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refresh_search());
+        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
 
         this.toggle_local_navigation_button = this.container.querySelector(".toggle-local-navigation-button");
         this.toggle_local_navigation_button.addEventListener("click", (e) => {
@@ -132,13 +132,13 @@ export default class DesktopSearchUI extends ppixiv.widget
         // Set up login/logout buttons for native.
         if(ppixiv.native)
         {
-            let { logged_in, local } = local_api.local_info;
+            let { logged_in, local } = ppixiv.local_api.local_info;
             this.container.querySelector(".login-button").hidden = local || logged_in;
             this.container.querySelector(".logout-button").hidden = local || !logged_in;
-            this.container.querySelector(".login-button").addEventListener("click", () => { local_api.redirect_to_login(); });
+            this.container.querySelector(".login-button").addEventListener("click", () => ppixiv.local_api.redirect_to_login());
             this.container.querySelector(".logout-button").addEventListener("click", () => {
                 if(confirm("Log out?"))
-                    local_api.logout();
+                    ppixiv.local_api.logout();
             });
         }
     }

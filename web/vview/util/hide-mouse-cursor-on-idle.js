@@ -5,15 +5,16 @@
 
 import { helpers } from 'vview/ppixiv-imports.js';
 
+// XXX: don't need to expose this
 export class TrackMouseMovement
 {
     constructor()
     {
         TrackMouseMovement._singleton = this;
 
-        this.force_hidden_until = null;
-        this.set_mouse_anchor_timeout = -1;
-        this.last_mouse_pos = null;
+        this.forceHiddenUntil = null;
+        this.setMouseAnchorTimeout = -1;
+        this.lastMousePos = null;
 
         window.addEventListener("mousemove", this.onmousemove, { capture: true });
     }
@@ -29,52 +30,52 @@ export class TrackMouseMovement
     // This is done when releasing a zoom to prevent spuriously showing the mouse cursor.
     simulate_inactivity()
     {
-        this.force_hidden_until = Date.now() + 150;
+        this.forceHiddenUntil = Date.now() + 150;
         this.idle();
     }
 
     onmousemove = (e) =>
     {
-        let mouse_pos = [e.screenX, e.screenY];
-        this.last_mouse_pos = mouse_pos;
-        if(!this.anchor_pos)
-            this.anchor_pos = this.last_mouse_pos;
+        let mousePos = [e.screenX, e.screenY];
+        this.lastMousePos = mousePos;
+        if(!this.anchorPos)
+            this.anchorPos = this.lastMousePos;
 
         // Cleare the anchor_pos timeout when the mouse moves.
-        this.clear_mouse_anchor_timeout();
+        this.clearMouseAnchorTimeout();
 
         // If we're forcing the cursor inactive for a while, stop.
-        if(this.force_hidden_until && this.force_hidden_until > Date.now())
+        if(this.forceHiddenUntil && this.forceHiddenUntil > Date.now())
             return;
 
         // Show the cursor if the mouse has moved far enough from the current anchor_pos.
-        let distance_moved = helpers.distance({x: this.anchor_pos[0], y: this.anchor_pos[1]}, {x: mouse_pos[0], y: mouse_pos[1]});
+        let distance_moved = helpers.distance({x: this.anchorPos[0], y: this.anchorPos[1]}, {x: mousePos[0], y: mousePos[1]});
         if(distance_moved > 10)
         {
-            this.mark_mouse_active();
+            this.markMouseActive();
             return;
         }
 
         // If we see mouse movement that isn't enough to cause us to display the cursor
         // and we don't see more movement for a while, reset anchor_pos so we discard
         // the movement we saw.
-        this.set_mouse_anchor_timeout = realSetTimeout(() => {
-            this.set_mouse_anchor_timeout = -1;
-            this.anchor_pos = this.last_mouse_pos;
+        this.setMouseAnchorTimeout = realSetTimeout(() => {
+            this.setMouseAnchorTimeout = -1;
+            this.anchorPos = this.lastMousePos;
         }, 500);
     }
 
-    // Remove the set_mouse_anchor_timeout timeout, if any.
-    clear_mouse_anchor_timeout()
+    // Remove the setMouseAnchorTimeout timeout, if any.
+    clearMouseAnchorTimeout()
     {
-        if(this.set_mouse_anchor_timeout == -1)
+        if(this.setMouseAnchorTimeout == -1)
             return;
 
-        realClearTimeout(this.set_mouse_anchor_timeout);
-        this.set_mouse_anchor_timeout = -1;
+        realClearTimeout(this.setMouseAnchorTimeout);
+        this.setMouseAnchorTimeout = -1;
     }
 
-    remove_timer()
+    _removeTimer()
     {
         if(!this.timer)
             return;
@@ -85,14 +86,14 @@ export class TrackMouseMovement
 
     // The mouse has been active recently.  Send mouseactive if the state is changing,
     // and schedule the next time it'll become inactive.
-    mark_mouse_active()
+    markMouseActive()
     {
         // When showing the cursor, snap the mouse movement anchor to the last seen position
         // and remove any anchor_pos timeout.
-        this.anchor_pos = this.last_mouse_pos;
-        this.clear_mouse_anchor_timeout();
+        this.anchorPos = this.lastMousePos;
+        this.clearMouseAnchorTimeout();
 
-        this.remove_timer();
+        this._removeTimer();
         this.timer = realSetTimeout(this.idle, 500);
 
         if(!this._active)
@@ -105,7 +106,7 @@ export class TrackMouseMovement
     // The timer has expired (or was forced to expire).
     idle = () =>
     {
-        this.remove_timer();
+        this._removeTimer();
 
         if(this._active)
         {
@@ -132,18 +133,18 @@ export class HideMouseCursorOnIdle
         
         this.element = element;
 
-        window.addEventListener("mouseactive", this.refresh_cursor_stationary);
-        window.addEventListener("mouseinactive", this.refresh_cursor_stationary);
+        window.addEventListener("mouseactive", () => this.refresh_hide_cursor());
+        window.addEventListener("mouseinactive", () => this.refresh_hide_cursor());
 
-        ppixiv.settings.addEventListener("no-hide-cursor", HideMouseCursorOnIdle.update_from_settings);
-        HideMouseCursorOnIdle.update_from_settings();
+        ppixiv.settings.addEventListener("no-hide-cursor", HideMouseCursorOnIdle.updateFromSettings);
+        HideMouseCursorOnIdle.updateFromSettings();
     }
 
     static disabled_by = new Set();
 
     static add_style()
     {
-        if(HideMouseCursorOnIdle.global_style)
+        if(HideMouseCursorOnIdle.globalStyle)
             return;
 
         // Create the style to hide the mouse cursor.  This hides the mouse cursor on .hide-cursor,
@@ -167,15 +168,15 @@ export class HideMouseCursorOnIdle
             .hide-cursor * { cursor: inherit !important; }
         `);
 
-        HideMouseCursorOnIdle.global_style = style;
+        HideMouseCursorOnIdle.globalStyle = style;
     }
 
-    static update_from_settings()
+    static updateFromSettings()
     {
         // If no-hide-cursor is true, disable the style that hides the cursor.  We track cursor
         // hiding and set the local hide-cursor style even if cursor hiding is disabled, so
         // other UI can use it, like video seek bars.
-        HideMouseCursorOnIdle.global_style.disabled = !this.is_enabled;
+        HideMouseCursorOnIdle.globalStyle.disabled = !this.is_enabled;
     }
 
     // Temporarily disable hiding all mouse cursors.  source is a key for the UI that's doing
@@ -186,7 +187,7 @@ export class HideMouseCursorOnIdle
             return;
 
         this.disabled_by.delete(source);
-        this.update_from_settings();
+        this.updateFromSettings();
         for(let instance of HideMouseCursorOnIdle.instances)
             instance.refresh_hide_cursor();
     }
@@ -197,7 +198,7 @@ export class HideMouseCursorOnIdle
             return;
 
         this.disabled_by.add(source);
-        this.update_from_settings();
+        this.updateFromSettings();
         for(let instance of HideMouseCursorOnIdle.instances)
             instance.refresh_hide_cursor();
     }
@@ -215,11 +216,6 @@ export class HideMouseCursorOnIdle
     static get is_enabled()
     {
         return !ppixiv.settings.get("no-hide-cursor") && this.disabled_by.size == 0;
-    }
-
-    refresh_cursor_stationary = (e) =>
-    {
-        this.refresh_hide_cursor();
     }
 
     refresh_hide_cursor()

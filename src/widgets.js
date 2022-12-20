@@ -193,6 +193,23 @@ ppixiv.actor = class extends EventTarget
         }
     }
 
+    // Return an array of all ancestors.  If include_self is true, yield ourself too.
+    ancestors({include_self=false}={})
+    {
+        let result = [];
+        if(include_self)
+            result.push(result);
+
+        let node = this.parent;
+        while(node)
+        {
+            result.push(node);
+            node = node.parent;
+        }
+
+        return result;
+    }
+
     // Yield all descendants of this node, depth-first.  If include_self is true, yield ourself too.
     *descendents({include_self=false}={})
     {
@@ -247,6 +264,9 @@ ppixiv.widget = class extends ppixiv.actor
     // Find the widget containing a node.
     static from_node(node, { allow_none=false }={})
     {
+        if(node == null && allow_none)
+            return null;
+
         // The top node for the widget has the widget class.
         let widget_top_node = node.closest(".widget");
         if(widget_top_node == null)
@@ -3211,7 +3231,6 @@ ppixiv.ScrollListener = class extends ppixiv.actor
             scroller,
             parent: this,
             onchange: () => {
-                console.log("changed");
                 this._refresh_after_scroll({force: true});
             },
         });

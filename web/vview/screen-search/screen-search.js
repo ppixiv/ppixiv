@@ -24,7 +24,7 @@ export default class ScreenSearch extends ppixiv.screen
             </div>
         `});
 
-        ppixiv.user_cache.addEventListener("usermodified", this.refresh_ui, { signal: this.shutdown_signal.signal });        
+        ppixiv.user_cache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdown_signal.signal });        
         
         // Add the top search UI if we're on desktop.
         if(!ppixiv.mobile)
@@ -141,7 +141,7 @@ export default class ScreenSearch extends ppixiv.screen
         //
         // We don't currently show the local navigation panel on mobile.  The UI isn't set up for
         // it, and it causes thumbnails to flicker while scrolling for some reason.
-        if(ppixiv.local_api.is_enabled() && !local_api.local_info.bookmark_tag_searches_only && !ppixiv.mobile)
+        if(ppixiv.local_api.is_enabled() && !ppixiv.local_api.local_info.bookmark_tag_searches_only && !ppixiv.mobile)
         {
             let local_navigation_box = this.container.querySelector(".local-navigation-box");
 
@@ -182,26 +182,26 @@ export default class ScreenSearch extends ppixiv.screen
         this.search_view.deactivate();
     }
 
-    async activate({ old_media_id })
+    async activate({ oldMediaId })
     {
-        console.log("Showing search, came from media ID:", old_media_id);
+        console.log("Showing search, came from media ID:", oldMediaId);
 
         super.activate();
 
         this._active = true;
-        this.refresh_ui();
+        this.refreshUi();
 
-        await this.search_view.activate({ old_media_id });
+        await this.search_view.activate({ oldMediaId });
     }
 
-    scrollToMediaId(media_id)
+    scrollToMediaId(mediaId)
     {
-        this.search_view.scrollToMediaId(media_id);
+        this.search_view.scrollToMediaId(mediaId);
     }
 
-    getRectForMediaId(media_id)
+    getRectForMediaId(mediaId)
     {
-        return this.search_view.getRectForMediaId(media_id);
+        return this.search_view.getRectForMediaId(mediaId);
     }
     
     setDataSource(data_source)
@@ -227,7 +227,7 @@ export default class ScreenSearch extends ppixiv.screen
     
         if(this.dataSource == null)
         {
-            this.refresh_ui();
+            this.refreshUi();
             return;
         }
 
@@ -244,25 +244,25 @@ export default class ScreenSearch extends ppixiv.screen
         }
         // Listen to the data source loading new pages, so we can refresh the list.
         this.dataSource.addEventListener("updated", this.dataSource_updated);
-        this.refresh_ui();
+        this.refreshUi();
     };
 
-    data_source_updated = () =>
+    dataSourceUpdated = () =>
     {
-        this.refresh_ui();
+        this.refreshUi();
     }
 
-    refresh_search = () =>
+    refreshSearch()
     {
-        ppixiv.app.refresh_current_data_source({remove_search_page: true});
+        ppixiv.app.refreshCurrentDataSource({removeSearchPage: true});
     }
 
-    refresh_search_from_page = () =>
+    refreshSearchFromPage()
     {
-        ppixiv.app.refresh_current_data_source({remove_search_page: false});
+        ppixiv.app.refreshCurrentDataSource({removeSearchPage: false});
     }
         
-    refresh_ui = () =>
+    refreshUi = () =>
     {
         // Update the title even if we're not active, so it's up to date for transitions.
         if(this.titleBarWidget)
@@ -301,7 +301,7 @@ export default class ScreenSearch extends ppixiv.screen
     
     get can_show_local_navigation()
     {
-        return this.dataSource?.is_vview && !local_api?.local_info?.bookmark_tag_searches_only;
+        return this.dataSource?.is_vview && !ppixiv.local_api?.local_info?.bookmark_tag_searches_only;
     }
 
     // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
@@ -354,7 +354,7 @@ export default class ScreenSearch extends ppixiv.screen
                 let text = await navigator.clipboard.readText();
                 let input = this.container.querySelector(".local-tag-search-box input");
                 input.value = text;
-                local_api.navigate_to_tag_search(text, {add_to_history: false});
+                ppixiv.local_api.navigate_to_tag_search(text, {add_to_history: false});
             }
         }
     }
@@ -368,6 +368,7 @@ export default class ScreenSearch extends ppixiv.screen
 // This is usually used from the search screen, but there's currently no good place to put
 // it there, so it's inside the settings menu and technically can be accessed while viewing
 // an image.
+// XXX: move this
 ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
 {
     static show()

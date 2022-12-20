@@ -35,7 +35,7 @@ export default class MobileSearchUI extends ppixiv.widget
             </div>
         `});
 
-        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refresh_search());
+        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
         this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(ppixiv.app.slideshowURL));
         this.container.querySelector(".menu").addEventListener("click", (e) => new mobile_edit_search_dialog());
@@ -46,10 +46,10 @@ export default class MobileSearchUI extends ppixiv.widget
                 if(this.parent.displayedMediaId == null)
                     return;
 
-                let parent_folder_id = local_api.get_parent_folder(this.parent.displayedMediaId);
+                let parent_folder_id = ppixiv.local_api.get_parent_folder(this.parent.displayedMediaId);
 
                 let args = helpers.args.location;
-                local_api.get_args_for_id(parent_folder_id, args);
+                ppixiv.local_api.get_args_for_id(parent_folder_id, args);
                 helpers.navigate(args);
             }
             else if(ppixiv.phistory.permanent)
@@ -71,7 +71,7 @@ export default class MobileSearchUI extends ppixiv.widget
         let back_button = this.container.querySelector(".back-button");
         let show_back_button;
         if(ppixiv.native)
-            show_back_button = local_api.get_parent_folder(this.parent.displayedMediaId) != null;
+            show_back_button = ppixiv.local_api.get_parent_folder(this.parent.displayedMediaId) != null;
         else if(ppixiv.phistory.permanent)
             show_back_button = ppixiv.phistory.length > 1;
         helpers.set_class(back_button, "disabled", !show_back_button);

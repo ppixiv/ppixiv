@@ -1,15 +1,16 @@
-"use strict";
-
 // This is the base class for viewer classes, which are used to view a particular
 // type of content in the main display.
-ppixiv.viewer = class extends widget
+
+import { helpers } from 'vview/ppixiv-imports.js';
+
+export default class Viewer extends ppixiv.widget
 {
-    constructor({media_id, ...options})
+    constructor({mediaId, ...options})
     {
         super(options);
 
         this.options = options;
-        this.media_id = media_id;
+        this.mediaId = mediaId;
         this.active = false;
 
         // This promise will be fulfilled with true once the viewer is displaying something,
@@ -18,12 +19,8 @@ ppixiv.viewer = class extends widget
         this.ready = helpers.make_promise();
     }
 
-    // Remove any event listeners, nodes, etc. and shut down so a different viewer can
-    // be used.
     shutdown()
     {
-        this.container.remove();
-
         this.ready.accept(false);
 
         super.shutdown();

@@ -1,5 +1,3 @@
-"use strict";
-
 // A global right-click popup menu.
 //
 // This is only active when right clicking over items with the context-menu-target
@@ -9,129 +7,11 @@
 // for different parts of the UI to tell us when they're active.
 //
 // This also handles mousewheel zooming.
-ppixiv.context_menu_image_info_widget = class extends ppixiv.illust_widget
-{
-    constructor({
-        show_title=false,
-        ...options})
-    {
-        super({ ...options, template: `
-            <div class=context-menu-image-info>
-                <div class=title-text-block>
-                    <span class=folder-block hidden>
-                        <span class=folder-text></span>
-                        <span class=slash">/</span>
-                    </span>
-                    <span class=title hidden></span>
-                </div>
-                <div class=page-count hidden></div>
-                <div class=image-info hidden></div>
-                <div class="post-age popup" hidden></div>
-            </div>
-        `});
 
-        this.show_title = show_title;
-    }
+import { helpers, local_api } from 'vview/ppixiv-imports.js';
+import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
 
-    get needed_data()
-    {
-        // We need illust info if we're viewing a manga page beyond page 1, since
-        // early info doesn't have that.  Most of the time, we only need early info.
-        if(this._page == null || this._page == 0)
-            return "partial";
-        else
-            return "full";
-    }
-
-    set show_page_number(value)
-    {
-        this._show_page_number = value;
-        this.refresh();
-    }
-
-    refresh_internal({ media_id, media_info })
-    {
-        this.container.hidden = media_info == null;
-        if(this.container.hidden)
-            return;
-
-        var set_info = (query, text) =>
-        {
-            var node = this.container.querySelector(query);
-            node.innerText = text;
-            node.hidden = text == "";
-        };
-        
-        // Add the page count for manga.  If the data source is data_source.vview, show
-        // the index of the current file if it's loaded all results.
-        let current_page = this._page;
-        let page_count = media_info.pageCount;
-        let show_page_number = this._show_page_number;
-        if(this.data_source?.name == "vview" && this.data_source.all_pages_loaded)
-        {
-            let page = this.data_source.id_list.get_page_for_illust(media_id);
-            let ids = this.data_source.id_list.media_ids_by_page.get(page);
-            if(ids != null)
-            {
-                current_page = ids.indexOf(media_id);
-                page_count = ids.length;
-                show_page_number = true;
-            }
-        }
-
-        let page_text = "";
-        if(page_count > 1)
-        {
-            if(show_page_number || current_page > 0)
-                page_text = `Page ${current_page+1}/${page_count}`;
-            else
-                page_text = `${page_count} pages`;
-        }
-        set_info(".page-count", page_text);
-
-        if(this.show_title)
-        {
-            set_info(".title", media_info.illustTitle);
-        
-            let show_folder = helpers.is_media_id_local(this._media_id);
-            this.container.querySelector(".folder-block").hidden = !show_folder;
-            if(show_folder)
-            {
-                let {id} = helpers.parse_media_id(this._media_id);
-                this.container.querySelector(".folder-text").innerText = helpers.get_path_suffix(id, 1, 1); // parent directory
-            }
-        }
-
-        // If we're on the first page then we only requested early info, and we can use the dimensions
-        // on it.  Otherwise, get dimensions from mangaPages from illust data.  If we're displaying a
-        // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
-        // it's loaded.
-        var info = "";
-        let { width, height } = ppixiv.media_cache.get_dimensions(media_info, this._media_id);
-        if(width != null && height != null)
-            info += width + "x" + height;
-        set_info(".image-info", info);
-
-        let seconds_old = (new Date() - new Date(media_info.createDate)) / 1000;
-        let age = helpers.age_to_string(seconds_old);
-        this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(media_info.createDate);
-        set_info(".post-age", age);
-    }
-
-    set_data_source(data_source)
-    {
-        if(this.data_source == data_source)
-            return;
-
-        this.data_source = data_source;
-        this.refresh();
-    }
-}
-
-// A helper for a simple right-click context menu.
-//
-// The menu opens on right click and closes when the button is released.
-ppixiv.main_context_menu = class extends ppixiv.widget
+export default class ContextMenu extends ppixiv.widget
 {
     // Names for buttons, for storing in this.buttons_down.
     buttons = ["lmb", "rmb", "mmb"];
@@ -235,7 +115,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
 
         this.visible = false;
         this.hide = this.hide.bind(this);
-        this._on_click_viewer = null;
+        this._current_viewer = null;
         this._media_id = null;
 
         // Whether the left and right mouse buttons are pressed:
@@ -256,7 +136,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         window.addEventListener("keyup", this.onkeyevent);
 
         // Use key_listener to watch for ctrl being held.
-        new key_listener("Control", this.ctrl_pressed);
+        new ppixiv.key_listener("Control", this.ctrl_pressed);
 
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
         // XXX
@@ -267,11 +147,6 @@ ppixiv.main_context_menu = class extends ppixiv.widget
 
         this.container.addEventListener("mouseover", this.onmouseover, true);
         this.container.addEventListener("mouseout", this.onmouseout, true);
-
-        // Listen for the image viewer changing.  This is used for zooming.
-        ppixiv.viewer_images.primary_changed.addEventListener("changed", (e) => {
-            this.on_click_viewer = e.viewer;
-        }, { signal: this.shutdown_signal.signal });
 
         // If the page is navigated while the popup menu is open, clear the ID the
         // user clicked on, so we refresh and show the default.
@@ -302,7 +177,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         for(var button of this.container.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level);
 
-        this.avatar_widget = new avatar_widget({
+        this.avatar_widget = new ppixiv.avatar_widget({
             container: this.container.querySelector(".avatar-widget-container"),
             mode: "overlay",
         });
@@ -335,21 +210,21 @@ ppixiv.main_context_menu = class extends ppixiv.widget
 
         this.illust_widgets = [
             this.avatar_widget,
-            new like_button_widget({
+            new ppixiv.like_button_widget({
                 contents: this.container.querySelector(".button-like"),
             }),
-            new like_count_widget({
+            new ppixiv.like_count_widget({
                 contents: this.container.querySelector(".button-like .count"),
             }),
-            new context_menu_image_info_widget({
+            new ImageInfoWidget({
                 container: this.container.querySelector(".context-menu-image-info-container"),
             }),
-            new bookmark_count_widget({
+            new ppixiv.bookmark_count_widget({
                 contents: this.container.querySelector(".button-bookmark.public .count")
             }),
         ];
 
-        this.illust_widgets.push(new view_in_explorer_widget({
+        this.illust_widgets.push(new ppixiv.view_in_explorer_widget({
             contents: this.container.querySelector(".view-in-explorer"),
         }));
 
@@ -358,7 +233,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
         {
             // The bookmark buttons, and clicks in the tag dropdown:
-            let bookmark_widget = new bookmark_button_widget({
+            let bookmark_widget = new ppixiv.bookmark_button_widget({
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
             });
@@ -412,7 +287,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
             // menu behavior and probably making it impossible for games to have sane keyboard
             // behavior at all.
             this.shift_was_pressed = e.shiftKey;
-            if(navigator.userAgent.indexOf("Firefox/") == -1 && settings.get("invert-popup-hotkey"))
+            if(navigator.userAgent.indexOf("Firefox/") == -1 && ppixiv.settings.get("invert-popup-hotkey"))
                 this.shift_was_pressed = !this.shift_was_pressed;
             if(this.shift_was_pressed)
                 return;
@@ -444,7 +319,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
     // menu if the mouse moves too far away.
     get toggle_mode()
     {
-        return settings.get("touchpad-mode", false);
+        return ppixiv.settings.get("touchpad-mode", false);
     }
 
     // The subclass can override this to handle key events.  This is called whether the menu
@@ -471,22 +346,22 @@ ppixiv.main_context_menu = class extends ppixiv.widget
 
     _get_hovered_element()
     {
-        let x = pointer_listener.latest_mouse_client_position[0];
-        let y = pointer_listener.latest_mouse_client_position[1];
+        let x = ppixiv.pointer_listener.latest_mouse_client_position[0];
+        let y = ppixiv.pointer_listener.latest_mouse_client_position[1];
         return document.elementFromPoint(x, y);
     }
 
     ctrl_pressed = (down) =>
     {
-        if(!settings.get("ctrl_opens_popup"))
+        if(!ppixiv.settings.get("ctrl_opens_popup"))
             return;
 
         this.buttons_down["Control"] = down;
 
         if(down)
         {
-            let x = pointer_listener.latest_mouse_client_position[0];
-            let y = pointer_listener.latest_mouse_client_position[1];
+            let x = ppixiv.pointer_listener.latest_mouse_client_position[0];
+            let y = ppixiv.pointer_listener.latest_mouse_client_position[1];
             let node = this._get_hovered_element();
             this.show({x, y, target: node});
         } else {
@@ -511,23 +386,41 @@ ppixiv.main_context_menu = class extends ppixiv.widget
     }
 
     // Return the element that should be under the cursor when the menu is opened.
-    get element_to_center()
+    get elementToCenter()
     {
         return null;
     }
 
     show({x, y, target})
     {
+        // See if the click is inside a viewer_images.
+        let widget = ppixiv.widget.from_node(target, { allow_none: true });
+        this._current_viewer = null;
+        if(widget)
+        {
+            // To avoid importing viewer_images here, just look for a widget in the tree
+            // with zoom_toggle.
+            for(let parent of widget.ancestors({include_self: true}))
+            {
+                if(parent.zoom_toggle != null)
+                {
+                    this._current_viewer = parent;
+                    break;
+                }
+            }
+        }
+
+
         // If RMB is pressed while dragging LMB, stop dragging the window when we
         // show the popup.
-        if(this.on_click_viewer != null)
-            this.on_click_viewer.stop_dragging();
+        if(this._current_viewer != null)
+            this._current_viewer.stopDragging();
 
         // See if an element representing a user and/or an illust was under the cursor.
         if(target != null)
         {
-            let { media_id } = ppixiv.app.get_illust_at_element(target);
-            this._set_temporary_illust(media_id);
+            let { mediaId } = ppixiv.app.get_illust_at_element(target);
+            this._set_temporary_illust(mediaId);
         }
 
         if(this.visible)
@@ -540,7 +433,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         this.apply_visibility();
 
         // Disable popup UI while a context menu is open.
-        ClassFlags.get.set("hide-ui", true);
+        ppixiv.ClassFlags.get.set("hide-ui", true);
         
         window.addEventListener("blur", this.window_onblur);
 
@@ -557,7 +450,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
             });
         }
 
-        var centered_element = this.element_to_center;
+        var centered_element = this.elementToCenter;
         if(centered_element == null)
             centered_element = this.displayed_menu;
 
@@ -588,7 +481,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
     {
         let { x, y } = this.popup_position;
 
-        if(this._on_click_viewer == null)
+        if(this._current_viewer == null)
         {
             // If we can't zoom, adjust the popup position so it doesn't go over the right and
             // bottom of the screen, with a bit of padding so we're not flush with the edge and
@@ -787,7 +680,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         this.displayed_menu = null;
         HideMouseCursorOnIdle.enable_all("context-menu");
         this.buttons_down = {};
-        ClassFlags.get.set("hide-ui", false);
+        ppixiv.ClassFlags.get.set("hide-ui", false);
         window.removeEventListener("blur", this.window_onblur);
         window.removeEventListener("dragstart", this.cancel_event, true);
 
@@ -822,7 +715,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
     handle_link_click = (e) =>
     {
         // Do nothing if opening the popup while holding ctrl is disabled.
-        if(!settings.get("ctrl_opens_popup"))
+        if(!ppixiv.settings.get("ctrl_opens_popup"))
             return;
 
         let a = e.target.closest("A");
@@ -915,7 +808,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
             return;
         }
 
-        let user_id = await user_cache.get_user_id_for_media_id(media_id);
+        let user_id = await ppixiv.user_cache.get_user_id_for_media_id(media_id);
 
         // Stop if the media ID changed.
         if(media_id != this.effective_media_id)
@@ -933,27 +826,16 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         this.refresh();
     }
 
-    // Set the current viewer, or null if none.  If set, we'll activate zoom controls.
-    get on_click_viewer()
-    {
-        return this._on_click_viewer;
-    }
-    set on_click_viewer(viewer)
-    {
-        this._on_click_viewer = viewer;
-        this.refresh();
-    }
-
     // Put the zoom toggle button under the cursor, so right-left click is a quick way
     // to toggle zoom lock.
-    get element_to_center()
+    get elementToCenter()
     {
         return this.displayed_menu.querySelector(".button-zoom");
     }
         
     get _is_zoom_ui_enabled()
     {
-        return this._on_click_viewer != null && this._on_click_viewer.slideshowMode == null;
+        return this._current_viewer != null && this._current_viewer.slideshowMode == null;
     }
 
     set_data_source(data_source)
@@ -986,16 +868,16 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         // These hotkeys require an image, which we have if we're viewing an image or if the user
         // was hovering over an image in search results.  We might not have the illust info yet,
         // but we at least need an illust ID.
-        let media_id = this.effective_media_id;
+        let mediaId = this.effective_media_id;
 
         // If there's no effective media ID, the user is pressing a key while the context menu isn't
         // open.  If the cursor is over a search thumbnail, use its media ID if any, to allow hovering
         // over a thumbnail and using bookmark, etc. hotkeys.  This isn't needed when ctrl_opens_popup
         // is open since we'll already have effective_idmedia_id.
-        if(media_id == null)
+        if(mediaId == null)
         {
             let node = this._get_hovered_element();
-            media_id = ppixiv.app.get_illust_at_element(node).media_id;
+            mediaId = ppixiv.app.get_illust_at_element(node).mediaId;
         }
 
         // All of these hotkeys require Ctrl.
@@ -1005,10 +887,10 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         if(e.key.toUpperCase() == "V")
         {
             (async() => {
-                if(media_id == null)
+                if(mediaId == null)
                     return;
 
-                actions.like_image(media_id);
+                actions.like_image(mediaId);
             })();
 
             return true;
@@ -1017,15 +899,15 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         if(e.key.toUpperCase() == "B")
         {
             (async() => {
-                if(media_id == null)
+                if(mediaId == null)
                     return;
 
-                let illust_data = media_cache.get_media_info(media_id, { full: false });
+                let illust_data = ppixiv.media_cache.get_media_info(mediaId, { full: false });
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)
                 {
-                    actions.add_new_tag(media_id);
+                    actions.add_new_tag(mediaId);
                     return;
                 }
 
@@ -1038,7 +920,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
                         return;
                     }
 
-                    actions.bookmark_remove(media_id);
+                    actions.bookmark_remove(mediaId);
                     return;
                 }
 
@@ -1054,7 +936,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
                     return;
                 }
 
-                actions.bookmark_add(media_id, {
+                actions.bookmark_add(mediaId, {
                     private: bookmark_privately
                 });
             })();
@@ -1075,12 +957,12 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         {
             // Go async to get media info if it's not already available.
             (async() => {
-                if(media_id == null)
+                if(mediaId == null)
                     return;
 
                 // Download the image or video by default.  If alt is pressed and the image has
                 // multiple pages, download a ZIP instead.
-                let media_info = await media_cache.get_media_info(media_id, { full: false });
+                let media_info = await ppixiv.media_cache.get_media_info(mediaId, { full: false });
                 let download_type = "image";
                 if(actions.is_download_type_available("image", media_info))
                     download_type = "image";
@@ -1090,7 +972,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
                 if(e.altKey && actions.is_download_type_available("ZIP", media_info))
                     download_type = "ZIP";
     
-                actions.download_illust(media_id, download_type);
+                actions.download_illust(mediaId, download_type);
             })();
 
             return true;
@@ -1116,7 +998,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
                 if(user_id == null)
                     return;
 
-                var user_info = await user_cache.get_user_info_full(user_id);
+                var user_info = await ppixiv.user_cache.get_user_info_full(user_id);
                 if(user_info == null)
                     return;
 
@@ -1175,7 +1057,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
             {
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                this._on_click_viewer.zoom_toggle({reset_position: true});
+                this._current_viewer.zoom_toggle({reset_position: true});
                 return;
             }
 
@@ -1244,7 +1126,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         let x = keyboard? null:e.clientX;
         let y = keyboard? null:e.clientY;
 
-        this._on_click_viewer.zoom_adjust(down, {x, y});
+        this._current_viewer.zoom_adjust(down, {x, y});
         
         this.refresh();
     }
@@ -1279,7 +1161,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         this._load_user_id();
             
         let user_id = this.effective_user_id;
-        let info = media_id? media_cache.get_media_info_sync(media_id, { full: false }):null;
+        let info = media_id? ppixiv.media_cache.get_media_info_sync(media_id, { full: false }):null;
 
         this.button_view_manga.dataset.popup = "View manga pages";
         helpers.set_class(this.button_view_manga, "enabled", info?.pageCount > 1);
@@ -1304,7 +1186,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
                     widget.set_user_id(user_id);
 
                 // If _clicked_media_id is set, we're open for a search result image the user right-clicked
-                // on.  Otherwise, we're open for the image actually being viewed.  Tell context_menu_image_info_widget
+                // on.  Otherwise, we're open for the image actually being viewed.  Tell ImageInfoWidget
                 // to show the current manga page if we're on a viewed image, but not if we're on a search
                 // result.
                 let showing_viewed_image = (this._clicked_media_id == null);
@@ -1327,11 +1209,11 @@ ppixiv.main_context_menu = class extends ppixiv.widget
 
         if(this._is_zoom_ui_enabled)
         {
-            helpers.set_class(this.container.querySelector(".button-zoom"), "selected", this._on_click_viewer.get_locked_zoom());
+            helpers.set_class(this.container.querySelector(".button-zoom"), "selected", this._current_viewer.getLockedZoom());
 
-            let zoom_level = this._on_click_viewer.get_zoom_level();
+            let zoom_level = this._current_viewer.get_zoom_level();
             for(let button of this.container.querySelectorAll(".button-zoom-level"))
-                helpers.set_class(button, "selected", this._on_click_viewer.get_locked_zoom() && button.dataset.level == zoom_level);
+                helpers.set_class(button, "selected", this._current_viewer.getLockedZoom() && button.dataset.level == zoom_level);
         }
     }
 
@@ -1362,7 +1244,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         if(!this._is_zoom_ui_enabled)
             return;
         
-        this._on_click_viewer.zoom_toggle({x: e.clientX, y: e.clientY})
+        this._current_viewer.zoom_toggle({x: e.clientX, y: e.clientY})
         this.refresh();
     }
 
@@ -1374,7 +1256,7 @@ ppixiv.main_context_menu = class extends ppixiv.widget
         if(!this._is_zoom_ui_enabled)
             return;
 
-        this._on_click_viewer.zoom_set_level(e.currentTarget.dataset.level, {x: e.clientX, y: e.clientY});
+        this._current_viewer.zoom_set_level(e.currentTarget.dataset.level, {x: e.clientX, y: e.clientY});
         this.refresh();
     }
 
@@ -1422,3 +1304,121 @@ ppixiv.main_context_menu = class extends ppixiv.widget
     }
 }
 
+class ImageInfoWidget extends ppixiv.illust_widget
+{
+    constructor({
+        show_title=false,
+        ...options})
+    {
+        super({ ...options, template: `
+            <div class=context-menu-image-info>
+                <div class=title-text-block>
+                    <span class=folder-block hidden>
+                        <span class=folder-text></span>
+                        <span class=slash">/</span>
+                    </span>
+                    <span class=title hidden></span>
+                </div>
+                <div class=page-count hidden></div>
+                <div class=image-info hidden></div>
+                <div class="post-age popup" hidden></div>
+            </div>
+        `});
+
+        this.show_title = show_title;
+    }
+
+    get needed_data()
+    {
+        // We need illust info if we're viewing a manga page beyond page 1, since
+        // early info doesn't have that.  Most of the time, we only need early info.
+        if(this._page == null || this._page == 0)
+            return "partial";
+        else
+            return "full";
+    }
+
+    set show_page_number(value)
+    {
+        this._show_page_number = value;
+        this.refresh();
+    }
+
+    refresh_internal({ media_id, media_info })
+    {
+        this.container.hidden = media_info == null;
+        if(this.container.hidden)
+            return;
+
+        var set_info = (query, text) =>
+        {
+            var node = this.container.querySelector(query);
+            node.innerText = text;
+            node.hidden = text == "";
+        };
+        
+        // Add the page count for manga.  If the data source is data_source.vview, show
+        // the index of the current file if it's loaded all results.
+        let current_page = this._page;
+        let page_count = media_info.pageCount;
+        let show_page_number = this._show_page_number;
+        if(this.data_source?.name == "vview" && this.data_source.all_pages_loaded)
+        {
+            let page = this.data_source.id_list.get_page_for_illust(media_id);
+            let ids = this.data_source.id_list.media_ids_by_page.get(page);
+            if(ids != null)
+            {
+                current_page = ids.indexOf(media_id);
+                page_count = ids.length;
+                show_page_number = true;
+            }
+        }
+
+        let page_text = "";
+        if(page_count > 1)
+        {
+            if(show_page_number || current_page > 0)
+                page_text = `Page ${current_page+1}/${page_count}`;
+            else
+                page_text = `${page_count} pages`;
+        }
+        set_info(".page-count", page_text);
+
+        if(this.show_title)
+        {
+            set_info(".title", media_info.illustTitle);
+        
+            let show_folder = helpers.is_media_id_local(this._media_id);
+            this.container.querySelector(".folder-block").hidden = !show_folder;
+            if(show_folder)
+            {
+                let {id} = helpers.parse_media_id(this._media_id);
+                this.container.querySelector(".folder-text").innerText = helpers.get_path_suffix(id, 1, 1); // parent directory
+            }
+        }
+
+        // If we're on the first page then we only requested early info, and we can use the dimensions
+        // on it.  Otherwise, get dimensions from mangaPages from illust data.  If we're displaying a
+        // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
+        // it's loaded.
+        var info = "";
+        let { width, height } = ppixiv.media_cache.get_dimensions(media_info, this._media_id);
+        if(width != null && height != null)
+            info += width + "x" + height;
+        set_info(".image-info", info);
+
+        let seconds_old = (new Date() - new Date(media_info.createDate)) / 1000;
+        let age = helpers.age_to_string(seconds_old);
+        this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(media_info.createDate);
+        set_info(".post-age", age);
+    }
+
+    set_data_source(data_source)
+    {
+        if(this.data_source == data_source)
+            return;
+
+        this.data_source = data_source;
+        this.refresh();
+    }
+}

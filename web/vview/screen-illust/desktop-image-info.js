@@ -1,7 +1,8 @@
-"use strict";
+// This handles the desktop overlay UI on the illustration page.
 
-// This handles the overlay UI on the illustration page.
-ppixiv.image_ui = class extends ppixiv.widget
+import { helpers } from 'vview/ppixiv-imports.js';
+
+export default class DesktopImageInfo extends ppixiv.widget
 {
     constructor({...options})
     {
@@ -143,54 +144,54 @@ ppixiv.image_ui = class extends ppixiv.widget
         // the scroller.
         this.ui_box = this.container.querySelector(".ui-box");
 
-        this.avatar_widget = new avatar_widget({
+        this.avatarWidget = new ppixiv.avatar_widget({
             container: this.container.querySelector(".avatar-popup"),
             mode: "dropdown",
             dropdownvisibilitychanged: () => {
-                this.refresh_overlay_ui_visibility();
+                this.refreshOverlayUiVisibility();
             },
         });
 
-        this.tag_widget = new tag_widget({
+        this.tagWidget = new ppixiv.tag_widget({
             contents: this.container.querySelector(".tag-list"),
         });
 
-        media_cache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
+        ppixiv.media_cache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
         
-        this.like_button = new like_button_widget({
+        this.likeButton = new ppixiv.like_button_widget({
             contents: this.container.querySelector(".button-like"),
         });
-        this.like_count_widget = new like_count_widget({
+        this.likeCountWidget = new ppixiv.like_count_widget({
             contents: this.container.querySelector(".button-like .count"),
         });
-        this.bookmark_count_widget = new bookmark_count_widget({
+        this.bookmarkCountWidget = new ppixiv.bookmark_count_widget({
             contents: this.container.querySelector(".button-bookmark .count"),
         });
-        this.manga_page_bar = this.querySelector(".manga-page-bar");
+        this.mangaPageBar = this.querySelector(".manga-page-bar");
 
         // The bookmark buttons, and clicks in the tag dropdown:
-        this.bookmark_buttons = [];
+        this.bookmarkButtons = [];
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
-            this.bookmark_buttons.push(new bookmark_button_widget({
+            this.bookmarkButtons.push(new ppixiv.bookmark_button_widget({
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
             }));
 
         let bookmark_tags_button = this.container.querySelector(".button-bookmark-tags");
-        this.bookmark_tags_dropdown_opener = new ppixiv.bookmark_tag_dropdown_opener({
+        this.bookmarkTagsDropdownOpener = new ppixiv.bookmark_tag_dropdown_opener({
             parent: this,
             bookmark_tags_button,
-            bookmark_buttons: this.bookmark_buttons,
+            bookmark_buttons: this.bookmarkButtons,
 
             // The dropdown affects visibility, so refresh when it closes.
             onvisibilitychanged: () => {
-                this.refresh_overlay_ui_visibility();
+                this.refreshOverlayUiVisibility();
             },
         });
 
         for(let button of this.container.querySelectorAll(".download-button"))
-            button.addEventListener("click", this.clicked_download);
-        this.container.querySelector(".download-manga-button").addEventListener("click", this.clicked_download);
+            button.addEventListener("click", this.clickedDownload);
+        this.container.querySelector(".download-manga-button").addEventListener("click", this.clickedDownload);
         this.container.querySelector(".view-manga-button").addEventListener("click", (e) => ppixiv.app.navigate_out());
 
         // Don't propagate wheel events if the contents can scroll, so moving the scroller doesn't change the
@@ -206,35 +207,35 @@ ppixiv.image_ui = class extends ppixiv.widget
         });
 
         // Show on hover.
-        this.ui_box.addEventListener("mouseenter", (e) => { this.hovering_over_box = true; this.refresh_overlay_ui_visibility(); });
-        this.ui_box.addEventListener("mouseleave", (e) => { this.hovering_over_box = false; this.refresh_overlay_ui_visibility(); });
+        this.ui_box.addEventListener("mouseenter", (e) => { this.hoveringOverBox = true; this.refreshOverlayUiVisibility(); });
+        this.ui_box.addEventListener("mouseleave", (e) => { this.hoveringOverBox = false; this.refreshOverlayUiVisibility(); });
 
-        let hover_circle = this.querySelector(".hover-circle");
-        hover_circle.addEventListener("mouseenter", (e) => { this.hovering_over_sphere = true; this.refresh_overlay_ui_visibility(); });
-        hover_circle.addEventListener("mouseleave", (e) => { this.hovering_over_sphere = false; this.refresh_overlay_ui_visibility(); });
-        settings.addEventListener("image_editing", () => { this.refresh_overlay_ui_visibility(); });
-        settings.addEventListener("image_editing_mode", () => { this.refresh_overlay_ui_visibility(); });
-        ClassFlags.get.addEventListener("hide-ui", () => this.refresh_overlay_ui_visibility(), this._signal);
+        let hoverCircle = this.querySelector(".hover-circle");
+        hoverCircle.addEventListener("mouseenter", (e) => { this.hoveringOverSphere = true; this.refreshOverlayUiVisibility(); });
+        hoverCircle.addEventListener("mouseleave", (e) => { this.hoveringOverSphere = false; this.refreshOverlayUiVisibility(); });
+        ppixiv.settings.addEventListener("image_editing", () => { this.refreshOverlayUiVisibility(); });
+        ppixiv.settings.addEventListener("image_editing_mode", () => { this.refreshOverlayUiVisibility(); });
+        ppixiv.ClassFlags.get.addEventListener("hide-ui", () => this.refreshOverlayUiVisibility(), this._signal);
 
-        this.refresh_overlay_ui_visibility();
+        this.refreshOverlayUiVisibility();
     }
 
-    refresh_overlay_ui_visibility()
+    refreshOverlayUiVisibility()
     {
         // Hide widgets inside the hover UI when it's hidden.
-        let visible = this.hovering_over_box || this.hovering_over_sphere;
+        let visible = this.hoveringOverBox || this.hoveringOverSphere;
 
         // Don't show the hover UI while editing, since it can get in the way of trying to
         // click the image.
-        let editing = settings.get("image_editing") && settings.get("image_editing_mode") != null;
+        let editing = ppixiv.settings.get("image_editing") && ppixiv.settings.get("image_editing_mode") != null;
         if(editing)
             visible = false;
 
         // Stay visible if the bookmark tag dropdown or the follow dropdown are visible.
-        if(this.bookmark_tags_dropdown_opener?.visible || this.avatar_widget.follow_dropdown_opener.visible)
+        if(this.bookmarkTagsDropdownOpener?.visible || this.avatarWidget.follow_dropdown_opener.visible)
             visible = true;
 
-        if(ClassFlags.get.get("hide-ui"))
+        if(ppixiv.ClassFlags.get.get("hide-ui"))
             visible = false;
         
         // Tell the image UI when it's visible.
@@ -266,27 +267,27 @@ ppixiv.image_ui = class extends ppixiv.widget
         this.refresh();
     }
     
-    get media_id()
+    get mediaId()
     {
-        return this._media_id;
+        return this._mediaId;
     }
 
-    set media_id(media_id)
+    set mediaId(mediaId)
     {
-        if(this._media_id == media_id)
+        if(this._mediaId == mediaId)
             return;
-        this._media_id = media_id;
+        this._mediaId = mediaId;
 
-        this.illust_data = null;
+        this.mediaInfo = null;
         this.refresh();
     }
 
-    get displayed_page()
+    get displayedPage()
     {
-        return helpers.parse_media_id(this._media_id).page;
+        return helpers.parse_media_id(this._mediaId).page;
     }
 
-    handle_onkeydown(e)
+    handleKeydown(e)
     {
     }
 
@@ -299,123 +300,127 @@ ppixiv.image_ui = class extends ppixiv.widget
             return;
 
         // Update widget illust IDs.
-        this.like_button.set_media_id(this._media_id);
-        this.like_count_widget.set_media_id(this._media_id);
-        this.bookmark_count_widget.set_media_id(this._media_id);
-        for(let button of this.bookmark_buttons)
-            button.set_media_id(this._media_id);
-        this.bookmark_tags_dropdown_opener.set_media_id(this._media_id);
+        this.likeButton.set_media_id(this._mediaId);
+        this.likeCountWidget.set_media_id(this._mediaId);
+        this.bookmarkCountWidget.set_media_id(this._mediaId);
+        for(let button of this.bookmarkButtons)
+            button.set_media_id(this._mediaId);
+        this.bookmarkTagsDropdownOpener.set_media_id(this._mediaId);
 
-        this.illust_data = null;
-        if(this._media_id == null)
+        this.mediaInfo = null;
+        if(this._mediaId == null)
             return;
 
         // We need image info to update.
-        let media_id = this._media_id;
-        let illust_info = await media_cache.get_media_info(this._media_id);
+        let mediaId = this._mediaId;
+        let mediaInfo = await ppixiv.media_cache.get_media_info(this._mediaId);
 
         // Check if anything changed while we were loading.
-        if(illust_info == null || media_id != this._media_id || !this.visible)
+        if(mediaInfo == null || mediaId != this._mediaId || !this.visible)
             return;
 
-        this.illust_data = illust_info;
+        this.mediaInfo = mediaInfo;
 
-        this.manga_page_bar.hidden = this.illust_data.pageCount == 1;
-        if(this.illust_data.pageCount > 1)
+        this.mangaPageBar.hidden = this.mediaInfo.pageCount == 1;
+        if(this.mediaInfo.pageCount > 1)
         {
-            let fill = (this.displayed_page+1) / this.illust_data.pageCount;
-            this.manga_page_bar.style.width = (fill * 100) + "%";
+            let fill = (this.displayedPage+1) / this.mediaInfo.pageCount;
+            this.mangaPageBar.style.width = (fill * 100) + "%";
         }
 
-        let [illust_id] = helpers.media_id_to_illust_id_and_page(this._media_id);
-        let user_id = illust_info.userId;
+        let [illustId] = helpers.media_id_to_illust_id_and_page(this._mediaId);
+        let userId = mediaInfo.userId;
 
         // Show the author if it's someone else's post, or the edit link if it's ours.
-        var our_post = global_data.user_id == user_id;
-        this.container.querySelector(".author-block").hidden = our_post;
-        this.container.querySelector(".edit-post").hidden = !our_post;
-        this.container.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illust_id;
+        let ourPost = global_data.user_id == userId;
+        this.querySelector(".author-block").hidden = ourPost;
+        this.querySelector(".edit-post").hidden = !ourPost;
+        this.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illustId;
 
-        this.avatar_widget.set_user_id(user_id);
-        this.tag_widget.set(illust_info.tagList);
+        // Update the disable UI button to point at the current image's illustration page.
+        let disableButton = this.querySelector(".disable-ui-button");
+        disableButton.href = `/artworks/${illustId}#no-ppixiv`;
 
-        var element_title = this.container.querySelector(".title");
-        element_title.textContent = illust_info.illustTitle;
-        element_title.href = helpers.get_url_for_id(this._media_id).url;
+        this.avatarWidget.set_user_id(userId);
+        this.tagWidget.set(mediaInfo.tagList);
+
+        let element_title = this.container.querySelector(".title");
+        element_title.textContent = mediaInfo.illustTitle;
+        element_title.href = helpers.get_url_for_id(this._mediaId).url;
 
         // Show the folder if we're viewing a local image.
-        let folder_text_element = this.container.querySelector(".folder-text");
-        let show_folder = helpers.is_media_id_local(this._media_id);
-        if(show_folder)
+        let folderTextElement = this.container.querySelector(".folder-text");
+        let showFolder = helpers.is_media_id_local(this._mediaId);
+        if(showFolder)
         {
-            let {id} = helpers.parse_media_id(this.media_id);
-            folder_text_element.innerText = helpers.get_path_suffix(id, 2, 1); // last two parent directories
+            let {id} = helpers.parse_media_id(this.mediaId);
+            folderTextElement.innerText = helpers.get_path_suffix(id, 2, 1); // last two parent directories
 
-            let parent_folder_id = local_api.get_parent_folder(id);
+            let parentFolderId = ppixiv.local_api.get_parent_folder(id);
             let args = new helpers.args("/", ppixiv.plocation);
-            local_api.get_args_for_id(parent_folder_id, args);
-            folder_text_element.href = args.url;
+            ppixiv.local_api.get_args_for_id(parentFolderId, args);
+            folderTextElement.href = args.url;
         }
 
         // If the author name or folder are empty, hide it instead of leaving it empty.
-        this.container.querySelector(".author-block").hidden = illust_info.userName == "";
-        this.container.querySelector(".folder-block").hidden = !show_folder;
-        var element_author = this.container.querySelector(".author");
-        if(illust_info.userName != "")
-            element_author.textContent = illust_info.userName;
+        this.container.querySelector(".author-block").hidden = mediaInfo.userName == "";
+        this.container.querySelector(".folder-block").hidden = !showFolder;
 
-        element_author.href = `/users/${user_id}#ppixiv`;
+        let elementAuthor = this.container.querySelector(".author");
+        elementAuthor.href = `/users/${userId}#ppixiv`;
+        if(mediaInfo.userName != "")
+            elementAuthor.textContent = mediaInfo.userName;
         
-        this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv?recommendations=1";
-        this.container.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + user_id;
-        this.container.querySelector(".similar-bookmarks-button").href = "/bookmark_detail.php?illust_id=" + illust_id + "#ppixiv";
+        this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illustId + "#ppixiv?recommendations=1";
+        this.container.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + userId;
+        this.container.querySelector(".similar-bookmarks-button").href = "/bookmark_detail.php?illust_id=" + illustId + "#ppixiv";
 
         // Fill in the post info text.
-        this.set_post_info(this.container.querySelector(".post-info"));
+        this.setPostInfo(this.container.querySelector(".post-info"));
 
         // The comment (description) can contain HTML.
-        var element_comment = this.container.querySelector(".description");
-        element_comment.hidden = illust_info.illustComment == "";
-        element_comment.innerHTML = illust_info.illustComment;
-        helpers.fix_pixiv_links(element_comment);
-        helpers.make_pixiv_links_internal(element_comment);
+        let elementComment = this.container.querySelector(".description");
+        elementComment.hidden = mediaInfo.illustComment == "";
+        elementComment.innerHTML = mediaInfo.illustComment;
+        helpers.fix_pixiv_links(elementComment);
+        helpers.make_pixiv_links_internal(elementComment);
 
         // Set the download button popup text.
-        let download_image_button = this.container.querySelector(".download-image-button");
-        download_image_button.hidden = !actions.is_download_type_available("image", illust_info);
+        let downloadImageButton = this.container.querySelector(".download-image-button");
+        downloadImageButton.hidden = !ppixiv.actions.is_download_type_available("image", mediaInfo);
 
-        let download_manga_button = this.container.querySelector(".download-manga-button");
-        download_manga_button.hidden = !actions.is_download_type_available("ZIP", illust_info);
+        let downloadMangaButton = this.container.querySelector(".download-manga-button");
+        downloadMangaButton.hidden = !ppixiv.actions.is_download_type_available("ZIP", mediaInfo);
 
-        let download_video_button = this.container.querySelector(".download-video-button");
-        download_video_button.hidden = !actions.is_download_type_available("MKV", illust_info);
+        let downloadVideoButton = this.container.querySelector(".download-video-button");
+        downloadVideoButton.hidden = !ppixiv.actions.is_download_type_available("MKV", mediaInfo);
     }
 
-    set_post_info(post_info_container)
+    setPostInfo(post_info_container)
     {
-        var illust_data = this.illust_data;
+        let mediaInfo = this.mediaInfo;
 
-        var set_info = (query, text) =>
+        let set_info = (query, text) =>
         {
-            var node = post_info_container.querySelector(query);
+            let node = post_info_container.querySelector(query);
             node.innerText = text;
             node.hidden = text == "";
         };
 
-        var seconds_old = (new Date() - new Date(illust_data.createDate)) / 1000;
+        let seconds_old = (new Date() - new Date(mediaInfo.createDate)) / 1000;
         set_info(".post-age", helpers.age_to_string(seconds_old));
-        post_info_container.querySelector(".post-age").dataset.popup = helpers.date_to_string(illust_data.createDate);
+        post_info_container.querySelector(".post-age").dataset.popup = helpers.date_to_string(mediaInfo.createDate);
 
-        var info = "";
+        let info = "";
 
         // Add the resolution and file type if available.
-        if(this.displayed_page != null && this.illust_data != null)
+        if(this.displayedPage != null && this.mediaInfo != null)
         {
-            var page_info = this.illust_data.mangaPages[this.displayed_page];
+            let page_info = this.mediaInfo.mangaPages[this.displayedPage];
             info += page_info.width + "x" + page_info.height;
 
             // For illusts, add the image type.  Don't do this for animations.
-            if(this.illust_data.illustType != 2)
+            if(this.mediaInfo.illustType != 2)
             {
                 let url = new URL(page_info.urls?.original);
                 let ext = helpers.get_extension(url.pathname).toUpperCase();
@@ -426,40 +431,40 @@ ppixiv.image_ui = class extends ppixiv.widget
 
         set_info(".image-info", info);
 
-        var duration = "";
-        if(illust_data.ugoiraMetadata)
+        let duration = "";
+        if(mediaInfo.ugoiraMetadata)
         {
-            var seconds = 0;
-            for(var frame of illust_data.ugoiraMetadata.frames)
+            let seconds = 0;
+            for(let frame of mediaInfo.ugoiraMetadata.frames)
                 seconds += frame.delay / 1000;
 
-            var duration = seconds.toFixed(duration >= 10? 0:1);
+            let duration = seconds.toFixed(duration >= 10? 0:1);
             duration += seconds == 1? " second":" seconds";
         }
         set_info(".ugoira-duration", duration);
-        set_info(".ugoira-frames", illust_data.ugoiraMetadata? (illust_data.ugoiraMetadata.frames.length + " frames"):"");
+        set_info(".ugoira-frames", mediaInfo.ugoiraMetadata? (mediaInfo.ugoiraMetadata.frames.length + " frames"):"");
 
         // Add the page count for manga.
-        var page_text = "";
-        if(illust_data.pageCount > 1 && this.displayed_page != null)
-            page_text = "Page " + (this.displayed_page+1) + "/" + illust_data.pageCount;
+        let page_text = "";
+        if(mediaInfo.pageCount > 1 && this.displayedPage != null)
+            page_text = "Page " + (this.displayedPage+1) + "/" + mediaInfo.pageCount;
         set_info(".page-count", page_text);
     }
 
-    clicked_download = (e) =>
+    clickedDownload = (e) =>
     {
-        if(this.illust_data == null)
+        if(this.mediaInfo == null)
             return;
 
-        var clicked_button = e.target.closest(".download-button");
-        if(clicked_button == null)
+        let clickedButton = e.target.closest(".download-button");
+        if(clickedButton == null)
             return;
 
         e.preventDefault();
         e.stopPropagation();
 
-        let download_type = clicked_button.dataset.download;
-        actions.download_illust(this._media_id, download_type, this.displayed_page);
+        let download_type = clickedButton.dataset.download;
+        ppixiv.actions.download_illust(this._mediaId, download_type, this.displayedPage);
     }
  }
 

@@ -788,7 +788,7 @@ class TagSearchDropdownWidget extends widget
                 en: tag.tag_translation
             };
         }
-        ppixiv.tag_translations.get().add_translations_dict(translations);
+        ppixiv.tag_translations.add_translations_dict(translations);
 
         // Store the results.
         this.current_autocomplete_results = [];
@@ -1086,7 +1086,7 @@ class TagSearchDropdownWidget extends widget
         let translated_tags;
         if(this.dragging_tag == null)
         {
-            translated_tags = await ppixiv.tag_translations.get().get_translations(all_tags, "en");
+            translated_tags = await ppixiv.tag_translations.get_translations(all_tags, "en");
         
             // Check if we were aborted while we were loading tags.
             if(abort_signal.aborted)

@@ -1,7 +1,7 @@
-"use strict";
+import Viewer from 'vview/viewer/viewer.js';
 
 // This is used to display muted images, and images that returned an error.
-ppixiv.viewer_error = class extends ppixiv.viewer
+export default class ViewerError extends Viewer
 {
     constructor({
         ...options
@@ -59,7 +59,7 @@ ppixiv.viewer_error = class extends ppixiv.viewer
             return;
         }
 
-        let illust_data = await ppixiv.media_cache.get_media_info(this.media_id);
+        let illust_data = await ppixiv.media_cache.get_media_info(this.mediaId);
 
         // Show the user's avatar instead of the muted image.
         let user_info = await user_cache.get_user_info(illust_data.userId);

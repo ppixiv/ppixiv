@@ -1,6 +1,7 @@
-"use strict";
-
 // A helper that holds all of the images that we display together.
+import Viewer from 'vview/viewer/viewer.js';
+import { helpers } from 'vview/ppixiv-imports.js';
+
 class ImagesContainer extends ppixiv.widget
 {
     constructor({
@@ -92,23 +93,8 @@ class ImagesContainer extends ppixiv.widget
 // - View coordinates, with 0x0 in the top-left of the view.  On desktop, this is usually
 // the same as the window, but it doesn't have to be (on mobile it may be adjusted to avoid
 // the statusbar).
-ppixiv.viewer_images = class extends ppixiv.viewer
+export default class ViewerImages extends Viewer
 {
-    // Our primary viewer_images, if any.
-    static primary;
-
-    // "changed" is fired on this when viewer_images.primary changes.
-    static primary_changed = new EventTarget();
-
-    static set_primary(viewer)
-    {
-        this.primary = viewer;
-
-        let e = new Event("changed");
-        e.viewer = viewer;
-        this.primary_changed.dispatchEvent(e);
-    }
-
     constructor({
         // If set, this is a function returning a promise which resolves when any transitions
         // are complete.  We'll wait until this resolves before switching to the full image to
@@ -134,7 +120,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this._image_box = this.container.querySelector(".image-box");
         this._crop_box = this.container.querySelector(".crop-box");
 
-        this._refresh_image = new SentinelGuard(this._refresh_image, this);
+        this._refresh_image = new ppixiv.SentinelGuard(this._refresh_image, this);
 
         this._original_width = 1;
         this._original_height = 1;
@@ -149,12 +135,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this._zoom_level = 0;
         else
         {
-            this.set_locked_zoom(settings.get("zoom-mode") == "locked");
-            this._zoom_level = settings.get("zoom-level", "cover");
+            this.set_locked_zoom(ppixiv.settings.get("zoom-mode") == "locked");
+            this._zoom_level = ppixiv.settings.get("zoom-level", "cover");
         }
 
         this._image_container = new ImagesContainer({ container: this._crop_box });
-        this._editing_container = new ImageEditingOverlayContainer({
+        this._editing_container = new ppixiv.ImageEditingOverlayContainer({
             container: this._crop_box,
         });
 
@@ -167,21 +153,18 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.container.addEventListener("selectstart", (e) => e.preventDefault(), this._signal);
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
-        settings.addEventListener("auto_pan", () => this._refresh_animation(), this._signal);
-        settings.addEventListener("slideshow_duration", this._refresh_animation_speed, this._signal);
-        settings.addEventListener("auto_pan_duration", this._refresh_animation_speed, this._signal);
+        ppixiv.settings.addEventListener("auto_pan", () => this._refresh_animation(), this._signal);
+        ppixiv.settings.addEventListener("slideshow_duration", this._refresh_animation_speed, this._signal);
+        ppixiv.settings.addEventListener("auto_pan_duration", this._refresh_animation_speed, this._signal);
 
         // This is like pointermove, but received during quick view from the source tab.
         window.addEventListener("quickviewpointermove", this._quickviewpointermove, this._signal);
 
         // We pause changing to the next slideshow image UI widgets are open.  Check if we should continue
         // when the open widget list changes.
-        OpenWidgets.singleton.addEventListener("changed", () => this._check_animation_finished(), this._signal);
+        ppixiv.OpenWidgets.singleton.addEventListener("changed", () => this._check_animation_finished(), this._signal);
 
-        // Make this the primary image viewer.
-        ppixiv.viewer_images.set_primary(this);
-
-        media_cache.addEventListener("mediamodified", ({media_id}) => this._media_info_modified({media_id}), this._signal);
+        ppixiv.media_cache.addEventListener("mediamodified", ({media_id}) => this._media_info_modified({media_id}), this._signal);
 
         // Create the inpaint editor.
         if(!ppixiv.mobile)
@@ -200,7 +183,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         let {
             // If true, restore the pan/zoom position from history.  If false, reset the position
             // for a new image.
-            restore_history=false,
+            restoreHistory=false,
 
             // If set, we're in slideshow mode.  We'll always start an animation, and image
             // navigation will be disabled.  This can be null, "slideshow", or "loop".
@@ -208,19 +191,19 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             onnextimage=null,
         } = this.options;
 
-        this._should_restore_history = restore_history;
+        this._shouldRestoreHistory = restoreHistory;
         this._slideshowMode = slideshow;
         this._onnextimage = onnextimage;
 
         // Tell the inpaint editor about the image.
         if(this.image_editor)
-            this.image_editor.set_media_id(this.media_id);
+            this.image_editor.set_media_id(this.mediaId);
 
         // Refresh from whatever image info is already available.
         this._refresh_from_illust_data();
 
         // Load full info if it wasn't already loaded.
-        await media_cache.get_media_info(this.media_id);
+        await ppixiv.media_cache.get_media_info(this.mediaId);
 
         // Stop if we were shutdown while we were async.
         if(this.shutdown_signal.signal.aborted)
@@ -233,7 +216,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     // If media info changes, refresh in case any image URLs have changed.
     _media_info_modified({media_id})
     {
-        if(media_id == this.media_id)
+        if(media_id == this.mediaId)
             return;
 
         this._refresh_from_illust_data();
@@ -248,13 +231,13 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     _refresh_from_illust_data()
     {
         // See if full info is available.
-        let illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id);
+        let illust_data = ppixiv.media_cache.get_media_info_sync(this.mediaId);
         let page = this._page;
 
         // If we don't have full data yet and this is the first page, see if we have partial
         // data.
         if(illust_data == null && page == 0)
-            illust_data = ppixiv.media_cache.get_media_info_sync(this.media_id, { full: false });
+            illust_data = ppixiv.media_cache.get_media_info_sync(this.mediaId, { full: false });
 
         // Stop if we don't have any info yet.
         if(illust_data == null)
@@ -275,7 +258,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         {
             let manga_page = illust_data.mangaPages[page];
             
-            let { url, width, height } = media_cache.get_main_image_url(illust_data, page);
+            let { url, width, height } = ppixiv.media_cache.get_main_image_url(illust_data, page);
             image_info = {
                 url,
                 preview_url: manga_page.urls.small,
@@ -285,7 +268,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             };
         }
 
-        let extra_data = ppixiv.media_cache.get_extra_data(illust_data, this.media_id, page);
+        let extra_data = ppixiv.media_cache.get_extra_data(illust_data, this.mediaId, page);
         image_info = {
             crop: extra_data?.crop,
             pan: extra_data?.pan,
@@ -333,7 +316,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         
         // If this is a local image, ask local_api whether we should use the preview image for quick
         // loading.  See should_preload_thumbs for details.
-        if(!local_api.should_preload_thumbs(this.media_id, preview_url))
+        if(!ppixiv.local_api.should_preload_thumbs(this.mediaId, preview_url))
             preview_url = null;
 
         // Set the image URLs.
@@ -342,7 +325,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Set the initial zoom and image position if we haven't yet.
         if(!this._initial_position_set)
         {
-            this._set_initial_image_position(this._should_restore_history);
+            this._set_initial_image_position(this._shouldRestoreHistory);
             this._initial_position_set = true;
         }
 
@@ -361,7 +344,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // be queued, even though it's a tiny image and would finish instantly.  If a previous
         // decode is still running, skip this and prefer to just add the image.  It causes us
         // to flash a blank screen when navigating quickly, but image switching is more responsive.
-        if(!ppixiv.viewer_images.decoding)
+        if(!ViewerImages.decoding)
         {
             try {
                 await this._image_container.preview_img.decode();
@@ -405,16 +388,20 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // If the main image is already being displayed, we're done.
         if(this._displayed_image == "main")
+        {
+            // XXX: awkward special case
+            this.pause_animation = false;
             return;
-
-        // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
-        // until we actually display it so it doesn't run while there's nothing visible.
-        if(this._slideshowMode)
-            this.pause_animation = true;
+        }
 
         // If we don't have a main URL, stop here.  We only have the preview to display.
         if(url == null)
             return;
+
+        // If we're in slideshow mode, we aren't using the preview image.  Pause the animation
+        // until we actually display an image so it doesn't run while there's nothing visible.
+        if(this._slideshowMode)
+            this.pause_animation = true;
 
         // If the image isn't downloaded, load it now.  this._image_container.decode will do this
         // too, but it doesn't support AbortSignal.
@@ -473,24 +460,24 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // This is used to prevent requesting multiple large image decodes if they're
         // taking a while to finish.  This is stored on the class, so it's shared across
         // viewers.
-        ppixiv.viewer_images.decoding = true;
+        ViewerImages.decoding = true;
         try {
             await img.decode();
         } catch(e) {
             // Ignore exceptions from aborts.
         } finally {
-            ppixiv.viewer_images.decoding = false;
+            ViewerImages.decoding = false;
         }
     }
 
     _remove_images()
     {
-        this._cancel_save_to_history();
+        this._cancel_saveToHistory();
     }
 
     get _page()
     {
-        return helpers.parse_media_id(this.media_id).page;
+        return helpers.parse_media_id(this.mediaId).page;
     }
 
     onkeydown = async(e) =>
@@ -505,12 +492,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             e.stopPropagation();
             e.preventDefault();
 
-            let illust_data = await media_cache.get_media_info(this.media_id, { full: false });
+            let illust_data = await ppixiv.media_cache.get_media_info(this.mediaId, { full: false });
             if(illust_data == null)
                 return;
 
             let new_page = e.code == "End"? illust_data.pageCount - 1:0;
-            let new_media_id = helpers.get_media_id_for_page(this.media_id, new_page);
+            let new_media_id = helpers.get_media_id_for_page(this.mediaId, new_page);
             ppixiv.app.show_media(new_media_id);
             return;
         }
@@ -518,12 +505,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
     shutdown()
     {
-        // Clear the primary viewer if it was us.
-        if(viewer_images.primary === this)
-            viewer_images.set_primary(null);
-
         this._stop_animation();
-        this._cancel_save_to_history();
+        this._cancel_saveToHistory();
         
         this._refresh_image.abort();
 
@@ -556,7 +539,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     }
 
     // Enable or disable zoom lock.
-    get_locked_zoom()
+    getLockedZoom()
     {
         return this._locked_zoom;
     }
@@ -572,7 +555,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             this._stop_animation();
 
         this._locked_zoom = enable;
-        settings.set("zoom-mode", enable? "locked":"normal");
+        ppixiv.settings.set("zoom-mode", enable? "locked":"normal");
         this._reposition();
     }
 
@@ -590,7 +573,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         this._zoom_level = value;
         if(!ppixiv.mobile)
-            settings.set("zoom-level", this._zoom_level);
+            ppixiv.settings.set("zoom-level", this._zoom_level);
 
         this._reposition();
     }
@@ -791,7 +774,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         {
             // Flip movement if we're on a touchscreen, or if it's enabled by the user.  If this
             // is from quick view, the sender already did this.
-            if(ppixiv.mobile || settings.get("invert-scrolling"))
+            if(ppixiv.mobile || ppixiv.settings.get("invert-scrolling"))
             {
                 x_offset *= -1;
                 y_offset *= -1;
@@ -828,7 +811,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     // Return true if zooming is active.
     get zoom_active()
     {
-        return this._mouse_pressed || this.get_locked_zoom();
+        return this._mouse_pressed || this.getLockedZoom();
     }
 
     // Return the ratio to scale from the image's natural dimensions to cover the view,
@@ -865,7 +848,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(this._cropped_size != null)
             return this._cropped_size;
         else
-            return new FixedDOMRect(0, 0, this._original_width, this._original_height);
+            return new ppixiv.FixedDOMRect(0, 0, this._original_width, this._original_height);
     }
     
     // Return the width and height of the image when at 1x zoom.
@@ -949,7 +932,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(this._animations_running)
             return;
 
-        this.schedule_save_to_history();
+        this.schedule_saveToHistory();
 
         let { zoom_pos, zoom_factor, image_position } = this.get_current_actual_position({clamp_position});
 
@@ -1058,7 +1041,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // and don't pan past the edge.
         if(clamp_position)
         {
-            if(this.zoom_active && !settings.get("pan-past-edge"))
+            if(this.zoom_active && !ppixiv.settings.get("pan-past-edge"))
             {
                 let top_left = this.get_image_position([0,0], { pos: zoom_pos }); // minimum position
                 top_left[0] = Math.max(top_left[0], 0);
@@ -1130,21 +1113,21 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
     // Restore the pan and zoom state from history.
     //
-    // restore_history is true if we're viewing an image that was in browser history and
+    // restoreHistory is true if we're viewing an image that was in browser history and
     // we want to restore the pan/zoom position from history.
     //
     // If it's false, we're viewing a new image.  We'll reset the image position, or restore
     // it selectively if "return to top" is disabled (view_mode != "manga").
-    _set_initial_image_position(restore_history)
+    _set_initial_image_position(restoreHistory)
     {
         // If we were animating, start animating again.
         let args = helpers.args.location;
         if(args.state.zoom?.animating)
             this._refresh_animation();
 
-        if(restore_history && args.state.zoom?.zoom != null)
+        if(restoreHistory && args.state.zoom?.zoom != null)
             this.set_zoom_level(args.state.zoom?.zoom);
-        if(restore_history && args.state.zoom?.lock != null)
+        if(restoreHistory && args.state.zoom?.lock != null)
             this.set_locked_zoom(args.state.zoom?.lock, { stop_animation: false });
 
         // Similar to how we display thumbnails for portrait images starting at the top, default to the top
@@ -1158,8 +1141,8 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         if(args.state.zoom != null)
         {
             let old_aspect = args.state.zoom?.relative_aspect;
-            let return_to_top = settings.get("view_mode") == "manga";
-            if(restore_history || (!return_to_top && aspect == old_aspect))
+            let return_to_top = ppixiv.settings.get("view_mode") == "manga";
+            if(restoreHistory || (!return_to_top && aspect == old_aspect))
                 center_pos = [...args.state.zoom?.pos];
         }
 
@@ -1167,14 +1150,14 @@ ppixiv.viewer_images = class extends ppixiv.viewer
     }
 
     // Save the pan and zoom state to history.
-    _save_to_history = () =>
+    _saveToHistory = () =>
     {
         // Store the pan position at the center of the view.
         let args = helpers.args.location;
         args.state.zoom = {
             pos: this._center_pos,
             zoom: this.get_zoom_level(),
-            lock: this.get_locked_zoom(),
+            lock: this.getLockedZoom(),
             relative_aspect: this._relative_aspect,
             animating: this._animations_running,
         };
@@ -1182,18 +1165,18 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         helpers.navigate(args, { add_to_history: false });
     }
 
-    // Schedule _save_to_history to run.  This is buffered so we don't call history.replaceState
+    // Schedule _saveToHistory to run.  This is buffered so we don't call history.replaceState
     // too quickly.
-    schedule_save_to_history()
+    schedule_saveToHistory()
     {
         // If we're called repeatedly, allow the first timer to complete, so we save
         // periodically during drags or flings that are taking a long time to finish
         // rather than not saving at all.
-        if(this._save_to_history_id)
+        if(this._saveToHistory_id)
             return;
 
-        this._save_to_history_id = realSetTimeout(() => {
-            this._save_to_history_id = null;
+        this._saveToHistory_id = realSetTimeout(() => {
+            this._saveToHistory_id = null;
 
             // Work around a Chrome bug: updating history causes the mouse cursor to become visible
             // for one frame, which causes it to flicker while panning around.  Updating history state
@@ -1201,20 +1184,20 @@ ppixiv.viewer_images = class extends ppixiv.viewer
             // mouse is currently pressed.
             if(this._mouse_pressed)
             {
-                this.schedule_save_to_history();
+                this.schedule_saveToHistory();
                 return;
             }
 
-            this._save_to_history();
+            this._saveToHistory();
         }, 250);
     }
 
-    _cancel_save_to_history()
+    _cancel_saveToHistory()
     {
-        if(this._save_to_history_id != null)
+        if(this._saveToHistory_id != null)
         {
-            realClearTimeout(this._save_to_history_id);
-            this._save_to_history_id = null;
+            realClearTimeout(this._saveToHistory_id);
+            this._saveToHistory_id = null;
         }
     }
 
@@ -1326,6 +1309,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this._current_animation_mode = animation_mode;
         
         // Create the main animation.
+        console.log("create animation");
         this._animations.main = new ppixiv.DirectAnimation(new KeyframeEffect(
             this._image_box,
             animation.keyframes,
@@ -1386,7 +1370,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // Don't move to the next image while the user has a popup open.  We'll return here when
         // dialogs are closed.
-        if(!OpenWidgets.singleton.empty)
+        if(!ppixiv.OpenWidgets.singleton.empty)
         {
             console.log("Deferring next image while UI is open");
             return;
@@ -1395,12 +1379,12 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         // Tell the caller that we're ready for the next image.  Don't call stop_animation yet,
         // so we don't cancel opacity and cause the image to flash onscreen while the new one
         // is loading.  We'll stop if when onnextimage navigates.
-        let { media_id } = await this._onnextimage(this);
+        let { mediaId } = await this._onnextimage(this);
 
         // onnextimage normally navigates to the next slideshow image.  If it didn't, call
         // stop_animation so we clean up the animation and make it visible again if it's faded
         // out.  This typically only happens if we only have one image.
-        if(media_id == null)
+        if(mediaId == null)
         {
             console.log("The slideshow didn't have a new image.  Resetting the slideshow animation");
             this._stop_animation();
@@ -1534,7 +1518,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         }
 
         let center = this.get_image_position([x, y]);
-        this.set_locked_zoom(!this.get_locked_zoom());
+        this.set_locked_zoom(!this.getLockedZoom());
         this.set_image_position([x, y], center);
         this._reposition();
     }
@@ -1546,7 +1530,7 @@ ppixiv.viewer_images = class extends ppixiv.viewer
 
         // If the zoom level that's already selected is clicked and we're already zoomed,
         // just toggle zoom as if the toggle zoom button was pressed.
-        if(this.get_zoom_level() == level && this.get_locked_zoom())
+        if(this.get_zoom_level() == level && this.getLockedZoom())
         {
             this.set_locked_zoom(false);
             this._reposition();
@@ -1607,408 +1591,4 @@ ppixiv.viewer_images = class extends ppixiv.viewer
         this.set_image_position([x, y], center);
         this._reposition();        
     }
-}
-
-// This subclass implements our desktop pan/zoom UI.
-ppixiv.viewer_images_desktop = class extends ppixiv.viewer_images
-{
-    constructor({...options})
-    {
-        super(options);
- 
-        window.addEventListener("blur", (e) => this.stop_dragging(), this._signal);
-
-        this._pointer_listener = new ppixiv.pointer_listener({
-            element: this.container,
-            button_mask: 1,
-            signal: this.shutdown_signal.signal,
-            callback: this._pointerevent,
-        });
-    }
-
-    _pointerevent = (e) =>
-    {
-        if(e.mouseButton != 0 || this._slideshowMode)
-            return;
-
-        if(e.pressed && this.captured_pointer_id == null)
-        {
-            e.preventDefault();
-
-            this.container.style.cursor = "none";
-
-            // Don't show the UI if the mouse hovers over it while dragging.
-            ClassFlags.get.set("hide-ui", true);
-
-            // Stop animating if this is a real click.  If it's a carried-over click during quick
-            // view, don't stop animating until we see a drag.
-            if(e.type != "simulatedpointerdown")
-                this._stop_animation();
-
-            let zoom_center_pos;
-            if(!this.get_locked_zoom())
-                zoom_center_pos = this.get_image_position([e.clientX, e.clientY]);
-
-            // If this is a simulated press event, the button was pressed on the previous page,
-            // probably due to quick view.  Don't zoom from this press, but do listen to pointermove,
-            // so send_mouse_movement_to_linked_tabs is still called.
-            let allow_zoom = true;
-            if(e.type == "simulatedpointerdown" && !this.get_locked_zoom())
-                allow_zoom = false;
-
-            if(allow_zoom)
-                this._mouse_pressed = true;
-
-            this._drag_movement = [0,0];
-
-            this.captured_pointer_id = e.pointerId;
-            this.container.setPointerCapture(this.captured_pointer_id);
-            this.container.addEventListener("lostpointercapture", this._lost_pointer_capture, this._signal);
-
-            // If this is a click-zoom, align the zoom to the point on the image that
-            // was clicked.
-            if(!this.get_locked_zoom())
-                this.set_image_position([e.clientX, e.clientY], zoom_center_pos);
-
-            this._reposition();
-
-            // Only listen to pointermove while we're dragging.
-            this.container.addEventListener("pointermove", this._pointermove, this._signal);
-        } else {
-            if(this.captured_pointer_id == null || e.pointerId != this.captured_pointer_id)
-                return;
-
-            // Tell HideMouseCursorOnIdle that the mouse cursor should be hidden, even though the
-            // cursor may have just been moved.  This prevents the cursor from appearing briefly and
-            // disappearing every time a zoom is released.
-            // XXX
-            (async() => {
-                let { TrackMouseMovement } = await ppixiv.importModule("vview/misc/hide-mouse-cursor-on-idle.js");
-                TrackMouseMovement.singleton.simulate_inactivity();
-            })();
-           
-            this.stop_dragging();
-        }
-    }
-
-    shutdown()
-    {
-        // Note that we need to avoid writing to browser history once shutdown() is called.
-        ClassFlags.get.set("hide-ui", false);
-        super.shutdown();
-    }
-
-    stop_dragging()
-    {
-        // Save our history state on mouseup.
-        this._save_to_history();
-           
-        if(this.container != null)
-        {
-            this.container.removeEventListener("pointermove", this._pointermove);
-            this.container.style.cursor = "";
-        }
-
-        if(this.captured_pointer_id != null)
-        {
-            this.container.releasePointerCapture(this.captured_pointer_id);
-            this.captured_pointer_id = null;
-        }
-       
-        this.container.removeEventListener("lostpointercapture", this._lost_pointer_capture);
-
-        ClassFlags.get.set("hide-ui", false);
-        
-        this._mouse_pressed = false;
-        this._reposition();
-    }
-
-    // If we lose pointer capture, clear the captured pointer_id.
-    _lost_pointer_capture = (e) =>
-    {
-        if(e.pointerId == this.captured_pointer_id)
-            this.captured_pointer_id = null;
-    }
-
-    _pointermove = (e) =>
-    {
-        // Ignore pointermove events where the pointer didn't move, so we don't cancel
-        // panning prematurely.  Who designed an API where an event named "pointermove"
-        // is used for button presses?
-        if(e.movementX == 0 && e.movementY == 0)
-            return;
-
-        // If we're animating, only start dragging after we pass a drag threshold, so we
-        // don't cancel the animation in quick view.  These thresholds match Windows's
-        // default SM_CXDRAG/SM_CYDRAG behavior.
-        let { movementX, movementY } = e;
-
-        // Unscale by devicePixelRatio, or movement will be faster if the browser is zoomed in.
-        if(devicePixelRatio != null)
-        {
-            movementX /= devicePixelRatio;
-            movementY /= devicePixelRatio;
-        }
-
-        this._drag_movement[0] += movementX;
-        this._drag_movement[1] += movementY;
-        if(this._animations_running && this._drag_movement[0] < 4 && this._drag_movement[1] < 4)
-            return;
-
-        this._apply_pointer_movement({movementX, movementY});
-    }
-}
-
-// This subclass implements our touchscreen pan/zoom UI.
-ppixiv.viewer_images_mobile = class extends ppixiv.viewer_images
-{
-    constructor({...options})
-    {
-        super(options);
-
-        this.container.addEventListener("pointerdown", (e) => {
-            if(this._slideshowMode || !this._animations_running)
-                return;
-
-            // Taps during panning animations stop the animation.  Mark them as partially
-            // handled, so they don't also trigger IsolatedTapHandler and open the menu.
-            // Do this here instead of in onactive below, so this happens even if the touch
-            // isn't long enough to activate TouchScroller.
-            e.partially_handled = true;
-        });
-    
-        this.touch_scroller = new ppixiv.TouchScroller({
-            ...this._signal,
-            container: this.container,
-
-            onactive: () => {
-                // Stop pan animations if the touch scroller becomes active.
-                if(!this._slideshowMode)
-                    this._stop_animation();
-            },
-
-            // Return the current position in client coordinates.
-            get_position: () => {
-                // We're about to start touch dragging, so stop any running pan.  Don't stop slideshows.
-                if(!this._slideshowMode)
-                    this._stop_animation();
-
-                let x = this._center_pos[0] * this.current_width;
-                let y = this._center_pos[1] * this.current_height;
-
-                // Convert from view coordinates to screen coordinates.
-                [x,y] = this.view_to_client_coords([x,y]);
-
-                return { x, y };
-            },
-
-            // Set the current position in client coordinates.
-            set_position: ({x, y}) =>
-            {
-                if(this._slideshowMode)
-                    return;
-
-                this._stop_animation();
-
-                [x,y] = this.client_to_view_coords([x,y]);
-
-                x /= this.current_width;
-                y /= this.current_height;
-
-                this._center_pos[0] = x;
-                this._center_pos[1] = y;
-                this._reposition();
-            },
-
-            // Zoom by the given factor, centered around the given client position.
-            adjust_zoom: ({ratio, centerX, centerY}) =>
-            {
-                if(this._slideshowMode)
-                    return;
-
-                this._stop_animation();
-
-                let [viewX,viewY] = this.client_to_view_coords([centerX,centerY]);
-
-                // Store the position of the anchor before zooming, so we can restore it below.
-                let center = this.get_image_position([viewX, viewY]);
-
-                // Apply the new zoom.  Snap to 0 if we're very close, since it won't reach it exactly.
-                let new_factor = this._zoom_factor_current * ratio;
-
-                let new_level = this.zoom_factor_to_zoom_level(new_factor);
-                if(Math.abs(new_level) < 0.005)
-                    new_level = 0;
-                this._zoom_level = new_level;
-
-                // Restore the center position.
-                this.set_image_position([viewX, viewY], center);
-
-                this._reposition();
-            },
-
-            onanimationfinished: () => {
-                // We could do this to save the current zoom level, since we didn't use it during the
-                // fling, but for now we don't save the zoom level on mobile anyway.
-                // this.set_zoom_level(this._zoom_level);
-            },
-
-            // Return the bounding box of where we want the position to stay.
-            get_bounds: () =>
-            {
-                // Get the position that the image would normally be snapped to if it was in the
-                // far top-left or bottom-right.
-                let top_left = this.get_current_actual_position({zoom_pos: [0,0]}).zoom_pos;
-                let bottom_right = this.get_current_actual_position({zoom_pos: [1,1]}).zoom_pos;
-
-                // If move_to_target is true, we're animating for a double-tap zoom and we want to
-                // center on this.target_zoom_center.  Adjust the target position so the image is still
-                // clamped to the edge of the screen, and use that as both corners, so it's the only
-                // place we can go.
-                if(this.move_to_target)
-                {
-                    top_left = this.get_current_actual_position({zoom_pos: this.target_zoom_center}).zoom_pos;
-                    bottom_right = [...top_left]; // copy
-                }
-
-                // Scale to view coordinates.
-                top_left[0] *= this.current_width;
-                top_left[1] *= this.current_height;
-                bottom_right[0] *= this.current_width;
-                bottom_right[1] *= this.current_height;
-
-                // Convert to client coords.
-                top_left = this.view_to_client_coords(top_left);
-                bottom_right = this.view_to_client_coords(bottom_right);
-
-                return new ppixiv.FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
-            },
-
-            // When a fling starts (this includes releasing drags, even without a fling), decide
-            // on the zoom factor we want to bounce to.
-            onanimationstart: ({target_factor=null, target_image_pos=null, move_to_target=false}={}) =>
-            {
-                this.move_to_target = move_to_target;
-
-                // If we were given an explicit zoom factor to zoom to, use it.  This happens
-                // if we start the zoom in toggle_zoom.
-                if(target_factor != null)
-                {
-                    this.target_zoom_factor = target_factor;
-                    this.target_zoom_center = target_image_pos;
-                    return;
-                }
-
-                // Zoom relative to the center of the image.
-                this.target_zoom_center = [0.5, 0.5];
-
-                // If we're smaller than contain, always zoom up to contain.  Also snap to contain
-                // if we're slightly over, so we don't zoom to cover if cover and contain are nearby
-                // and we're very close to contain.  Don't give this much of a threshold, since it's
-                // always easy to zoom to contain (just zoom out a bunch).
-                //
-                // Snap to cover if we're close to it.
-                //
-                // Otherwise, zoom to current, which is a no-op and will leave the zoom alone.
-                let zoom_factor_cover = this._zoom_factor_cover;
-                let zoom_factor_current = this._zoom_factor_current;
-                if(this._zoom_factor_current < this._zoom_factor_contain + 0.01)
-                    this.target_zoom_factor = this._zoom_factor_contain;
-                else if(Math.abs(zoom_factor_cover - zoom_factor_current) < 0.15)
-                    this.target_zoom_factor = this._zoom_factor_cover;
-                else
-                    this.target_zoom_factor = this._zoom_factor_current;
-            },
-
-            onanimationfinished: () =>
-            {
-                // If we enabled moving towards a target position, disable it when the animation finishes.
-                this.move_to_target = false;
-            },
-
-            // We don't want to zoom under zoom factor 1x.  Return the zoom ratio needed to bring
-            // the current zoom factor back up to 1x.  For example, if the zoom factor is currently
-            // 0.5, return 2.
-            get_wanted_zoom: () =>
-            {
-                // this.target_zoom_center is in image coordinates.  Return screen coordinates.
-                let [viewX, viewY] = this.get_view_pos_from_image_pos(this.target_zoom_center);
-                let [centerX, centerY] = this.view_to_client_coords([viewX, viewY]);
-
-                // ratio is the ratio we want to be applied relative to to the current zoom.
-                return {
-                    ratio: this.target_zoom_factor / this._zoom_factor_current,
-                    centerX,
-                    centerY,
-                };
-            },
-        });
-    }
-
-    toggle_zoom(e)
-    {
-        if(this._slideshowMode)
-            return;
-
-        // Stop any animation first, so we adjust the zoom relative to the level we finalize
-        // the animation to.
-        this._stop_animation();
-
-        // Make sure touch_scroller isn't animating.
-        this.touch_scroller.cancel_fling();
-
-        // Toggle between fit (zoom level 0) and cover.  If cover and fit are close together,
-        // zoom to a higher factor instead of cover.  This way we zoom to cover when it makes
-        // sense, since it's a nicer zoom level to pan around in, but we use a higher level
-        // if cover isn't enough of a zoom.  First, figure out the zoom level we'll use if
-        // we zoom in.
-        let zoom_in_level;
-        let zoom_out_level = 0;
-        let cover_zoom_ratio = 1 / this.zoom_level_to_zoom_factor(0);
-        if(cover_zoom_ratio > 1.5)
-            zoom_in_level = this._zoom_level_cover;
-        else
-        {
-            let scaled_zoom_factor = this._zoom_factor_cover*2;
-            let scaled_zoom_level = this.zoom_factor_to_zoom_level(scaled_zoom_factor);
-            zoom_in_level = scaled_zoom_level;
-        }
-
-        // Zoom to whichever one is further away from the current zoom.
-        let current_zoom_level = this.get_zoom_level();
-        let zoom_distance_in = Math.abs(current_zoom_level - zoom_in_level);
-        let zoom_distance_out = Math.abs(current_zoom_level - zoom_out_level);
-
-        let level = zoom_distance_in > zoom_distance_out? zoom_in_level:zoom_out_level;
-        let target_factor = this.zoom_level_to_zoom_factor(level);
-
-        // Our "screen" positions are relative to our container and not actually the
-        // screen, but mouse events are relative to the screen.
-        let view_pos = this.client_to_view_coords([e.clientX, e.clientY]);
-        let target_image_pos = this.get_image_position(view_pos);
-
-        this.touch_scroller.start_fling({
-            onanimationstart_options: {
-                target_factor,
-                target_image_pos,
-
-                // Set move_to_target so we'll center on this position too.
-                move_to_target: true,
-            }
-        });
-    }
-
-    _reposition({clamp_position=true, ...options}={})
-    {
-        // Don't clamp the view position if we're repositioned while the touch scroller
-        // is active.  It handles overscroll and is allowed to go out of bounds.
-        if(this.touch_scroller.state != "idle")
-            clamp_position = false;
-
-        return super._reposition({clamp_position, ...options});
-    }
-
-    // The mobile UI is always in locked zoom mode.
-    get_locked_zoom() { return true; }
-    set_locked_zoom(enable) { }
 }
