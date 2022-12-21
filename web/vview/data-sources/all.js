@@ -20,7 +20,7 @@ import VView from 'vview/data-sources/vview/vview.js';
 import VViewSimilar from 'vview/data-sources/vview/similar.js';
 import { Bookmarks, BookmarksMerged } from 'vview/data-sources/pixiv/bookmarks.js';
 
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 let allDataSources = {
     Discovery,
@@ -52,6 +52,15 @@ export function getDataSourceForUrl(url)
     // url is usually document.location, which for some reason doesn't have .searchParams.
     var url = new URL(url);
     url = helpers.get_url_without_language(url);
+
+    if(ppixiv.native)
+    {
+        let args = new helpers.args(url);
+        if(args.path == "/similar")
+            return allDataSources.VViewSimilar;
+        else
+            return allDataSources.VView;
+    }
 
     let first_part = helpers.get_page_type_from_url(url);
     if(first_part == "artworks")
@@ -126,14 +135,6 @@ export function getDataSourceForUrl(url)
         return allDataSources.SearchUsers;
     else if(url.pathname.startsWith("/request/complete"))
         return allDataSources.CompletedRequests;
-    else if(url.pathname.startsWith(local_api.path))
-    {
-        let args = new helpers.args(url);
-        if(args.path == "/similar")
-            return allDataSources.VViewSimilar;
-        else
-            return allDataSources.VView;
-    }
     else if(first_part == "")
     {
         // Data sources that don't have a corresponding Pixiv page:

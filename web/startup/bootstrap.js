@@ -113,15 +113,11 @@ async function Bootstrap(env)
     // Create window.ppixiv.
     run_script(`window.ppixiv = ${JSON.stringify(ppixiv)}`, { path: "environment" });
 
-    // Load each source file.
-    for(let path of env.init.source_files)
+    // Load app_startup.
     {
+        let path = env.init.modules["vview/app_startup.js"];
+        delete env.init.modules["vview/app_startup.js"];
         let source = env.resources[path];
-        if(!source)
-        {
-            console.error("Source file missing:", path);
-            continue;
-        }
 
         // Stop loading if a file fails to load.
         if(!run_script(`with(ppixiv) { ${source} }`, { path }))

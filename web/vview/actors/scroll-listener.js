@@ -10,7 +10,7 @@
 // too rapidly if the scroller is moved up and down quickly.
 
 import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class ScrollListener extends Actor
 {

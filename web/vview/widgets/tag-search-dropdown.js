@@ -1,8 +1,9 @@
 import widget from 'vview/widgets/widget.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
 import { TextPrompt } from 'vview/widgets/prompts.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // Handle showing the search history and tag edit dropdowns.
 export class TagSearchBoxWidget extends widget
@@ -126,7 +127,7 @@ export class TagSearchBoxWidget extends widget
         }
         
         // Run the search.
-        let args = ppixiv.helpers.get_args_for_tag_search(tags, ppixiv.plocation);
+        let args = helpers.get_args_for_tag_search(tags, ppixiv.plocation);
         helpers.navigate(args);
     }
 }
@@ -195,7 +196,7 @@ class TagSearchDropdownWidget extends widget
 
         this.container.style.setProperty('--width', `${width}px`);
 
-        this.pointer_listener = new ppixiv.pointer_listener({
+        this.pointerListener = new PointerListener({
             element: this.container,
             callback: this.pointerevent,
         });
@@ -881,7 +882,7 @@ class TagSearchDropdownWidget extends widget
             tag_container.appendChild(span);
         }
 
-        var url = ppixiv.helpers.get_args_for_tag_search(target_tags, ppixiv.plocation);
+        var url = helpers.get_args_for_tag_search(target_tags, ppixiv.plocation);
         entry.href = url;
         return entry;
     }

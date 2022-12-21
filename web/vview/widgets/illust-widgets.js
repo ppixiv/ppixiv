@@ -1,6 +1,6 @@
 import Widget from 'vview/widgets/widget.js';
 import Actions from 'vview/misc/actions.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // A widget that shows info for a particular media ID, and refreshes if the image changes.
 export class IllustWidget extends Widget
@@ -272,7 +272,7 @@ export class LikeButtonWidget extends IllustWidget
         // Hide the like button for local IDs.
         this.container.closest(".button-container").hidden = helpers.is_media_id_local(media_id);
 
-        let liked_recently = media_id != null? ppixiv.extra_cache.singleton().get_liked_recently(media_id):false;
+        let liked_recently = media_id != null? ppixiv.extra_cache.get_liked_recently(media_id):false;
         helpers.set_class(this.container, "liked", liked_recently);
         helpers.set_class(this.container, "enabled", !liked_recently);
 

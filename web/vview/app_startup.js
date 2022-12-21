@@ -63,6 +63,13 @@ class ModuleImporter
 // parse out the exports from each module, and generate a shim module for each that
 // dynamically imports the module URL (which is known by the time the module is imported)
 // and exports the original symbols.
+//
+// There's a competent and lightweight implementation of this already:
+//
+// https://github.com/guybedford/es-module-shims
+//
+// However, it uses a JavaScript parser which is compiled to WASM, and we can't use WASM
+// in our user script.  This implementation uses Babel, which is much slower and heavier.
 class ModuleImporterShim
 {
     constructor()
@@ -713,6 +720,9 @@ ppixiv.AppStartup = class
     // we recognize the URL or not, so we don't need as many URL helpers.
     _url_supported(url)
     {
+        if(ppixiv.native)
+            return true;
+
         url = new URL(url);
         let pathname = this._get_path_without_language(url.pathname);
 
@@ -740,8 +750,6 @@ ppixiv.AppStartup = class
             return true; // search_users
         else if(pathname.startsWith("/request/complete"))
             return true; // completed_requests
-        else if(pathname.startsWith(local_api.path))
-            return true; // vview, vview_similar
         else if(first_part == "" && window.location.hash.startsWith("#ppixiv/edits"))
             return true; // edited_images
         else
@@ -945,6 +953,7 @@ ppixiv.AppStartup = class
             if(type == "script" || type == "style")
             {
                 // console.warn("Disabling createElement " + type);
+                class ElementDisabled extends Error { };
                 throw new ElementDisabled("Element disabled");
             }
             return origCreateElement.apply(this, arguments);

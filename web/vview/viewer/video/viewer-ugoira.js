@@ -1,6 +1,6 @@
 import ViewerVideoBase from 'vview/viewer/video/viewer-video-base.js';
 import ZipImagePlayer from 'vview/widgets/zip-image-player.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class ViewerUgoira extends ViewerVideoBase
 {

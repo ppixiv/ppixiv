@@ -1,4 +1,6 @@
 import ViewerImages from 'vview/viewer/images/viewer-images.js';
+import TouchScroller from 'vview/viewer/images/mobile-touch-scroller.js';
+import { FixedDOMRect } from 'vview/misc/helpers.js';
 
 // This subclass implements our touchscreen pan/zoom UI.
 export default class ViewerImagesMobile extends ViewerImages
@@ -18,7 +20,7 @@ export default class ViewerImagesMobile extends ViewerImages
             e.partially_handled = true;
         });
     
-        this.touch_scroller = new ppixiv.TouchScroller({
+        this.touch_scroller = new TouchScroller({
             ...this._signal,
             container: this.container,
 
@@ -122,7 +124,7 @@ export default class ViewerImagesMobile extends ViewerImages
                 top_left = this.view_to_client_coords(top_left);
                 bottom_right = this.view_to_client_coords(bottom_right);
 
-                return new ppixiv.FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
+                return new FixedDOMRect(top_left[0], top_left[1], bottom_right[0], bottom_right[1]);
             },
 
             // When a fling starts (this includes releasing drags, even without a fling), decide

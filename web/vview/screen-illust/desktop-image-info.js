@@ -7,7 +7,8 @@ import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
 import Actions from 'vview/misc/actions.js';
 import TagListWidget from 'vview/widgets/tag-list-widget.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { helpers, ClassFlags } from 'vview/misc/helpers.js';
 
 export default class DesktopImageInfo extends Widget
 {
@@ -222,7 +223,7 @@ export default class DesktopImageInfo extends Widget
         hoverCircle.addEventListener("mouseleave", (e) => { this.hoveringOverSphere = false; this.refreshOverlayUiVisibility(); });
         ppixiv.settings.addEventListener("image_editing", () => { this.refreshOverlayUiVisibility(); });
         ppixiv.settings.addEventListener("image_editing_mode", () => { this.refreshOverlayUiVisibility(); });
-        ppixiv.ClassFlags.get.addEventListener("hide-ui", () => this.refreshOverlayUiVisibility(), this._signal);
+        ClassFlags.get.addEventListener("hide-ui", () => this.refreshOverlayUiVisibility(), this._signal);
 
         this.refreshOverlayUiVisibility();
     }
@@ -242,7 +243,7 @@ export default class DesktopImageInfo extends Widget
         if(this.bookmarkTagsDropdownOpener?.visible || this.avatarWidget.follow_dropdown_opener.visible)
             visible = true;
 
-        if(ppixiv.ClassFlags.get.get("hide-ui"))
+        if(ClassFlags.get.get("hide-ui"))
             visible = false;
         
         // Tell the image UI when it's visible.
@@ -353,7 +354,7 @@ export default class DesktopImageInfo extends Widget
 
         let element_title = this.container.querySelector(".title");
         element_title.textContent = mediaInfo.illustTitle;
-        element_title.href = helpers.get_url_for_id(this._mediaId).url;
+        element_title.href = getUrlForMediaId(this._mediaId).url;
 
         // Show the folder if we're viewing a local image.
         let folderTextElement = this.container.querySelector(".folder-text");
@@ -363,9 +364,9 @@ export default class DesktopImageInfo extends Widget
             let {id} = helpers.parse_media_id(this.mediaId);
             folderTextElement.innerText = helpers.get_path_suffix(id, 2, 1); // last two parent directories
 
-            let parentFolderId = ppixiv.local_api.get_parent_folder(id);
+            let parentFolderId = LocalAPI.get_parent_folder(id);
             let args = new helpers.args("/", ppixiv.plocation);
-            ppixiv.local_api.get_args_for_id(parentFolderId, args);
+            LocalAPI.get_args_for_id(parentFolderId, args);
             folderTextElement.href = args.url;
         }
 

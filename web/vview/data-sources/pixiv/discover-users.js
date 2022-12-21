@@ -7,7 +7,7 @@
 // like the images we're showing are by that user.
 
 import DataSource from 'vview/data-sources/data-source.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSource_DiscoverUsers extends DataSource
 {
@@ -80,7 +80,7 @@ export default class DataSource_DiscoverUsers extends DataSource
             ppixiv.user_cache.add_user_data(user);
 
             // Register this as quick user data, for use in thumbnails.
-            ppixiv.extra_cache.singleton().add_quick_user_data(user, "recommendations");
+            ppixiv.extra_cache.add_quick_user_data(user, "recommendations");
         }
 
         // Pixiv's motto: "never do the same thing the same way twice"

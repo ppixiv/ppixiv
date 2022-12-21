@@ -11,6 +11,8 @@
 // We mimic Chrome's click detection behavior: an element is counted as a click if
 // the mouseup event is an ancestor of the element that was clicked, or vice versa.
 // This is different from Firefox which uses the distance the mouse has moved.
+import { helpers } from 'vview/misc/helpers.js';
+
 export default class FixChromeClicks
 {
     constructor(container)
@@ -96,9 +98,9 @@ export default class FixChromeClicks
 
         var releasedNode = e.target;
         var clickTarget = null;
-        if(ppixiv.helpers.is_above(releasedNode, pressedNode))
+        if(helpers.is_above(releasedNode, pressedNode))
             clickTarget = releasedNode;
-        else if(ppixiv.helpers.is_above(pressedNode, releasedNode))
+        else if(helpers.is_above(pressedNode, releasedNode))
             clickTarget = pressedNode;
 
         if(clickTarget == null)
@@ -108,7 +110,7 @@ export default class FixChromeClicks
         }
 
         // If the click target is above our container, stop.
-        if(ppixiv.helpers.is_above(clickTarget, this.container))
+        if(helpers.is_above(clickTarget, this.container))
             return;
 
         // Why is cancelling the event not preventing mouse events and click events?

@@ -1,5 +1,7 @@
 import Widget from 'vview/widgets/widget.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
 import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
+import { FixedDOMRect } from 'vview/misc/helpers.js';
 
 export default class CropEditor extends Widget
 {
@@ -38,7 +40,7 @@ export default class CropEditor extends Widget
 
         this.editor_overlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdown_signal.signal });
 
-        this.pointer_listener = new ppixiv.pointer_listener({
+        new PointerListener({
             element: this.editor_overlay,
             callback: this.pointerevent,
             signal: this.shutdown_signal.signal,
@@ -77,7 +79,7 @@ export default class CropEditor extends Widget
         if(this.current_crop == null)
         {
             let {x,y} = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
-            this.current_crop = new ppixiv.FixedDOMRect(x, y, x, y);
+            this.current_crop = new FixedDOMRect(x, y, x, y);
             clicked_handle = "bottomright";
         }
         else
@@ -159,7 +161,7 @@ export default class CropEditor extends Widget
         if(this.dragging == null)
             return this.current_crop;
 
-        let crop = new ppixiv.FixedDOMRect(
+        let crop = new FixedDOMRect(
             this.current_crop.x1,
             this.current_crop.y1,
             this.current_crop.x2,
@@ -198,10 +200,10 @@ export default class CropEditor extends Widget
         }
 
         // If we've dragged across the opposite edge, flip the sides back around.
-        crop = new ppixiv.FixedDOMRect(crop.left, crop.top, crop.right, crop.bottom);
+        crop = new FixedDOMRect(crop.left, crop.top, crop.right, crop.bottom);
 
         // Clamp to the image bounds.
-        crop = new ppixiv.FixedDOMRect(
+        crop = new FixedDOMRect(
             Math.max(crop.left, 0),
             Math.max(crop.top, 0),
             Math.min(crop.right, this.width),
@@ -284,7 +286,7 @@ export default class CropEditor extends Widget
         if(crop == null)
             this.current_crop = null;
         else
-            this.current_crop = new ppixiv.FixedDOMRect(crop[0], crop[1], crop[2], crop[3]);
+            this.current_crop = new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]);
         this.refresh();
     }
 

@@ -1,10 +1,11 @@
-import { helpers } from 'vview/ppixiv-imports.js';
+import KeyStorage from 'vview/misc/key-storage.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class TagTranslations
 {
     constructor()
     {
-        this.db = new ppixiv.key_storage("ppixiv-tag-translations");
+        this.db = new KeyStorage("ppixiv-tag-translations");
 
         // Firefox's private mode is broken: instead of making storage local to the session and
         // not saved to disk, it just disables IndexedDB entirely, which is lazy and breaks pages.

@@ -1,5 +1,5 @@
 import DataSource from 'vview/data-sources/data-source.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // /artworks/illust_id?manga - Viewing manga pages for an illustration
 export default class DataSource_MangaPages extends DataSource

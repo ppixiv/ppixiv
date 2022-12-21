@@ -1,5 +1,6 @@
 import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { helpers, SentinelGuard } from 'vview/misc/helpers.js';
 
 class TreeWidget extends Widget
 {
@@ -180,7 +181,7 @@ class TreeWidget extends Widget
             {
                 // Use /tree-thumb for these thumbnails.  They're the same as the regular thumbs,
                 // but it won't give us a folder image if there's no thumb.
-                let url = ppixiv.local_api.local_url;
+                let url = LocalAPI.local_url;
                 url.pathname = "tree-thumb/" + item.path;
                 img.src = url;
                 img.addEventListener("img", (e) => { console.log("error"); img.hidden = true; });
@@ -623,7 +624,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         {
             let label = this.container.querySelector(".label");
             let args = helpers.args.location;
-            ppixiv.local_api.get_args_for_id(this.path, args);
+            LocalAPI.get_args_for_id(this.path, args);
             // label.href = args.url.toString();
         } */
     }
@@ -662,7 +663,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
             return true;
         this.loaded = true;
 
-        let result = await ppixiv.local_api.list(this.path, {
+        let result = await ppixiv.media_cache.localSearch(this.path, {
             id: this.path,
 
             // This tells the server to only include directories.  It's much faster, since
@@ -727,7 +728,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
             add_root: false,
         });
 
-        this.load_path = new ppixiv.SentinelGuard(this.load_path, this);
+        this.load_path = new SentinelGuard(this.load_path, this);
 
         // Root local_navigation_widget_items will be stored here when
         // set_data_source_search_options is called.  Until that happens, we have
@@ -751,7 +752,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
     {
         // Don't load a root if we're not currently on local search.
         let args = helpers.args.location;
-        if(args.path != ppixiv.local_api.path)
+        if(args.path != LocalAPI.path)
             return;
 
         if(this._root == null)
@@ -784,7 +785,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
 
         // If we're not on a /local/ search, just deselect.
         let args = helpers.args.location;
-        if(args.path != ppixiv.local_api.path)
+        if(args.path != LocalAPI.path)
         {
             this.set_selected_item(null);
             return;
@@ -815,7 +816,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
         await this.root.load();
         signal.check();
 
-        let media_id = ppixiv.local_api.get_local_id_from_args(args, { get_folder: true });
+        let media_id = LocalAPI.get_local_id_from_args(args, { get_folder: true });
         let { id } = helpers.parse_media_id(media_id);
 
         // Split apart the path.
@@ -866,7 +867,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
     show_item(media_id)
     {
         let args = new helpers.args(ppixiv.plocation);
-        ppixiv.local_api.get_args_for_id(media_id, args);
+        LocalAPI.get_args_for_id(media_id, args);
         helpers.navigate(args);
 
         // Hide the hover thumbnail on click to get it out of the way.

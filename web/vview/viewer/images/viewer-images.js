@@ -4,7 +4,9 @@ import Viewer from 'vview/viewer/viewer.js';
 import ImageEditor from 'vview/viewer/images/editing.js';
 import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
 import Slideshow from 'vview/misc/slideshow.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import DirectAnimation from 'vview/actors/direct-animation.js';
+import { helpers, FixedDOMRect, OpenWidgets, SentinelGuard } from 'vview/misc/helpers.js';
 
 class ImagesContainer extends Widget
 {
@@ -124,7 +126,7 @@ export default class ViewerImages extends Viewer
         this._image_box = this.container.querySelector(".image-box");
         this._crop_box = this.container.querySelector(".crop-box");
 
-        this._refresh_image = new ppixiv.SentinelGuard(this._refresh_image, this);
+        this._refresh_image = new SentinelGuard(this._refresh_image, this);
 
         this._original_width = 1;
         this._original_height = 1;
@@ -170,7 +172,7 @@ export default class ViewerImages extends Viewer
 
         // We pause changing to the next slideshow image UI widgets are open.  Check if we should continue
         // when the open widget list changes.
-        ppixiv.OpenWidgets.singleton.addEventListener("changed", () => this._check_animation_finished(), this._signal);
+        OpenWidgets.singleton.addEventListener("changed", () => this._check_animation_finished(), this._signal);
 
         ppixiv.media_cache.addEventListener("mediamodified", ({media_id}) => this._media_info_modified({media_id}), this._signal);
 
@@ -305,7 +307,7 @@ export default class ViewerImages extends Viewer
 
         this._original_width = width;
         this._original_height = height;
-        this._cropped_size = crop && crop.length == 4? new ppixiv.FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
+        this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
         this._custom_animation = pan;
 
         // Set the size of the image box and crop.
@@ -314,16 +316,16 @@ export default class ViewerImages extends Viewer
 
         // When quick view displays an image on mousedown, we want to see the mousedown too
         // now that we're displayed.
-        if(this._pointer_listener)
-            this._pointer_listener.check_missed_clicks();
+        if(this._pointerListener)
+            this._pointerListener.check_missed_clicks();
 
         // Don't show low-res previews during slideshows.
         if(this._slideshowMode)
             preview_url = url;
         
-        // If this is a local image, ask local_api whether we should use the preview image for quick
+        // If this is a local image, ask LocalAPI whether we should use the preview image for quick
         // loading.  See should_preload_thumbs for details.
-        if(!ppixiv.local_api.should_preload_thumbs(this.mediaId, preview_url))
+        if(!LocalAPI.should_preload_thumbs(this.mediaId, preview_url))
             preview_url = null;
 
         // Set the image URLs.
@@ -855,7 +857,7 @@ export default class ViewerImages extends Viewer
         if(this._cropped_size != null)
             return this._cropped_size;
         else
-            return new ppixiv.FixedDOMRect(0, 0, this._original_width, this._original_height);
+            return new FixedDOMRect(0, 0, this._original_width, this._original_height);
     }
     
     // Return the width and height of the image when at 1x zoom.
@@ -900,7 +902,7 @@ export default class ViewerImages extends Viewer
     {
         // Animations always take up the whole view.
         if(this._animations_running)
-            return new ppixiv.FixedDOMRect(0, 0, this.view_width, this.view_height);
+            return new FixedDOMRect(0, 0, this.view_width, this.view_height);
 
         let view_width = Math.max(this.view_width, 1);
         let view_height = Math.max(this.view_height, 1);
@@ -917,7 +919,7 @@ export default class ViewerImages extends Viewer
             helpers.clamp(bottom_right[1], 0, view_height),
         ];
 
-        return new ppixiv.FixedDOMRect(
+        return new FixedDOMRect(
             top_left[0], top_left[1],
             bottom_right[0], bottom_right[1]);
     }
@@ -1316,7 +1318,7 @@ export default class ViewerImages extends Viewer
         this._currentAnimationMode = animationMode;
         
         // Create the main animation.
-        this._animations.main = new ppixiv.DirectAnimation(new KeyframeEffect(
+        this._animations.main = new DirectAnimation(new KeyframeEffect(
             this._image_box,
             animation.keyframes,
             {
@@ -1376,7 +1378,7 @@ export default class ViewerImages extends Viewer
 
         // Don't move to the next image while the user has a popup open.  We'll return here when
         // dialogs are closed.
-        if(!ppixiv.OpenWidgets.singleton.empty)
+        if(!OpenWidgets.singleton.empty)
         {
             console.log("Deferring next image while UI is open");
             return;

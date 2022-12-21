@@ -1,6 +1,7 @@
 import Viewer from 'vview/viewer/viewer.js';
 import VideoUI from 'vview/viewer/video/video-ui.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import DragHandler from 'vview/misc/drag-handler.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class ViewerVideoBase extends Viewer
 {
@@ -33,7 +34,7 @@ export default class ViewerVideoBase extends Viewer
                 container: this.container.querySelector(".top-seek-bar"),
             });
     
-            this.seekDragger = new ppixiv.DragHandler({
+            this.seekDragger = new DragHandler({
                 name: "seek-dragger",
                 element: this.container,
                 defer_delay_ms: 30,

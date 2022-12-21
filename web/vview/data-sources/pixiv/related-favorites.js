@@ -1,5 +1,5 @@
 import { DataSourceFromPage } from 'vview/data-sources/data-source.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // bookmark_detail.php
 //
@@ -35,7 +35,7 @@ export default class DataSource_RelatedFavorites extends DataSourceFromPage
         for(var element of doc.querySelectorAll("li.bookmark-item a[data-user_id]"))
         {
             // Register this as quick user data, for use in thumbnails.
-            extra_cache.singleton().add_quick_user_data({
+            ppixiv.extra_cache.add_quick_user_data({
                 user_id: element.dataset.user_id,
                 user_name: element.dataset.user_name,
 

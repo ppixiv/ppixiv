@@ -2,7 +2,7 @@ import Widget from 'vview/widgets/widget.js';
 import Actions from 'vview/misc/actions.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
 import { TextPrompt } from 'vview/widgets/prompts.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export class AvatarWidget extends Widget
 {

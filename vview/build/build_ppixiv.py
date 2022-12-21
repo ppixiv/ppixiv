@@ -6,9 +6,6 @@ from pprint import pprint
 # tree.  This can be used during development: you can edit files and refresh a
 # page without having to build the script or install it.
 
-# Source files will be loaded in the order they're listed.
-from .source_files import source_files
-
 _git_tag = None
 def get_git_tag():
     """
@@ -393,7 +390,7 @@ class Build(object):
 
     def build_header(self, for_debug):
         result = []
-        with open('src/header.js', 'rt', encoding='utf-8') as input_file:
+        with open('web/startup/header.js', 'rt', encoding='utf-8') as input_file:
             for line in input_file.readlines():
                 line = line.strip()
 
@@ -427,7 +424,7 @@ class Build(object):
         result.append(f'// ==/UserScript==')
 
         # All resources that we include in the script.
-        all_resources = list(source_files)
+        all_resources = []
 
         # Encapsulate the script.
         result.append('(function() {\n')
@@ -459,7 +456,6 @@ class Build(object):
 
         # Add the list of source files to resources, so bootstrap.js knows what to load.
         init = {
-            'source_files': source_files,
             'modules': modules,
         }
 
@@ -471,12 +467,6 @@ class Build(object):
         for fn in all_resources:
             with open(fn, 'rt', encoding='utf-8') as input_file:
                 script = input_file.read()
-
-                # Wrap source files in a function, so we can load them when we're ready in bootstrap.js.
-                if fn in source_files:
-                    script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), fn)
-                    script = to_javascript_string(script)
-
                 output_resources[fn] = script
 
         result.append(f'env.init = {json.dumps(init, indent=4)};\n')
@@ -489,7 +479,7 @@ class Build(object):
             result.append(data)
 
         # Add the bootstrap code directly.
-        bootstrap = open('src/bootstrap.js', 'rt', encoding='utf-8').read()
+        bootstrap = open('web/startup/bootstrap.js', 'rt', encoding='utf-8').read()
         result.append(bootstrap)
         result.append('Bootstrap(env);\n')
 

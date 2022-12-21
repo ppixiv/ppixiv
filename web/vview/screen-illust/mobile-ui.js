@@ -7,7 +7,10 @@ import { BookmarkTagListWidget } from 'vview/widgets/bookmark-tag-list.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import { IllustWidget } from 'vview/widgets/illust-widgets.js';
 import DialogWidget from 'vview/widgets/dialog.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import WidgetDragger from 'vview/actors/widget-dragger.js';
+import IsolatedTapHandler from 'vview/actors/isolated-tap-handler.js';
+import { helpers, ClassFlags, OpenWidgets } from 'vview/misc/helpers.js';
 
 // The container for the mobile image UI.  This just creates and handles displaying
 // the tabs.
@@ -37,7 +40,7 @@ export default class MobileImageUI extends Widget
             container: this.container,
         });
         
-        this.dragger = new ppixiv.WidgetDragger({
+        this.dragger = new WidgetDragger({
             name: "menu-dragger",
             // Put the --menu-bar-pos property up high, since the video UI also uses it.
             node: [this.transitionTarget],
@@ -56,7 +59,7 @@ export default class MobileImageUI extends Widget
                 this.dragger.hide();
 
                 // Prevent IsolatedTapHandler, so it doesn't trigger from this press and reopen us.
-                ppixiv.IsolatedTapHandler.prevent_taps();
+                IsolatedTapHandler.prevent_taps();
             },
             confirm_drag: ({event}) => {
                 // If this is a drag up and we're closed, ignore the drag, since it should be handled
@@ -159,11 +162,11 @@ export default class MobileImageUI extends Widget
         // Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
         // open.
         let fullyVisible = this.dragger.position == 1;
-        ppixiv.ClassFlags.get.set("mobile-ui-visible", fullyVisible);
+        ClassFlags.get.set("mobile-ui-visible", fullyVisible);
 
         // Add ourself to OpenWidgets if we're visible at all.
         let visible = this.actually_visible;
-        ppixiv.OpenWidgets.singleton.set(this, visible);
+        OpenWidgets.singleton.set(this, visible);
 
         this.page.refresh();
     }
@@ -325,7 +328,7 @@ class IllustBottomMenuBar extends Widget
             return null;
 
         // Go to the parent of the item that was clicked on. 
-        let parentFolderId = ppixiv.local_api.get_parent_folder(folder_id);
+        let parentFolderId = LocalAPI.get_parent_folder(folder_id);
 
         // If the user right-clicked a thumbnail and its parent is the folder we're
         // already displaying, go to the parent of the folder instead (otherwise we're
@@ -333,9 +336,9 @@ class IllustBottomMenuBar extends Widget
         // sense whether you're clicking on an image in a search result (go to the
         // location of the image), while viewing an image (also go to the location of
         // the image), or in a folder view (go to the folder's parent).
-        let currently_displaying_id = ppixiv.local_api.get_local_id_from_args(helpers.args.location);
+        let currently_displaying_id = LocalAPI.get_local_id_from_args(helpers.args.location);
         if(parentFolderId == currently_displaying_id)
-            parentFolderId = ppixiv.local_api.get_parent_folder(parentFolderId);
+            parentFolderId = LocalAPI.get_parent_folder(parentFolderId);
 
         return parentFolderId;
     }
@@ -520,7 +523,7 @@ class ImageInfoWidget extends IllustWidget
                 </a>
             `});
 
-            entry.href = ppixiv.helpers.get_args_for_tag_search(tag, ppixiv.plocation);
+            entry.href = helpers.get_args_for_tag_search(tag, ppixiv.plocation);
             entry.querySelector(".tag-name").innerText = tag;
             tagWidget.appendChild(entry);
         }

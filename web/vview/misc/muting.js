@@ -2,7 +2,7 @@
 //
 // The "mutes-changed" event is fired here when any mute list is modified.
 
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class Muting extends EventTarget
 {
@@ -173,7 +173,7 @@ export default class Muting extends EventTarget
         if(!ppixiv.mobile)
             return;
 
-        settings.set("cached_mutes", {
+        ppixiv.settings.set("cached_mutes", {
             tags: this.muted_tags,
             user_ids: this.muted_user_ids,
         });
@@ -187,7 +187,7 @@ export default class Muting extends EventTarget
         if(!ppixiv.mobile)
             return;
 
-        let cached_mutes = settings.get("cached_mutes");
+        let cached_mutes = ppixiv.settings.get("cached_mutes");
         if(cached_mutes == null)
         {
             console.log("No cached mutes to load");

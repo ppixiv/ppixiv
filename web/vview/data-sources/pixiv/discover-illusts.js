@@ -2,7 +2,7 @@
 
 import DataSource from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSource_Discovery extends DataSource
 {

@@ -1,6 +1,6 @@
 import { DataSourceFromPage } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSource_SearchUsers extends DataSourceFromPage
 {
@@ -16,7 +16,7 @@ export default class DataSource_SearchUsers extends DataSourceFromPage
             let user_id = item.querySelector(".follow").dataset.id;
             let profile_image = item.querySelector("._user-icon").dataset.src;
 
-            extra_cache.singleton().add_quick_user_data({
+            ppixiv.extra_cache.add_quick_user_data({
                 user_id: user_id,
                 user_name: username,
                 profile_img: profile_image,

@@ -16,7 +16,7 @@
 // all other pages.  That way, we'll reload the previous pages with the updated data if
 // we navigate back to them.
 
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class IllustIdList
 {

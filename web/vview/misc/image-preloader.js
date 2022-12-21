@@ -11,7 +11,8 @@
 // to speculatively load.  We'll run loads in parallel, giving the current image's resources
 // priority and cancelling loads when they're no longer needed.
 
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // The image ResourceLoader singleton.
 export default class ImagePreloader
@@ -246,7 +247,7 @@ export default class ImagePreloader
 
         for(let url of mediaInfo.previewUrls)
         {
-            if(!ppixiv.local_api.should_preload_thumbs(media_id, url))
+            if(!LocalAPI.should_preload_thumbs(media_id, url))
                 continue;
 
             results.push(new ImgResourceLoader(url));
@@ -294,7 +295,7 @@ export default class ImagePreloader
         let guessedUrl = null;
         if(media_id != null)
         {
-            guessedUrl = await ppixiv.guess_image_url.get.guess_url(media_id);
+            guessedUrl = await ppixiv.guess_image_url.guess_url(media_id);
             if(this.guessedPreload && this.guessedPreload.url == guessedUrl)
                 return;
         }
@@ -312,7 +313,7 @@ export default class ImagePreloader
             this.guessedPreload = new ImgResourceLoader(guessedUrl, () => {
                 // The image load failed.  Let guessed_preload know.
                 // console.info("Guessed image load failed");
-                ppixiv.guess_image_url.get.guessed_url_incorrect(media_id);
+                ppixiv.guess_image_url.guessed_url_incorrect(media_id);
             });
             this.guessedPreload.start();
         }

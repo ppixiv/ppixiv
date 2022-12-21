@@ -35,9 +35,6 @@ window.NativeLoader = class
         
         // Fetch each source file.  Do this in parallel.
         let source_fetches = {};
-        for(let path of init.source_files)
-            source_fetches[path] = this.fetch_source(path);
-
         for(let path of Object.values(init.modules))
             source_fetches[path] = this.fetch_source(path, { add_source_url: false });
 

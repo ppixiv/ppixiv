@@ -1,4 +1,8 @@
-ppixiv.UserCache = class extends EventTarget
+// Lookup and caching for user data.
+
+import { helpers } from 'vview/misc/helpers.js';
+
+export default class UserCache extends EventTarget
 {
     constructor()
     {
@@ -25,7 +29,7 @@ ppixiv.UserCache = class extends EventTarget
 
         // Fetch media info.  We don't need to coalesce these requests if this is called
         // multiple times, since media_cache will do that for us.
-        let media_info = await media_cache.get_media_info(media_id, { full: false });
+        let media_info = await ppixiv.media_cache.get_media_info(media_id, { full: false });
         return media_info?.userId;
     }
 

@@ -1,4 +1,4 @@
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 import ZipImageDownloader from 'vview/misc/zip-image-downloader.js';
 
 // This gives a small subset of HTMLVideoPlayer's API to control the video, so

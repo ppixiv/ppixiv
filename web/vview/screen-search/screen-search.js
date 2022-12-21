@@ -6,8 +6,9 @@ import ScrollListener from 'vview/actors/scroll-listener.js';
 import LocalNavigationTreeWidget from 'vview/widgets/folder-tree.js';
 import SearchView from 'vview/screen-search/search-view.js';
 import DialogWidget from 'vview/widgets/dialog.js';
-
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { HoverWithDelay } from 'vview/misc/helpers.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // The search UI.
 export default class ScreenSearch extends Screen
@@ -46,7 +47,7 @@ export default class ScreenSearch extends Screen
             // Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
             // of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
             // affect opening the UI.
-            new ppixiv.hover_with_delay(topUiBox, 0, 0.25);
+            new HoverWithDelay(topUiBox, 0, 0.25);
             
             // Set --ui-box-height to the container's height, which is used by the hover style.
             let resize = new ResizeObserver(() => {
@@ -148,7 +149,7 @@ export default class ScreenSearch extends Screen
         //
         // We don't currently show the local navigation panel on mobile.  The UI isn't set up for
         // it, and it causes thumbnails to flicker while scrolling for some reason.
-        if(ppixiv.local_api.is_enabled() && !ppixiv.local_api.local_info.bookmark_tag_searches_only && !ppixiv.mobile)
+        if(LocalAPI.is_enabled() && !LocalAPI.local_info.bookmark_tag_searches_only && !ppixiv.mobile)
         {
             let local_navigation_box = this.container.querySelector(".local-navigation-box");
 
@@ -308,7 +309,7 @@ export default class ScreenSearch extends Screen
     
     get can_show_local_navigation()
     {
-        return this.dataSource?.is_vview && !ppixiv.local_api?.local_info?.bookmark_tag_searches_only;
+        return this.dataSource?.is_vview && !LocalAPI?.local_info?.bookmark_tag_searches_only;
     }
 
     // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
@@ -361,7 +362,7 @@ export default class ScreenSearch extends Screen
                 let text = await navigator.clipboard.readText();
                 let input = this.container.querySelector(".local-tag-search-box input");
                 input.value = text;
-                ppixiv.local_api.navigate_to_tag_search(text, {add_to_history: false});
+                LocalAPI.navigate_to_tag_search(text, {add_to_history: false});
             }
         }
     }

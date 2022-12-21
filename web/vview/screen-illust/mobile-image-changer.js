@@ -1,13 +1,17 @@
 // Drag navigation for swiping between images on mobile.
 
-import { helpers } from 'vview/ppixiv-imports.js';
+import DragHandler from 'vview/misc/drag-handler.js';
+import Bezier2D from 'vview/util/bezier.js';
+import FlingVelocity from 'vview/util/fling-velocity.js';
+import DirectAnimation from 'vview/actors/direct-animation.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DragImageChanger
 {
     constructor({parent})
     {
         this.parent = parent;
-        this.recent_pointer_movement = new ppixiv.FlingVelocity({
+        this.recent_pointer_movement = new FlingVelocity({
             sample_period: 0.150,
         });
 
@@ -25,7 +29,7 @@ export default class DragImageChanger
         // of this.drag_distance.
         this.bounds = [null, null];
 
-        this.dragger = new ppixiv.DragHandler({
+        this.dragger = new DragHandler({
             name: "image-changer",
             element: this.container,
             confirm_drag: ({event}) => {
@@ -410,7 +414,7 @@ export default class DragImageChanger
             let end_x = this.viewerDistance * this_idx;
 
             // Estimate a curve to match the fling.
-            let easing = ppixiv.Bezier2D.find_curve_for_velocity({
+            let easing = Bezier2D.find_curve_for_velocity({
                 distance: Math.abs(end_x - start_x),
                 duration: duration / 1000, // in seconds
                 target_velocity: Math.abs(recent_velocity),
@@ -422,7 +426,7 @@ export default class DragImageChanger
             if((end_x > start_x) != (recent_velocity > 0))
                 easing = "ease-out";
 
-            let animation = new ppixiv.DirectAnimation(new KeyframeEffect(viewer.container, [
+            let animation = new DirectAnimation(new KeyframeEffect(viewer.container, [
                 { transform: viewer.container.style.transform },
                 { transform: `translateX(${end_x}px)` },
             ], {

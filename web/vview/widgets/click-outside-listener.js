@@ -3,7 +3,8 @@
 // This is used to close dropdown menus.
 
 import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class ClickOutsideListener extends Actor
 {
@@ -14,7 +15,7 @@ export default class ClickOutsideListener extends Actor
         this.nodeList = nodeList;
         this.callback = callback;
 
-        new ppixiv.pointer_listener({
+        new PointerListener({
             element: document.documentElement,
             button_mask: 0xFFFF,
             callback: this.windowPointerdown,

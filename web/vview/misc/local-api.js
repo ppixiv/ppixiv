@@ -1,7 +1,9 @@
-"use strict";
-
 // Helpers for the local API.
-ppixiv.local_api = class
+
+import Path from 'vview/util/path.js';
+import { helpers } from 'vview/misc/helpers.js';
+
+export default class LocalAPI
 {
     static get local_url()
     {
@@ -24,7 +26,7 @@ ppixiv.local_api = class
 
     static async local_post_request(pathname, data={}, options={})
     {
-        let url = ppixiv.local_api.local_url;
+        let url = LocalAPI.local_url;
         if(url == null)
             throw Error("Local API isn't enabled");
 
@@ -47,7 +49,7 @@ ppixiv.local_api = class
     // Return true if the local API is enabled.
     static is_enabled()
     {
-        return ppixiv.local_api.local_url != null;
+        return LocalAPI.local_url != null;
     }
 
     // Return true if we're running in VVbrowser.
@@ -62,11 +64,11 @@ ppixiv.local_api = class
     // refresh from disk, even if it thinks it's not necessary.
     static async load_media_info(media_id, { refresh_from_disk=false }={})
     {
-        let illust_data = await local_api.local_post_request(`/api/illust/${media_id}`, {
+        let illust_data = await LocalAPI.local_post_request(`/api/illust/${media_id}`, {
             refresh_from_disk,
         });
         if(illust_data.success)
-            local_api.adjust_illust_info(illust_data.illust);
+            LocalAPI.adjust_illust_info(illust_data.illust);
 
         return illust_data;
     }
@@ -105,144 +107,9 @@ ppixiv.local_api = class
         illust.aiType = 0;
     }
 
-    // This is called early in initialization.  If we're running natively and
-    // the URL is empty, navigate to a default directory, so we don't start off
-    // on an empty page every time.
-    static async set_initial_url()
-    {
-        if(!ppixiv.native || document.location.hash != "")
-            return;
-
-        // If we're limited to tag searches, we don't view folders.  Just set the URL
-        // to "/".
-        if(this.local_info.bookmark_tag_searches_only)
-        {
-            let args = helpers.args.location;
-            args.hash_path = "/";
-            helpers.navigate(args, { add_to_history: false, cause: "initial" });
-            return;
-        }
-
-        // Read the folder list.  If we have any mounts, navigate to the first one.  Otherwise,
-        // show folder:/ as a fallback.
-        let media_id = "folder:/";
-        let result = await local_api.list(media_id);
-        if(result.results.length)
-            media_id = result.results[0].mediaId;
-
-        let args = helpers.args.location;
-        local_api.get_args_for_id(media_id, args);
-        helpers.navigate(args, { add_to_history: false, cause: "initial" });
-    }
-
-    // Run a search against the local API.
-    //
-    // The results will be registered as thumbnail info and returned.
-    static async list(path="", {...options}={})
-    {
-        let result = await local_api.local_post_request(`/api/list/${path}`, {
-            ...options,
-        });
-
-        if(!result.success)
-        {
-            console.error("Error reading directory:", result.reason);
-            return result;
-        }
-
-        for(let illust of result.results)
-        {
-            ppixiv.local_api.adjust_illust_info(illust);
-            await media_cache.add_media_info_full(illust, { preprocessed: true });
-        }
-
-        return result;
-    }
-
-    static async load_media_ids(media_ids)
-    {
-        if(media_ids.length == 0)
-            return;
-
-        let result = await local_api.local_post_request(`/api/illusts`, {
-            ids: media_ids,
-        });
-
-        if(!result.success)
-        {
-            console.error("Error reading IDs:", result.reason);
-            return;
-        }
-
-        for(let illust of result.results)
-        {
-            ppixiv.local_api.adjust_illust_info(illust);
-            await media_cache.add_media_info_full(illust, { preprocessed: true });
-        }
-    }
-
-    static async bookmark_add(media_id, options)
-    {
-        let illust_info = await media_cache.get_media_info(media_id, { full: false });
-        let bookmark_options = { };
-        if(options.tags != null)
-            bookmark_options.tags = options.tags;
-
-        // Remember whether this is a new bookmark or an edit.
-        let was_bookmarked = illust_info.bookmarkData != null;
-
-        let result = await local_api.local_post_request(`/api/bookmark/add/${media_id}`, {
-            ...bookmark_options,
-        });
-        if(!result.success)
-        {
-            message_widget.singleton.show(`Couldn't edit bookmark: ${result.reason}`);
-            return;
-        }
-
-        // Update bookmark tags and thumbnail data.
-        extra_cache.singleton().update_cached_bookmark_image_tags(media_id, result.bookmark.tags);
-        media_cache.update_media_info(media_id, {
-            bookmarkData: result.bookmark
-        });
-
-        let { type } = helpers.parse_media_id(media_id);
-        
-        message_widget.singleton.show(
-            was_bookmarked? "Bookmark edited":
-            type == "folder"? "Bookmarked folder":"Bookmarked",
-        );
-        media_cache.call_illust_modified_callbacks(media_id);
-    }
-
-    static async bookmark_remove(media_id)
-    {
-        let illust_info = await media_cache.get_media_info(media_id, { full: false });
-        if(illust_info.bookmarkData == null)
-        {
-            console.log("Not bookmarked");
-            return;
-        }
-
-        let result = await local_api.local_post_request(`/api/bookmark/delete/${media_id}`);
-        if(!result.success)
-        {
-            message_widget.singleton.show(`Couldn't remove bookmark: ${result.reason}`);
-            return;
-        }
-
-        media_cache.update_media_info(media_id, {
-            bookmarkData: null
-        });
-
-        message_widget.singleton.show("Bookmark removed");
-
-        media_cache.call_illust_modified_callbacks(media_id);
-    }
-    
     static async load_recent_bookmark_tags()
     {
-        let result = await local_api.local_post_request(`/api/bookmark/tags`);
+        let result = await LocalAPI.local_post_request(`/api/bookmark/tags`);
         if(!result.success)
         {
             console.log("Error fetching bookmark tag counts");
@@ -295,9 +162,9 @@ ppixiv.local_api = class
     {
         // If we're navigating from a special page like /similar, ignore the previous
         // URL and create a new one.  Those pages can have their own URL formats.
-        if(args.path != local_api.path || args.path != "/")
+        if(args.path != LocalAPI.path || args.path != "/")
         {
-            args.path = local_api.path;
+            args.path = LocalAPI.path;
             args.query = new URLSearchParams();
             args.hash = new URLSearchParams();
             args.hash_path = "/";
@@ -312,7 +179,7 @@ ppixiv.local_api = class
         if(type == "file")
         {
             // Put the relative path to new_path from root/path in "file".
-            let filename = helpers.path.get_relative_path(args_root, path);
+            let filename = Path.get_relative_path(args_root, path);
             args.hash.set("file", filename);
             return args;
         }
@@ -343,7 +210,7 @@ ppixiv.local_api = class
 
         // The file can also be relative or absolute.
         if(!file.startsWith("/"))
-            file = helpers.path.get_child(root, file)
+            file = Path.get_child(root, file)
 
         return "file:" + file;
     }
@@ -371,7 +238,7 @@ ppixiv.local_api = class
                 title = `Untagged bookmarks`;
         }
         // We always enable bookmark searching if that's all we're allowed to do.
-        else if(args.hash.has("bookmarks") || local_api.local_info.bookmark_tag_searches_only)
+        else if(args.hash.has("bookmarks") || LocalAPI.local_info.bookmark_tag_searches_only)
         {
             search_options.bookmarked = true;
             title = "Bookmarks";
@@ -407,7 +274,7 @@ ppixiv.local_api = class
             search_options = null;
 
             // When there's no search, just show the current path as the title.
-            let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
+            let folder_id = LocalAPI.get_local_id_from_args(args, { get_folder: true });
             let { id } = helpers.parse_media_id(folder_id);
             title = helpers.get_path_suffix(id);
         }
@@ -439,56 +306,25 @@ ppixiv.local_api = class
         return args.hash.get("file") == "*";
     }
 
-    // Navigate to the top of local search.  This is the "Local Search" button in the
-    // search menu.
-    //
-    // We don't want to just navigate to folder:/, since most people will only have one
-    // library mounted, so the first thing they'll always see is a page with their one
-    // folder on it that they have to click into.  Instead, load the library list, and
-    // open the top of the first one.
-    static async show_local_search(e)
-    {
-        e.preventDefault();
-
-        let result = await local_api.list("folder:/");
-        if(!result.success)
-        {
-            console.error("Error reading libraries:", result.reason);
-            return;
-        }
-
-        let libraries = result.results;
-        if(libraries.length == 0)
-        {
-            alert("No libraries are available");
-            return;
-        }
-
-        let folder_id = libraries[0].mediaId;
-        let args = new helpers.args("/", ppixiv.plocation);
-        local_api.get_args_for_id(folder_id, args);
-        helpers.navigate(args);
-    }
-
     // Load access info.  We always reload when this changes, eg. due to logging in
     // or out, so we cache this at startup.
     static async load_local_info()
     {
-        if(ppixiv.local_api.local_url == null)
+        if(LocalAPI.local_url == null)
             return;
 
-        this._cached_api_info = await local_api.local_post_request(`/api/info`);
+        this._cached_api_info = await LocalAPI.local_post_request(`/api/info`);
     }
 
     static get local_info()
     {
         let info = this._cached_api_info;
-        if(ppixiv.local_api.local_url == null)
+        if(LocalAPI.local_url == null)
             info = { success: false, code: "disabled" };
             
         return {
             // True if the local API is enabled at all.
-            enabled: ppixiv.local_api.local_url != null,
+            enabled: LocalAPI.local_url != null,
             
             // True if we're running on localhost.  If we're local, we're always logged
             // in and we won't show the login/logout buttons.
@@ -510,7 +346,7 @@ ppixiv.local_api = class
     // in and we won't show the login/logout buttons.
     static async is_local()
     {
-        let info = await local_api.local_post_request(`/api/info`);
+        let info = await LocalAPI.local_post_request(`/api/info`);
         return info.local;
     }
 
@@ -542,7 +378,7 @@ ppixiv.local_api = class
         // cache: only-if-cached argument, but that causes browsers to obnoxiously spam the console
         // with errors every time it fails.  That doesn't make sense (errors are normal with
         // only-if-cached) and the log spam is too annoying to use it here.
-        if(local_api.was_thumbnail_loaded_recently(url))
+        if(LocalAPI.was_thumbnail_loaded_recently(url))
             return true;
 
         // We're on desktop, the image is local, and the thumbnail hasn't been loaded recently.
@@ -555,14 +391,14 @@ ppixiv.local_api = class
     {
         // If we're not logged in and guest access is disabled, all API calls will
         // fail with access-denied.  Call api/info to check this.
-        let info = await local_api.local_post_request(`/api/info`);
+        let info = await LocalAPI.local_post_request(`/api/info`);
         return !info.success && info.code == 'access-denied';
     }
 
     // Return true if we're logged in as a non-guest user.
     static async logged_in()
     {
-        let info = await local_api.local_post_request(`/api/info`);
+        let info = await LocalAPI.local_post_request(`/api/info`);
         console.log(info);
         return info.success && info.username != "guest";
     }
@@ -588,17 +424,17 @@ ppixiv.local_api = class
         document.location.reload();
     }
 
-    // This stores searches like ppixiv.SavedSearchTags.  It's simpler, since this
-    // is the only place these searches are added.
+    // This stores searches like SavedSearchTags.  It's simpler, since this is the
+    // only place these searches are added.
     static add_recent_local_search(tag)
     {
-        var recent_tags = settings.get("local_searches") || [];
+        var recent_tags = ppixiv.settings.get("local_searches") || [];
         var idx = recent_tags.indexOf(tag);
         if(idx != -1)
             recent_tags.splice(idx, 1);
         recent_tags.unshift(tag);
 
-        settings.set("local_searches", recent_tags);
+        ppixiv.settings.set("local_searches", recent_tags);
         window.dispatchEvent(new Event("recent-local-searches-changed"));
     }
 
@@ -612,11 +448,11 @@ ppixiv.local_api = class
 
         // Add this tag to the recent search list.
         if(add_to_history && tags)
-            local_api.add_recent_local_search(tags);
+            LocalAPI.add_recent_local_search(tags);
 
         // Run the search.  We expect to be on the local data source when this is called.
         let args = new helpers.args(ppixiv.plocation);
-        console.assert(args.path == local_api.path);
+        console.assert(args.path == LocalAPI.path);
         if(tags)
             args.hash.set("search", tags);
         else
@@ -634,7 +470,7 @@ ppixiv.local_api = class
             return;
         }
 
-        let result = await local_api.local_post_request(`/api/similar/index`, {
+        let result = await LocalAPI.local_post_request(`/api/similar/index`, {
             path: id,
         });
         if(!result.success)
@@ -671,7 +507,7 @@ ppixiv.LocalBroadcastChannel = class extends EventTarget
 
         this.name = name;
 
-        ppixiv.LocalBroadcastChannelConnection.get.addEventListener(this.name, this.receivedWebSocketsMessage);
+        LocalBroadcastChannelConnection.get.addEventListener(this.name, this.receivedWebSocketsMessage);
 
         // Create a regular BroadcastChannel.  Other tabs in the same browser will receive
         // messages through this, so they don't need to round-trip through WebSockets.
@@ -695,25 +531,25 @@ ppixiv.LocalBroadcastChannel = class extends EventTarget
 
     postMessage(data)
     {
-        ppixiv.LocalBroadcastChannelConnection.get.send(this.name, data);
+        LocalBroadcastChannelConnection.get.send(this.name, data);
         this.broadcast_channel.postMessage(data);
     }
 
     close()
     {
-        ppixiv.LocalBroadcastChannelConnection.get.removeEventListener(this.name, this.receivedWebSocketsMessage);
+        LocalBroadcastChannelConnection.get.removeEventListener(this.name, this.receivedWebSocketsMessage);
         this.broadcast_channel.removeEventListener("message", this.receivedBroadcastChannelMessage);
     }
 };
 
 // This creates a single WebSockets connection to the local server.  An event is dispatched
 // with the name of the channel when a WebSockets message is received.
-ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
+class LocalBroadcastChannelConnection extends EventTarget
 {
     static get get()
     {
         if(this.singleton == null)
-            this.singleton = new ppixiv.LocalBroadcastChannelConnection;
+            this.singleton = new LocalBroadcastChannelConnection();
         return this.singleton;
     }
 
@@ -722,7 +558,7 @@ ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
         super();
 
         // This is only used if the local API is enabled.
-        if(!local_api.is_enabled())
+        if(!LocalAPI.is_enabled())
             return;
 
         // If messages are sent while we're still connecting, or if the buffer is full,
@@ -740,11 +576,11 @@ ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
         // WebSockets server, so it knows not to send broadcasts to clients running in the
         // same browser, which will receive the messages much faster through a regular
         // BroadcastChannel.
-        this.browser_id = settings.get("browser_id");
+        this.browser_id = ppixiv.settings.get("browser_id");
         if(this.browser_id == null)
         {
             this.browser_id = helpers.create_uuid();
-            settings.set("browser_id", this.browser_id);
+            ppixiv.settings.set("browser_id", this.browser_id);
             console.log("Assigned broadcast browser ID:", this.browser_id);
         }
 
@@ -756,7 +592,7 @@ ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
         // Close the connection if it's still open.
         this.disconnect();
 
-        let url = new URL("/ws", local_api.local_url);
+        let url = new URL("/ws", LocalAPI.local_url);
         url.protocol = document.location.protocol == "https:"? "wss":"ws";
 
         this.ws = new WebSocket(url);
@@ -864,7 +700,7 @@ ppixiv.LocalBroadcastChannelConnection = class extends EventTarget
     // Send a WebSockets message on the given channel name.
     send(channel, message)
     {
-        if(!local_api.is_enabled())
+        if(!LocalAPI.is_enabled())
             return;
         
         let data = {

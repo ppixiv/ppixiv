@@ -3,7 +3,7 @@
 import Widget from 'vview/widgets/widget.js';
 import { TextPrompt } from 'vview/widgets/prompts.js';
 import DialogWidget from 'vview/widgets/dialog.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export class EditMutedTagsWidget extends Widget
 {
@@ -367,7 +367,7 @@ export class MutedTagsForPostDialog extends DialogWidget
         {
             // We only have a user ID, so look up the user to get the username.  Don't display
             // any tags.
-            let user_info = await user_cache.get_user_info(this.user_id);
+            let user_info = await ppixiv.user_cache.get_user_info(this.user_id);
             await this.refresh_for_data([], this.user_id, user_info.name);
         }       
     }

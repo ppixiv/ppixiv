@@ -1,6 +1,7 @@
 import Widget from 'vview/widgets/widget.js';
 import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
+import { helpers, KeyListener } from 'vview/misc/helpers.js';
 
 export default class InpaintEditor extends Widget
 {
@@ -86,7 +87,7 @@ export default class InpaintEditor extends Widget
         this.line_width_slider.value = ppixiv.settings.get("inpaint_default_thickness", 10);
 
         // Hide the inpaint while dragging the thickness slider.
-        this.pointer_listener = new ppixiv.pointer_listener({
+        new PointerListener({
             element: this.line_width_slider,
             callback: (e) => {
                 this._overlay_container.hide_inpaint = e.pressed;
@@ -106,7 +107,7 @@ export default class InpaintEditor extends Widget
         }, { signal: this.shutdown_signal.signal });
         
         let view_inpaint_button = this.container.querySelector(".view-inpaint");
-        this.pointer_listener = new ppixiv.pointer_listener({
+        new PointerListener({
             element: view_inpaint_button,
             callback: (e) => {
                 this.visible = !e.pressed;
@@ -139,7 +140,7 @@ export default class InpaintEditor extends Widget
             console.log("Saved default blur:", value);
         }, { signal: this.shutdown_signal.signal });
 
-        this.pointer_listener = new ppixiv.pointer_listener({
+        new PointerListener({
             element: this.editor_overlay,
             callback: this.pointerevent,
             signal: this.shutdown_signal.signal,
@@ -153,7 +154,7 @@ export default class InpaintEditor extends Widget
         this.ctrl_pressed = false;
         for(let modifier of ["Control", "Alt", "Shift"])
         {
-            new ppixiv.key_listener(modifier, (pressed) => {
+            new KeyListener(modifier, (pressed) => {
                 this.ctrl_pressed = pressed;
                 this.refresh_pointer_events();
             }, {

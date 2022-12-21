@@ -2,8 +2,11 @@
 
 import Widget from 'vview/widgets/widget.js';
 import { MenuOptionsThumbnailSizeSlider } from 'vview/widgets/menu-option.js';
-
-import { helpers } from 'vview/ppixiv-imports.js';
+import { getUrlForMediaId } from 'vview/misc/media-ids.js'
+import PointerListener from 'vview/actors/pointer-listener.js';
+import { StopAnimationAfter } from 'vview/misc/helpers.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // JavaScript objects are ordered, but for some reason there's no way to actually manipulate
 // the order, such as adding to the beginning.  We have to make a copy of the object, add
@@ -132,7 +135,7 @@ export default class SearchView extends Widget
         });
 
         // Handle quick view.
-        new ppixiv.pointer_listener({
+        new PointerListener({
             element: this.thumbnailBox,
             button_mask: 0b1,
             callback: (e) => {
@@ -1275,7 +1278,7 @@ export default class SearchView extends Widget
     }
 
     // element is a thumbnail element.  On mouseover, start the pan animation, and create
-    // a stop_animation_after to prevent the animation from running forever.
+    // a StopAnimationAfter to prevent the animation from running forever.
     //
     // We create the pan animations programmatically instead of with CSS, since for some
     // reason element.getAnimations is extremely slow and often takes 10ms or more.  CSS
@@ -1302,7 +1305,7 @@ export default class SearchView extends Widget
             // Start playing the animation.
             anim.play();
 
-            // Stop if stop_animation_after is already running for this thumb.
+            // Stop if StopAnimationAfter is already running for this thumb.
             if(this.stopAnimation?.animation == anim)
                 return;
             // If we were running it on another thumb and we missed the mouseout for
@@ -1313,7 +1316,7 @@ export default class SearchView extends Widget
                 this.stopAnimation = null;
             }
 
-            this.stopAnimation = new helpers.stop_animation_after(anim, 6, 1, anim.id == "vertical-pan");
+            this.stopAnimation = new StopAnimationAfter(anim, 6, 1, anim.id == "vertical-pan");
 
             // Remove it when the mouse leaves the thumb.  We'll actually respond to mouseover/mouseout
             // for elements inside the thumb too, but it doesn't cause problems here.
@@ -1504,7 +1507,7 @@ export default class SearchView extends Widget
         
         helpers.set_dataset(element.dataset, "pending", false);
 
-        // On hover, use stop_animation_after to stop the animation after a while.
+        // On hover, use StopAnimationAfter to stop the animation after a while.
         this.addAnimationListener(element);
 
         if(thumbType == "user" || thumbType == "bookmarks")
@@ -1521,7 +1524,7 @@ export default class SearchView extends Widget
 
             link.dataset.userId = userId;
 
-            let quick_user_data = ppixiv.extra_cache.singleton().get_quick_user_data(userId);
+            let quick_user_data = ppixiv.extra_cache.get_quick_user_data(userId);
             if(quick_user_data == null)
             {
                 // We should always have this data for users if the data source asked us to display this user.
@@ -1572,7 +1575,7 @@ export default class SearchView extends Widget
         {
             thumb.src = url;
             element.classList.remove("muted");
-            ppixiv.local_api.thumbnail_loaded(url);
+            LocalAPI.thumbnail_loaded(url);
 
             // Try to set up the aspect ratio.
             this.thumbImageLoadFinished(element, { cause: "setup" });
@@ -1586,12 +1589,12 @@ export default class SearchView extends Widget
             // This is a local directory.  We only expect to see this while on the local
             // data source.  Clear any search when navigating to a subdirectory.
             let args = new helpers.args("/");
-            ppixiv.local_api.get_args_for_id(mediaId, args);
+            LocalAPI.get_args_for_id(mediaId, args);
             link.href = args.url;
         }
         else
         {
-            link.href = helpers.get_url_for_id(mediaId).url;
+            link.href = getUrlForMediaId(mediaId).url;
         }
 
         link.dataset.mediaId = mediaId;

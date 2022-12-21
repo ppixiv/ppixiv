@@ -1,7 +1,7 @@
 // A list of tags, with translations in popups where available.
 
 import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class TagListWidget extends Widget
 {
@@ -12,7 +12,7 @@ export default class TagListWidget extends Widget
 
     format_tag_link(tag)
     {
-        return ppixiv.helpers.get_args_for_tag_search(tag, ppixiv.plocation);
+        return helpers.get_args_for_tag_search(tag, ppixiv.plocation);
     };
 
     async set(tags)

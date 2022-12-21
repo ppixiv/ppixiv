@@ -1,6 +1,7 @@
 import Widget from 'vview/widgets/widget.js';
 import SeekBar from 'vview/viewer/video/seek-bar.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
+import { helpers, ClassFlags } from 'vview/misc/helpers.js';
 
 // The overlay video UI.
 export default class VideoUI extends Widget
@@ -47,12 +48,12 @@ export default class VideoUI extends Widget
         this.refresh_show_ui();
 
         // listen for data-mobile-ui-visible and show our UI
-        ppixiv.ClassFlags.get.addEventListener("mobile-ui-visible", (e) => {
+        ClassFlags.get.addEventListener("mobile-ui-visible", (e) => {
             this.refresh_show_ui();
         }, { signal: this.shutdown_signal.signal });
 
         // Set .dragging to stay visible during drags.
-        this.pointer_listener = new ppixiv.pointer_listener({
+        new PointerListener({
             element: this.container,
             callback: (e) => {
                 helpers.set_class(this.container, "dragging", e.pressed);
@@ -151,7 +152,7 @@ export default class VideoUI extends Widget
 
     refresh_show_ui()
     {
-        let show_ui = ppixiv.ClassFlags.get.get("mobile-ui-visible");
+        let show_ui = ClassFlags.get.get("mobile-ui-visible");
         helpers.set_class(this.container, "show-ui", show_ui);
     }
 
@@ -287,7 +288,7 @@ class volume_slider_widget extends Widget
 
         this.volume_line = this.container.querySelector(".volume-line");
 
-        this.pointer_listener = new ppixiv.pointer_listener({
+        new PointerListener({
             element: this.container,
             callback: (e) => {
                 if(e.pressed)

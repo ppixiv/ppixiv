@@ -1,7 +1,7 @@
 import DataSource from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSource_Follows extends DataSource
 {
@@ -40,7 +40,7 @@ export default class DataSource_Follows extends DataSource
     {
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.user_info = await user_cache.get_user_info_full(this.viewingUserId);
+        this.user_info = await ppixiv.user_cache.get_user_info_full(this.viewingUserId);
 
         // Update to refresh our page title, which uses user_info.
         this.call_update_listeners();
@@ -73,7 +73,7 @@ export default class DataSource_Follows extends DataSource
                 continue;
 
             // Register this as quick user data, for use in thumbnails.
-            extra_cache.singleton().add_quick_user_data(followed_user, "following");
+            ppixiv.extra_cache.add_quick_user_data(followed_user, "following");
 
             // XXX: user:user_id
             if(!followed_user.illusts.length)

@@ -1,9 +1,10 @@
 import PanEditor from 'vview/viewer/images/editing-pan.js';
 import InpaintEditor from 'vview/viewer/images/editing-inpaint.js';
 import CropEditor from 'vview/viewer/images/editing-crop.js';
+import LocalAPI from 'vview/misc/local-api.js';
 import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
 import { IllustWidget } from 'vview/widgets/illust-widgets.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
 
 export default class ImageEditor extends IllustWidget
 {
@@ -99,7 +100,7 @@ export default class ImageEditor extends IllustWidget
 
         this.overlay_container = overlay_container;
 
-        ppixiv.OpenWidgets.singleton.addEventListener("changed", this.refresh_temporarily_hidden, { signal: this.shutdown_signal.signal });
+        OpenWidgets.singleton.addEventListener("changed", this.refresh_temporarily_hidden, { signal: this.shutdown_signal.signal });
 
         window.addEventListener("keydown", (e) => {
             if(!this.visible)
@@ -208,7 +209,7 @@ export default class ImageEditor extends IllustWidget
     {
         // Hide while the UI is open.  This is only needed on mobile, where our buttons
         // overlap the hover UI.
-        let hidden = ppixiv.mobile && !ppixiv.OpenWidgets.singleton.empty;
+        let hidden = ppixiv.mobile && !OpenWidgets.singleton.empty;
         helpers.set_class(this.container, "temporarily-hidden", hidden);
     }
 
@@ -408,7 +409,7 @@ export default class ImageEditor extends IllustWidget
             let media_info;
             if(helpers.is_media_id_local(this.media_id))
             {
-                let result = await ppixiv.local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
+                let result = await LocalAPI.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
                 if(!result.success)
                 {
                     ppixiv.message.show(`Error saving image edits: ${result.reason}`);
@@ -420,7 +421,7 @@ export default class ImageEditor extends IllustWidget
 
                 // Update cached media info to include the change.
                 media_info = result.illust;
-                ppixiv.local_api.adjust_illust_info(media_info);
+                LocalAPI.adjust_illust_info(media_info);
                 ppixiv.media_cache.update_media_info(this.media_id, media_info);
             }
             else

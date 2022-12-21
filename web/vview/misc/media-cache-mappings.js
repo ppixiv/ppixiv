@@ -1,6 +1,7 @@
-ppixiv.media_cache_mappings = class
-{
+import { helpers } from 'vview/misc/helpers.js';
 
+export default class MediaCacheMappings
+{
     // Get the mapping from /ajax/user/id/illusts/bookmarks to illust_list.php's keys.
     static thumbnail_info_map_illust_list =
     [

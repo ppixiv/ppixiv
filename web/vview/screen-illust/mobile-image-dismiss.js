@@ -1,4 +1,5 @@
-import { helpers } from 'vview/ppixiv-imports.js';
+import WidgetDragger from 'vview/actors/widget-dragger.js';
+import { helpers, FixedDOMRect } from 'vview/misc/helpers.js';
 
 // This handles dragging up from the top of the screen to return to the search on mobile.
 export default class MobileImageDismiss
@@ -7,7 +8,7 @@ export default class MobileImageDismiss
     {
         this.parent = parent;
 
-        this.dragger = new ppixiv.WidgetDragger({
+        this.dragger = new WidgetDragger({
             name: "drag-to-exit",
             node: [
                 this.parent.container,
@@ -114,7 +115,7 @@ export default class MobileImageDismiss
             let height = viewPosition.height * 0.75;
             let x = (window.innerWidth - width) / 2;
             let y =  (window.innerHeight - height) / 2;
-            thumbRect = new ppixiv.FixedDOMRect(x, y, x + width, y + height);
+            thumbRect = new FixedDOMRect(x, y, x + width, y + height);
         }
 
         let { x, y, width, height } = viewPosition;

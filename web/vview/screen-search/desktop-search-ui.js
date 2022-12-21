@@ -6,7 +6,8 @@ import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import UserInfoLinks from 'vview/screen-search/user-info-links.js';
 import CreateSearchMenu from 'vview/screen-search/search-menu.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DesktopSearchUI extends Widget
 {
@@ -136,13 +137,13 @@ export default class DesktopSearchUI extends Widget
         // Set up login/logout buttons for native.
         if(ppixiv.native)
         {
-            let { logged_in, local } = ppixiv.local_api.local_info;
+            let { logged_in, local } = LocalAPI.local_info;
             this.container.querySelector(".login-button").hidden = local || logged_in;
             this.container.querySelector(".logout-button").hidden = local || !logged_in;
-            this.container.querySelector(".login-button").addEventListener("click", () => ppixiv.local_api.redirect_to_login());
+            this.container.querySelector(".login-button").addEventListener("click", () => LocalAPI.redirect_to_login());
             this.container.querySelector(".logout-button").addEventListener("click", () => {
                 if(confirm("Log out?"))
-                    ppixiv.local_api.logout();
+                    LocalAPI.logout();
             });
         }
     }

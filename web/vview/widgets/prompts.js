@@ -1,6 +1,6 @@
 // A popup for inputting text.
 import DialogWidget from 'vview/widgets/dialog.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export class TextPrompt extends DialogWidget
 {

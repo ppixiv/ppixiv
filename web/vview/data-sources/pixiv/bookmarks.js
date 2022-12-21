@@ -13,7 +13,7 @@
 import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export class DataSource_BookmarksBase extends DataSource
 {
@@ -34,7 +34,7 @@ export class DataSource_BookmarksBase extends DataSource
         this.fetch_bookmark_tag_counts();
         
         // Load the user's info.  We don't need to wait for this to finish.
-        let user_info_promise = user_cache.get_user_info_full(this.viewingUserId);
+        let user_info_promise = ppixiv.user_cache.get_user_info_full(this.viewingUserId);
         user_info_promise.then((user_info) => {
             // Stop if we were deactivated before this finished.
             if(!this.active)
@@ -202,7 +202,7 @@ export class DataSource_BookmarksBase extends DataSource
                 // illust.id is an int if this image is deleted.  Convert it to a string so it's
                 // like other images.
                 let mediaId = helpers.illust_id_to_media_id(illust.id.toString());
-                extra_cache.singleton().update_cached_bookmark_image_tags(mediaId, tags);
+                ppixiv.extra_cache.update_cached_bookmark_image_tags(mediaId, tags);
             }
         }
 

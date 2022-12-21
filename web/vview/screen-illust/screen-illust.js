@@ -18,8 +18,11 @@ import ViewerUgoira from 'vview/viewer/video/viewer-ugoira.js';
 import ViewerError from 'vview/viewer/viewer-error.js';
 
 import ImagePreloader from "vview/misc/image-preloader.js";
+import IsolatedTapHandler from 'vview/actors/isolated-tap-handler.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import MobileDoubleTapHandler from 'vview/actors/mobile-double-tap-handler.js';
 import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // The main UI.  This handles creating the viewers and the global UI.
 export default class ScreenIllust extends Screen
@@ -94,13 +97,13 @@ export default class ScreenIllust extends Screen
             });
 
             // Toggle zoom on double-tap.
-            this.doubleTapHandler = new ppixiv.MobileDoubleTapHandler({
+            this.doubleTapHandler = new MobileDoubleTapHandler({
                 container: this.viewContainer,
                 signal: this.shutdown_signal.signal,
                 ondbltap: (e) => this.viewer.toggle_zoom(e),
             });
 
-            new ppixiv.IsolatedTapHandler({
+            new IsolatedTapHandler({
                 node: this.viewContainer,
                 callback: (e) => {
                     // Show or hide the menu on isolated taps.  Note that most of the time, hiding
@@ -464,7 +467,7 @@ export default class ScreenIllust extends Screen
         if(helpers.is_media_id_local(mediaId))
         {
             let args = helpers.args.location;
-            ppixiv.local_api.get_args_for_id(mediaId, args);
+            LocalAPI.get_args_for_id(mediaId, args);
             if(args.hash.get("file") != "*")
                 return false;
         }

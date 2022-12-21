@@ -1,10 +1,6 @@
-import {
-    helpers, local_api, muting, phistory, resources,
-} from 'vview/ppixiv-imports.js';
-
+import { VirtualHistory } from 'vview/misc/helpers.js';
 import install_polyfills from 'vview/misc/polyfills.js';
 import WhatsNew from 'vview/widgets/whats-new.js';
-import { TagSearchBoxWidget } from 'vview/widgets/tag-search-dropdown.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
 import TagTranslations from 'vview/misc/tag-translations.js';
 import ScreenIllust from 'vview/screen-illust/screen-illust.js';
@@ -12,11 +8,19 @@ import ScreenSearch from 'vview/screen-search/screen-search.js';
 import ContextMenu from 'vview/context-menu.js';
 import Muting from 'vview/misc/muting.js';
 import SendImage, { LinkThisTabPopup, SendHerePopup } from 'vview/misc/send-image.js';
-import { AvatarWidget } from 'vview/widgets/user-widgets.js';
-import { LocalSearchBoxWidget } from 'vview/widgets/local-widgets.js';
+import Settings from 'vview/misc/settings.js';
 import DataSource from 'vview/data-sources/data-source.js';
 import DialogWidget from 'vview/widgets/dialog.js';
 import MessageWidget from 'vview/widgets/message-widget.js';
+import MediaCache from 'vview/misc/media-cache.js';
+import UserCache from 'vview/misc/user-cache.js';
+import ExtraCache from 'vview/misc/extra-cache.js';
+import { helpers, PointerEventMovement } from 'vview/misc/helpers.js';
+import ExtraImageData from 'vview/misc/extra-image-data.js';
+import GuessImageURL from 'vview/misc/guess-image-url.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
+import { getUrlForMediaId } from 'vview/misc/media-ids.js'
 import * as DataSources from 'vview/data-sources/all.js';
 
 // This is the main top-level app controller.
@@ -44,42 +48,39 @@ export default class App
         install_polyfills();
 
         // Create singletons.
-        ppixiv.settings = new ppixiv.Settings();
-        ppixiv.media_cache = new ppixiv.MediaCache();
-        ppixiv.user_cache = new ppixiv.UserCache();
+        ppixiv.phistory = new VirtualHistory();
+        ppixiv.settings = new Settings();
+        ppixiv.media_cache = new MediaCache();
+        ppixiv.user_cache = new UserCache();
+        ppixiv.extra_image_data = new ExtraImageData();
+        ppixiv.extra_cache = new ExtraCache();
         ppixiv.send_image = new SendImage();
         ppixiv.tag_translations = new TagTranslations();
+        ppixiv.guess_image_url = new GuessImageURL();
         ppixiv.muting = new Muting();
         
-        // XXX: Phase these out
-        ppixiv.TagSearchBoxWidget = TagSearchBoxWidget;
-        ppixiv.SavedSearchTags = SavedSearchTags;
-        ppixiv.avatar_widget = AvatarWidget;
-        ppixiv.LocalSearchBoxWidget = LocalSearchBoxWidget;
-
         // Run any one-time settings migrations.
         ppixiv.settings.migrate();
 
-        // Set up the pointer_listener singleton.
-        ppixiv.pointer_listener.install_global_handler();
-        new ppixiv.global_key_listener;
+        // Set up the PointerListener singleton.
+        PointerListener.install_global_handler();
 
         // Set up iOS movementX/movementY handling.
-        new ppixiv.PointerEventMovement();
+        new PointerEventMovement();
 
         // If enabled, cache local info which tells us what we have access to.
-        await ppixiv.local_api.load_local_info();
+        await LocalAPI.load_local_info();
 
         // If login is required to do anything, no API calls will succeed.  Stop now and
         // just redirect to login.  This is only for the local API.
-        if(local_api.local_info.enabled && local_api.local_info.login_required)
+        if(LocalAPI.local_info.enabled && LocalAPI.local_info.login_required)
         {
-            local_api.redirect_to_login();
+            LocalAPI.redirect_to_login();
             return;
         }
 
         // If we're running natively, set the initial URL.
-        await local_api.set_initial_url();
+        await this.setInitialUrl();
 
         // Pixiv scripts that use meta-global-data remove the element from the page after
         // it's parsed for some reason.  Try to get global info from document, and if it's
@@ -167,7 +168,7 @@ export default class App
                 newURL.hash = "#ppixiv";
             }
 
-            phistory.replaceState(phistory.state, "", newURL.toString());
+            ppixiv.phistory.replaceState(ppixiv.phistory.state, "", newURL.toString());
         }
         
         // Don't restore the scroll position.  We handle this ourself.
@@ -192,7 +193,7 @@ export default class App
         // Add the blobs for binary resources as CSS variables.
         helpers.add_style("image-styles", `
             html {
-                --dark-noise: url("${resources['resources/noise.png']}");
+                --dark-noise: url("${ppixiv.resources['resources/noise.png']}");
             }
         `);
 
@@ -201,7 +202,7 @@ export default class App
         helpers.add_style("ppixiv-font", `
             @font-face {
                 font-family: 'ppixiv';
-                src: url(${resources['resources/ppixiv.woff']}) format('woff');
+                src: url(${ppixiv.resources['resources/ppixiv.woff']}) format('woff');
                 font-weight: normal;
                 font-style: normal;
                 font-display: block;
@@ -209,7 +210,7 @@ export default class App
         `);
 
         // Add the main stylesheet.
-        let mainStylesheet = resources['resources/main.scss'];
+        let mainStylesheet = ppixiv.resources['resources/main.scss'];
         document.head.appendChild(helpers.create_style(mainStylesheet, { id: "main" }));
 
         // If we're running natively, index.html included an initial stylesheet to set the background
@@ -244,7 +245,7 @@ export default class App
         let documentIcon = document.head.appendChild(document.createElement("link"));
         documentIcon.setAttribute("rel", "icon");
 
-        helpers.add_clicks_to_search_history(document.body);
+        this.addClicksToSearchHistory(document.body);
          
         this.container = document.body;
 
@@ -313,12 +314,12 @@ export default class App
 
     setDeviceProperties = () =>
     {
-        let insets = helpers.safe_area_insets;
+        let insets = helpers.get_safe_area_insets();
 
         helpers.set_class(document.documentElement, "mobile", ppixiv.mobile);
         helpers.set_class(document.documentElement, "ios", ppixiv.ios);
         helpers.set_class(document.documentElement, "android", ppixiv.android);
-        helpers.set_class(document.documentElement, "phone", helpers.is_phone);
+        helpers.set_class(document.documentElement, "phone", helpers.is_phone());
         document.documentElement.dataset.orientation = window.orientation ?? "0";
         helpers.set_dataset(document.documentElement.dataset, "hasBottomInset", insets.bottom > 0);
 
@@ -357,6 +358,36 @@ export default class App
             document.documentElement.dataset.fullscreenMode = "safe-area";
         else
             document.documentElement.dataset.fullscreenMode = "none";
+    }
+
+    // This is called early in initialization.  If we're running natively and
+    // the URL is empty, navigate to a default directory, so we don't start off
+    // on an empty page every time.
+    async setInitialUrl()
+    {
+        if(!ppixiv.native || document.location.hash != "")
+            return;
+
+        // If we're limited to tag searches, we don't view folders.  Just set the URL
+        // to "/".
+        if(LocalAPI.local_info.bookmark_tag_searches_only)
+        {
+            let args = helpers.args.location;
+            args.hash_path = "/";
+            helpers.navigate(args, { add_to_history: false, cause: "initial" });
+            return;
+        }
+
+        // Read the folder list.  If we have any mounts, navigate to the first one.  Otherwise,
+        // show folder:/ as a fallback.
+        let media_id = "folder:/";
+        let result = await ppixiv.media_cache.localSearch(media_id);
+        if(result.results.length)
+            media_id = result.results[0].mediaId;
+
+        let args = helpers.args.location;
+        LocalAPI.get_args_for_id(media_id, args);
+        helpers.navigate(args, { add_to_history: false, cause: "initial" });
     }
 
     // Create a data source for the current URL and activate it.
@@ -616,7 +647,7 @@ export default class App
         if(mediaId == null)
             return;
 
-        let args = helpers.get_url_for_id(mediaId, { manga: true });
+        let args = getUrlForMediaId(mediaId, { manga: true });
         this.navigate_from_image_to_search(args);
     }
 
@@ -643,7 +674,7 @@ export default class App
     {
         // If phistory.permanent isn't active, just navigate normally.  This is only used
         // on mobile.
-        if(!phistory.permanent)
+        if(!ppixiv.phistory.permanent)
         {
             helpers.navigate(args);
             return;
@@ -651,14 +682,14 @@ export default class App
 
         // Compare the canonical URLs, so we'll return to the entry in history even if the search
         // page doesn't match.
-        let previous_url = phistory.previous_state_url;
+        let previous_url = ppixiv.phistory.previous_state_url;
         let canonical_previous_url = previous_url? helpers.get_canonical_url(previous_url):null;
-        let canonical_new_url = ppixiv.helpers.get_canonical_url(args.url);
+        let canonical_new_url = helpers.get_canonical_url(args.url);
         let same_url = helpers.are_urls_equivalent(canonical_previous_url, canonical_new_url);
         if(same_url)
         {
             console.log("Navigated search is last in history, going there instead");
-            phistory.back();
+            ppixiv.phistory.back();
         }
         else
         {
@@ -875,8 +906,8 @@ export default class App
             // This page doesn't tell us the user's mutes.  Load from cache if possible, and request
             // the mute list from the server.  This normally only happens on mobile.
             console.assert(ppixiv.mobile);
-            muting.load_cached_mutes();
-            muting.fetch_mutes();
+            ppixiv.muting.load_cached_mutes();
+            ppixiv.muting.fetch_mutes();
         }
 
         window.global_data = {
@@ -1046,5 +1077,30 @@ export default class App
         args.hash.set("view", "illust");
         return args;
     }
-};
+
+    // Watch for clicks on links inside node.  If a search link is clicked, add it to the
+    // recent search list.
+    addClicksToSearchHistory(node)
+    {
+        node.addEventListener("click", function(e) {
+            if(e.defaultPrevented)
+                return;
+            if(e.target.tagName != "A" || !e.target.hasAttribute("href"))
+                return;
+
+            // Only look at "/tags/TAG" URLs.
+            var url = new URL(e.target.href);
+            url = helpers.get_url_without_language(url);
+
+            let parts = url.pathname.split("/");
+            let first_part = parts[1];
+            if(first_part != "tags")
+                return;
+
+            let tag = helpers._get_search_tags_from_url(url);
+            console.log("Adding to tag search history:", tag);
+            SavedSearchTags.add(tag);
+        });
+    }
+}
 

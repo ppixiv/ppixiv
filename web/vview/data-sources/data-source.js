@@ -1,7 +1,8 @@
 import Widget from 'vview/widgets/widget.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import IllustIdList from 'vview/data-sources/illust-id-list.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { helpers, SafetyBackoffTimer } from 'vview/misc/helpers.js';
 
 // A data source handles a particular source of images, depending on what page we're
 // on:
@@ -200,7 +201,7 @@ export default class DataSource extends EventTarget
             // reason, we don't hammer the API loading pages infinitely and get users API blocked.
 
 
-            this.empty_page_load_backoff ??= new ppixiv.SafetyBackoffTimer();
+            this.empty_page_load_backoff ??= new SafetyBackoffTimer();
 
             console.log(`Load was empty, but not at the end.  Delaying before loading the next page...`);
             await this.empty_page_load_backoff.wait();
@@ -381,7 +382,7 @@ export default class DataSource extends EventTarget
 
         if(page == this.initial_page &&
             initial_media_id != null &&
-            initial_media_id != "illust:*" && !ppixiv.local_api.is_slideshow_staging(helpers.args.location) && // not slideshow staging
+            initial_media_id != "illust:*" && !LocalAPI.is_slideshow_staging(helpers.args.location) && // not slideshow staging
             this.id_list.getPageForMediaId(initial_media_id).page == null &&
             media_ids.indexOf(initial_media_id) == -1)
         {
@@ -392,7 +393,7 @@ export default class DataSource extends EventTarget
         this.id_list.add_page(page, media_ids, {...options});
 
         // Send pageadded asynchronously to let listeners know we added the page.
-        helpers.yield(() => this.dispatchEvent(new Event("pageadded")));
+        helpers.defer(() => this.dispatchEvent(new Event("pageadded")));
     }
 
     // Send the "updated" event when we want to tell our parent that something has changed.

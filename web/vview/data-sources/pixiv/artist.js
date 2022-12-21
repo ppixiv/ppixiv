@@ -9,8 +9,9 @@
 
 import DataSource, { PaginateMediaIds, TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
+import SavedSearchTags from 'vview/misc/saved-search-tags.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSources_Artist extends DataSource
 {
@@ -371,7 +372,7 @@ export default class DataSources_Artist extends DataSource
 
         // Mark the tags in this.post_tags that the user has searched for recently, so they can be
         // marked in the UI.
-        let user_tag_searches = ppixiv.SavedSearchTags.get_all_used_tags();
+        let user_tag_searches = SavedSearchTags.get_all_used_tags();
         for(let tag of this.post_tags)
             tag.recent = user_tag_searches.has(tag.tag);
 

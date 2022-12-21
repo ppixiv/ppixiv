@@ -2,7 +2,8 @@
 import Widget from 'vview/widgets/widget.js';
 import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
 import Slideshow from 'vview/misc/slideshow.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
+import { helpers, FixedDOMRect, KeyListener } from 'vview/misc/helpers.js';
 
 export default class PanEditor extends Widget
 {
@@ -50,7 +51,7 @@ export default class PanEditor extends Widget
         this.width = this.height = 100;
         this.dragging = false;
         this.drag_start = null;
-        this.anchor = new ppixiv.FixedDOMRect(0.5, 0.5, 0.5, 0.5);
+        this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
 
         this.aspect_ratios = [
             [21, 9],
@@ -117,7 +118,7 @@ export default class PanEditor extends Widget
         this.ui.querySelector(".reset-button").addEventListener("click", (e) => { e.stopPropagation(); this.clear(); });
         this.ui.querySelector(".swap-button").addEventListener("click", (e) => { e.stopPropagation(); this.swap(); });
 
-        this.pointer_listener = new ppixiv.pointer_listener({
+        this.pointerListener = new PointerListener({
             element: this.editor_overlay,
             callback: this.pointerevent,
             signal: this.shutdown_signal.signal,
@@ -163,8 +164,8 @@ export default class PanEditor extends Widget
     {
         this.parent.save_undo();
         this.is_set = true;
-        this.rect = new ppixiv.FixedDOMRect(this.rect.x2, this.rect.y2, this.rect.x1,this.rect.y1);
-        this.anchor = new ppixiv.FixedDOMRect(this.anchor.x2, this.anchor.y2, this.anchor.x1, this.anchor.y1);
+        this.rect = new FixedDOMRect(this.rect.x2, this.rect.y2, this.rect.x1,this.rect.y1);
+        this.anchor = new FixedDOMRect(this.anchor.x2, this.anchor.y2, this.anchor.x1, this.anchor.y1);
         this.zoom_level = [this.zoom_level[1], this.zoom_level[0]];
         this.refresh();
     }
@@ -220,7 +221,7 @@ export default class PanEditor extends Widget
         if(this.visible)
         {
             // Listen for shift presses while we're visible.
-            new ppixiv.key_listener("Shift", (pressed) => {
+            new KeyListener("Shift", (pressed) => {
                 this.shift_held = pressed;
                 this.refresh();
             }, { signal: this.visibility_abort.signal });
@@ -246,7 +247,7 @@ export default class PanEditor extends Widget
         // to the crop if there is one.
         if(extra_data?.crop)
         {
-            let crop = new ppixiv.FixedDOMRect(extra_data.crop[0], extra_data.crop[1], extra_data.crop[2], extra_data.crop[3]);
+            let crop = new FixedDOMRect(extra_data.crop[0], extra_data.crop[1], extra_data.crop[2], extra_data.crop[3]);
             this.width = crop.width;
             this.height = crop.height;
 
@@ -314,11 +315,11 @@ export default class PanEditor extends Widget
         if(data == null)
             data = Slideshow.pans.default_slideshow;
 
-        this.rect = new ppixiv.FixedDOMRect(data.x1, data.y1, data.x2, data.y2);
+        this.rect = new FixedDOMRect(data.x1, data.y1, data.x2, data.y2);
 
-        this.anchor = new ppixiv.FixedDOMRect(0.5, 0.5, 0.5, 0.5);
+        this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
         if(data.anchor)
-            this.anchor = new ppixiv.FixedDOMRect(data.anchor.left, data.anchor.top, data.anchor.right, data.anchor.bottom);
+            this.anchor = new FixedDOMRect(data.anchor.left, data.anchor.top, data.anchor.right, data.anchor.bottom);
         this.zoom_level = [data.start_zoom, data.end_zoom];
 
         this.refresh();
@@ -466,7 +467,7 @@ export default class PanEditor extends Widget
         }
 
         // Drag the rect.
-        let rect = new ppixiv.FixedDOMRect(this.rect.x1, this.rect.y1, this.rect.x2, this.rect.y2);
+        let rect = new FixedDOMRect(this.rect.x1, this.rect.y1, this.rect.x2, this.rect.y2);
         if(this.editing == "start")
         {
             rect.x1 += delta_x;

@@ -3,6 +3,8 @@
 
 // A wrapper for the clunky ReadableStream API that lets us do at basic
 // thing that API forgot about: read a given number of bytes at a time.
+import { helpers } from 'vview/misc/helpers.js';
+
 class IncrementalReader
 {
     constructor(reader, options={})
@@ -88,7 +90,7 @@ export default class ZipImageDownloader
 
     async start()
     {
-        let response = await ppixiv.helpers.send_pixiv_request({
+        let response = await helpers.send_pixiv_request({
             method: "GET",
             url: this.url,
             responseType: "arraybuffer",

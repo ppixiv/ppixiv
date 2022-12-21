@@ -6,7 +6,6 @@ from pathlib import Path, PurePosixPath
 from ..util import misc
 from ..util.paths import open_path
 from ..build.build_ppixiv import Build
-from ..build.source_files import source_files
 
 root_dir = Path(__file__) / '..' / '..' / '..' # XXX gross
 root_dir = root_dir.resolve()
@@ -21,7 +20,7 @@ mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/scss', '.scss')
 
 def add_routes(router):
-    router.add_get('/client/init.js', handle_source_files)
+    router.add_get('/client/init.js', handle_init)
     router.add_get('/client/{path:.*\.css}', handle_css)
     router.add_get('/client/{path:.*}', handle_client)
     router.add_get('/web/{path:.*}', handle_client)
@@ -54,21 +53,6 @@ def _get_path_timestamp_suffix(path):
     mtime = fs_path.stat().st_mtime
 
     return f'?{mtime}'
-
-def get_source_files():
-    # Map src/path -> /client/js/path
-    results = []
-    files = list(source_files)
-    # files.append()
-    for path in files:
-        path = PurePosixPath(path)
-        suffix = _get_path_timestamp_suffix(path)
-
-        path = path.relative_to(PurePosixPath('src'))
-        path = '/client/js' / path
-        results.append(str(path) + suffix)
-
-    return results
 
 def get_modules():
     modules = {}
@@ -105,9 +89,8 @@ def get_resources():
 
     return results
 
-def handle_source_files(request):
+def handle_init(request):
     init = {
-        'source_files': get_source_files(),
         'modules': get_modules(),
         'resources': get_resources(),
     }
@@ -127,14 +110,14 @@ def handle_client(request):
     path = Path(path)
 
     cache_control = 'public, immutable'
-    if path in (Path('js/bootstrap.js'), Path('js/bootstrap_native.js')):
+    if path in (Path('js/bootstrap.js'), Path('js/bootstrap-native.js')):
         # Don't cache these.  They're loaded before URL cache busting is available.
         cache_control = 'no-store'
 
     if path.parts[0] == 'js':
         # XXX: Remove this once everything is converted to modules in web/vview.
         path = Path(*path.parts[1:])
-        path = 'src' / path
+        path = 'web/startup' / path
     elif path.parts[0] == 'vview':
         path = Path(*path.parts[1:])
         path = 'web/vview' / path

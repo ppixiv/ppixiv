@@ -6,7 +6,8 @@ import { MenuOptionButton, MenuOptionToggle, MenuOptionToggleSetting } from 'vvi
 import { MutedTagsForPostDialog } from 'vview/widgets/mutes.js';
 import Actions from 'vview/misc/actions.js';
 import { IllustWidget } from 'vview/widgets/illust-widgets.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
+import LocalAPI from 'vview/misc/local-api.js';
 
 export default class MoreOptionsDropdown extends IllustWidget
 {
@@ -124,7 +125,7 @@ export default class MoreOptionsDropdown extends IllustWidget
 
                     onclick: () => {
                         this.parent.hide();
-                        local_api.index_folder(this.media_id);
+                        LocalAPI.index_folder(this.media_id);
                     }
                 });
             },
@@ -183,9 +184,9 @@ export default class MoreOptionsDropdown extends IllustWidget
                     },
 
                     onclick: async () => {
-                        let illust_data = await media_cache.get_media_info(this._media_id, { full: true });
+                        let illust_data = await ppixiv.media_cache.get_media_info(this._media_id, { full: true });
                         let page = helpers.parse_media_id(this.media_id).page;
-                        let { url } = media_cache.get_main_image_url(illust_data, page);
+                        let { url } = ppixiv.media_cache.get_main_image_url(illust_data, page);
 
                         let title = `${illust_data.userName} - ${illust_data.illustId}`;
                         if(illust_data.mangaPages.length > 1)

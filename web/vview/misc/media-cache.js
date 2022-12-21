@@ -1,5 +1,3 @@
-"use strict";
-
 // This stores loaded info about images.
 // 
 // Image info can be full or partial.  Partial image info comes from Pixiv search APIs,
@@ -24,6 +22,10 @@
 //
 // Our media IDs encode Pixiv manga pages, but this only deals with top-level illustrations, and
 // the page number in illust media IDs is always 1 here.
+
+import LocalAPI from 'vview/misc/local-api.js';
+import MediaCacheMappings from 'vview/misc/media-cache-mappings.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // Partial media info always contains these keys.  This is checked by _check_illust_data,
 // to make sure we don't accidentally start storing keys that might not always be there.
@@ -56,7 +58,7 @@ const full_media_info_keys = Object.freeze([
 ]);
 
 // This handles fetching and caching image data.
-ppixiv.MediaCache = class extends EventTarget
+export default class MediaCache extends EventTarget
 {
     constructor()
     {
@@ -286,7 +288,7 @@ ppixiv.MediaCache = class extends EventTarget
         ppixiv.tag_translations.add_translations(illust_data.tags.tags);
 
         // If we have extra data stored for this image, load it.
-        let extra_data = await extra_image_data.get.load_all_pages_for_illust(illust_id);
+        let extra_data = await ppixiv.extra_image_data.load_all_pages_for_illust(illust_id);
         illust_data.extraData = extra_data;
 
         // Now that we have illust data, load anything we weren't able to load before.
@@ -369,7 +371,7 @@ ppixiv.MediaCache = class extends EventTarget
                 if(user_illust_data?.profileImageUrl == null)
                     continue;
 
-                let { profile_image_url } = ppixiv.media_cache_mappings.remap_partial_media_info(user_illust_data, "normal");
+                let { profile_image_url } = MediaCacheMappings.remap_partial_media_info(user_illust_data, "normal");
                 if(profile_image_url)
                     this.cache_profile_picture_url(illust_data.userId, profile_image_url);
             }
@@ -385,7 +387,7 @@ ppixiv.MediaCache = class extends EventTarget
         delete illust_data.id;
         delete illust_data.userIllusts;
 
-        guess_image_url.get.add_info(illust_data);
+        ppixiv.guess_image_url.add_info(illust_data);
 
         this._check_illust_data(illust_data);
 
@@ -433,10 +435,10 @@ ppixiv.MediaCache = class extends EventTarget
                 needed_media_ids.push(media_id);
         }
 
-        // If any of these are local IDs, load them with local_api.
+        // If any of these are local IDs, load them with LocalAPI.
         if(local_media_ids.length)
         {
-            let load_promise = local_api.load_media_ids(local_media_ids);
+            let load_promise = this._loadLocalMediaIds(local_media_ids);
 
             // Local API loads always give full info, so register these as full loads.
             for(let media_id of media_ids)
@@ -537,7 +539,7 @@ ppixiv.MediaCache = class extends EventTarget
         let all_thumb_info = [];
         for(let thumb_info of search_result)
         {
-            let { remapped_thumb_info, profile_image_url } = ppixiv.media_cache_mappings.remap_partial_media_info(thumb_info, source);
+            let { remapped_thumb_info, profile_image_url } = MediaCacheMappings.remap_partial_media_info(thumb_info, source);
 
             // The profile image URL isn't included in image info since it's not present in full
             // info.  Store it separately.
@@ -555,7 +557,7 @@ ppixiv.MediaCache = class extends EventTarget
         // Load any extra image data stored for these media IDs.  These are stored per page, but
         // batch loaded per image.
         let media_ids = all_thumb_info.map((info) => info.illustId);
-        let extra_data = await extra_image_data.get.batch_load_all_pages_for_illust(media_ids);
+        let extra_data = await ppixiv.extra_image_data.batch_load_all_pages_for_illust(media_ids);
 
         for(let info of all_thumb_info)
         {
@@ -576,7 +578,7 @@ ppixiv.MediaCache = class extends EventTarget
     // Load image info from the local API.
     async _load_local_image_data(media_id, { refresh_from_disk }={})
     {
-        let illust_data = await local_api.load_media_info(media_id, { refresh_from_disk });
+        let illust_data = await LocalAPI.load_media_info(media_id, { refresh_from_disk });
         if(!illust_data.success)
         {
             media_id = helpers.get_media_id_first_page(media_id);
@@ -614,7 +616,7 @@ ppixiv.MediaCache = class extends EventTarget
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
 
         // Load the current data from the database, in case our cache is out of date.
-        let results = await extra_image_data.get.load_illust_data([media_id]);
+        let results = await ppixiv.extra_image_data.load_illust_data([media_id]);
         let data = results[media_id] ?? { illust_id: illust_id };
 
         // Update each key, removing any keys which are null.
@@ -633,9 +635,9 @@ ppixiv.MediaCache = class extends EventTarget
 
         // Save the new data.  If the only fields left are illust_id and edited_at, delete the record.
         if(Object.keys(data).length == 2)
-            await extra_image_data.get.delete_illust(media_id);
+            await ppixiv.extra_image_data.delete_illust(media_id);
         else
-            await extra_image_data.get.save_illust(media_id, data);
+            await ppixiv.extra_image_data.save_illust(media_id, data);
 
         this.replace_extra_data(media_id, data);
 
@@ -841,7 +843,7 @@ ppixiv.MediaCache = class extends EventTarget
             };
 
         let manga_page = image_data.mangaPages[page];
-        let max_pixels = settings.get("image_size_limit")
+        let max_pixels = ppixiv.settings.get("image_size_limit")
         if(max_pixels != null && !ignore_limits)
         {
             let pixels = manga_page.width * manga_page.height;
@@ -862,5 +864,49 @@ ppixiv.MediaCache = class extends EventTarget
             width: manga_page.width,
             height: manga_page.height,
         };
+    }
+
+    async _loadLocalMediaIds(media_ids)
+    {
+        if(media_ids.length == 0)
+            return;
+
+        let result = await LocalAPI.local_post_request(`/api/illusts`, {
+            ids: media_ids,
+        });
+
+        if(!result.success)
+        {
+            console.error("Error reading IDs:", result.reason);
+            return;
+        }
+
+        for(let illust of result.results)
+        {
+            LocalAPI.adjust_illust_info(illust);
+            await this.add_media_info_full(illust, { preprocessed: true });
+        }
+    }
+
+    // Run a search against the local API.
+    async localSearch(path="", {...options}={})
+    {
+        let result = await LocalAPI.local_post_request(`/api/list/${path}`, {
+            ...options,
+        });
+
+        if(!result.success)
+        {
+            console.error("Error reading directory:", result.reason);
+            return result;
+        }
+
+        for(let illust of result.results)
+        {
+            LocalAPI.adjust_illust_info(illust);
+            await this.add_media_info_full(illust, { preprocessed: true });
+        }
+
+        return result;
     }
 }

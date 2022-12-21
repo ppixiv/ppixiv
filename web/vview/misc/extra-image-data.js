@@ -1,20 +1,13 @@
-"use strict";
+import KeyStorage from 'vview/misc/key-storage.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // This database is used to store extra metadata for Pixiv images.  It's similar
 // to the metadata files in the local database.
 //
 // Data is stored by media ID, with a separate record for each manga page.  We
 // have an index on the illust ID, so we can fetch all pages for an illust ID quickly.
-ppixiv.extra_image_data = class
+export default class ExtraImageData
 {
-    // Return the singleton, creating it if needed.
-    static get get()
-    {
-        if(extra_image_data._singleton == null)
-            extra_image_data._singleton = new extra_image_data();
-        return extra_image_data._singleton;
-    };
-
     constructor()
     {
         // This is only needed for storing data for Pixiv images.  We don't need it if
@@ -22,7 +15,7 @@ ppixiv.extra_image_data = class
         if(ppixiv.native)
             return;
 
-        this.db = new key_storage("ppixiv-image-data", { db_upgrade: this.db_upgrade });
+        this.db = new KeyStorage("ppixiv-image-data", { db_upgrade: this.db_upgrade });
     }
 
     db_upgrade = (e) => {
@@ -71,7 +64,7 @@ ppixiv.extra_image_data = class
             let promises = {};
             for(let media_id of media_ids)
             {
-                let data = key_storage.async_store_get(store, media_id);
+                let data = KeyStorage.async_store_get(store, media_id);
                 if(data)
                     promises[media_id] = data;
             }
@@ -161,7 +154,7 @@ ppixiv.extra_image_data = class
     async export()
     {
         if(this.db == null)
-            throw new Error("extra_image_data is disabled");
+            throw new Error("ExtraImageData is disabled");
         
         let data = await this.db.db_op(async (db) => {
             let store = this.db.get_store(db);
@@ -200,7 +193,7 @@ ppixiv.extra_image_data = class
     async import()
     {
         if(this.db == null)
-            throw new Error("extra_image_data is disabled");
+            throw new Error("ExtraImageData is disabled");
 
         // This API is annoying: it throws an exception (rejects the promise) instead of
         // returning null.  Exceptions should be used for unusual errors, not for things
@@ -224,7 +217,7 @@ ppixiv.extra_image_data = class
         let data = JSON.parse(await file.text());
         if(data.type != "ppixiv-image-data")
         {
-            message_widget.singleton.show(`The file "${file.name}" doesn't contain exported image edits.`);
+            ppixiv.message.show(`The file "${file.name}" doesn't contain exported image edits.`);
             return;
         }
 
@@ -241,8 +234,8 @@ ppixiv.extra_image_data = class
 
         // Tell image_data that we've replaced extra data, so any loaded images are updated.
         for(let [media_id, data] of Object.entries(data_by_media_id))
-            media_cache.replace_extra_data(media_id, data);
+            ppixiv.media_cache.replace_extra_data(media_id, data);
 
-        message_widget.singleton.show(`Imported edits for ${data.data.length} ${data.data.length == 1? "image":"images"}.`);
+        ppixiv.message.show(`Imported edits for ${data.data.length} ${data.data.length == 1? "image":"images"}.`);
     }
 }

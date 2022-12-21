@@ -1,7 +1,7 @@
 import Actor from 'vview/actors/actor.js';
 import Widget from 'vview/widgets/widget.js';
 import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // A helper to display a dropdown aligned to another node.
 export class DropdownBoxOpener extends Actor

@@ -1,9 +1,10 @@
-"use strict";
-
 // Get and set values in localStorage.
 //
 // When a setting changes, an event with the name of the setting is dispatched.
-ppixiv.Settings = class extends EventTarget
+
+import { helpers } from 'vview/misc/helpers.js';
+
+export default class Settings extends EventTarget
 {
     constructor()
     {

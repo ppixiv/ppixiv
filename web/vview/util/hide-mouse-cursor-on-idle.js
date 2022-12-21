@@ -3,7 +3,7 @@
 // Dispatch "mouseactive" on window when the mouse has moved recently and
 // "mouseinactive" when it hasn't.
 
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // XXX: don't need to expose this
 export class TrackMouseMovement

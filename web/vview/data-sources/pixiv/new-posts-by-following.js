@@ -1,7 +1,7 @@
 import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // bookmark_new_illust.php, bookmark_new_illust_r18.php
 export default class DataSource_NewPostsByFollowing extends DataSource

@@ -1,6 +1,6 @@
 import Widget from 'vview/widgets/widget.js';
 import { CheckboxWidget } from 'vview/widgets/simple.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // Simple menu settings widgets.
 export class MenuOption extends Widget

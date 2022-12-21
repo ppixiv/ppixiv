@@ -1,5 +1,7 @@
 import ViewerImages from 'vview/viewer/images/viewer-images.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
 import { TrackMouseMovement } from 'vview/util/hide-mouse-cursor-on-idle.js';
+import { ClassFlags } from 'vview/misc/helpers.js';
 
 // This subclass implements our desktop pan/zoom UI.
 export default class ViewerImagesDesktop extends ViewerImages
@@ -10,7 +12,7 @@ export default class ViewerImagesDesktop extends ViewerImages
  
         window.addEventListener("blur", (e) => this.stopDragging(), this._signal);
 
-        this._pointerListener = new ppixiv.pointer_listener({
+        this._pointerListener = new PointerListener({
             element: this.container,
             button_mask: 1,
             signal: this.shutdown_signal.signal,
@@ -30,7 +32,7 @@ export default class ViewerImagesDesktop extends ViewerImages
             this.container.style.cursor = "none";
 
             // Don't show the UI if the mouse hovers over it while dragging.
-            ppixiv.ClassFlags.get.set("hide-ui", true);
+            ClassFlags.get.set("hide-ui", true);
 
             // Stop animating if this is a real click.  If it's a carried-over click during quick
             // view, don't stop animating until we see a drag.
@@ -82,7 +84,7 @@ export default class ViewerImagesDesktop extends ViewerImages
     shutdown()
     {
         // Note that we need to avoid writing to browser history once shutdown() is called.
-        ppixiv.ClassFlags.get.set("hide-ui", false);
+        ClassFlags.get.set("hide-ui", false);
         super.shutdown();
     }
 
@@ -105,7 +107,7 @@ export default class ViewerImagesDesktop extends ViewerImages
        
         this.container.removeEventListener("lostpointercapture", this._lostPointerCapture);
 
-        ppixiv.ClassFlags.get.set("hide-ui", false);
+        ClassFlags.get.set("hide-ui", false);
         
         this._mouse_pressed = false;
         this._reposition();

@@ -1,7 +1,8 @@
 import Widget from 'vview/widgets/widget.js';
 import { IllustWidget } from 'vview/widgets/illust-widgets.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
-import { helpers, local_api } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
+import LocalAPI from 'vview/misc/local-api.js';
 
 // local_search_box_widget and LocalSearchDropdownWidget are dumb copy-pastes
 // of TagSearchBoxWidget and TagSearchDropdownWidget.  They're simpler and
@@ -107,7 +108,7 @@ export class LocalSearchBoxWidget extends Widget
     submitSearch = (e) =>
     {
         let tags = this.inputElement.value;
-        local_api.navigate_to_tag_search(tags);
+        LocalAPI.navigate_to_tag_search(tags);
 
         // If we're submitting by pressing enter on an input element, unfocus it and
         // close any widgets inside it (tag dropdowns).
@@ -223,7 +224,7 @@ class LocalSearchDropdownWidget extends Widget
         entry.querySelector(".search").appendChild(span);
 
         let args = new helpers.args("/", ppixiv.plocation);
-        args.path = local_api.path;
+        args.path = LocalAPI.path;
         args.hash_path = "/";
         args.hash.set("search", search);
         entry.href = args.url;

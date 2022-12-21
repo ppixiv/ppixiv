@@ -31,8 +31,10 @@
 import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
 import TagListWidget from 'vview/widgets/tag-list-widget.js';
+import SavedSearchTags from 'vview/misc/saved-search-tags.js';
+import { TagSearchBoxWidget } from 'vview/widgets/tag-search-dropdown.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSource_Search extends DataSource
 {
@@ -46,7 +48,7 @@ export default class DataSource_Search extends DataSource
         // data source is created, not every time we navigate back to the search.
         let tag = this._search_tags;
         if(tag)
-            ppixiv.SavedSearchTags.add(tag);
+            SavedSearchTags.add(tag);
 
         this.cache_search_title();
     }
@@ -537,7 +539,7 @@ export default class DataSource_Search extends DataSource
                 });
 
                 // Create the tag dropdown for the search page input.
-                this.tag_search_box = new ppixiv.TagSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
+                this.tag_search_box = new TagSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
 
                 // Fill the search box with the current tag.
                 //

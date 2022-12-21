@@ -1,5 +1,6 @@
 import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import WidgetDragger from 'vview/actors/widget-dragger.js';
+import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
 
 export default class DialogWidget extends Widget
 {
@@ -202,7 +203,7 @@ export default class DialogWidget extends Widget
 
         // Register ourself as an important visible widget, so the slideshow won't move on
         // while we're open.
-        ppixiv.OpenWidgets.singleton.set(this, true);
+        OpenWidgets.singleton.set(this, true);
 
         if(!header && !show_close_button)
             this.container.querySelector(".header").hidden = true;
@@ -256,7 +257,7 @@ export default class DialogWidget extends Widget
 
     refresh_fullscreen = () =>
     {
-        helpers.set_class(this.container, "fullscreen", helpers.is_phone && !this.small);
+        helpers.set_class(this.container, "fullscreen", helpers.is_phone() && !this.small);
     }
 
     visibility_changed()
@@ -335,7 +336,7 @@ export default class DialogWidget extends Widget
             DialogWidget.active_dialogs.splice(idx, 1);
 
         // Tell OpenWidgets that we're no longer open.
-        ppixiv.OpenWidgets.singleton.set(this, false);
+        OpenWidgets.singleton.set(this, false);
 
         DialogWidget._update_block_touch_scrolling();
 

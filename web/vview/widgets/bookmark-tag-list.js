@@ -1,8 +1,9 @@
 import Actor from 'vview/actors/actor.js';
 import Actions from 'vview/misc/actions.js';
+import RecentBookmarkTags from 'vview/misc/recent-bookmark-tags.js';
 import { IllustWidget } from 'vview/widgets/illust-widgets.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // Widget for editing bookmark tags.
 export class BookmarkTagListWidget extends IllustWidget
@@ -131,7 +132,7 @@ export class BookmarkTagListWidget extends IllustWidget
 
         // If the tag list is open, populate bookmark details to get bookmark tags.
         // If the image isn't bookmarked this won't do anything.
-        let active_tags = await ppixiv.extra_cache.singleton().load_bookmark_details(media_id);
+        let active_tags = await ppixiv.extra_cache.load_bookmark_details(media_id);
 
         // Remember which illustration's bookmark tags are actually loaded.
         this.displaying_media_id = media_id;
@@ -151,7 +152,7 @@ export class BookmarkTagListWidget extends IllustWidget
 
         let shown_tags = [];
 
-        let recent_bookmark_tags = Array.from(helpers.get_recent_bookmark_tags()); // copy
+        let recent_bookmark_tags = [...RecentBookmarkTags.getRecentBookmarkTags()]; // copy
         for(let tag of recent_bookmark_tags)
             if(shown_tags.indexOf(tag) == -1)
                 shown_tags.push(tag);
@@ -208,7 +209,7 @@ export class BookmarkTagListWidget extends IllustWidget
 
         sync_button.addEventListener("click", async (e) => {
             let bookmark_tags = await Actions.load_recent_bookmark_tags();
-            helpers.set_recent_bookmark_tags(bookmark_tags);
+            RecentBookmarkTags.setRecentBookmarkTags(bookmark_tags);
         });
     }
 
@@ -230,7 +231,7 @@ export class BookmarkTagListWidget extends IllustWidget
             return;
 
         // Get the tags currently on the bookmark to compare.
-        let old_tags = await ppixiv.extra_cache.singleton().load_bookmark_details(media_id);
+        let old_tags = await ppixiv.extra_cache.load_bookmark_details(media_id);
 
         var equal = new_tags.length == old_tags.length;
         for(let tag of new_tags)

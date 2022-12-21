@@ -2,7 +2,8 @@
 
 import Widget from 'vview/widgets/widget.js';
 import DialogWidget from 'vview/widgets/dialog.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { Timer } from 'vview/misc/helpers.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class SendImage
 {
@@ -67,13 +68,13 @@ export default class SendImage
 
     finalize_quick_view_image = () =>
     {
-        let args = ppixiv.helpers.args.location;
+        let args = helpers.args.location;
         if(args.hash.has("temp-view"))
         {
             console.log("Finalizing quick view image because we gained focus");
             args.hash.delete("virtual");
             args.hash.delete("temp-view");
-            ppixiv.helpers.navigate(args, { add_to_history: false });
+            helpers.navigate(args, { add_to_history: false });
         }
     }
 
@@ -153,7 +154,7 @@ export default class SendImage
             from: this.tab_id,
             media_id: media_id,
             media_info,
-            bookmark_tags: ppixiv.extra_cache.singleton().get_bookmark_details_sync(media_id),
+            bookmark_tags: ppixiv.extra_cache.get_bookmark_details_sync(media_id),
             user_info: user_info,
             origin: window.origin,
         }, false);
@@ -228,10 +229,10 @@ export default class SendImage
             // with the illust ID, since it handles navigation during quick view.
             if(data.action == "finalize")
             {
-                let args = ppixiv.helpers.args.location;
+                let args = helpers.args.location;
                 args.hash.delete("virtual");
                 args.hash.delete("temp-view");
-                ppixiv.helpers.navigate(args, { add_to_history: false });
+                helpers.navigate(args, { add_to_history: false });
                 return;
             }
 
@@ -275,7 +276,7 @@ export default class SendImage
 
                 let bookmark_tags = data.bookmark_tags;
                 if(bookmark_tags != null)
-                    ppixiv.extra_cache.singleton().update_cached_bookmark_image_tags(data.media_id, bookmark_tags);
+                    ppixiv.extra_cache.update_cached_bookmark_image_tags(data.media_id, bookmark_tags);
 
                 let user_info = data.user_info;
                 if(user_info != null)
@@ -458,7 +459,7 @@ export class LinkThisTabPopup extends DialogWidget
 {
     static setup()
     {
-        let hide_timer = new helpers.timer(() => {
+        let hide_timer = new Timer(() => {
             this.visible = false;
         });
         
@@ -580,7 +581,7 @@ export class SendHerePopup extends DialogWidget
     {
         // Show ourself when we see a show-link-tab message and hide if we see a
         // hide-link-tab-message.
-        let hide_timer = new helpers.timer(() => {
+        let hide_timer = new Timer(() => {
             this.visible = false;
         });
 

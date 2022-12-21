@@ -1,14 +1,9 @@
 // This caches media info which isn't a part of regular illust info.
-ppixiv.extra_cache = class
-{
-    // Return the singleton, creating it if needed.
-    static singleton()
-    {
-        if(extra_cache._singleton == null)
-            extra_cache._singleton = new extra_cache();
-        return extra_cache._singleton;
-    }
 
+import { helpers } from 'vview/misc/helpers.js';
+
+export default class ExtraCache
+{
     constructor()
     {
         this.bookmarked_image_tags = { };
@@ -39,7 +34,7 @@ ppixiv.extra_cache = class
         // If we know the image isn't bookmarked, we know there are no bookmark tags, so
         // we can skip this.
         media_id = helpers.get_media_id_first_page(media_id);
-        let thumb = media_cache.get_media_info_sync(media_id, { full: false });
+        let thumb = ppixiv.media_cache.get_media_info_sync(media_id, { full: false });
         if(thumb && thumb.bookmarkData == null)
             return [];
 
@@ -69,7 +64,7 @@ ppixiv.extra_cache = class
     {
         if(helpers.is_media_id_local(media_id))
         {
-            let thumb = media_cache.get_media_info_sync(media_id, { full: false });
+            let thumb = ppixiv.media_cache.get_media_info_sync(media_id, { full: false });
             if(thumb && thumb.bookmarkData == null)
                 return [];
    
@@ -91,7 +86,7 @@ ppixiv.extra_cache = class
         else
             this.bookmarked_image_tags[media_id] = tags;
 
-        media_cache.call_illust_modified_callbacks(media_id);
+        ppixiv.media_cache.call_illust_modified_callbacks(media_id);
     }
 
 

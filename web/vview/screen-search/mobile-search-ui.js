@@ -1,10 +1,12 @@
 import Widget from 'vview/widgets/widget.js';
 import CreateSearchMenu from 'vview/screen-search/search-menu.js';
 import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
-import DataSource from 'vview/data-sources/data-source.js';
+import * as DataSource from 'vview/data-sources/all.js';
 import ArtistDataSource from 'vview/data-sources/pixiv/artist.js';
+import { DataSource_BookmarksBase } from 'vview/data-sources/pixiv/bookmarks.js';
 import DialogWidget from 'vview/widgets/dialog.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 // The bottom navigation bar for mobile, showing the current search and exposing a smaller
 // action bar when open.  This vaguely follows the design language of iOS Safari.
@@ -51,10 +53,10 @@ export default class MobileSearchUI extends Widget
                 if(this.parent.displayedMediaId == null)
                     return;
 
-                let parent_folder_id = ppixiv.local_api.get_parent_folder(this.parent.displayedMediaId);
+                let parent_folder_id = LocalAPI.get_parent_folder(this.parent.displayedMediaId);
 
                 let args = helpers.args.location;
-                ppixiv.local_api.get_args_for_id(parent_folder_id, args);
+                LocalAPI.get_args_for_id(parent_folder_id, args);
                 helpers.navigate(args);
             }
             else if(ppixiv.phistory.permanent)
@@ -76,7 +78,7 @@ export default class MobileSearchUI extends Widget
         let back_button = this.container.querySelector(".back-button");
         let show_back_button;
         if(ppixiv.native)
-            show_back_button = ppixiv.local_api.get_parent_folder(this.parent.displayedMediaId) != null;
+            show_back_button = LocalAPI.get_parent_folder(this.parent.displayedMediaId) != null;
         else if(ppixiv.phistory.permanent)
             show_back_button = ppixiv.phistory.length > 1;
         helpers.set_class(back_button, "disabled", !show_back_button);
@@ -135,8 +137,8 @@ class mobile_edit_search_dialog extends DialogWidget
 
             // Hack: the bookmarks row corresponds to multiple subclasses.  All of them should
             // map back to the bookmarks row.
-            if(current_data_source instanceof ppixiv.data_source_bookmarks_base &&
-               data_source_class.prototype instanceof ppixiv.data_source_bookmarks_base)
+            if(current_data_source instanceof DataSource_BookmarksBase &&
+               data_source_class.prototype instanceof DataSource_BookmarksBase)
                return button;
         }
 

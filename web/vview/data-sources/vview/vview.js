@@ -1,7 +1,9 @@
 import Widget from 'vview/widgets/widget.js';
 import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { LocalSearchBoxWidget } from 'vview/widgets/local-widgets.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSource_VView extends DataSource
 {
@@ -78,8 +80,8 @@ export default class DataSource_VView extends DataSource
         // Use the search options if there's no path.  Otherwise, we're navigating inside
         // the search, so just view the contents of where we navigated to.
         let args = new helpers.args(this.url);
-        let { search_options } = local_api.get_search_options_for_args(args);
-        let folder_id = local_api.get_local_id_from_args(args, { get_folder: true });
+        let { search_options } = LocalAPI.get_search_options_for_args(args);
+        let folder_id = LocalAPI.get_local_id_from_args(args, { get_folder: true });
 
         let order = args.hash.get("order");
 
@@ -92,10 +94,10 @@ export default class DataSource_VView extends DataSource
         //
         // If we have access restrictions (eg. we're guest and can only access certain tags),
         // this API is disabled, since all listings are bookmark searches.
-        if(search_options == null && !local_api.local_info.bookmark_tag_searches_only)
+        if(search_options == null && !LocalAPI.local_info.bookmark_tag_searches_only)
         {
             console.log("Loading folder contents:", folder_id);
-            let result_ids = await local_api.local_post_request(`/api/ids/${folder_id}`, {
+            let result_ids = await LocalAPI.local_post_request(`/api/ids/${folder_id}`, {
                 ...search_options,
                 ids_only: true,
 
@@ -114,7 +116,7 @@ export default class DataSource_VView extends DataSource
         }
 
         // Note that this registers the results with media_info automatically.
-        let result = await local_api.list(folder_id, {
+        let result = await ppixiv.media_cache.localSearch(folder_id, {
             ...search_options,
 
             order: order,
@@ -176,7 +178,7 @@ export default class DataSource_VView extends DataSource
     get viewing_folder()
     {
         let args = new helpers.args(this.url);
-        return local_api.get_local_id_from_args(args, { get_folder: true });
+        return LocalAPI.get_local_id_from_args(args, { get_folder: true });
     }
 
     get page_title() { return this.get_displaying_text(); }
@@ -189,21 +191,21 @@ export default class DataSource_VView extends DataSource
     get_displaying_text()
     {
         let args = new helpers.args(this.url);
-        return local_api.get_search_options_for_args(args).title;
+        return LocalAPI.get_search_options_for_args(args).title;
     }
 
     // Put the illust ID in the hash instead of the path.  Pixiv doesn't care about this,
     // and this avoids sending the user's filenames to their server as 404s.
     set_current_media_id(mediaId, args)
     {
-        local_api.get_args_for_id(mediaId, args);
+        LocalAPI.get_args_for_id(mediaId, args);
     }
 
     get_media_id_from_url(args)
     {
         // If the URL points to a file, return it.  If no image is being viewed this will give
         // the folder we're in, which shouldn't be returned here.
-        let illust_id = local_api.get_local_id_from_args(args);
+        let illust_id = LocalAPI.get_local_id_from_args(args);
         if(illust_id == null || !illust_id.startsWith("file:"))
             return null;
         return illust_id;
@@ -247,7 +249,7 @@ export default class DataSource_VView extends DataSource
                 this.data_source = data_source;
 
                 // The search history dropdown for local searches.
-                new ppixiv.LocalSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
+                new LocalSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
         
                 data_source.setup_dropdown(this.querySelector(".file-type-button"), [{
                     create_options: { label: "All",           data_type: "local-type-all", dataset: { default: "1"} },
@@ -396,13 +398,13 @@ export default class DataSource_VView extends DataSource
                 clear_local_search_button.addEventListener("click", (e) => {
                     // Get the URL for the current folder and set it to a new URL, so it removes search
                     // parameters.
-                    let mediaId = local_api.get_local_id_from_args(data_source.args, { get_folder: true });
+                    let mediaId = LocalAPI.get_local_id_from_args(data_source.args, { get_folder: true });
                     let args = new helpers.args("/", ppixiv.plocation);
-                    local_api.get_args_for_id(mediaId, args);
+                    LocalAPI.get_args_for_id(mediaId, args);
                     helpers.navigate(args);
                 });
 
-                let search_active = local_api.get_search_options_for_args(data_source.args).search_options != null;
+                let search_active = LocalAPI.get_search_options_for_args(data_source.args).search_options != null;
                 helpers.set_class(clear_local_search_button, "disabled", !search_active);
 
                 this.querySelector(".copy-local-path").addEventListener("click", (e) => {
@@ -421,7 +423,7 @@ export default class DataSource_VView extends DataSource
                 });
 
                 // If we're only allowed to do bookmark searches, hide the bookmark search button.
-                this.querySelector('[data-type="local-bookmarks-only"]').hidden = local_api.local_info.bookmark_tag_searches_only;
+                this.querySelector('[data-type="local-bookmarks-only"]').hidden = LocalAPI.local_info.bookmark_tag_searches_only;
             }
         }
     }
@@ -430,7 +432,7 @@ export default class DataSource_VView extends DataSource
     // we're restricted to listing tagged bookmarks.
     get bookmark_search_active()
     {
-        return this.args.hash.has("bookmarks") || local_api.local_info.bookmark_tag_searches_only;
+        return this.args.hash.has("bookmarks") || LocalAPI.local_info.bookmark_tag_searches_only;
     }
 
     async fetch_bookmark_tag_counts()
@@ -443,7 +445,7 @@ export default class DataSource_VView extends DataSource
         if(!this.bookmark_search_active)
             return;
 
-        let result = await local_api.local_post_request(`/api/bookmark/tags`);
+        let result = await LocalAPI.local_post_request(`/api/bookmark/tags`);
         if(!result.success)
         {
             console.log("Error fetching bookmark tag counts");

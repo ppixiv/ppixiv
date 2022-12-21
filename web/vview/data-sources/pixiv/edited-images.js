@@ -13,7 +13,7 @@ export default class DataSources_EditedImages extends DataSourceFakePagination
 
     async load_all_results()
     {
-        return await ppixiv.extra_image_data.get.get_all_edited_images();
+        return await ppixiv.extra_image_data.get_all_edited_images();
     };
 
     get page_title() { return "Edited"; }

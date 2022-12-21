@@ -4,7 +4,8 @@ import { MenuOptionButton, MenuOptionRow, MenuOptionOptionsSetting, MenuOptionsT
 
 import { EditMutedTagsWidget } from 'vview/widgets/mutes.js';
 import DialogWidget from 'vview/widgets/dialog.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
+import { helpers } from 'vview/misc/helpers.js';
 
 function create_settings_widget({ global_options })
 {
@@ -181,14 +182,14 @@ function create_settings_widget({ global_options })
                 icon: "file_upload",
                 label: "Import",
                 container: widget.container,
-                onclick: () => ppixiv.extra_image_data.get.import(),
+                onclick: () => ppixiv.extra_image_data.import(),
             });
 
             new MenuOptionButton({
                 icon: "file_download",
                 label: "Export",
                 container: widget.container,
-                onclick: () => ppixiv.extra_image_data.get.export(),
+                onclick: () => ppixiv.extra_image_data.export(),
             });
             return widget;
         },
@@ -224,7 +225,7 @@ function create_settings_widget({ global_options })
                 check: () => {
                     // Only enable changing this option when using a mouse.  It has no effect
                     // on touchpads.
-                    if(ppixiv.pointer_listener.pointer_type == "mouse")
+                    if(PointerListener.pointer_type == "mouse")
                         return true;
 
                     ppixiv.message.show("Quick View is only supported when using a mouse.");
@@ -420,7 +421,7 @@ export class SettingsDialog extends DialogWidget
             `
         });
 
-        this.phone = helpers.is_phone;
+        this.phone = helpers.is_phone();
         helpers.set_class(this.container, "phone", this.phone);
         this.page_buttons = {};
 

@@ -1,5 +1,7 @@
 import DataSource from 'vview/data-sources/data-source.js';
-import { helpers } from 'vview/ppixiv-imports.js';
+import LocalAPI from 'vview/misc/local-api.js';
+import { getUrlForMediaId } from 'vview/misc/media-ids.js'
+import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSources_VViewSimilar extends DataSource
 {
@@ -17,7 +19,7 @@ export default class DataSources_VViewSimilar extends DataSource
         let path = args.hash.get("search_path");
         let url = args.hash.get("search_url");
 
-        let result = await local_api.local_post_request(`/api/similar/search`, {
+        let result = await LocalAPI(`/api/similar/search`, {
             path,
             url,
             max_results: 10,
@@ -40,7 +42,7 @@ export default class DataSources_VViewSimilar extends DataSource
 
             // Register the results with media_cache.
             let entry = item.entry;
-            ppixiv.local_api.adjust_illust_info(entry);
+            LocalAPI.adjust_illust_info(entry);
             await ppixiv.media_cache.add_media_info_full(entry, { preprocessed: true });
 
             media_ids.push(entry.mediaId);
@@ -81,7 +83,7 @@ export default class DataSources_VViewSimilar extends DataSource
             if(path)
             {
                 let mediaId = helpers.encode_media_id({type: "file", id: path});
-                let linkArgs = helpers.get_url_for_id(mediaId);
+                let linkArgs = getUrlForMediaId(mediaId);
                 imageLinkUrl = linkArgs;
             }
         }

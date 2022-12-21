@@ -16,10 +16,13 @@ import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
 import { ViewInExplorerWidget } from 'vview/widgets/local-widgets.js';
 import { IllustWidget } from 'vview/widgets/illust-widgets.js';
-import { helpers, local_api } from 'vview/ppixiv-imports.js';
+import PointerListener from 'vview/actors/pointer-listener.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
 import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
 import Actions from 'vview/misc/actions.js';
+import { getUrlForMediaId } from 'vview/misc/media-ids.js'
+import LocalAPI from 'vview/misc/local-api.js';
+import { helpers, ClassFlags, KeyListener, OpenWidgets } from 'vview/misc/helpers.js';
 
 export default class ContextMenu extends Widget
 {
@@ -136,7 +139,7 @@ export default class ContextMenu extends Widget
         if(ppixiv.mobile)
             return;
             
-        this.pointer_listener = new ppixiv.pointer_listener({
+        this.pointerListener = new PointerListener({
             element: window,
             button_mask: 0b11,
             callback: this.pointerevent,
@@ -146,7 +149,7 @@ export default class ContextMenu extends Widget
         window.addEventListener("keyup", this.onkeyevent);
 
         // Use key_listener to watch for ctrl being held.
-        new ppixiv.key_listener("Control", this.ctrl_pressed);
+        new KeyListener("Control", this.ctrl_pressed);
 
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
         // XXX
@@ -356,8 +359,8 @@ export default class ContextMenu extends Widget
 
     _get_hovered_element()
     {
-        let x = ppixiv.pointer_listener.latest_mouse_client_position[0];
-        let y = ppixiv.pointer_listener.latest_mouse_client_position[1];
+        let x = PointerListener.latest_mouse_client_position[0];
+        let y = PointerListener.latest_mouse_client_position[1];
         return document.elementFromPoint(x, y);
     }
 
@@ -370,8 +373,8 @@ export default class ContextMenu extends Widget
 
         if(down)
         {
-            let x = ppixiv.pointer_listener.latest_mouse_client_position[0];
-            let y = ppixiv.pointer_listener.latest_mouse_client_position[1];
+            let x = PointerListener.latest_mouse_client_position[0];
+            let y = PointerListener.latest_mouse_client_position[1];
             let node = this._get_hovered_element();
             this.show({x, y, target: node});
         } else {
@@ -436,14 +439,14 @@ export default class ContextMenu extends Widget
         if(this.visible)
             return;
 
-        this.pointer_listener.check_missed_clicks();
+        this.pointerListener.check_missed_clicks();
 
         this.displayed_menu = this.container;
         this.visible = true;
         this.apply_visibility();
 
         // Disable popup UI while a context menu is open.
-        ppixiv.ClassFlags.get.set("hide-ui", true);
+        ClassFlags.get.set("hide-ui", true);
         
         window.addEventListener("blur", this.window_onblur);
 
@@ -657,7 +660,7 @@ export default class ContextMenu extends Widget
     {
         super.visibility_changed();
         this.apply_visibility();
-        ppixiv.OpenWidgets.singleton.set(this, this.visible);
+        OpenWidgets.singleton.set(this, this.visible);
     }
 
     apply_visibility()
@@ -690,7 +693,7 @@ export default class ContextMenu extends Widget
         this.displayed_menu = null;
         HideMouseCursorOnIdle.enable_all("context-menu");
         this.buttons_down = {};
-        ppixiv.ClassFlags.get.set("hide-ui", false);
+        ClassFlags.get.set("hide-ui", false);
         window.removeEventListener("blur", this.window_onblur);
         window.removeEventListener("dragstart", this.cancel_event, true);
 
@@ -1237,7 +1240,7 @@ export default class ContextMenu extends Widget
         if(!this.button_view_manga.classList.contains("enabled"))
             return;
 
-        let args = helpers.get_url_for_id(this.effective_media_id, { manga: true });
+        let args = getUrlForMediaId(this.effective_media_id, { manga: true });
         helpers.navigate(args);
     }
 
@@ -1290,7 +1293,7 @@ export default class ContextMenu extends Widget
             return null;
 
         // Go to the parent of the item that was clicked on. 
-        let parent_folder_id = local_api.get_parent_folder(folder_id);
+        let parent_folder_id = LocalAPI.get_parent_folder(folder_id);
 
         // If the user right-clicked a thumbnail and its parent is the folder we're
         // already displaying, go to the parent of the folder instead (otherwise we're
@@ -1298,9 +1301,9 @@ export default class ContextMenu extends Widget
         // sense whether you're clicking on an image in a search result (go to the
         // location of the image), while viewing an image (also go to the location of
         // the image), or in a folder view (go to the folder's parent).
-        let currently_displaying_id = local_api.get_local_id_from_args(helpers.args.location);
+        let currently_displaying_id = LocalAPI.get_local_id_from_args(helpers.args.location);
         if(parent_folder_id == currently_displaying_id)
-            parent_folder_id = local_api.get_parent_folder(parent_folder_id);
+            parent_folder_id = LocalAPI.get_parent_folder(parent_folder_id);
 
         return parent_folder_id;
     }
@@ -1314,7 +1317,7 @@ export default class ContextMenu extends Widget
             return;
 
         let args = new helpers.args("/", ppixiv.plocation);
-        local_api.get_args_for_id(parent_folder_id, args);
+        LocalAPI.get_args_for_id(parent_folder_id, args);
         helpers.navigate(args.url);
     }
 }
