@@ -1,17 +1,23 @@
 import {
     helpers, local_api, muting, phistory, resources,
-    link_this_tab_popup, send_here_popup,
 } from 'vview/ppixiv-imports.js';
 
 import install_polyfills from 'vview/misc/polyfills.js';
 import WhatsNew from 'vview/widgets/whats-new.js';
-import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
 import { TagSearchBoxWidget } from 'vview/widgets/tag-search-dropdown.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
 import TagTranslations from 'vview/misc/tag-translations.js';
 import ScreenIllust from 'vview/screen-illust/screen-illust.js';
 import ScreenSearch from 'vview/screen-search/screen-search.js';
 import ContextMenu from 'vview/context-menu.js';
+import Muting from 'vview/misc/muting.js';
+import SendImage, { LinkThisTabPopup, SendHerePopup } from 'vview/misc/send-image.js';
+import { AvatarWidget } from 'vview/widgets/user-widgets.js';
+import { LocalSearchBoxWidget } from 'vview/widgets/local-widgets.js';
+import DataSource from 'vview/data-sources/data-source.js';
+import DialogWidget from 'vview/widgets/dialog.js';
+import MessageWidget from 'vview/widgets/message-widget.js';
+import * as DataSources from 'vview/data-sources/all.js';
 
 // This is the main top-level app controller.
 export default class App
@@ -41,13 +47,15 @@ export default class App
         ppixiv.settings = new ppixiv.Settings();
         ppixiv.media_cache = new ppixiv.MediaCache();
         ppixiv.user_cache = new ppixiv.UserCache();
-        ppixiv.send_image = new ppixiv.SendImage();
+        ppixiv.send_image = new SendImage();
         ppixiv.tag_translations = new TagTranslations();
+        ppixiv.muting = new Muting();
         
         // XXX: Phase these out
-        ppixiv.HideMouseCursorOnIdle = HideMouseCursorOnIdle;
         ppixiv.TagSearchBoxWidget = TagSearchBoxWidget;
         ppixiv.SavedSearchTags = SavedSearchTags;
+        ppixiv.avatar_widget = AvatarWidget;
+        ppixiv.LocalSearchBoxWidget = LocalSearchBoxWidget;
 
         // Run any one-time settings migrations.
         ppixiv.settings.migrate();
@@ -145,7 +153,7 @@ export default class App
 
             // If we're active but we're on a page that isn't directly supported, redirect to
             // a supported page.  This should be synced with Startup.refresh_disabled_ui.
-            if(ppixiv.data_source.get_data_source_for_url(ppixiv.plocation) == null)
+            if(DataSources.getDataSourceForUrl(ppixiv.plocation) == null)
                 newURL = new URL("/ranking.php?mode=daily#ppixiv", window.location);
 
             // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
@@ -226,6 +234,8 @@ export default class App
         // correct, we can unhide the document.
         this._undoTemporarilyHideDocument();
 
+        ppixiv.message = new MessageWidget({container: document.body});
+
         // Create the shared title.  This is set by helpers.set_page_title.
         if(document.querySelector("title") == null)
             document.head.appendChild(document.createElement("title"));
@@ -242,8 +252,8 @@ export default class App
         if(!ppixiv.mobile)
             this.context_menu = new ContextMenu({container: document.body});
 
-        link_this_tab_popup.setup();
-        send_here_popup.setup();
+        LinkThisTabPopup.setup();
+        SendHerePopup.setup();
 
         // Set the whats-new-updated class.
         WhatsNew.handleLastViewedVersion();
@@ -290,7 +300,7 @@ export default class App
         // This returns the data source, but just call setCurrentDataSource so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.plocation.toString());
-        ppixiv.data_source.create_data_source_for_url(ppixiv.plocation, {force: true, removeSearchPage});
+        DataSources.createDataSourceForUrl(ppixiv.plocation, {force: true, removeSearchPage});
 
         // Screens store their scroll position in args.state.scroll.  On refresh, clear it
         // so we scroll to the top when we refresh.
@@ -381,7 +391,7 @@ export default class App
         var oldMediaId = old_screen? old_screen.displayedMediaId:null;
 
         // Get the data source for the current URL.
-        let data_source = ppixiv.data_source.create_data_source_for_url(ppixiv.plocation);
+        let data_source = DataSources.createDataSourceForUrl(ppixiv.plocation);
 
         // Figure out which screen to display.
         var new_screen_name;
@@ -401,7 +411,7 @@ export default class App
 
                 // If the old data source was transient, discard it.
                 if(this.data_source.transient)
-                    ppixiv.data_source.discard_data_source(this.data_source);
+                    DataSource.discardDataSource(this.data_source);
             }
 
             this.data_source = data_source;
@@ -642,8 +652,8 @@ export default class App
         // Compare the canonical URLs, so we'll return to the entry in history even if the search
         // page doesn't match.
         let previous_url = phistory.previous_state_url;
-        let canonical_previous_url = previous_url? ppixiv.data_source.get_canonical_url(previous_url):null;
-        let canonical_new_url = ppixiv.data_source.get_canonical_url(args.url);
+        let canonical_previous_url = previous_url? helpers.get_canonical_url(previous_url):null;
+        let canonical_new_url = ppixiv.helpers.get_canonical_url(args.url);
         let same_url = helpers.are_urls_equivalent(canonical_previous_url, canonical_new_url);
         if(same_url)
         {
@@ -849,24 +859,24 @@ export default class App
     {
         if(mutes)
         {
-            let tags = [];
-            let user_ids = [];
+            let pixiv_muted_tags = [];
+            let pixiv_muted_user_ids = [];
             for(let mute of mutes)
             {
                 if(mute.type == 0)
-                    tags.push(mute.value);
+                    pixiv_muted_tags.push(mute.value);
                 else if(mute.type == 1)
-                    user_ids.push(mute.value);
+                    pixiv_muted_user_ids.push(mute.value);
             }
-            muting.singleton.set_mutes({tags, user_ids});
+            ppixiv.muting.set_mutes({pixiv_muted_tags, pixiv_muted_user_ids});
         }
         else
         {
             // This page doesn't tell us the user's mutes.  Load from cache if possible, and request
             // the mute list from the server.  This normally only happens on mobile.
             console.assert(ppixiv.mobile);
-            muting.singleton.load_cached_mutes();
-            muting.singleton.fetch_mutes();
+            muting.load_cached_mutes();
+            muting.fetch_mutes();
         }
 
         window.global_data = {
@@ -887,7 +897,7 @@ export default class App
             return;
 
         // If a dialog is open, leave inputs alone.
-        if(ppixiv.dialog_widget.active_dialogs.length > 0)
+        if(DialogWidget.active_dialogs.length > 0)
             return;
 
         // If the event is going to an element inside the screen already, just let it continue.
@@ -913,7 +923,7 @@ export default class App
             return;
 
         // If a dialog is open, leave inputs alone and don't process hotkeys.
-        if(ppixiv.dialog_widget.active_dialogs.length > 0)
+        if(DialogWidget.active_dialogs.length > 0)
             return;
 
         // Let the screen handle the input.

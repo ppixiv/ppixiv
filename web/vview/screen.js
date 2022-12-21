@@ -1,7 +1,7 @@
-"use strict";
+import Widget from 'vview/widgets/widget.js';
 
 // The base class for our main screens.
-ppixiv.screen = class extends ppixiv.widget
+export default class Screen extends Widget
 {
     // Handle a key input.  This is only called while the screen is active.
     handle_onkeydown(e)

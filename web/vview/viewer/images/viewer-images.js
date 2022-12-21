@@ -1,8 +1,12 @@
 // A helper that holds all of the images that we display together.
+import Widget from 'vview/widgets/widget.js';
 import Viewer from 'vview/viewer/viewer.js';
+import ImageEditor from 'vview/viewer/images/editing.js';
+import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
+import Slideshow from 'vview/misc/slideshow.js';
 import { helpers } from 'vview/ppixiv-imports.js';
 
-class ImagesContainer extends ppixiv.widget
+class ImagesContainer extends Widget
 {
     constructor({
         ...options
@@ -125,7 +129,7 @@ export default class ViewerImages extends Viewer
         this._original_width = 1;
         this._original_height = 1;
         this._cropped_size = null;
-        this._ran_pan_animation = false;
+        this._ranPanAnimation = false;
         this._center_pos = [0, 0];
         this._drag_movement = [0,0];
         this._animations = { };
@@ -140,7 +144,7 @@ export default class ViewerImages extends Viewer
         }
 
         this._image_container = new ImagesContainer({ container: this._crop_box });
-        this._editing_container = new ppixiv.ImageEditingOverlayContainer({
+        this._editing_container = new ImageEditingOverlayContainer({
             container: this._crop_box,
         });
 
@@ -153,7 +157,11 @@ export default class ViewerImages extends Viewer
         this.container.addEventListener("selectstart", (e) => e.preventDefault(), this._signal);
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
-        ppixiv.settings.addEventListener("auto_pan", () => this._refresh_animation(), this._signal);
+        ppixiv.settings.addEventListener("auto_pan", () => {
+            // Allow the pan animation to start again when the auto_pan setting changes.
+            this._ranPanAnimation = false;
+            this._refresh_animation();
+        }, this._signal);
         ppixiv.settings.addEventListener("slideshow_duration", this._refresh_animation_speed, this._signal);
         ppixiv.settings.addEventListener("auto_pan_duration", this._refresh_animation_speed, this._signal);
 
@@ -169,7 +177,7 @@ export default class ViewerImages extends Viewer
         // Create the inpaint editor.
         if(!ppixiv.mobile)
         {
-            this.image_editor = new ppixiv.ImageEditor({
+            this.image_editor = new ImageEditor({
                 container: this.container,
                 parent: this,
                 overlay_container: this._editing_container,
@@ -216,7 +224,7 @@ export default class ViewerImages extends Viewer
     // If media info changes, refresh in case any image URLs have changed.
     _media_info_modified({media_id})
     {
-        if(media_id == this.mediaId)
+        if(media_id != this.mediaId)
             return;
 
         this._refresh_from_illust_data();
@@ -257,7 +265,6 @@ export default class ViewerImages extends Viewer
         else
         {
             let manga_page = illust_data.mangaPages[page];
-            
             let { url, width, height } = ppixiv.media_cache.get_main_image_url(illust_data, page);
             image_info = {
                 url,
@@ -298,7 +305,7 @@ export default class ViewerImages extends Viewer
 
         this._original_width = width;
         this._original_height = height;
-        this._cropped_size = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
+        this._cropped_size = crop && crop.length == 4? new ppixiv.FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
         this._custom_animation = pan;
 
         // Set the size of the image box and crop.
@@ -1204,13 +1211,13 @@ export default class ViewerImages extends Viewer
     _create_current_animation()
     {
         // Decide which animation mode to use.
-        let animation_mode;
+        let animationMode;
         if(this._slideshowMode == "loop")
-            animation_mode = "loop";
+            animationMode = "loop";
         else if(this._slideshowMode != null)
-            animation_mode = "slideshow";
+            animationMode = "slideshow";
         else if(ppixiv.settings.get("auto_pan"))
-            animation_mode = "auto-pan";
+            animationMode = "auto-pan";
         else
             return { };
 
@@ -1220,7 +1227,7 @@ export default class ViewerImages extends Viewer
         if(this.container.offsetHeight == 0)
             console.warn("Image container has no size");
 
-        let slideshow = new ppixiv.slideshow({
+        let slideshow = new Slideshow({
             // this.width/this.height are the size of the image at 1x zoom, which is to fit
             // onto the view.  Scale this up by zoom_factor_cover, so the slideshow's default
             // zoom level is to cover the view.
@@ -1228,23 +1235,23 @@ export default class ViewerImages extends Viewer
             height: this.height,
             container_width: this.view_width,
             container_height: this.view_height,
-            mode: animation_mode,
+            mode: animationMode,
 
             // Don't zoom below "contain".
             minimum_zoom: this.zoom_level_to_zoom_factor(0),
         });
 
         // Create the animation.
-        let animation = slideshow.get_animation(this._custom_animation);        
+        let animation = slideshow.getAnimation(this._custom_animation);
 
-        return { animation_mode, animation };
+        return { animationMode, animation };
     }
 
     // Start a pan/zoom animation.  If it's already running, update it in place.
     _refresh_animation()
     {
         // Create the animation.
-        let { animation_mode, animation } = this._create_current_animation();
+        let { animationMode, animation } = this._create_current_animation();
         if(animation == null)
         {
             this._stop_animation();
@@ -1257,7 +1264,7 @@ export default class ViewerImages extends Viewer
         // We have to add it as an offset at both ends of the animation, and then increase the duration
         // to compensate.
         let iteration_start = 0;
-        if(animation_mode == "loop")
+        if(animationMode == "loop")
         {
             // To add a 1 second delay to both ends of the alternation, add 0.5 seconds of delay
             // to both ends (the delay will be doubled by the alternation), and increase the
@@ -1280,7 +1287,7 @@ export default class ViewerImages extends Viewer
     
         // If the mode isn't changing, just update the existing animation in place, so we
         // update the animation if the window is resized.
-        if(this._current_animation_mode == animation_mode)
+        if(this._currentAnimationMode == animationMode)
         {
             // On iOS leave the animation alone, since modifying animations while they're
             // running is broken on iOS and just cause the animation to freeze, and restarting
@@ -1295,21 +1302,20 @@ export default class ViewerImages extends Viewer
 
         // If we're in pan mode and we've already run the pan animation for this image, don't
         // start it again.
-        if(animation_mode == "auto-pan")
+        if(animationMode == "auto-pan")
         {
-            if(this._ran_pan_animation)
+            if(this._ranPanAnimation)
                 return;
 
-            this._ran_pan_animation = true;
+            this._ranPanAnimation = true;
         }
 
         // Stop the previous animations.
         this._stop_animation();
     
-        this._current_animation_mode = animation_mode;
+        this._currentAnimationMode = animationMode;
         
         // Create the main animation.
-        console.log("create animation");
         this._animations.main = new ppixiv.DirectAnimation(new KeyframeEffect(
             this._image_box,
             animation.keyframes,
@@ -1317,8 +1323,8 @@ export default class ViewerImages extends Viewer
                 // The actual duration is set by updatePlaybackRate.
                 duration: 1000,
                 fill: 'forwards',
-                direction: animation_mode == "loop"? "alternate":"normal",
-                iterations: animation_mode == "loop"? Infinity:1,
+                direction: animationMode == "loop"? "alternate":"normal",
+                iterations: animationMode == "loop"? Infinity:1,
                 iterationStart: iteration_start,
             }
         ));
@@ -1331,15 +1337,15 @@ export default class ViewerImages extends Viewer
         // If this animation wants a fade-in and a previous one isn't still playing, start it.
         // Note that we use Animation and not DirectAnimation for fades, since DirectAnimation won't
         // sleep during the long delay while they're not doing anything.
-        if(animation.fade_in > 0)
-            this._animations.fade_in = ppixiv.slideshow.make_fade_in(this._image_box, { duration: animation.fade_in * 1000 });
+        if(animation.fadeIn > 0)
+            this._animations.fadeIn = Slideshow.makeFadeIn(this._image_box, { duration: animation.fadeIn * 1000 });
 
         // Create the fade-out.
-        if(animation.fade_out > 0)
+        if(animation.fadeOut > 0)
         {
-            this._animations.fade_out = ppixiv.slideshow.make_fade_out(this._image_box, {
-                duration: animation.fade_in * 1000,
-                delay: (animation.duration - animation.fade_out) * 1000,
+            this._animations.fadeOut = Slideshow.makeFadeOut(this._image_box, {
+                duration: animation.fadeIn * 1000,
+                delay: (animation.duration - animation.fadeOut) * 1000,
             });
         }
 
@@ -1362,7 +1368,7 @@ export default class ViewerImages extends Viewer
 
         // If we're not in slideshow mode, just clean up the animation and stop.  We should
         // never get here in slideshow-hold.
-        if(this._current_animation_mode != "slideshow" || !this._onnextimage)
+        if(this._currentAnimationMode != "slideshow" || !this._onnextimage)
         {
             this._stop_animation();
             return;
@@ -1406,7 +1412,7 @@ export default class ViewerImages extends Viewer
 
     // If an animation is running, cancel it.
     //
-    // keep_animations is a list of animations to leave running.  For example, ["fade_in"] will leave
+    // keep_animations is a list of animations to leave running.  For example, ["fadeIn"] will leave
     // any fade-in animation alone.
     _stop_animation({
         keep_animations=[],
@@ -1444,7 +1450,7 @@ export default class ViewerImages extends Viewer
         // of a fade.
         this._image_box.style.opacity = "";
 
-        this._current_animation_mode = null;
+        this._currentAnimationMode = null;
 
         if(!applied_animations)
         {

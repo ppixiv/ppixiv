@@ -50,9 +50,9 @@ export default class ViewerUgoira extends ViewerVideoBase
         {
             // Load early data to show the low-res preview quickly.  This is a simpler version of
             // what viewer_images does.
-            let load_sentinel = this._load_sentinel = new Object();
+            let load_sentinel = this._loadSentinel = new Object();
             let early_illust_data = await ppixiv.media_cache.get_media_info(this.mediaId, { full: false });
-            if(load_sentinel !== this._load_sentinel)
+            if(load_sentinel !== this._loadSentinel)
                 return;
             this.create_preview_images(early_illust_data.previewUrls[0], null);
         }
@@ -66,8 +66,7 @@ export default class ViewerUgoira extends ViewerVideoBase
             slideshow,
             onnextimage: () => onnextimage(this),
         });
-
-        if(load_sentinel !== this._load_sentinel)
+        if(load_sentinel !== this._loadSentinel)
             return;
 
         // Now show the poster if we're local, or change to the original image on Pixiv.

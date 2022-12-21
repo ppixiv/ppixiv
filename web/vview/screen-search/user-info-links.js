@@ -1,7 +1,8 @@
+import Widget from 'vview/widgets/widget.js';
 import { helpers } from 'vview/ppixiv-imports.js';
 
 // A strip of links for user info, shown at the top-right corner of the search UI.
-export default class UserInfoLinks extends ppixiv.widget
+export default class UserInfoLinks extends Widget
 {
     constructor(options)
     {
@@ -70,10 +71,10 @@ export default class UserInfoLinks extends ppixiv.widget
                     e.preventDefault();
                     e.stopPropagation();
     
-                    if(ppixiv.muting.singleton.is_muted_user_id(userId))
-                        ppixiv.muting.singleton.unmute_user_id(userId);
+                    if(ppixiv.muting.is_muted_user_id(userId))
+                        ppixiv.muting.unmute_user_id(userId);
                     else
-                        await actions.add_mute(userId, null, {type: "user"});
+                        await ppixiv.muting.add_mute(userId, null, {type: "user"});
                 });
             }
 
@@ -96,7 +97,7 @@ export default class UserInfoLinks extends ppixiv.widget
         let extraLinks = [];
         if(userInfo != null)
         {
-            let muted = ppixiv.muting.singleton.is_muted_user_id(userInfo.userId);
+            let muted = ppixiv.muting.is_muted_user_id(userInfo.userId);
             extraLinks.push({
                 type: "mute",
                 label: `${muted? "Unmute":"Mute"} ${userInfo?.name || "this user"}`,

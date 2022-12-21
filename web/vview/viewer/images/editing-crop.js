@@ -1,6 +1,7 @@
-"use strict";
+import Widget from 'vview/widgets/widget.js';
+import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
 
-ppixiv.CropEditor = class extends ppixiv.widget
+export default class CropEditor extends Widget
 {
     constructor({...options})
     {
@@ -76,7 +77,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         if(this.current_crop == null)
         {
             let {x,y} = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
-            this.current_crop = new FixedDOMRect(x, y, x, y);
+            this.current_crop = new ppixiv.FixedDOMRect(x, y, x, y);
             clicked_handle = "bottomright";
         }
         else
@@ -158,7 +159,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         if(this.dragging == null)
             return this.current_crop;
 
-        let crop = new FixedDOMRect(
+        let crop = new ppixiv.FixedDOMRect(
             this.current_crop.x1,
             this.current_crop.y1,
             this.current_crop.x2,
@@ -197,10 +198,10 @@ ppixiv.CropEditor = class extends ppixiv.widget
         }
 
         // If we've dragged across the opposite edge, flip the sides back around.
-        crop = new FixedDOMRect(crop.left, crop.top, crop.right, crop.bottom);
+        crop = new ppixiv.FixedDOMRect(crop.left, crop.top, crop.right, crop.bottom);
 
         // Clamp to the image bounds.
-        crop = new FixedDOMRect(
+        crop = new ppixiv.FixedDOMRect(
             Math.max(crop.left, 0),
             Math.max(crop.top, 0),
             Math.min(crop.right, this.width),
@@ -261,7 +262,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
     async after_save(media_info)
     {
         // Disable cropping after saving, so the crop is visible.
-        settings.set("image_editing_mode", null);
+        ppixiv.settings.set("image_editing_mode", null);
     }
 
     get_state()
@@ -283,7 +284,7 @@ ppixiv.CropEditor = class extends ppixiv.widget
         if(crop == null)
             this.current_crop = null;
         else
-            this.current_crop = new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]);
+            this.current_crop = new ppixiv.FixedDOMRect(crop[0], crop[1], crop[2], crop[3]);
         this.refresh();
     }
 

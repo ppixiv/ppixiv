@@ -1,8 +1,9 @@
+import Widget from 'vview/widgets/widget.js';
 import SeekBar from 'vview/viewer/video/seek-bar.js';
 import { helpers } from 'vview/ppixiv-imports.js';
 
 // The overlay video UI.
-export default class VideoUI extends ppixiv.widget
+export default class VideoUI extends Widget
 {
     constructor({...options})
     {
@@ -269,7 +270,7 @@ export default class VideoUI extends ppixiv.widget
     }
 }
 
-class volume_slider_widget extends ppixiv.widget
+class volume_slider_widget extends Widget
 {
     constructor({
         ondrag,

@@ -1,8 +1,10 @@
-"use strict";
-
 // This allows editing simple pan animations, to give finer control over slideshows.
+import Widget from 'vview/widgets/widget.js';
+import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
+import Slideshow from 'vview/misc/slideshow.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
-ppixiv.PanEditor = class extends ppixiv.widget
+export default class PanEditor extends Widget
 {
     constructor(options)
     {
@@ -48,7 +50,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         this.width = this.height = 100;
         this.dragging = false;
         this.drag_start = null;
-        this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
+        this.anchor = new ppixiv.FixedDOMRect(0.5, 0.5, 0.5, 0.5);
 
         this.aspect_ratios = [
             [21, 9],
@@ -161,8 +163,8 @@ ppixiv.PanEditor = class extends ppixiv.widget
     {
         this.parent.save_undo();
         this.is_set = true;
-        this.rect = new FixedDOMRect(this.rect.x2, this.rect.y2, this.rect.x1,this.rect.y1);
-        this.anchor = new FixedDOMRect(this.anchor.x2, this.anchor.y2, this.anchor.x1, this.anchor.y1);
+        this.rect = new ppixiv.FixedDOMRect(this.rect.x2, this.rect.y2, this.rect.x1,this.rect.y1);
+        this.anchor = new ppixiv.FixedDOMRect(this.anchor.x2, this.anchor.y2, this.anchor.x1, this.anchor.y1);
         this.zoom_level = [this.zoom_level[1], this.zoom_level[0]];
         this.refresh();
     }
@@ -244,7 +246,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         // to the crop if there is one.
         if(extra_data?.crop)
         {
-            let crop = new FixedDOMRect(extra_data.crop[0], extra_data.crop[1], extra_data.crop[2], extra_data.crop[3]);
+            let crop = new ppixiv.FixedDOMRect(extra_data.crop[0], extra_data.crop[1], extra_data.crop[2], extra_data.crop[3]);
             this.width = crop.width;
             this.height = crop.height;
 
@@ -310,13 +312,13 @@ ppixiv.PanEditor = class extends ppixiv.widget
     {
         this.is_set = data != null;
         if(data == null)
-            data = slideshow.pans.default_slideshow;
+            data = Slideshow.pans.default_slideshow;
 
-        this.rect = new FixedDOMRect(data.x1, data.y1, data.x2, data.y2);
+        this.rect = new ppixiv.FixedDOMRect(data.x1, data.y1, data.x2, data.y2);
 
-        this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
+        this.anchor = new ppixiv.FixedDOMRect(0.5, 0.5, 0.5, 0.5);
         if(data.anchor)
-            this.anchor = new FixedDOMRect(data.anchor.left, data.anchor.top, data.anchor.right, data.anchor.bottom);
+            this.anchor = new ppixiv.FixedDOMRect(data.anchor.left, data.anchor.top, data.anchor.right, data.anchor.bottom);
         this.zoom_level = [data.start_zoom, data.end_zoom];
 
         this.refresh();
@@ -334,7 +336,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         // The minimum zoom is the zoom that will fit the image onscreen.  This also matches on_click_viewer.
         let cover_ratio = Math.min(preview_width/scaled_width, preview_height/scaled_height);
 
-        let slideshow = new ppixiv.slideshow({
+        let slideshow = new Slideshow({
             width: scaled_width,
             height: scaled_height,
             container_width: preview_width,
@@ -355,7 +357,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
 
         // Get the animation that we'd currently save, and load it as a slideshow.
         let pan_animation = this.get_state({force: true});
-        let animation = slideshow.get_animation(pan_animation);
+        let animation = slideshow.getAnimation(pan_animation);
         return { animation, scaled_width, scaled_height, preview_width, preview_height };
     }
 
@@ -464,7 +466,7 @@ ppixiv.PanEditor = class extends ppixiv.widget
         }
 
         // Drag the rect.
-        let rect = new FixedDOMRect(this.rect.x1, this.rect.y1, this.rect.x2, this.rect.y2);
+        let rect = new ppixiv.FixedDOMRect(this.rect.x1, this.rect.y1, this.rect.x2, this.rect.y2);
         if(this.editing == "start")
         {
             rect.x1 += delta_x;

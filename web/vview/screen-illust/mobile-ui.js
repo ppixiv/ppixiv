@@ -1,10 +1,17 @@
 // The image UI for mobile.
 
+import Widget from 'vview/widgets/widget.js';
+import { BookmarkButtonWidget, ImageBookmarkedWidget } from 'vview/widgets/illust-widgets.js';
+import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
+import { BookmarkTagListWidget } from 'vview/widgets/bookmark-tag-list.js';
+import { AvatarWidget } from 'vview/widgets/user-widgets.js';
+import { IllustWidget } from 'vview/widgets/illust-widgets.js';
+import DialogWidget from 'vview/widgets/dialog.js';
 import { helpers } from 'vview/ppixiv-imports.js';
 
 // The container for the mobile image UI.  This just creates and handles displaying
 // the tabs.
-export default class MobileImageUI extends ppixiv.widget
+export default class MobileImageUI extends Widget
 {
     constructor({
         // This node receives our drag animation property.  This goes on the screen instead of
@@ -44,7 +51,7 @@ export default class MobileImageUI extends ppixiv.widget
                     return;
 
                 // Hide the menu if another dragger starts, so we hide if the image changer, pan/zoom,
-                // etc. begin.  We do it this way and not with a click_outside_listener so we don't
+                // etc. begin.  We do it this way and not with a ClickOutsideListener so we don't
                 // close when a new menu drag starts.
                 this.dragger.hide();
 
@@ -162,7 +169,7 @@ export default class MobileImageUI extends ppixiv.widget
     }
 }
 
-class IllustBottomMenuBar extends ppixiv.widget
+class IllustBottomMenuBar extends Widget
 {
     constructor({template, ...options})
     {
@@ -227,7 +234,7 @@ class IllustBottomMenuBar extends ppixiv.widget
         });
 
         this.buttonBookmark = this.container.querySelector(".button-bookmark");
-        this.bookmark_button_widget = new ppixiv.bookmark_button_display_widget({
+        this.bookmarkButtonWidget = new ImageBookmarkedWidget({
             contents: this.buttonBookmark,
         });
 
@@ -298,7 +305,7 @@ class IllustBottomMenuBar extends ppixiv.widget
         if(this.visible)
         {
             let mediaId = this._mediaId;
-            this.bookmark_button_widget.set_media_id(mediaId);
+            this.bookmarkButtonWidget.set_media_id(mediaId);
         }
     }
 
@@ -339,7 +346,7 @@ class IllustBottomMenuBar extends ppixiv.widget
     }
 }
 
-class BookmarkTagDialog extends ppixiv.dialog_widget
+class BookmarkTagDialog extends DialogWidget
 {
     constructor({mediaId, ...options})
     {
@@ -359,14 +366,14 @@ class BookmarkTagDialog extends ppixiv.dialog_widget
             </div>
         `});
 
-        this.tagListWidget = new bookmark_tag_list_widget({
+        this.tagListWidget = new BookmarkTagListWidget({
             container: this.container.querySelector(".scroll"),
             container_position: "afterbegin",
             public_bookmark_button: this.publicBookmark,
             private_bookmark_button: this.privateBookmark,
         });
 
-        this.publicBookmark = new bookmark_button_widget({
+        this.publicBookmark = BookmarkButtonWidget({
             contents: this.container.querySelector(".public"),
             bookmark_type: "public",
 
@@ -375,7 +382,7 @@ class BookmarkTagDialog extends ppixiv.dialog_widget
             toggle_bookmark: false,
 
             // Close if a bookmark button is clicked.
-            bookmark_tag_list_widget: this.tagListWidget,
+            bookmarkTagListWidget: this.tagListWidget,
         });
         this.publicBookmark.addEventListener("bookmarkedited", () => this.visible = false);
 
@@ -383,20 +390,20 @@ class BookmarkTagDialog extends ppixiv.dialog_widget
         privateBookmark.hidden = ppixiv.native;
         if(!ppixiv.native)
         {
-            this.privateBookmark = new bookmark_button_widget({
+            this.privateBookmark = new BookmarkButtonWidget({
                 contents: privateBookmark,
                 bookmark_type: "private",
                 toggle_bookmark: false,
-                bookmark_tag_list_widget: this.tagListWidget,
+                bookmarkTagListWidget: this.tagListWidget,
             });
             this.privateBookmark.addEventListener("bookmarkedited", () => this.visible = false);
         }
 
         let deleteBookmark = this.container.querySelector(".button-remove-bookmark");
-        this.deleteBookmark = new bookmark_button_widget({
+        this.deleteBookmark = new BookmarkButtonWidget({
             contents: deleteBookmark,
             bookmark_type: "delete",
-            bookmark_tag_list_widget: this.tagListWidget,
+            bookmarkTagListWidget: this.tagListWidget,
         });
         this.deleteBookmark.addEventListener("bookmarkedited", () => this.visible = false);
 
@@ -416,7 +423,7 @@ class BookmarkTagDialog extends ppixiv.dialog_widget
     }
 }
 
-class MoreOptionsDialog extends ppixiv.dialog_widget
+class MoreOptionsDialog extends DialogWidget
 {
     constructor({template, mediaId, ...options})
     {
@@ -425,7 +432,7 @@ class MoreOptionsDialog extends ppixiv.dialog_widget
             </div>
         `});
 
-        this.moreOptionsWidget = new more_options_dropdown_widget({
+        this.moreOptionsWidget = new MoreOptionsDropdown({
             container: this.container.querySelector(".box"),
         });
         this.moreOptionsWidget.set_media_id(mediaId);
@@ -440,7 +447,7 @@ class MoreOptionsDialog extends ppixiv.dialog_widget
     }
 }
 
-class ImageInfoWidget extends ppixiv.illust_widget
+class ImageInfoWidget extends IllustWidget
 {
     constructor({...options})
     {
@@ -466,7 +473,7 @@ class ImageInfoWidget extends ppixiv.illust_widget
             </div>
         `});
 
-        this.avatarWidget = new ppixiv.avatar_widget({
+        this.avatarWidget = new AvatarWidget({
             container: this.container.querySelector(".avatar"),
             mode: "dropdown",
             interactive: false,
@@ -496,7 +503,7 @@ class ImageInfoWidget extends ppixiv.illust_widget
         if(this.container.hidden)
             return;
 
-        this.avatarWidget.set_user_id(media_info?.userId);
+        this.avatarWidget.setUserId(media_info?.userId);
 
         let tagWidget = this.container.querySelector(".bookmark-tags");
         helpers.remove_elements(tagWidget);
@@ -532,8 +539,8 @@ class ImageInfoWidget extends ppixiv.illust_widget
         let showPageNumber = this._show_page_number;
         if(this.dataSource?.name == "vview" && this.dataSource.all_pages_loaded)
         {
-            let page = this.dataSource.id_list.get_page_for_illust(media_id);
-            let ids = this.dataSource.id_list.media_ids_by_page.get(page);
+            let { page } = this.dataSource.id_list.getPageForMediaId(media_id);
+            let ids = this.dataSource.id_list.mediaIdsByPage.get(page);
             if(ids != null)
             {
                 currentPage = ids.indexOf(media_id);

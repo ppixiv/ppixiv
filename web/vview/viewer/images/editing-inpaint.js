@@ -1,6 +1,8 @@
-"use strict";
+import Widget from 'vview/widgets/widget.js';
+import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
-ppixiv.InpaintEditor = class extends ppixiv.widget
+export default class InpaintEditor extends Widget
 {
     constructor(options)
     {
@@ -81,7 +83,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
                 return;
             this.selected_line.thickness = parseInt(this.line_width_slider.value);
         });
-        this.line_width_slider.value = settings.get("inpaint_default_thickness", 10);
+        this.line_width_slider.value = ppixiv.settings.get("inpaint_default_thickness", 10);
 
         // Hide the inpaint while dragging the thickness slider.
         this.pointer_listener = new ppixiv.pointer_listener({
@@ -117,7 +119,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
             e.stopPropagation();
 
             let value = parseInt(this.line_width_slider.value);
-            settings.set("inpaint_default_thickness", value);
+            ppixiv.settings.set("inpaint_default_thickness", value);
             console.log("Saved default line thickness:", value);
         }, { signal: this.shutdown_signal.signal });
 
@@ -125,7 +127,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
             e.stopPropagation();
 
             let value = parseFloat(this.downscale_slider.value);
-            settings.set("inpaint_default_downscale", value);
+            ppixiv.settings.set("inpaint_default_downscale", value);
             console.log("Saved default downscale:", value);
         }, { signal: this.shutdown_signal.signal });
 
@@ -133,7 +135,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
             e.stopPropagation();
 
             let value = parseFloat(this.blur_slider.value);
-            settings.set("inpaint_default_blur", value);
+            ppixiv.settings.set("inpaint_default_blur", value);
             console.log("Saved default blur:", value);
         }, { signal: this.shutdown_signal.signal });
 
@@ -159,7 +161,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
             });
         }
 
-        this._create_lines = settings.get("inpaint_create_lines", false);
+        this._create_lines = ppixiv.settings.get("inpaint_create_lines", false);
 
         // Prevent fullscreening if a UI element is double-clicked.
         this.editor_overlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdown_signal.signal });
@@ -234,8 +236,8 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
         // If there's no data at all, load the user's defaults.
         if(extra_data.inpaint == null)
         {
-            this.downscale_ratio = settings.get("inpaint_default_downscale", 1);
-            this.blur = settings.get("inpaint_default_blur", 0);
+            this.downscale_ratio = ppixiv.settings.get("inpaint_default_downscale", 1);
+            this.blur = ppixiv.settings.get("inpaint_default_blur", 0);
         }
     }
 
@@ -393,7 +395,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
             return;
 
         this._create_lines = value;
-        settings.set("inpaint_create_lines", this.create_lines);
+        ppixiv.settings.set("inpaint_create_lines", this.create_lines);
 
         this.refresh_pointer_events();
 
@@ -516,7 +518,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
             this.parent.save_undo();
 
             this.adding_line = this.add_line();
-            this.adding_line.thickness = settings.get("inpaint_default_thickness", 10);
+            this.adding_line.thickness = ppixiv.settings.get("inpaint_default_thickness", 10);
             let control_point_idx = this.adding_line.add_point({x: x, y: y});
             this.start_dragging_point(this.adding_line, control_point_idx, e);
         }
@@ -662,7 +664,7 @@ ppixiv.InpaintEditor = class extends ppixiv.widget
     }
 }
 
-ppixiv.LineEditorSegment = class extends ppixiv.widget
+class LineEditorSegment extends Widget
 {
     constructor({container, ...options})
     {

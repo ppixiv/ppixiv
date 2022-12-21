@@ -71,7 +71,6 @@ export default class ZipImagePlayer
 
     async load()
     {
-        console.log(this.op);
         this.downloader = new ZipImageDownloader(this.op.source, {
             signal: this.op.signal,
         });

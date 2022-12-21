@@ -4,10 +4,12 @@
 // and that we save to images.  This data is resolution and aspect-ratio independant,
 // so it can be applied to different images and used generically.
 //
-// Slideshows are built into animations using get_animation, which converts it
+// Slideshows are built into animations using getAnimation, which converts it
 // to an animation based on the image's aspect ratio, the screen's aspect ratio,
 // the desired speed, etc.
-ppixiv.slideshow = class
+import { helpers } from 'vview/ppixiv-imports.js';
+
+export default class Slideshow
 {
     constructor({
         // The size of the image being displayed:
@@ -33,45 +35,45 @@ ppixiv.slideshow = class
         this.container_height = container_height;
         this.minimum_zoom = minimum_zoom;
         this.mode = mode;
-        this.clamp_to_window = clamp_to_window;
+        this.clampToWindow = clamp_to_window;
     }
 
     // Create the default animation.
-    get_default_animation()
+    getDefaultAnimation()
     {
         if(this.mode == "slideshow")
         {
             let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
             if(slideshow_default == "contain")
-                return this.get_animation(ppixiv.slideshow.pans.stationary);
+                return this.getAnimation(Slideshow.pans.stationary);
             else    
-                return this.get_animation(ppixiv.slideshow.pans.default_slideshow);
+                return this.getAnimation(Slideshow.pans.default_slideshow);
         }
 
         // Choose whether to use the horizontal or vertical depending on how the image fits the screen.
-        // pan_ratio is < 1 if the image can pan vertically and > 1 if it can pan horizontally.
-        let image_aspect_ratio = this.width / this.height;
-        let container_aspect_ratio = this.container_width / this.container_height;
-        let pan_ratio = image_aspect_ratio / container_aspect_ratio;
+        // panRatio is < 1 if the image can pan vertically and > 1 if it can pan horizontally.
+        let imageAspectRatio = this.width / this.height;
+        let containerAspectRatio = this.container_width / this.container_height;
+        let panRatio = imageAspectRatio / containerAspectRatio;
 
         // If the image can move horizontally in the display, use the horizontal pan.  Don't use it
-        // if pan_ratio is too close to 1 (the image fits the screen), since it doesn't zoom and will
+        // if panRatio is too close to 1 (the image fits the screen), since it doesn't zoom and will
         // be stationary.
-        let horizontal = pan_ratio > 1.1;
-        if(container_aspect_ratio < 1)
+        let horizontal = panRatio > 1.1;
+        if(containerAspectRatio < 1)
         {
             // If the monitor and image are both portrait, the portrait animation usually looks better,
-            // even if the image is less portrait than the monitor and pan_ratio is > 1.  Use a higher
+            // even if the image is less portrait than the monitor and panRatio is > 1.  Use a higher
             // threshold for portrait monitors so we prefer the portrait animation, even if it cuts off
             // some of the image.
-            horizontal = pan_ratio > 1.5;
+            horizontal = panRatio > 1.5;
         }
 
         let template = horizontal? 
-            ppixiv.slideshow.pans.default_slideshow_hold_landscape:
-            ppixiv.slideshow.pans.default_slideshow_hold_portrait;
+            Slideshow.pans.default_slideshow_hold_landscape:
+            Slideshow.pans.default_slideshow_hold_portrait;
 
-        return this.get_animation(template);
+        return this.getAnimation(template);
     }
 
     static pans =
@@ -119,10 +121,10 @@ ppixiv.slideshow = class
     // Load a saved animation from a description, which is either created with PanEditor or
     // programmatically here.  If pan is null, return the default animation for the current
     // mode.
-    get_animation(pan)
+    getAnimation(pan)
     {
         if(pan == null)
-            return this.get_default_animation();
+            return this.getDefaultAnimation();
 
         // The target duration of the animation:
         let duration = 
@@ -141,10 +143,10 @@ ppixiv.slideshow = class
         // This usually only has an effect for exceptionally wide images.  Most of the time the
         // maximum speed ends up being much lower than the actual speed, and we use the duration
         // as-is.
-        let max_speed = helpers.scale_clamp(duration, 5, 15, 0.5, 0.25);
+        let maxSpeed = helpers.scale_clamp(duration, 5, 15, 0.5, 0.25);
 
-        let animation_data = {
-            duration, max_speed,
+        let animationData = {
+            duration, maxSpeed,
 
             pan: [{
                 x: pan.x1, y: pan.y1, zoom: pan.start_zoom ?? 1,
@@ -157,7 +159,7 @@ ppixiv.slideshow = class
             }],
         };
         
-        let animation = this._prepare_animation(animation_data);
+        let animation = this._prepareAnimation(animationData);
 
         // Decide how to ease this animation.
         if(this.mode == "slideshow")
@@ -188,12 +190,12 @@ ppixiv.slideshow = class
         }        
 
         // Choose a fade duration.  This needs to be quicker if the slideshow is very brief.
-        animation.fade_in = this.mode == "loop" || this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
-        animation.fade_out = this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
+        animation.fadeIn = this.mode == "loop" || this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
+        animation.fadeOut = this.mode == "slideshow"? Math.min(duration * 0.1, 2.5):0;
         
         // If the animation is shorter than the total fade, remove the fade.
-        if(animation.fade_in + animation.fade_out > animation.duration)
-            animation.fade_in = animation.fade_out = 0;
+        if(animation.fadeIn + animation.fadeOut > animation.duration)
+            animation.fadeIn = animation.fadeOut = 0;
 
         // For convenience, create KeyframeEffect data.
         let points = [];
@@ -215,7 +217,7 @@ ppixiv.slideshow = class
     // Prepare an animation.  This figures out the actual translate and scale for each
     // keyframe, and the total duration.  The results depend on the image and window
     // size.
-    _prepare_animation(animation)
+    _prepareAnimation(animation)
     {
         // Calculate the scale and translate for each point.
         let pan = [];
@@ -227,8 +229,8 @@ ppixiv.slideshow = class
             let scale = Math.max(point.zoom, this.minimum_zoom);
 
             // The screen size the image will have:
-            let zoomed_width = this.width * scale;
-            let zoomed_height = this.height * scale;
+            let zoomedWidth = this.width * scale;
+            let zoomedHeight = this.height * scale;
 
             // Initially, the image will be aligned to the top-left of the screen.  Shift right and
             // down to align the anchor the origin.  This is usually the center of the image.
@@ -237,27 +239,27 @@ ppixiv.slideshow = class
             let ty = this.container_height * anchor_y;
 
             // Then shift up and left to center the point:
-            tx -= point.x*zoomed_width;
-            ty -= point.y*zoomed_height;
+            tx -= point.x*zoomedWidth;
+            ty -= point.y*zoomedHeight;
 
-            if(this.clamp_to_window)
+            if(this.clampToWindow)
             {
                 // Clamp the translation to keep the image in the window.  This is inverted, since
                 // tx and ty are transitions and not the image position.
-                let max_x = zoomed_width - this.container_width,
-                    max_y = zoomed_height - this.container_height;
-                tx = helpers.clamp(tx, 0, -max_x);
-                ty = helpers.clamp(ty, 0, -max_y);
+                let maxX = zoomedWidth - this.container_width,
+                    maxY = zoomedHeight - this.container_height;
+                tx = helpers.clamp(tx, 0, -maxX);
+                ty = helpers.clamp(ty, 0, -maxY);
 
                 // If the image isn't filling the screen on either axis, center it.  This only applies at
                 // keyframes (we won't always be centered while animating).
-                if(zoomed_width < this.container_width)
-                    tx = (this.container_width - zoomed_width) / 2;
-                if(zoomed_height < this.container_height)
-                    ty = (this.container_height - zoomed_height) / 2;
+                if(zoomedWidth < this.container_width)
+                    tx = (this.container_width - zoomedWidth) / 2;
+                if(zoomedHeight < this.container_height)
+                    ty = (this.container_height - zoomedHeight) / 2;
             }
 
-            pan.push({ tx, ty, zoomed_width, zoomed_height, scale });
+            pan.push({ tx, ty, zoomedWidth, zoomedHeight, scale });
         }
 
         // speed is relative to the screen size, so it's not tied too tightly to the resolution
@@ -273,34 +275,34 @@ ppixiv.slideshow = class
             // The bounds of the image at each corner:
             corners.push([
                 { x: -pan[idx].tx,                         y: -pan[idx].ty },
-                { x: -pan[idx].tx,                         y: -pan[idx].ty + pan[idx].zoomed_height },
-                { x: -pan[idx].tx + pan[idx].zoomed_width, y: -pan[idx].ty },
-                { x: -pan[idx].tx + pan[idx].zoomed_width, y: -pan[idx].ty + pan[idx].zoomed_height },
+                { x: -pan[idx].tx,                         y: -pan[idx].ty + pan[idx].zoomedHeight },
+                { x: -pan[idx].tx + pan[idx].zoomedWidth, y: -pan[idx].ty },
+                { x: -pan[idx].tx + pan[idx].zoomedWidth, y: -pan[idx].ty + pan[idx].zoomedHeight },
             ]);
         }
 
-        let distance_in_pixels = 0;
+        let distanceInPixels = 0;
         for(let corner = 0; corner < 4; ++corner)
         {
             let distance = helpers.distance(corners[0][corner], corners[1][corner]);
-            distance_in_pixels = Math.max(distance_in_pixels, distance);
+            distanceInPixels = Math.max(distanceInPixels, distance);
         }
 
         // The diagonal size of the screen is what our speed is relative to.
-        let screen_size = helpers.distance({x: 0, y: 0}, { x: this.container_height, y: this.container_width });
+        let screenSize = helpers.distance({x: 0, y: 0}, { x: this.container_height, y: this.container_width });
 
         // Calculate the duration for keyframes that specify a speed.
         let duration = animation.duration;
-        if(animation.max_speed != null)
+        if(animation.maxSpeed != null)
         {
-            // pixels_per_second is the speed we'll move at the given speed.  Note that this ignores
+            // pixelsPerSecond is the speed we'll move at the given speed.  Note that this ignores
             // easing, and we'll actually move faster or slower than this during the transition.
-            let speed = Math.max(animation.max_speed, 0.01);
-            let pixels_per_second = speed * screen_size;
-            let adjusted_duration = distance_in_pixels / pixels_per_second;
+            let speed = Math.max(animation.maxSpeed, 0.01);
+            let pixelsPerSecond = speed * screenSize;
+            let adjustedDuration = distanceInPixels / pixelsPerSecond;
 
             // If both speed and a duration were specified, use whichever is slower.
-            duration = Math.max(animation.duration, adjusted_duration);
+            duration = Math.max(animation.duration, adjustedDuration);
 
             // If we set the speed to 0, then we're not moving at all.  Set a small duration
             // to avoid division by zero.
@@ -314,7 +316,7 @@ ppixiv.slideshow = class
         };
     }
 
-    static make_fade_in(target, options)
+    static makeFadeIn(target, options)
     {
         return new Animation(new KeyframeEffect(
             target, [
@@ -327,7 +329,7 @@ ppixiv.slideshow = class
         ));
     }
 
-    static make_fade_out(target, options)
+    static makeFadeOut(target, options)
     {
         return new Animation(new KeyframeEffect(
             target, [

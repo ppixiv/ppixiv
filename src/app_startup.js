@@ -313,7 +313,6 @@ export default _default;
             }
             this._info.set(path, scriptInfo);
         }
-        console.log("Info:", this._info);
 
         // Check that all imports exist.
         for(let [path, info] of this._info.entries())
@@ -322,7 +321,7 @@ export default _default;
             {
                 let info = this._info.get(importPath);
                 if(info == null)
-                    throw new Error(`xxx ${path} import ${importPath} doesn't exist`);
+                    throw new Error(`${path} import ${importPath} doesn't exist`);
             }
         }
 
@@ -361,8 +360,8 @@ export default _default;
         {
             let importInfo = this._info.get(path);
 
-            let result = Babel.transform(source, {
-            //let result = Babel.transformFromAst(importInfo.ast, null, {
+            //let result = Babel.transform(source, {
+            let result = Babel.transformFromAst(importInfo.ast, null, {
                 filename: path,
                 plugins: ['remap-imports'],
                 sourceType: "module",
@@ -492,7 +491,6 @@ ppixiv.AppStartup = class
                 console.error("error", e);
             }
         }
-        console.log("--- done loading");
     }
 
     // Block until DOMContentLoaded.
@@ -765,8 +763,9 @@ ppixiv.AppStartup = class
             window.realRequestAnimationFrame = window.requestAnimationFrame.bind(window);
             window.realCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
             window.realSetTimeout = window.setTimeout.bind(window);
-            window.realSetInterval = window.setInterval.bind(window);
             window.realClearTimeout = window.clearTimeout.bind(window);
+            window.realSetInterval = window.setInterval.bind(window);
+            window.realClearInterval = window.clearInterval.bind(window);
             window.realImage = window.Image;
             window.realFetch = window.fetch;
             window.MessagePort.prototype.realPostMessage = window.MessagePort.prototype.postMessage;
@@ -906,6 +905,9 @@ ppixiv.AppStartup = class
 
         window.realClearTimeout = window.clearTimeout.bind(window);
         window.clearTimeout = () => { };
+
+        window.realClearInterval = window.clearInterval.bind(window);
+        window.clearInterval = () => { };
 
         try {
             window.addEventListener = Window.prototype.addEventListener.bind(window);

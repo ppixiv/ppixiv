@@ -1,6 +1,8 @@
 import widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/ppixiv-imports.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
+import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
+import { TextPrompt } from 'vview/widgets/prompts.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
 // Handle showing the search history and tag edit dropdowns.
 export class TagSearchBoxWidget extends widget
@@ -30,7 +32,7 @@ export class TagSearchBoxWidget extends widget
             this.dropdown_opener.box_widget.editing = !this.dropdown_opener.box_widget.editing;
         });
 
-        this.dropdown_opener = new ppixiv.dropdown_box_opener({
+        this.dropdown_opener = new DropdownBoxOpener({
             button: this.input_element,
 
             create_box: ({...options}) => {
@@ -96,7 +98,7 @@ export class TagSearchBoxWidget extends widget
 
     text_prompt(options)
     {
-        return this.dialog(text_prompt.prompt(options));
+        return this.dialog(TextPrompt.prompt(options));
     }
 
     confirm_prompt(options)
@@ -389,7 +391,7 @@ class TagSearchDropdownWidget extends widget
             let tag_groups = new Set(SavedSearchTags.get_all_groups().keys());
             if(tag_groups.has(label))
             {
-                message_widget.singleton.show(`Group "${label}" already exists`);
+                ppixiv.message.show(`Group "${label}" already exists`);
                 return;
             }
 
@@ -1189,7 +1191,7 @@ class TagSearchDropdownWidget extends widget
             if(node.offsetTop < this.container.scrollTop)
                 continue;
 
-            let saved_position = helpers.save_scroll_position(this.container, node);
+            let saved_position = helpers.saveScrollPosition(this.container, node);
             let tag = node.dataset.tag;
             return { saved_position, tag };
         }
@@ -1204,7 +1206,7 @@ class TagSearchDropdownWidget extends widget
 
         let restore_entry = this.get_entry_for_tag(tag);
         if(restore_entry)
-            helpers.restore_scroll_position(this.container, restore_entry, saved_position);
+            helpers.restoreScrollPosition(this.container, restore_entry, saved_position);
     }
 
     // Scroll a row into view.  entry can be an entry or a section header.

@@ -1,6 +1,7 @@
+import Widget from 'vview/widgets/widget.js';
 import { helpers } from 'vview/ppixiv-imports.js';
 
-export default class SeekBar extends ppixiv.widget
+export default class SeekBar extends Widget
 {
     constructor({...options})
     {

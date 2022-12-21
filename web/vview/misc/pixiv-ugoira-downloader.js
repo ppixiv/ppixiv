@@ -24,8 +24,7 @@ export default class PixivUgoiraDownloader
 
     async loadAllFrames()
     {
-        // XXX
-        // message_widget.singleton.show(`Downloading video...`);
+        ppixiv.message.show(`Downloading video...`);
 
         let downloader = new ZipImageDownloader(this.metadata.originalSrc, {
             onprogress: (progress) => {
@@ -48,8 +47,7 @@ export default class PixivUgoiraDownloader
             this.frames.push(file);
         }
 
-        // XXX
-        // message_widget.singleton.hide();
+        ppixiv.message.hide();
 
         // Some posts have the wrong dimensions in illustData (63162632).  If we use it, the resulting
         // file won't play.  Decode the first image to find the real resolution.

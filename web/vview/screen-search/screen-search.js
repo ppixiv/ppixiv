@@ -1,9 +1,16 @@
-import { helpers } from 'vview/ppixiv-imports.js';
+import Widget from 'vview/widgets/widget.js';
+import Screen from 'vview/screen.js';
 import DesktopSearchUI from 'vview/screen-search/desktop-search-ui.js';
 import MobileSearchUI from 'vview/screen-search/mobile-search-ui.js';
+import ScrollListener from 'vview/actors/scroll-listener.js';
+import LocalNavigationTreeWidget from 'vview/widgets/folder-tree.js';
+import SearchView from 'vview/screen-search/search-view.js';
+import DialogWidget from 'vview/widgets/dialog.js';
+
+import { helpers } from 'vview/ppixiv-imports.js';
 
 // The search UI.
-export default class ScreenSearch extends ppixiv.screen
+export default class ScreenSearch extends Screen
 {
     constructor(options)
     {
@@ -55,7 +62,7 @@ export default class ScreenSearch extends ppixiv.screen
 
         if(ppixiv.mobile)
         {
-            this.titleBarWidget = new class extends ppixiv.widget {
+            this.titleBarWidget = new class extends Widget {
                 constructor({...options}={})
                 {
                     super({
@@ -102,7 +109,7 @@ export default class ScreenSearch extends ppixiv.screen
             };
             
             let scroller = this.querySelector(".search-results");
-            this.scroll_listener = new ppixiv.ScrollListener({
+            this.scroll_listener = new ScrollListener({
                 scroller,
                 parent: this,
                 onchange,
@@ -111,7 +118,7 @@ export default class ScreenSearch extends ppixiv.screen
             onchange();
         }
 
-        ppixiv.muting.singleton.addEventListener("mutes-changed", this.refreshUiForUserId);
+        ppixiv.muting.addEventListener("mutes-changed", this.refreshUiForUserId);
 
         // Zoom the thumbnails on ctrl-mousewheel:
         this.container.addEventListener("wheel", (e) => {
@@ -150,7 +157,7 @@ export default class ScreenSearch extends ppixiv.screen
             // as a similar image search.
             this.local_navigation_visible = !ppixiv.mobile && ppixiv.plocation.pathname != "/similar";
 
-            this.local_nav_widget = new ppixiv.local_navigation_widget({
+            this.local_nav_widget = new LocalNavigationTreeWidget({
                 container: local_navigation_box,
             });
 
@@ -162,7 +169,7 @@ export default class ScreenSearch extends ppixiv.screen
             local_navigation_box.hidden = false;
         }
 
-        this.search_view = new ppixiv.search_view({
+        this.search_view = new SearchView({
             container: this.container.querySelector(".thumbnail-container-box"),
         });
     }
@@ -215,7 +222,7 @@ export default class ScreenSearch extends ppixiv.screen
 
         this.dataSource = data_source;
 
-        this.search_view.set_data_source(data_source);
+        this.search_view.setDataSource(data_source);
         if(this.desktopSearchUi)
             this.desktopSearchUi.setDataSource(data_source);
 
@@ -313,7 +320,7 @@ export default class ScreenSearch extends ppixiv.screen
     }
 
     // If the data source has an associated artist, return the "user:ID" for the user, so
-    // when we navigate back to an earlier search, pulse_thumbnail will know which user to
+    // when we navigate back to an earlier search, pulseThumbnail will know which user to
     // flash.
     get displayedMediaId()
     {
@@ -369,7 +376,7 @@ export default class ScreenSearch extends ppixiv.screen
 // it there, so it's inside the settings menu and technically can be accessed while viewing
 // an image.
 // XXX: move this
-ppixiv.slideshow_staging_dialog = class extends ppixiv.dialog_widget
+ppixiv.slideshow_staging_dialog = class extends DialogWidget
 {
     static show()
     {

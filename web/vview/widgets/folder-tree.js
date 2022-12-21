@@ -1,8 +1,7 @@
-"use strict";
+import Widget from 'vview/widgets/widget.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
-// Widgets only used for local file navigation.
-
-ppixiv.tree_widget = class extends ppixiv.widget
+class TreeWidget extends Widget
 {
     constructor({
         add_root=true,
@@ -30,12 +29,12 @@ ppixiv.tree_widget = class extends ppixiv.widget
         this.items = this.container.querySelector(".items");
 
         // Listen to illust changes so we can refresh nodes.
-        media_cache.addEventListener("mediamodified", this.illust_modified, { signal: this.shutdown_signal.signal });
+        ppixiv.media_cache.addEventListener("mediamodified", this.illust_modified, { signal: this.shutdown_signal.signal });
 
-        // Create the root item.  This is tree_widget_item or a subclass.
+        // Create the root item.  This is TreeWidgetItem or a subclass.
         if(add_root)
         {
-            let root = new ppixiv.tree_widget_item({
+            let root = new TreeWidgetItem({
                 parent: this,
                 label: "root",
                 root: true,
@@ -57,7 +56,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
         }
     }
     
-    // Given an element, return the tree_widget_item label it's inside, if any.
+    // Given an element, return the TreeWidgetItem label it's inside, if any.
     get_widget_from_element(element)
     {
         let label = element.closest(".tree-item > .self > .label");
@@ -181,7 +180,7 @@ ppixiv.tree_widget = class extends ppixiv.widget
             {
                 // Use /tree-thumb for these thumbnails.  They're the same as the regular thumbs,
                 // but it won't give us a folder image if there's no thumb.
-                let url = local_api.local_url;
+                let url = ppixiv.local_api.local_url;
                 url.pathname = "tree-thumb/" + item.path;
                 img.src = url;
                 img.addEventListener("img", (e) => { console.log("error"); img.hidden = true; });
@@ -203,14 +202,14 @@ ppixiv.tree_widget = class extends ppixiv.widget
     }
 }
 
-ppixiv.tree_widget_item = class extends ppixiv.widget
+class TreeWidgetItem extends Widget
 {
-    // If root is true, this is the root item being created by a tree_widget.  Our
-    // parent is the tree_widget and our container is tree_widget.items.
+    // If root is true, this is the root item being created by a TreeWidget.  Our
+    // parent is the TreeWidget and our container is TreeWidget.items.
     //
-    // If root is false (all items created by the user) and parent is a tree_widget, our
-    // real parent is the tree_widget's root item.  Otherwise, parent is always another
-    // tree_widget_item.
+    // If root is false (all items created by the user) and parent is a TreeWidget, our
+    // real parent is the TreeWidget's root item.  Otherwise, parent is always another
+    // TreeWidgetItem.
     constructor({
         parent,
         label,
@@ -224,9 +223,9 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
         ...options
     }={})
     {
-        // If this isn't a root node and parent is a tree_widget, use the tree_widget's
+        // If this isn't a root node and parent is a TreeWidget, use the TreeWidget's
         // root node as our parent instead of the tree widget itself.
-        if(!root && parent instanceof ppixiv.tree_widget)
+        if(!root && parent instanceof TreeWidget)
             parent = parent.root;
 
         super({...options,
@@ -311,7 +310,7 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
 
         this.refresh_expand_mode();
 
-        if(this.parent instanceof ppixiv.tree_widget_item)
+        if(this.parent instanceof TreeWidgetItem)
         {
             this.parent.refresh_expand_mode();
         }
@@ -561,18 +560,18 @@ ppixiv.tree_widget_item = class extends ppixiv.widget
 
         // Load the first page.  This will overlap with the search loading it, and
         // will wait on the same request.
-        if(!data_source.id_list.is_page_loaded(1))
+        if(!data_source.id_list.isPageLoaded(1))
             await data_source.load_page(1);
 
         // Navigate to the first image on the first page.
-        let media_ids = data_source.id_list.media_ids_by_page.get(1);
+        let media_ids = data_source.id_list.mediaIdsByPage.get(1);
         console.log("files for double click:", media_ids?.length);
         if(media_ids != null)
             ppixiv.app.show_media(media_ids[0], {add_to_history: true, source: "dblclick"});
     }
 };
 
-class local_navigation_widget_item extends ppixiv.tree_widget_item
+class LocalNavigationWidgetItem extends TreeWidgetItem
 {
     constructor({path, ...options}={})
     {
@@ -615,7 +614,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         super.refresh();
 
         // Show or hide the bookmark icon.
-        let info = media_cache.get_media_info_sync(this.path, { full: false });
+        let info = ppixiv.media_cache.get_media_info_sync(this.path, { full: false });
         let bookmarked = info?.bookmarkData != null;
         this.container.querySelector(".button-bookmark").hidden = !bookmarked;
 
@@ -624,7 +623,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
         {
             let label = this.container.querySelector(".label");
             let args = helpers.args.location;
-            local_api.get_args_for_id(this.path, args);
+            ppixiv.local_api.get_args_for_id(this.path, args);
             // label.href = args.url.toString();
         } */
     }
@@ -663,7 +662,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             return true;
         this.loaded = true;
 
-        let result = await local_api.list(this.path, {
+        let result = await ppixiv.local_api.list(this.path, {
             id: this.path,
 
             // This tells the server to only include directories.  It's much faster, since
@@ -700,7 +699,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
             if(type != "folder")
                 continue;
     
-            let child = new local_navigation_widget_item({
+            let child = new LocalNavigationWidgetItem({
                 parent: this,
                 label: dir.illustTitle,
                 path: dir.mediaId,
@@ -720,8 +719,7 @@ class local_navigation_widget_item extends ppixiv.tree_widget_item
 }
 
 // A tree view for navigation with the local image API.
-// XXX: keyboard navigation?
-ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
+export default class LocalNavigationTreeWidget extends TreeWidget
 {
     constructor({...options}={})
     {
@@ -729,7 +727,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
             add_root: false,
         });
 
-        this.load_path = new SentinelGuard(this.load_path, this);
+        this.load_path = new ppixiv.SentinelGuard(this.load_path, this);
 
         // Root local_navigation_widget_items will be stored here when
         // set_data_source_search_options is called.  Until that happens, we have
@@ -753,13 +751,13 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     {
         // Don't load a root if we're not currently on local search.
         let args = helpers.args.location;
-        if(args.path != local_api.path)
+        if(args.path != ppixiv.local_api.path)
             return;
 
         if(this._root == null)
         {
             // Create this tree.
-            this._root = new local_navigation_widget_item({
+            this._root = new LocalNavigationWidgetItem({
                 parent: this,
                 label: "/",
                 root: true,
@@ -786,7 +784,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
 
         // If we're not on a /local/ search, just deselect.
         let args = helpers.args.location;
-        if(args.path != local_api.path)
+        if(args.path != ppixiv.local_api.path)
         {
             this.set_selected_item(null);
             return;
@@ -817,7 +815,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
         await this.root.load();
         signal.check();
 
-        let media_id = local_api.get_local_id_from_args(args, { get_folder: true });
+        let media_id = ppixiv.local_api.get_local_id_from_args(args, { get_folder: true });
         let { id } = helpers.parse_media_id(media_id);
 
         // Split apart the path.
@@ -868,7 +866,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
     show_item(media_id)
     {
         let args = new helpers.args(ppixiv.plocation);
-        local_api.get_args_for_id(media_id, args);
+        ppixiv.local_api.get_args_for_id(media_id, args);
         helpers.navigate(args);
 
         // Hide the hover thumbnail on click to get it out of the way.
@@ -879,7 +877,7 @@ ppixiv.local_navigation_widget = class extends ppixiv.tree_widget
 function remove_recent_local_search(search)
 {
     // Remove tag from the list.  There should normally only be one.
-    var recent_tags = settings.get("local_searches") || [];
+    var recent_tags = ppixiv.settings.get("local_searches") || [];
     while(1)
     {
         var idx = recent_tags.indexOf(search);
@@ -887,305 +885,7 @@ function remove_recent_local_search(search)
             break;
         recent_tags.splice(idx, 1);
     }
-    settings.set("local_searches", recent_tags);
+    ppixiv.settings.set("local_searches", recent_tags);
     window.dispatchEvent(new Event("recent-local-searches-changed"));
 }
 
-
-// local_search_box_widget and local_search_dropdown_widget are dumb copy-pastes
-// of TagSearchBoxWidget and TagSearchDropdownWidget.  They're simpler and
-// much less used, and it didn't seem worth creating a shared base class for these.
-ppixiv.local_search_box_widget = class extends ppixiv.widget
-{
-    constructor({...options})
-    {
-        super({
-            ...options, template: `
-                <div class="search-box local-tag-search-box">
-                    <div class="input-field-container hover-menu-box">
-                        <input placeholder="Search files" size=1 autocorrect=off>
-
-                        <span class="clear-local-search-button right-side-button">
-                            ${ helpers.create_icon("clear") }
-                        </span>
-
-                        <span class="submit-local-search-button right-side-button">
-                            ${ helpers.create_icon("search") }
-                        </span>
-                    </div>
-                </div>
-            `
-        });
-
-        this.input_element = this.container.querySelector(".input-field-container > input");
-
-        this.dropdown_opener = new ppixiv.dropdown_box_opener({
-            button: this.input_element,
-
-            create_box: ({...options}) => {
-                return new local_search_dropdown_widget({
-                    input_element: this.container,
-                    focus_parent: this.container,
-                    ...options,
-                });
-            },
-
-            close_for_click: (e) => {
-                // Ignore clicks inside our container.
-                if(helpers.is_above(this.container, e.target))
-                    return false;
-
-                return true;
-            },
-        });
-
-        this.input_element.addEventListener("keydown", (e) => {
-            // Exit the search box if escape is pressed.
-            if(e.key == "Escape")
-            {
-                this.dropdown_opener.visible = false;
-                this.input_element.blur();
-            }
-        });
-
-        this.input_element.addEventListener("focus", () => this.dropdown_opener.visible = true);
-        this.input_element.addEventListener("submit", this.submit_search);
-        this.clear_search_button = this.container.querySelector(".clear-local-search-button");
-        this.clear_search_button.addEventListener("click", (e) => {
-            this.input_element.value = "";
-            this.input_element.dispatchEvent(new Event("submit"));
-        });
-        this.container.querySelector(".submit-local-search-button").addEventListener("click", (e) => {
-            this.input_element.dispatchEvent(new Event("submit"));
-        });
-
-        this.input_element.addEventListener("input", (e) => {
-            this.refresh_clear_button_visibility();
-        });
-
-        // Search submission:
-        helpers.input_handler(this.input_element, this.submit_search);
-
-        window.addEventListener("pp:popstate", (e) => { this.refresh_from_location(); });
-        this.refresh_from_location();
-        this.refresh_clear_button_visibility();
-    }
-
-    // Hide if our tree becomes hidden.
-    on_visible_recursively_changed()
-    {
-        super.on_visible_recursively_changed();
-
-        if(!this.visible_recursively)
-            this.dropdown_opener.visible = false;
-    }
-
-    // SEt the text box from the current URL.
-    refresh_from_location()
-    {
-        let args = helpers.args.location;
-        this.input_element.value = args.hash.get("search") || "";
-        this.refresh_clear_button_visibility();
-    }
-
-    refresh_clear_button_visibility()
-    {
-        this.clear_search_button.hidden = this.input_element.value == "";
-    }
-
-    submit_search = (e) =>
-    {
-        let tags = this.input_element.value;
-        local_api.navigate_to_tag_search(tags);
-
-        // If we're submitting by pressing enter on an input element, unfocus it and
-        // close any widgets inside it (tag dropdowns).
-        if(e.target instanceof HTMLInputElement)
-        {
-            e.target.blur();
-            this.dropdown_opener.visible = false;
-        }
-    }
-}
-
-ppixiv.local_search_dropdown_widget = class extends ppixiv.widget
-{
-    constructor({input_element, focus_parent, ...options})
-    {
-        super({...options, template: `
-            <div class="search-history input-dropdown">
-                <div class="input-dropdown-contents input-dropdown-list">
-                    <!-- template-tag-dropdown-entry instances will be added here. -->
-                </div>
-            </div>
-        `});
-
-        this.input_element = input_element;
-
-        // While we're open, we'll close if the user clicks outside focus_parent.
-        this.focus_parent = focus_parent;
-
-        // Refresh the dropdown when the search history changes.
-        window.addEventListener("recent-local-searches-changed", this.populate_dropdown);
-
-        this.container.addEventListener("click", this.dropdown_onclick);
-
-        // input-dropdown is resizable.  Save the size when the user drags it.
-        this.input_dropdown = this.container.querySelector(".input-dropdown-list");
-
-        // Restore input-dropdown's width.
-        let refresh_dropdown_width = () => {
-            let width = settings.get("tag-dropdown-width", "400");
-            width = parseInt(width);
-            if(isNaN(width))
-                width = 400;
-            this.container.style.setProperty('--width', `${width}px`);
-        };
-
-        let observer = new MutationObserver((mutations) => {
-            // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
-            // as 0 here.
-            settings.set("tag-dropdown-width", this.input_dropdown.style.width);
-        });
-        observer.observe(this.input_dropdown, { attributes: true });
-
-        // Restore input-dropdown's width.
-        refresh_dropdown_width();
-
-        // Sometimes the popup closes when searches are clicked and sometimes they're not.  Make sure
-        // we always close on navigation.
-        this.container.addEventListener("click", (e) => {
-            if(e.defaultPrevented)
-                return;
-            let a = e.target.closest("A");
-            if(a == null)
-                return;
-
-            this.input_element.blur();
-            this.hide();
-        });
-
-        this._load();
-    }
-
-    dropdown_onclick = (e) =>
-    {
-        var remove_entry = e.target.closest(".remove-history-entry");
-        if(remove_entry != null)
-        {
-            // Clicked X to remove a tag from history.
-            e.stopPropagation();
-            e.preventDefault();
-
-            let tag = e.target.closest(".entry").dataset.tag;
-            remove_recent_local_search(tag);
-            return;
-        }
-
-        // Close the dropdown if the user clicks a tag (but not when clicking
-        // remove-history-entry).
-        if(e.target.closest(".tag"))
-            this.hide();
-    }
-
-    _load()
-    {
-        // Fill in the dropdown before displaying it.
-        this.populate_dropdown();
-    }
-
-    create_entry(search)
-    {
-        let entry = this.create_template({name: "tag-dropdown-entry", html: `
-            <a class=entry href=#>
-                <span class=search></span>
-                <span class="right-side-buttons">
-                    <span class="remove-history-entry right-side-button keep-menu-open">X</span>
-                </span>
-            </a>
-        `});
-        entry.dataset.tag = search;
-
-        let span = document.createElement("span");
-        span.innerText = search;
-
-        entry.querySelector(".search").appendChild(span);
-
-        let args = new helpers.args("/", ppixiv.plocation);
-        args.path = local_api.path;
-        args.hash_path = "/";
-        args.hash.set("search", search);
-        entry.href = args.url;
-        return entry;
-    }
-
-    // Populate the tag dropdown.
-    populate_dropdown = () =>
-    {
-        let tag_searches = settings.get("local_searches") || [];
-        tag_searches.sort();
-
-        let list = this.container.querySelector(".input-dropdown-list");
-        helpers.remove_elements(list);
-
-        for(let tag of tag_searches)
-        {
-            var entry = this.create_entry(tag);
-            entry.classList.add("history");
-            list.appendChild(entry);
-        }
-    }
-}
-
-// A button to show an image in Explorer.
-//
-// This requires view_in_explorer.pyw be set up.
-ppixiv.view_in_explorer_widget = class extends ppixiv.illust_widget
-{
-    constructor({...options})
-    {
-        super({...options});
-
-        this.enabled = false;
-
-        // Ignore clicks on the button if it's disabled.
-        this.container.addEventListener("click", (e) => {
-            if(this.enabled)
-                return;
-
-            e.preventDefault();
-            e.stopPropagation();
-        });
-    }
-
-    refresh_internal({ media_id, media_info })
-    {
-        // Hide the button if we're not on a local image.
-        this.container.closest(".button-container").hidden = !helpers.is_media_id_local(media_id);
-        
-        let path = media_info?.localPath;
-        this.enabled = media_info?.localPath != null;
-        helpers.set_class(this.container.querySelector("A.button"), "enabled", this.enabled);
-        if(path == null)
-            return;
-
-        path = path.replace(/\\/g, "/");
-
-        // We have to work around some extreme jankiness in the URL API.  If we create our
-        // URL directly and then try to fill in the pathname, it won't let us change it.  We
-        // have to create a file URL, fill in the pathname, then replace the scheme after
-        // converting to a string.  Web!
-        let url = new URL("file:///");
-        url.pathname = path;
-        url = url.toString();
-        url = url.replace("file:", "vviewinexplorer:")
-
-        let a = this.container.querySelector("A.local-link");
-        a.href = url;
-
-        // Set the popup for the type of ID.
-        let { type } = helpers.parse_media_id(media_id);
-        let popup = type == "file"? "View file in Explorer":"View folder in Explorer";
-        a.dataset.popup = popup;
-    }
-}

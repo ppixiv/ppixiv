@@ -1,10 +1,14 @@
 // The main desktop search UI.
 
-import { helpers } from 'vview/ppixiv-imports.js';
+import Widget from 'vview/widgets/widget.js';
+import { AvatarWidget } from 'vview/widgets/user-widgets.js';
+import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
+import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import UserInfoLinks from 'vview/screen-search/user-info-links.js';
 import CreateSearchMenu from 'vview/screen-search/search-menu.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
-export default class DesktopSearchUI extends ppixiv.widget
+export default class DesktopSearchUI extends Widget
 {
     constructor(options)
     {
@@ -80,10 +84,10 @@ export default class DesktopSearchUI extends ppixiv.widget
         });
 
         // Create the search menu dropdown.
-        new ppixiv.dropdown_menu_opener({
+        new DropdownMenuOpener({
             button: this.container.querySelector(".main-search-menu-button"),
             create_box: ({...options}) => {
-                let dropdown = this.bookmark_tags_dropdown = new ppixiv.widget({
+                let dropdown = this.bookmark_tags_dropdown = new Widget({
                     ...options,
                     template: `<div class="vertical-list"></div>`,
                 });
@@ -112,13 +116,13 @@ export default class DesktopSearchUI extends ppixiv.widget
             this.parent.refreshUi();
         });        
 
-        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
+        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new SettingsDialog());
 
         // Refresh the "Refresh search from page" tooltip if the page in the URL changes.  Use statechange
         // rather than popstate for this, so it responds to all URL changes.
         window.addEventListener("pp:statechange", (e) => this.refreshRefreshSearchFromPage(), { signal: this.shutdown_signal.signal });
 
-        this.avatarWidget = new ppixiv.avatar_widget({
+        this.avatarWidget = new AvatarWidget({
             container: this.querySelector(".avatar-container"),
             big: true,
             mode: "dropdown",
@@ -149,7 +153,7 @@ export default class DesktopSearchUI extends ppixiv.widget
             return;
 
         this.dataSource = dataSource;
-        this.avatarWidget.set_user_id(null);
+        this.avatarWidget.setUserId(null);
         this.avatarWidget.visible = false;
         this.image_for_suggestions.hidden = true;
 
@@ -185,16 +189,16 @@ export default class DesktopSearchUI extends ppixiv.widget
     {
         if(this.dataSource)
         {
-            let { user_id, image_url, image_link_url } = this.dataSource.ui_info;
+            let { userId, imageUrl, imageLinkUrl } = this.dataSource.uiInfo;
 
-            this.image_for_suggestions.hidden = image_url == null;
-            this.image_for_suggestions.href = image_link_url ?? "#";
+            this.image_for_suggestions.hidden = imageUrl == null;
+            this.image_for_suggestions.href = imageLinkUrl ?? "#";
 
             let img = this.image_for_suggestions.querySelector(".image-for-suggestions > img");
-            img.src = image_url ?? helpers.blank_image;
+            img.src = imageUrl ?? helpers.blank_image;
 
-            this.avatarWidget.visible = user_id != null;
-            this.avatarWidget.set_user_id(user_id);
+            this.avatarWidget.visible = userId != null;
+            this.avatarWidget.setUserId(userId);
         }
 
         let element_displaying = this.container.querySelector(".displaying");

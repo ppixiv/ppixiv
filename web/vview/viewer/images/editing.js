@@ -1,6 +1,11 @@
-"use strict";
+import PanEditor from 'vview/viewer/images/editing-pan.js';
+import InpaintEditor from 'vview/viewer/images/editing-inpaint.js';
+import CropEditor from 'vview/viewer/images/editing-crop.js';
+import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
+import { IllustWidget } from 'vview/widgets/illust-widgets.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
-ppixiv.ImageEditor = class extends ppixiv.illust_widget
+export default class ImageEditor extends IllustWidget
 {
     constructor({
         // The ImageEditingOverlayContainer, which holds editor UI that goes inside the
@@ -13,7 +18,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     {
         // Set our default visibility to the image_editing setting.
         if(visible == null)
-            visible = settings.get("image_editing");
+            visible = ppixiv.settings.get("image_editing");
 
         super({...options,
             visible,
@@ -40,18 +45,18 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this.container.querySelector(".spinner").hidden = true;
 
-        let crop_editor = new ppixiv.CropEditor({
+        let crop_editor = new CropEditor({
             container: this.container,
             mode: "crop",
             visible: false,
         });
 
-        let pan_editor = new ppixiv.PanEditor({
+        let pan_editor = new PanEditor({
             container: this.container,
             visible: false,
         });
 
-        let inpaint_editor = new ppixiv.InpaintEditor({
+        let inpaint_editor = new InpaintEditor({
             container: this.container,
             visible: false,
         });
@@ -94,7 +99,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this.overlay_container = overlay_container;
 
-        OpenWidgets.singleton.addEventListener("changed", this.refresh_temporarily_hidden, { signal: this.shutdown_signal.signal });
+        ppixiv.OpenWidgets.singleton.addEventListener("changed", this.refresh_temporarily_hidden, { signal: this.shutdown_signal.signal });
 
         window.addEventListener("keydown", (e) => {
             if(!this.visible)
@@ -127,7 +132,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         // Refresh when these settings change.
         for(let setting of ["image_editing", "image_editing_mode"])
-            settings.addEventListener(setting, () => {
+            ppixiv.settings.addEventListener(setting, () => {
                 this.refresh();
 
                 // Let our parent know that we may have changed editor visibility, since this
@@ -153,8 +158,8 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         this.close_editor = this.container.querySelector(".close-editor");
         this.close_editor.addEventListener("click", async (e) => {
             e.stopPropagation();
-            settings.set("image_editing", null);
-            settings.set("image_editing_mode", null);
+            ppixiv.settings.set("image_editing", null);
+            ppixiv.settings.set("image_editing_mode", null);
         }, { signal: this.shutdown_signal.signal });
 
         this.undo_button = this.container.querySelector(".undo");
@@ -196,21 +201,21 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     // Return true if the crop editor is active.
     get editing_crop()
     {
-        return settings.get("image_editing", false) && this.active_editor_name == "crop";
+        return ppixiv.settings.get("image_editing", false) && this.active_editor_name == "crop";
     }
 
     refresh_temporarily_hidden = () =>
     {
         // Hide while the UI is open.  This is only needed on mobile, where our buttons
         // overlap the hover UI.
-        let hidden = ppixiv.mobile && !OpenWidgets.singleton.empty;
+        let hidden = ppixiv.mobile && !ppixiv.OpenWidgets.singleton.empty;
         helpers.set_class(this.container, "temporarily-hidden", hidden);
     }
 
     visibility_changed()
     {
-        if(settings.get("image_editing") != this.visible)
-            settings.set("image_editing", this.visible);
+        if(ppixiv.settings.get("image_editing") != this.visible)
+            ppixiv.settings.set("image_editing", this.visible);
 
         // Refresh to update editor visibility.
         this.refresh();
@@ -289,7 +294,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
     {
         super.refresh();
 
-        this.visible = settings.get("image_editing", false);
+        this.visible = ppixiv.settings.get("image_editing", false);
         helpers.set_class(this.save_edits, "dirty", this.dirty);
 
         let is_local = helpers.is_media_id_local(this.media_id);
@@ -403,10 +408,10 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             let media_info;
             if(helpers.is_media_id_local(this.media_id))
             {
-                let result = await local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
+                let result = await ppixiv.local_api.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
                 if(!result.success)
                 {
-                    message_widget.singleton.show(`Error saving image edits: ${result.reason}`);
+                    ppixiv.message.show(`Error saving image edits: ${result.reason}`);
                     console.error("Error saving image edits:", result);
                     this.dirty = true;
 
@@ -415,13 +420,13 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
                 // Update cached media info to include the change.
                 media_info = result.illust;
-                local_api.adjust_illust_info(media_info);
-                media_cache.update_media_info(this.media_id, media_info);
+                ppixiv.local_api.adjust_illust_info(media_info);
+                ppixiv.media_cache.update_media_info(this.media_id, media_info);
             }
             else
             {
                 // Save data for Pixiv images to image_data.
-                media_info = await media_cache.save_extra_image_data(this.media_id, edits);                
+                media_info = await ppixiv.media_cache.save_extra_image_data(this.media_id, edits);                
             }
 
             // Let the widgets know that we saved.
@@ -440,7 +445,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         if(Object.keys(data).length == 0)
         {
-            message_widget.singleton.show("No edits to copy");
+            ppixiv.message.show("No edits to copy");
             return;
         }
 
@@ -456,7 +461,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
             })
         ]);
 
-        message_widget.singleton.show("Edits copied");
+        ppixiv.message.show("Edits copied");
     }
 
     async paste()
@@ -466,25 +471,25 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         try {
             data = JSON.parse(text);
         } catch(e) {
-            message_widget.singleton.show("Clipboard doesn't contain edits");
+            ppixiv.message.show("Clipboard doesn't contain edits");
             return;
         }
 
         if(data.type != "ppixiv-edits")
         {
-            message_widget.singleton.show("Clipboard doesn't contain edits");
+            ppixiv.message.show("Clipboard doesn't contain edits");
             return;
         }
 
         this.set_state(data);
         await this.save();
 
-        message_widget.singleton.show("Edits pasted");
+        ppixiv.message.show("Edits pasted");
     }
 
     get active_editor_name()
     {
-        return settings.get("image_editing_mode", null);
+        return ppixiv.settings.get("image_editing_mode", null);
     }
 
     set active_editor_name(editor_name)
@@ -492,7 +497,7 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
         if(editor_name != null && this.editors[editor_name] == null)
             throw new Error(`Invalid editor name ${editor_name}`);
 
-        settings.set("image_editing_mode", editor_name);
+        ppixiv.settings.set("image_editing_mode", editor_name);
     }
 
     get active_editor()
@@ -512,49 +517,5 @@ ppixiv.ImageEditor = class extends ppixiv.illust_widget
 
         this._dirty = value;
         this.refresh();
-    }
-}
-
-// This is a custom element that roughly emulates an HTMLImageElement, but contains two
-// overlaid images instead of one to overlay the inpaint, and holds the InpaintEditorOverlay.
-// Load and error events are dispatched, and the image is considered loaded or complete when
-// both of its images are loaded or complete.  This allows on_click_viewer to display inpainting
-// and the inpaint editor without needing to know much about it, so we can avoid complicating
-// the viewer.
-ppixiv.ImageEditingOverlayContainer = class extends ppixiv.widget
-{
-    constructor({
-        ...options
-    })
-    {
-        super({...options, template: `
-            <div class=editing-container>
-                <div class=inpaint-editor-overlay-container></div>
-                <div class=crop-editor-overlay-container></div>
-                <div class=pan-editor-overlay-container></div>
-            </div>
-        `});
-
-        this.inpaint_editor_overlay_container = this.container.querySelector(".inpaint-editor-overlay-container");
-        this.crop_editor_overlay_container = this.container.querySelector(".crop-editor-overlay-container");
-        this.pan_editor_overlay_container = this.container.querySelector(".pan-editor-overlay-container");
-    }
-
-    set inpaint_editor_overlay(node)
-    {
-        helpers.remove_elements(this.inpaint_editor_overlay_container);
-        this.inpaint_editor_overlay_container.appendChild(node);
-    }
-
-    set crop_editor_overlay(node)
-    {
-        helpers.remove_elements(this.crop_editor_overlay_container);
-        this.crop_editor_overlay_container.appendChild(node);
-    }
-
-    set pan_editor_overlay(node)
-    {
-        helpers.remove_elements(this.pan_editor_overlay_container);
-        this.pan_editor_overlay_container.appendChild(node);
     }
 }

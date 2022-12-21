@@ -1,9 +1,14 @@
-import { helpers } from 'vview/ppixiv-imports.js';
+import Widget from 'vview/widgets/widget.js';
 import CreateSearchMenu from 'vview/screen-search/search-menu.js';
+import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
+import DataSource from 'vview/data-sources/data-source.js';
+import ArtistDataSource from 'vview/data-sources/pixiv/artist.js';
+import DialogWidget from 'vview/widgets/dialog.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
 // The bottom navigation bar for mobile, showing the current search and exposing a smaller
 // action bar when open.  This vaguely follows the design language of iOS Safari.
-export default class MobileSearchUI extends ppixiv.widget
+export default class MobileSearchUI extends Widget
 {
     constructor(options)
     {
@@ -36,7 +41,7 @@ export default class MobileSearchUI extends ppixiv.widget
         `});
 
         this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
-        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new ppixiv.settings_dialog());
+        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new SettingsDialog());
         this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(ppixiv.app.slideshowURL));
         this.container.querySelector(".menu").addEventListener("click", (e) => new mobile_edit_search_dialog());
 
@@ -79,7 +84,7 @@ export default class MobileSearchUI extends ppixiv.widget
 }
 
 // This dialog shows the search filters that are in the header box on desktop.
-class mobile_edit_search_dialog extends ppixiv.dialog_widget
+class mobile_edit_search_dialog extends DialogWidget
 {
     constructor({...options}={})
     {
@@ -123,7 +128,7 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         for(let button of this.container.querySelectorAll(".navigation-button"))
         {
             let url = new URL(button.href);
-            let data_source_class = ppixiv.data_source.get_data_source_for_url(url);
+            let data_source_class = DataSource.getDataSourceForUrl(url);
 
             if(current_data_source instanceof data_source_class)
                 return button;
@@ -150,7 +155,7 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
         // If this is the artist row, set the title based on the artist name.
         if(active_row.classList.contains("artist-row"))
         {
-            let data_source_is_artist = this.data_source instanceof ppixiv.data_sources.artist;
+            let data_source_is_artist = this.data_source instanceof ArtistDataSource;
             if(data_source_is_artist)
             {
                 let username = this.data_source.user_info?.name;
@@ -175,6 +180,6 @@ class mobile_edit_search_dialog extends ppixiv.dialog_widget
             position = row;
     }
 
-    // Tell dialog_widget not to close us on popstate.  It'll still close us if the screen changes.
+    // Tell DialogWidget not to close us on popstate.  It'll still close us if the screen changes.
     get _close_on_popstate() { return false; }
 }

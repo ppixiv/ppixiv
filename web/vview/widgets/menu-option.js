@@ -1,7 +1,9 @@
-"use strict";
+import Widget from 'vview/widgets/widget.js';
+import { CheckboxWidget } from 'vview/widgets/simple.js';
+import { helpers } from 'vview/ppixiv-imports.js';
 
 // Simple menu settings widgets.
-ppixiv.menu_option = class extends widget
+export class MenuOption extends Widget
 {
     constructor({
         classes=[],
@@ -44,7 +46,7 @@ ppixiv.menu_option = class extends widget
 }
 
 // A container for multiple options on a single row.
-ppixiv.menu_option_row = class extends ppixiv.menu_option
+export class MenuOptionRow extends MenuOption
 {
     constructor({
         label=null,
@@ -65,7 +67,7 @@ ppixiv.menu_option_row = class extends ppixiv.menu_option
     }
 }
 
-ppixiv.menu_option_button = class extends ppixiv.menu_option
+export class MenuOptionButton extends MenuOption
 {
     constructor({
         url=null,
@@ -153,7 +155,7 @@ ppixiv.menu_option_button = class extends ppixiv.menu_option
 }
 
 // A simpler button, used for sub-buttons such as "Edit".
-ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
+export class MenuOptionNestedButton extends MenuOption
 {
     constructor({
         onclick=null,
@@ -172,7 +174,7 @@ ppixiv.menu_option_nested_button = class extends ppixiv.menu_option
     }
 }
 
-ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
+export class MenuOptionToggle extends MenuOptionButton
 {
     constructor({
         checked=false,
@@ -181,7 +183,7 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
     {
         super({...options});
 
-        this.checkbox = new checkbox_widget({ container: this.container });
+        this.checkbox = new CheckboxWidget({ container: this.container });
         this.checkbox.checked = checked;
     }
 
@@ -195,7 +197,7 @@ ppixiv.menu_option_toggle = class extends ppixiv.menu_option_button
     }
 }
 
-ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
+export class MenuOptionToggleSetting extends MenuOptionToggle
 {
     constructor({
         setting=null,
@@ -225,7 +227,7 @@ ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
         this.on_value = on_value;
         this.off_value = off_value;
         if(this.setting)
-            settings.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdown_signal.signal });
+            ppixiv.settings.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdown_signal.signal });
     }
 
     refresh()
@@ -241,16 +243,16 @@ ppixiv.menu_option_toggle_setting = class extends ppixiv.menu_option_toggle
 
     get value()
     {
-        return settings.get(this.setting) == this.on_value;
+        return ppixiv.settings.get(this.setting) == this.on_value;
     }
 
     set value(value)
     {
-        settings.set(this.setting, value? this.on_value:this.off_value);
+        ppixiv.settings.set(this.setting, value? this.on_value:this.off_value);
     }
 }
 
-class menu_option_slider extends ppixiv.menu_option
+export class MenuOptionSlider extends MenuOption
 {
     constructor({
         min=null,
@@ -357,8 +359,7 @@ class menu_option_slider extends ppixiv.menu_option
     }
 }
 
-
-ppixiv.menu_option_slider_setting = class extends menu_option_slider
+export class MenuOptionSliderSetting extends MenuOptionSlider
 {
     constructor({setting, ...options})
     {
@@ -372,19 +373,19 @@ ppixiv.menu_option_slider_setting = class extends menu_option_slider
 
     get value()
     {
-        return settings.get(this.setting);
+        return ppixiv.settings.get(this.setting);
     }
 
     set value(value)
     {
-        settings.set(this.setting, value);
+        ppixiv.settings.set(this.setting, value);
         this.refresh();
     }
 };
 
 // A menu option widget for settings that come from a list of options.  This would
 // make more sense as a dropdown, but for now it uses a slider.
-ppixiv.menu_option_options_setting = class extends menu_option_button
+export class MenuOptionOptionsSetting extends MenuOptionButton
 {
     constructor({setting,
         label,
@@ -401,7 +402,7 @@ ppixiv.menu_option_options_setting = class extends menu_option_button
 
         this.setting = setting;
         this.values = values;
-        this.slider = new menu_option_slider_setting({
+        this.slider = new MenuOptionSliderSetting({
             container: this.container,
             label: "xxx",
             setting: setting,
@@ -425,7 +426,7 @@ ppixiv.menu_option_options_setting = class extends menu_option_button
 };
 
 // A widget to control the thumbnail size slider.
-ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider_setting
+export class MenuOptionsThumbnailSizeSlider extends MenuOptionSliderSetting
 {
     constructor({...options})
     {
@@ -437,7 +438,7 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider_setting
     // Increase or decrease zoom.
     move(down)
     {
-        settings.adjust_zoom(this.setting, down);
+        ppixiv.settings.adjust_zoom(this.setting, down);
     }
 
     get value()
@@ -452,4 +453,4 @@ ppixiv.thumbnail_size_slider_widget = class extends menu_option_slider_setting
     {
         return 100 * Math.pow(1.3, value);
     }
-};
+}

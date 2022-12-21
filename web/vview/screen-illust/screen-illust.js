@@ -2,6 +2,8 @@
 //
 // This handles creating and navigating between viewers.
 
+import Screen from 'vview/screen.js';
+
 import DesktopImageInfo from 'vview/screen-illust/desktop-image-info.js';
 
 import MobileImageChanger from 'vview/screen-illust/mobile-image-changer.js';
@@ -15,10 +17,12 @@ import ViewerVideo from 'vview/viewer/video/viewer-video.js';
 import ViewerUgoira from 'vview/viewer/video/viewer-ugoira.js';
 import ViewerError from 'vview/viewer/viewer-error.js';
 
+import ImagePreloader from "vview/misc/image-preloader.js";
+import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
 import { helpers } from 'vview/ppixiv-imports.js';
 
 // The main UI.  This handles creating the viewers and the global UI.
-export default class ScreenIllust extends ppixiv.screen
+export default class ScreenIllust extends Screen
 {
     constructor(options)
     {
@@ -72,7 +76,7 @@ export default class ScreenIllust extends ppixiv.screen
                 helpers.toggle_fullscreen();
             });
 
-            new ppixiv.HideMouseCursorOnIdle(this.container.querySelector(".mouse-hidden-box"));
+            new HideMouseCursorOnIdle(this.container.querySelector(".mouse-hidden-box"));
 
             this.container.addEventListener("wheel", this.onwheel, { passive: false });
         }
@@ -213,8 +217,8 @@ export default class ScreenIllust extends ppixiv.screen
         // Tell the preloader that we're not displaying an image anymore.  This prevents the next
         // image displayed from triggering speculative loading, which we don't want to do when
         // clicking an image in the thumbnail view.
-        ppixiv.image_preloader.singleton.set_current_image(null);
-        ppixiv.image_preloader.singleton.set_speculative_image(null);
+        ImagePreloader.singleton.set_current_image(null);
+        ImagePreloader.singleton.set_speculative_image(null);
 
         // If remote quick view is active, cancel it if we leave the image.
         if(ppixiv.settings.get("linked_tabs_enabled"))
@@ -343,7 +347,7 @@ export default class ScreenIllust extends ppixiv.screen
 
         // Dismiss any message when changing images.
         if(this.currentMediaId != mediaId)
-            ppixiv.message_widget.singleton.hide();
+            ppixiv.message.hide();
 
         this._wantedMediaId = mediaId;
         this.currentMediaId = mediaId;
@@ -362,7 +366,7 @@ export default class ScreenIllust extends ppixiv.screen
             ppixiv.send_image.send_image(mediaId, ppixiv.settings.get("linked_tabs", []), "temp-view");
 
         // Tell the preloader about the current image.
-        ppixiv.image_preloader.singleton.set_current_image(mediaId);
+        ImagePreloader.singleton.set_current_image(mediaId);
 
         // Make sure the URL points to this image.
         let args = ppixiv.app.getMediaURL(mediaId);
@@ -381,9 +385,9 @@ export default class ScreenIllust extends ppixiv.screen
             (async() => {
                 let newMediaId = await this.getNavigation(this.latestNavigationDirectionDown);
 
-                // Let image_preloader handle speculative loading.  If newMediaId is null,
+                // Let ImagePreloader handle speculative loading.  If newMediaId is null,
                 // we're telling it that we don't need to load anything.
-                ppixiv.image_preloader.singleton.set_speculative_image(newMediaId);
+                ImagePreloader.singleton.set_speculative_image(newMediaId);
             })();
         }
 
@@ -472,7 +476,7 @@ export default class ScreenIllust extends ppixiv.screen
         let newMediaId = await this.data_source.get_or_load_neighboring_media_id(null, true);
         if(newMediaId == null)
         {
-            ppixiv.message_widget.singleton.show("Couldn't find an image to view");
+            ppixiv.message.show("Couldn't find an image to view");
             return true;
         }
 
@@ -491,8 +495,8 @@ export default class ScreenIllust extends ppixiv.screen
 
     shouldHideMutedImage(early_illust_data)
     {
-        let muted_tag = ppixiv.muting.singleton.any_tag_muted(early_illust_data.tagList);
-        let muted_user = ppixiv.muting.singleton.is_muted_user_id(early_illust_data.userId);
+        let muted_tag = ppixiv.muting.any_tag_muted(early_illust_data.tagList);
+        let muted_user = ppixiv.muting.is_muted_user_id(early_illust_data.userId);
         if(this.viewMuted || (!muted_tag && !muted_user))
             return { isMuted: false };
 
@@ -643,14 +647,14 @@ export default class ScreenIllust extends ppixiv.screen
 
     // Navigate to the next or previous image.
     //
-    // manga is a manga skip mode.  See illust_id_list.get_neighboring_media_id.
+    // manga is a manga skip mode.  See IllustIdList.getNeighboringMediaId.
     async navigateToNext(down, { manga="normal", flashAtEnd=true }={})
     {
         // Loop if we're in slideshow mode, otherwise stop when we reach the end.
         let loop = helpers.args.location.hash.get("slideshow") != null;
 
         // If we're viewing an error page, always skip manga pages.
-        if(manga == "normal" && this.viewer instanceof ppixiv.viewer_error)
+        if(manga == "normal" && this.viewer instanceof ViewerError)
             manga = "skip-past";
 
         // Remember whether we're navigating forwards or backwards, for preloading.

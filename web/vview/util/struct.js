@@ -1,5 +1,3 @@
-"use strict";
-
 // https://github.com/lyngklip/structjs/blob/master/struct.js
 // The MIT License (MIT)
 // Copyright (c) 2016 Aksel Jensen (TheRealAksel at github)

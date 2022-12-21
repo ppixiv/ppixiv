@@ -1,8 +1,15 @@
 // This handles the desktop overlay UI on the illustration page.
 
+import Widget from 'vview/widgets/widget.js';
+import { BookmarkButtonWidget, BookmarkCountWidget, LikeButtonWidget, LikeCountWidget } from 'vview/widgets/illust-widgets.js';
+import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
+import { AvatarWidget } from 'vview/widgets/user-widgets.js';
+import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
+import Actions from 'vview/misc/actions.js';
+import TagListWidget from 'vview/widgets/tag-list-widget.js';
 import { helpers } from 'vview/ppixiv-imports.js';
 
-export default class DesktopImageInfo extends ppixiv.widget
+export default class DesktopImageInfo extends Widget
 {
     constructor({...options})
     {
@@ -144,7 +151,7 @@ export default class DesktopImageInfo extends ppixiv.widget
         // the scroller.
         this.ui_box = this.container.querySelector(".ui-box");
 
-        this.avatarWidget = new ppixiv.avatar_widget({
+        this.avatarWidget = new AvatarWidget({
             container: this.container.querySelector(".avatar-popup"),
             mode: "dropdown",
             dropdownvisibilitychanged: () => {
@@ -152,19 +159,19 @@ export default class DesktopImageInfo extends ppixiv.widget
             },
         });
 
-        this.tagWidget = new ppixiv.tag_widget({
+        this.tagListWidget = new TagListWidget({
             contents: this.container.querySelector(".tag-list"),
         });
 
         ppixiv.media_cache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
         
-        this.likeButton = new ppixiv.like_button_widget({
+        this.likeButton = new LikeButtonWidget({
             contents: this.container.querySelector(".button-like"),
         });
-        this.likeCountWidget = new ppixiv.like_count_widget({
+        this.likeCountWidget = new LikeCountWidget({
             contents: this.container.querySelector(".button-like .count"),
         });
-        this.bookmarkCountWidget = new ppixiv.bookmark_count_widget({
+        this.bookmarkCountWidget = new BookmarkCountWidget({
             contents: this.container.querySelector(".button-bookmark .count"),
         });
         this.mangaPageBar = this.querySelector(".manga-page-bar");
@@ -172,13 +179,13 @@ export default class DesktopImageInfo extends ppixiv.widget
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmarkButtons = [];
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
-            this.bookmarkButtons.push(new ppixiv.bookmark_button_widget({
+            this.bookmarkButtons.push(new BookmarkButtonWidget({
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
             }));
 
         let bookmark_tags_button = this.container.querySelector(".button-bookmark-tags");
-        this.bookmarkTagsDropdownOpener = new ppixiv.bookmark_tag_dropdown_opener({
+        this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({
             parent: this,
             bookmark_tags_button,
             bookmark_buttons: this.bookmarkButtons,
@@ -203,7 +210,7 @@ export default class DesktopImageInfo extends ppixiv.widget
         }, { passive: false });
 
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
-            new ppixiv.settings_dialog();
+            new SettingsDialog();
         });
 
         // Show on hover.
@@ -341,8 +348,8 @@ export default class DesktopImageInfo extends ppixiv.widget
         let disableButton = this.querySelector(".disable-ui-button");
         disableButton.href = `/artworks/${illustId}#no-ppixiv`;
 
-        this.avatarWidget.set_user_id(userId);
-        this.tagWidget.set(mediaInfo.tagList);
+        this.avatarWidget.setUserId(userId);
+        this.tagListWidget.set(mediaInfo.tagList);
 
         let element_title = this.container.querySelector(".title");
         element_title.textContent = mediaInfo.illustTitle;
@@ -387,13 +394,13 @@ export default class DesktopImageInfo extends ppixiv.widget
 
         // Set the download button popup text.
         let downloadImageButton = this.container.querySelector(".download-image-button");
-        downloadImageButton.hidden = !ppixiv.actions.is_download_type_available("image", mediaInfo);
+        downloadImageButton.hidden = !Actions.is_download_type_available("image", mediaInfo);
 
         let downloadMangaButton = this.container.querySelector(".download-manga-button");
-        downloadMangaButton.hidden = !ppixiv.actions.is_download_type_available("ZIP", mediaInfo);
+        downloadMangaButton.hidden = !Actions.is_download_type_available("ZIP", mediaInfo);
 
         let downloadVideoButton = this.container.querySelector(".download-video-button");
-        downloadVideoButton.hidden = !ppixiv.actions.is_download_type_available("MKV", mediaInfo);
+        downloadVideoButton.hidden = !Actions.is_download_type_available("MKV", mediaInfo);
     }
 
     setPostInfo(post_info_container)
@@ -464,7 +471,7 @@ export default class DesktopImageInfo extends ppixiv.widget
         e.stopPropagation();
 
         let download_type = clickedButton.dataset.download;
-        ppixiv.actions.download_illust(this._mediaId, download_type, this.displayedPage);
+        Actions.download_illust(this._mediaId, download_type, this.displayedPage);
     }
  }
 

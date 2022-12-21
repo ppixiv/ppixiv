@@ -978,7 +978,7 @@ ppixiv.helpers = {
         return parts[parts.length-1];
     },
 
-    save_scroll_position(scroller, save_relative_to)
+    saveScrollPosition(scroller, save_relative_to)
     {
         return {
             original_scroll_top: scroller.scrollTop,
@@ -986,7 +986,7 @@ ppixiv.helpers = {
         };
     },
 
-    restore_scroll_position(scroller, restore_relative_to, saved_position)
+    restoreScrollPosition(scroller, restore_relative_to, saved_position)
     {
         let scroll_top = saved_position.original_scroll_top;
         if(restore_relative_to)
@@ -1675,7 +1675,7 @@ ppixiv.helpers = {
         }
         
         // Don't include things like the current page in the URL.
-        let args = data_source.get_canonical_url(url);
+        let args = helpers.get_canonical_url(url);
         return args;
     },
     
@@ -1689,6 +1689,65 @@ ppixiv.helpers = {
 
         let parts = url.pathname.split("/");
         return decodeURIComponent(parts[2]);
+    },
+
+    // Return a canonical URL for a data source.  If the canonical URL is the same,
+    // the same instance of the data source should be used.
+    //
+    // A single data source is used eg. for a particular search and search flags.  If
+    // flags are changed, such as changing filters, a new data source instance is created.
+    // However, some parts of the URL don't cause a new data source to be used.  Return
+    // a URL with all unrelated parts removed, and with query and hash parameters sorted
+    // alphabetically.
+    get_canonical_url(url, {
+        // The search page doesn't affect the data source.  Set this to false to leave it
+        // in the URL anyway.
+        remove_search_page=true
+    }={})
+    {
+        // Make a copy of the URL.
+        var url = new URL(url);
+
+        // Remove /en from the URL if it's present.
+        url = helpers.get_url_without_language(url);
+
+        let args = new helpers.args(url);
+
+        // Remove parts of the URL that don't affect which data source instance is used.
+        //
+        // If p=1 is in the query, it's the page number, which doesn't affect the data source.
+        if(remove_search_page)
+            args.query.delete("p");
+
+        // The manga page doesn't affect the data source.
+        args.hash.delete("page");
+
+        // #view=thumbs controls which view is active.
+        args.hash.delete("view");
+
+        // illust_id in the hash is always just telling us which image within the current
+        // data source to view.  data_sources.current_illust is different and is handled in
+        // the subclass.
+        args.hash.delete("illust_id");
+
+        // These are for temp view and don't affect the data source.
+        args.hash.delete("virtual");
+        args.hash.delete("temp-view");
+
+        // This is for overriding muting.
+        args.hash.delete("view-muted");
+
+        // Ignore filenames for local IDs.
+        args.hash.delete("file");
+
+        // slideshow is used by the viewer and doesn't affect the data source.
+        args.hash.delete("slideshow");
+
+        // Sort query and hash parameters.
+        args.query = helpers.sort_query_parameters(args.query);
+        args.hash = helpers.sort_query_parameters(args.hash);
+
+        return args;
     },
 
     // Watch for clicks on links inside node.  If a search link is clicked, add it to the
@@ -2497,30 +2556,30 @@ ppixiv.helpers = {
     // container is the containing block (eg. ul.thumbnails).
     make_thumbnail_sizing_style({
         container,
-        min_padding,
-        desired_size=300,
+        minPadding,
+        desiredSize=300,
         ratio=null,
-        max_columns=5,
+        maxColumns=5,
     }={})
     {
         // The total pixel size we want each thumbnail to have:
         ratio ??= 1;
 
-        let desired_pixels = desired_size*desired_size;
+        let desired_pixels = desiredSize*desiredSize;
 
         // The container might have a fractional size, and clientWidth will round it, which is
         // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
         // won't actually fit.  Get the bounding box instead, which isn't rounded.
         // var container_width = container.parentNode.clientWidth;
         let container_width = Math.floor(container.parentNode.getBoundingClientRect().width);
-        let padding = min_padding;
+        let padding = minPadding;
         
         let closest_error_to_desired_pixels = -1;
         let best_size = [0,0];
         let best_columns = 0;
 
         // Find the greatest number of columns we can fit in the available width.
-        for(let columns = max_columns; columns >= 1; --columns)
+        for(let columns = maxColumns; columns >= 1; --columns)
         {
             // The amount of space in the container remaining for images, after subtracting
             // the padding around each image.  Padding is the flex gap, so this doesn't include
@@ -3164,96 +3223,6 @@ ppixiv.helpers = {
         return args;
     },
 };
-
-// Filter an image to a canvas.
-//
-// When an image loads, draw it to a canvas of the same size, optionally applying filter
-// effects.
-//
-// If base_filter is supplied, it's a filter to apply to the top copy of the image.
-// If overlay(ctx, img) is supplied, it's a function to draw to the canvas.  This can
-// be used to mask the top copy.
-ppixiv.image_canvas_filter = class
-{
-    constructor(img, canvas, base_filter, overlay)
-    {
-        this.img = img;
-        this.canvas = canvas;
-        this.base_filter = base_filter || "";
-        this.overlay = overlay;
-        this.ctx = this.canvas.getContext("2d");
-
-        this.img.addEventListener("load", this.update_canvas);
-
-        // For some reason, browsers can't be bothered to implement onloadstart, a seemingly
-        // fundamental progress event.  So, we have to use a mutation observer to tell when
-        // the image is changed, to make sure we clear it as soon as the main image changes.
-        this.observer = new MutationObserver((mutations) => {
-            for(var mutation of mutations) {
-                if(mutation.type == "attributes")
-                {
-                    if(mutation.attributeName == "src")
-                    {
-                        this.update_canvas();
-                    }
-                }
-            }
-        });
-
-        this.observer.observe(this.img, { attributes: true });
-        
-        this.update_canvas();
-    }
-
-    clear()
-    {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.current_url = helpers.blank_image;
-    }
-
-    update_canvas = () =>
-    {
-        // The URL for the image we're rendering.  If the image isn't complete, use the blank image
-        // URL instead, since we're just going to clear.
-        let current_url = this.img.src;
-        if(!this.img.complete)
-            current_url = helpers.blank_image;
-
-        if(current_url == this.current_url)
-            return;
-
-        helpers.set_class(this.canvas, "loaded", false);
-
-        this.canvas.width = this.img.naturalWidth;
-        this.canvas.height = this.img.naturalHeight;
-        this.clear();
-
-        this.current_url = current_url;
-
-        // If we're rendering the blank image (or an incomplete image), stop.
-        if(current_url == helpers.blank_image)
-            return;
-
-        // Draw the image onto the canvas.
-        this.ctx.save();
-        this.ctx.filter = this.base_filter;
-        this.ctx.drawImage(this.img, 0, 0);
-        this.ctx.restore();
-
-        // Composite on top of the base image.
-        this.ctx.save();
-
-        if(this.overlay)
-            this.overlay(this.ctx, this.img);
-
-        this.ctx.restore();
-        
-        // Use destination-over to draw the image underneath the overlay we just drew.
-        this.ctx.globalCompositeOperation = "destination-over";
-        this.ctx.drawImage(this.img, 0, 0);
-        helpers.set_class(this.canvas, "loaded", true);
-    }
-}
 
 // Add delays to hovering and unhovering.  The class "hover" will be set when the mouse
 // is over the element (equivalent to the :hover selector), with a given delay before the
@@ -6168,7 +6137,8 @@ ppixiv.WidgetDragger = class
 
     _record_state_change(from, to)
     {
-        // if(ppixiv.actor.debug_shutdown && !this._previous_shutdown_stack)
+        // if(Actor.debug_shutdown && !this._previous_shutdown_stack)
+        // XXX
         {
             this._state_stacks ??= [];
             try {

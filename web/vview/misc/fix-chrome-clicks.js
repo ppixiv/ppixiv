@@ -1,5 +1,3 @@
-"use strict";
-
 // Fix Chrome's click behavior.
 //
 // Work around odd, obscure click behavior in Chrome: releasing the right mouse

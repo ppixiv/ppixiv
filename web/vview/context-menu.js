@@ -8,10 +8,20 @@
 //
 // This also handles mousewheel zooming.
 
+import Widget from 'vview/widgets/widget.js';
+import { BookmarkButtonWidget, BookmarkCountWidget, LikeButtonWidget, LikeCountWidget } from 'vview/widgets/illust-widgets.js';
+import { HideMouseCursorOnIdle } from 'vview/util/hide-mouse-cursor-on-idle.js';
+import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
+import { AvatarWidget } from 'vview/widgets/user-widgets.js';
+import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
+import { ViewInExplorerWidget } from 'vview/widgets/local-widgets.js';
+import { IllustWidget } from 'vview/widgets/illust-widgets.js';
 import { helpers, local_api } from 'vview/ppixiv-imports.js';
-import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
+import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
+import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
+import Actions from 'vview/misc/actions.js';
 
-export default class ContextMenu extends ppixiv.widget
+export default class ContextMenu extends Widget
 {
     // Names for buttons, for storing in this.buttons_down.
     buttons = ["lmb", "rmb", "mmb"];
@@ -177,18 +187,18 @@ export default class ContextMenu extends ppixiv.widget
         for(var button of this.container.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this.clicked_zoom_level);
 
-        this.avatar_widget = new ppixiv.avatar_widget({
+        this.avatarWidget = new AvatarWidget({
             container: this.container.querySelector(".avatar-widget-container"),
             mode: "overlay",
         });
 
         // Set up the more options dropdown.
         let more_options_button = this.container.querySelector(".button-more");
-        this.more_options_dropdown_opener = new ppixiv.dropdown_box_opener({
+        this.more_options_dropdown_opener = new DropdownBoxOpener({
             button: more_options_button,
 
             create_box: ({...options}) => {
-                let dropdown = new more_options_dropdown_widget({
+                let dropdown = new MoreOptionsDropdown({
                     ...options,
                     parent: this,
                     show_extra: this.alt_pressed,
@@ -196,7 +206,7 @@ export default class ContextMenu extends ppixiv.widget
 
                 dropdown.container.classList.add("popup-more-options-dropdown");
                 dropdown.set_media_id(this.effective_media_id);
-                dropdown.set_user_id(this.effective_user_id);
+                dropdown.setUserId(this.effective_user_id);
 
                 return dropdown;
             },
@@ -209,22 +219,22 @@ export default class ContextMenu extends ppixiv.widget
         });
 
         this.illust_widgets = [
-            this.avatar_widget,
-            new ppixiv.like_button_widget({
+            this.avatarWidget,
+            new LikeButtonWidget({
                 contents: this.container.querySelector(".button-like"),
             }),
-            new ppixiv.like_count_widget({
+            new LikeCountWidget({
                 contents: this.container.querySelector(".button-like .count"),
             }),
             new ImageInfoWidget({
                 container: this.container.querySelector(".context-menu-image-info-container"),
             }),
-            new ppixiv.bookmark_count_widget({
+            new BookmarkCountWidget({
                 contents: this.container.querySelector(".button-bookmark.public .count")
             }),
         ];
 
-        this.illust_widgets.push(new ppixiv.view_in_explorer_widget({
+        this.illust_widgets.push(new ViewInExplorerWidget({
             contents: this.container.querySelector(".view-in-explorer"),
         }));
 
@@ -233,7 +243,7 @@ export default class ContextMenu extends ppixiv.widget
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
         {
             // The bookmark buttons, and clicks in the tag dropdown:
-            let bookmark_widget = new ppixiv.bookmark_button_widget({
+            let bookmark_widget = new BookmarkButtonWidget({
                 contents: a,
                 bookmark_type: a.dataset.bookmarkType,
             });
@@ -243,7 +253,7 @@ export default class ContextMenu extends ppixiv.widget
         }
 
         // Set up the bookmark tags dropdown.
-        this.bookmark_tags_dropdown_opener = new ppixiv.bookmark_tag_dropdown_opener({
+        this.bookmark_tags_dropdown_opener = new BookmarkTagDropdownOpener({
             parent: this,
             bookmark_tags_button: this.container.querySelector(".button-bookmark-tags"),
             bookmark_buttons: this.bookmark_buttons,
@@ -394,7 +404,7 @@ export default class ContextMenu extends ppixiv.widget
     show({x, y, target})
     {
         // See if the click is inside a viewer_images.
-        let widget = ppixiv.widget.from_node(target, { allow_none: true });
+        let widget = Widget.from_node(target, { allow_none: true });
         this._current_viewer = null;
         if(widget)
         {
@@ -443,9 +453,9 @@ export default class ContextMenu extends ppixiv.widget
         window.addEventListener("dragstart", this.cancel_event, true);
 
         // In toggle mode, close the popup if anything outside is clicked.
-        if(this.toggle_mode && this.click_outside_listener == null)
+        if(this.toggle_mode && this.clickOutsideListener == null)
         {
-            this.click_outside_listener = new click_outside_listener([this.container], () => {
+            this.clickOutsideListener = new ClickOutsideListener([this.container], () => {
                 this.hide();
             });
         }
@@ -684,10 +694,10 @@ export default class ContextMenu extends ppixiv.widget
         window.removeEventListener("blur", this.window_onblur);
         window.removeEventListener("dragstart", this.cancel_event, true);
 
-        if(this.click_outside_listener)
+        if(this.clickOutsideListener)
         {
-            this.click_outside_listener.shutdown();
-            this.click_outside_listener = null;
+            this.clickOutsideListener.shutdown();
+            this.clickOutsideListener = null;
         }
 
         if(this.remove_window_movement_listeners)
@@ -890,7 +900,7 @@ export default class ContextMenu extends ppixiv.widget
                 if(mediaId == null)
                     return;
 
-                actions.like_image(mediaId);
+                Actions.like_image(mediaId);
             })();
 
             return true;
@@ -907,7 +917,7 @@ export default class ContextMenu extends ppixiv.widget
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)
                 {
-                    actions.add_new_tag(mediaId);
+                    Actions.add_new_tag(mediaId);
                     return;
                 }
 
@@ -916,11 +926,11 @@ export default class ContextMenu extends ppixiv.widget
                 {
                     if(illust_data.bookmarkData == null)
                     {
-                        message_widget.singleton.show("Image isn't bookmarked");
+                        ppixiv.message.show("Image isn't bookmarked");
                         return;
                     }
 
-                    actions.bookmark_remove(mediaId);
+                    Actions.bookmark_remove(mediaId);
                     return;
                 }
 
@@ -932,11 +942,11 @@ export default class ContextMenu extends ppixiv.widget
 
                 if(illust_data.bookmarkData != null)
                 {
-                    message_widget.singleton.show("Already bookmarked (^B to remove bookmark)");
+                    ppixiv.message.show("Already bookmarked (^B to remove bookmark)");
                     return;
                 }
 
-                actions.bookmark_add(mediaId, {
+                Actions.bookmark_add(mediaId, {
                     private: bookmark_privately
                 });
             })();
@@ -949,7 +959,7 @@ export default class ContextMenu extends ppixiv.widget
             let enable = !ppixiv.settings.get("auto_pan", false);
             ppixiv.settings.set("auto_pan", enable);
 
-            message_widget.singleton.show(`Image panning ${enable? "enabled":"disabled"}`);
+            ppixiv.message.show(`Image panning ${enable? "enabled":"disabled"}`);
             return true;
         }
 
@@ -964,15 +974,15 @@ export default class ContextMenu extends ppixiv.widget
                 // multiple pages, download a ZIP instead.
                 let media_info = await ppixiv.media_cache.get_media_info(mediaId, { full: false });
                 let download_type = "image";
-                if(actions.is_download_type_available("image", media_info))
+                if(Actions.is_download_type_available("image", media_info))
                     download_type = "image";
-                else if(actions.is_download_type_available("MKV", media_info))
+                else if(Actions.is_download_type_available("MKV", media_info))
                     download_type = "MKV";
 
-                if(e.altKey && actions.is_download_type_available("ZIP", media_info))
+                if(e.altKey && Actions.is_download_type_available("ZIP", media_info))
                     download_type = "ZIP";
     
-                actions.download_illust(mediaId, download_type);
+                Actions.download_illust(mediaId, download_type);
             })();
 
             return true;
@@ -1007,11 +1017,11 @@ export default class ContextMenu extends ppixiv.widget
                 {
                     if(!user_info.isFollowed)
                     {
-                        message_widget.singleton.show("Not following this user");
+                        ppixiv.message.show("Not following this user");
                         return;
                     }
 
-                    await actions.unfollow(user_id);
+                    await Actions.unfollow(user_id);
                     return;
                 }
             
@@ -1026,11 +1036,11 @@ export default class ContextMenu extends ppixiv.widget
 
                 if(user_info.isFollowed)
                 {
-                    message_widget.singleton.show("Already following this user");
+                    ppixiv.message.show("Already following this user");
                     return;
                 }
             
-                await actions.follow(user_id, follow_privately);
+                await Actions.follow(user_id, follow_privately);
             })();
 
             return true;
@@ -1180,6 +1190,11 @@ export default class ContextMenu extends ppixiv.widget
         {
             for(let widget of this.illust_widgets)
             {
+                if(widget.setMediaId)
+                    widget.setMediaId(media_id);
+                if(widget.setUserId)
+                    widget.setUserId(user_id);
+                // XXX remove
                 if(widget.set_media_id)
                     widget.set_media_id(media_id);
                 if(widget.set_user_id)
@@ -1304,7 +1319,7 @@ export default class ContextMenu extends ppixiv.widget
     }
 }
 
-class ImageInfoWidget extends ppixiv.illust_widget
+class ImageInfoWidget extends IllustWidget
 {
     constructor({
         show_title=false,
@@ -1364,8 +1379,8 @@ class ImageInfoWidget extends ppixiv.illust_widget
         let show_page_number = this._show_page_number;
         if(this.data_source?.name == "vview" && this.data_source.all_pages_loaded)
         {
-            let page = this.data_source.id_list.get_page_for_illust(media_id);
-            let ids = this.data_source.id_list.media_ids_by_page.get(page);
+            let { page } = this.data_source.id_list.getPageForMediaId(media_id);
+            let ids = this.data_source.id_list.mediaIdsByPage.get(page);
             if(ids != null)
             {
                 current_page = ids.indexOf(media_id);

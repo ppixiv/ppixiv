@@ -154,7 +154,7 @@ export default class SavedSearchTags
         let data = this.data();
         if(this.find_index({tag: new_tags, data}) != -1)
         {
-            message_widget.singleton.show(`Saved tag already exists`);
+            ppixiv.message.show(`Saved tag already exists`);
             return;
         }
 
@@ -166,7 +166,7 @@ export default class SavedSearchTags
         data[idx] = new_tags;
         ppixiv.settings.set("recent-tag-searches", data);
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
-        message_widget.singleton.show(`Saved tag updated`);
+        ppixiv.message.show(`Saved tag updated`);
     }
 
     // Return [start,end) in the tag list for the given section, where start is the
@@ -226,7 +226,7 @@ export default class SavedSearchTags
         ppixiv.settings.set("recent-tag-searches", recent_tags);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
-        message_widget.singleton.show(`Group "${group}" deleted`);
+        ppixiv.message.show(`Group "${group}" deleted`);
     }
     
     // Rename a group.  The new name must not already exist.
@@ -238,7 +238,7 @@ export default class SavedSearchTags
 
         if(this.find_index({group: to}) != -1)
         {
-            message_widget.singleton.show(`Group "${to}" already exists`);
+            ppixiv.message.show(`Group "${to}" already exists`);
             return;
         }
 

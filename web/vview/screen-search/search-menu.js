@@ -1,6 +1,8 @@
 // This creates the entries for selecting a search mode.  This is shared by the
 // desktop dropdown menu and the mobile popup.
 
+import { MenuOptionButton, MenuOptionRow } from 'vview/widgets/menu-option.js';
+
 function getMainSearchMenuOptions()
 {
     if(ppixiv.native)
@@ -66,7 +68,7 @@ export default function CreateSearchMenu(container)
     let options = getMainSearchMenuOptions();
 
     let createOption = ({classes=[], ...options}) => {
-        let button = new ppixiv.menu_option_button({
+        let button = new MenuOptionButton({
             classes: [...classes, "navigation-button"],
             ...options
         })
@@ -78,7 +80,7 @@ export default function CreateSearchMenu(container)
     {
         if(Array.isArray(option))
         {
-            let row = new ppixiv.menu_option_row({
+            let row = new MenuOptionRow({
                 container,
             });
 

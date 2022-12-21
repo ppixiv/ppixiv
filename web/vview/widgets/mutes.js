@@ -1,244 +1,11 @@
-"use strict";
-
-// This handles querying whether a tag or a user is muted.
-//
-// The "mutes-changed" event is fired here when any mute list is modified.
-ppixiv.muting = class extends EventTarget
-{
-    static get singleton()
-    {
-        if(muting._singleton == null)
-            muting._singleton = new muting();
-        return muting._singleton;
-    };
-
-    constructor()
-    {
-        super();
-
-        this.muted_tags = [];
-        this.muted_user_ids = [];
-
-        // This is used to tell other tabs when mutes change, so adding mutes takes effect without
-        // needing to reload all other tabs.
-        this.sync_mutes_channel = new BroadcastChannel("ppixiv:mutes-changed");
-        this.sync_mutes_channel.addEventListener("message", this.received_message);
-    }
-
-    get pixiv_muted_tags() { return this.muted_tags; }
-    get pixiv_muted_user_ids() { return this.muted_user_ids; }
-
-    // Set the list of tags and users muted via Pixiv's settings.
-    set_mutes({tags, user_ids}={})
-    {
-        if(tags == null && user_ids == null)
-            return;
-
-        if(tags != null)
-            this.muted_tags = tags;
-        if(user_ids != null)
-            this.muted_user_ids = user_ids;
-
-        this._store_mutes();
-        this.fire_mutes_changed();
-    }
-
-    // Extra mutes have a similar format to the /ajax/mute/items API:
-    //
-    // [{
-    //     "type": "tag", // or user
-    //     "value": "tag or user ID",
-    //     "label": "tag or username"   
-    // ]}
-    get extra_mutes()
-    {
-        return ppixiv.settings.get("extra_mutes");
-    }
-
-    set extra_mutes(muted_users)
-    {
-        ppixiv.settings.set("extra_mutes", muted_users);
-        this.fire_mutes_changed();
-    }
-
-    // Shortcut to get just extra muted tags:
-    get extra_muted_tags()
-    {
-        let tags = [];
-        for(let mute of this.extra_mutes)
-            if(mute.type == "tag")
-                tags.push(mute.value);
-        return tags;
-    }
-
-    // Fire mutes-changed to let UI know that a mute list has changed.
-    fire_mutes_changed()
-    {
-        // If either of these are null, we're still being initialized.  Don't fire events yet.
-        if(this.pixiv_muted_tags == null || this.pixiv_muted_user_ids == null)
-            return;
-
-        this.dispatchEvent(new Event("mutes-changed"));
-
-        // Tell other tabs that mutes have changed.
-        this.broadcast_mutes();
-    }
-
-    broadcast_mutes()
-    {
-        // Don't do this if we're inside broadcast_mutes because another tab sent this to us.
-        if(this.handling_broadcast_mutes)
-            return;
-
-        this.sync_mutes_channel.postMessage({
-            pixiv_muted_tags: this.pixiv_muted_tags,
-            pixiv_muted_user_ids: this.pixiv_muted_user_ids,
-        });
-    }
-
-    received_message = (e) =>
-    {
-        let data = e.data;
-
-        if(this.handling_broadcast_mutes)
-        {
-            console.error("recursive");
-            return;
-        }
-
-        // Don't fire the event if nothing is actually changing.  This happens a lot when new tabs
-        // are opened and they broadcast current mutes.
-        if(JSON.stringify(this.pixiv_muted_tags) == JSON.stringify(data.pixiv_muted_tags) &&
-           JSON.stringify(this.pixiv_muted_user_ids) == JSON.stringify(data.pixiv_muted_user_ids))
-            return;
-        
-        this.handling_broadcast_mutes = true;
-        try {
-            this.set_mutes({tags: data.pixiv_muted_tags, user_ids: data.pixiv_muted_user_ids});
-        } finally {
-            this.handling_broadcast_mutes = false;
-        }
-    };
-
-    is_muted_user_id(user_id)
-    {
-        if(this.muted_user_ids.indexOf(user_id) != -1)
-            return true;
-        
-        for(let {value: muted_user_id} of this.extra_mutes)
-        {
-            if(user_id == muted_user_id)
-                return true;
-        }
-        return false;
-    };
-
-    // Unmute user_id.
-    //
-    // This checks both Pixiv's unmute list and our own, so it can always be used if
-    // is_muted_user_id is true.
-    async unmute_user_id(user_id)
-    {
-        actions.remove_extra_mute(user_id, {type: "user"});
-
-        if(this.muted_user_ids.indexOf(user_id) != -1)
-            await actions.remove_pixiv_mute(user_id, {type: "user"});
-    }
-
-    // Return true if any tag in tag_list is muted.
-    any_tag_muted(tag_list)
-    {
-        let extra_muted_tags = this.extra_muted_tags;
-
-        for(let tag of tag_list)
-        {
-            if(tag.tag)
-                tag = tag.tag;
-            if(this.muted_tags.indexOf(tag) != -1 || extra_muted_tags.indexOf(tag) != -1)
-                return tag;
-        }
-        return null;
-    }
-
-    // Return true if the user is able to add to the Pixiv mute list.
-    get can_add_pixiv_mutes()
-    {
-        // Non-premium users can only have one mute, and that's shared across both tags and users.
-        let total_mutes = this.pixiv_muted_tags.length + this.pixiv_muted_user_ids.length;
-        return window.global_data.premium || total_mutes == 0;
-    }
-
-    // Pixiv doesn't include mutes in the initialization data for pages on mobile.  We load
-    // it with an API call, but we don't want to wait for that to return and delay every page
-    // load.  However, we also don't want to not have mute info and possibly show muted images
-    // briefly on startup.  Work around this by caching mutes to storage, and using the cached
-    // mutes while we're waiting to receive them.
-    _store_mutes()
-    {
-        // This is only needed for mobile.
-        if(!ppixiv.mobile)
-            return;
-
-        settings.set("cached_mutes", {
-            tags: this.muted_tags,
-            user_ids: this.muted_user_ids,
-        });
-    }
-
-    // Load mutes cached by _store_mutes.  This is only used until we load the mute list, and
-    // is only used on mobile.
-    load_cached_mutes()
-    {
-        // This is only needed for mobile.
-        if(!ppixiv.mobile)
-            return;
-
-        let cached_mutes = settings.get("cached_mutes");
-        if(cached_mutes == null)
-        {
-            console.log("No cached mutes to load");
-            return;
-        }
-
-        let { tags, user_ids } = cached_mutes;
-        this.muted_tags = tags;
-        this.muted_user_ids = user_ids;
-    }
-
-    // Request the user's mute list.  This is only used on mobile.
-    async fetch_mutes()
-    {
-        // Load the real mute list.
-        let data = await helpers.get_request(`/touch/ajax/user/self/status?lang=en`);
-        if(data.error)
-        {
-            console.log("Error loading user info:", data.message);
-            return;
-        }
-
-        let mutes = data.body.user_status.mutes;
-
-        let tags = [];
-        for(let [tag, info] of Object.entries(mutes.tags))
-        {
-            // "enabled" seems to always be true.
-            if(info.enabled)
-                tags.push(tag);
-        }
-
-        let user_ids = [];
-        for(let [user_id, info] of Object.entries(mutes.users))
-        {
-            if(info.enabled)
-                user_ids.push(user_id);
-        }
-
-        this.set_mutes({tags, user_ids});
-    }
-}
-
 // The "Muted Users" and "Muted Tags" settings pages.
-ppixiv.muted_tags_popup = class extends ppixiv.widget
+
+import Widget from 'vview/widgets/widget.js';
+import { TextPrompt } from 'vview/widgets/prompts.js';
+import DialogWidget from 'vview/widgets/dialog.js';
+import { helpers } from 'vview/ppixiv-imports.js';
+
+export class EditMutedTagsWidget extends Widget
 {
     constructor({
         mute_type, // "tags" or "users"
@@ -335,8 +102,8 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
     refresh_for_tags = async() =>
     {
         // Do a batch lookup of muted tag translations.
-        let tags_to_translate = [...muting.singleton.pixiv_muted_tags];
-        for(let mute of muting.singleton.extra_mutes)
+        let tags_to_translate = [...ppixiv.muting.pixiv_muted_tags];
+        for(let mute of ppixiv.muting.extra_mutes)
         {
             if(mute.type == "tag")
                 tags_to_translate.push(mute.value);
@@ -361,7 +128,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
 
         let muted_tag_list = this.container.querySelector(".mute-list");
         helpers.remove_elements(muted_tag_list);
-        for(let {type, value: tag} of muting.singleton.extra_mutes)
+        for(let {type, value: tag} of ppixiv.muting.extra_mutes)
         {
             if(type != "tag")
                 continue;
@@ -371,12 +138,12 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
                 e.preventDefault();
                 e.stopPropagation();
 
-                actions.remove_extra_mute(tag, {type: "tag"});
+                ppixiv.muting.remove_extra_mute(tag, {type: "tag"});
                 this.refresh();
             });
         }
 
-        for(let tag of muting.singleton.pixiv_muted_tags)
+        for(let tag of ppixiv.muting.pixiv_muted_tags)
         {
             let entry = create_muted_tag_entry(tag, muted_tag_list);
 
@@ -384,7 +151,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
                 e.preventDefault();
                 e.stopPropagation();
 
-                await actions.remove_pixiv_mute(tag, {type: "tag"});
+                await ppixiv.muting.remove_pixiv_mute(tag, {type: "tag"});
                 this.refresh();
             });
         }
@@ -406,7 +173,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
         let muted_user_list = this.container.querySelector(".mute-list");
         helpers.remove_elements(muted_user_list);
 
-        for(let {type, value: user_id, label: username} of muting.singleton.extra_mutes)
+        for(let {type, value: user_id, label: username} of ppixiv.muting.extra_mutes)
         {
             if(type != "user")
                 continue;
@@ -417,7 +184,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
                 e.preventDefault();
                 e.stopPropagation();
 
-                actions.remove_extra_mute(user_id, {type: "user"});
+                ppixiv.muting.remove_extra_mute(user_id, {type: "user"});
                 this.refresh();
             });
         }
@@ -435,7 +202,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
         else
         {
             // Now that we have usernames, Sort Pixiv mutes by username.
-            let mutes = muting.singleton.pixiv_muted_user_ids;
+            let mutes = ppixiv.muting.pixiv_muted_user_ids;
             mutes.sort((lhs, rhs) => {
                 lhs = user_id_to_username[lhs] || "";
                 rhs = user_id_to_username[rhs] || "";
@@ -450,7 +217,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
                     e.preventDefault();
                     e.stopPropagation();
 
-                    await actions.remove_pixiv_mute(user_id, {type: "user"});
+                    await ppixiv.muting.remove_pixiv_mute(user_id, {type: "user"});
                     this.refresh();
                 });
             }
@@ -490,7 +257,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
         let result = await helpers.rpc_get_request("/ajax/mute/items", { context: "setting" });
         if(result.error)
         {
-            message_widget.singleton.show(result.message);
+            ppixiv.message.show(result.message);
             this.cached_muted_user_id_to_username = {};
             return this.cached_muted_user_id_to_username;
         }
@@ -513,7 +280,7 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
         e.preventDefault();
         e.stopPropagation();
 
-        let prompt = new text_prompt({ title: "Tag to mute:" });
+        let prompt = new TextPrompt({ title: "Tag to mute:" });
         let tag = await prompt.result;
         if(tag == null || tag == "")
             return; // cancelled
@@ -522,21 +289,21 @@ ppixiv.muted_tags_popup = class extends ppixiv.widget
         // to extra mutes.  We never add anything to the Pixiv mute list for non-premium users,
         // since it's limited to only one entry.
         if(window.global_data.premium)
-            await actions.add_pixiv_mute(tag, {type: "tag"});
+            await ppixiv.muting.add_pixiv_mute(tag, {type: "tag"});
         else
-            await actions.add_extra_mute(tag, tag, {type: "tag"});
+            await ppixiv.muting.add_extra_mute(tag, tag, {type: "tag"});
         this.refresh();
     };
 
     async remove_pixiv_muted_tag(tag)
     {
-        await actions.remove_pixiv_mute(tag, {type: "tag"});
+        await this.remove_pixiv_mute(tag, {type: "tag"});
         this.refresh();
     }
 }
 
 // A popup for editing mutes related for a post (the user and the post's tags).
-ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
+export class MutedTagsForPostDialog extends DialogWidget
 {
     constructor({
         media_id,
@@ -593,7 +360,7 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         {
             // We have a media ID.  Load its info to get the tag list, and use the user ID and
             // username from it.
-            let illust_data = await media_cache.get_media_info(this.media_id, { full: false });
+            let illust_data = await ppixiv.media_cache.get_media_info(this.media_id, { full: false });
             await this.refresh_for_data(illust_data.tagList, illust_data.userId, illust_data.userName);
         }
         else
@@ -632,16 +399,16 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
 
         // Add an entry for the user.
         {
-            let is_muted = muting.singleton.is_muted_user_id(user_id);
+            let is_muted = ppixiv.muting.is_muted_user_id(user_id);
             let entry = create_entry(`User: ${username}`, is_muted);
 
             entry.querySelector(".toggle-mute").addEventListener("click", async (e) => {
                 if(is_muted)
                 {
-                    actions.remove_extra_mute(user_id, {type: "user"});
-                    await actions.remove_pixiv_mute(user_id, {type: "user"});
+                    ppixiv.muting.remove_extra_mute(user_id, {type: "user"});
+                    await ppixiv.muting.remove_pixiv_mute(user_id, {type: "user"});
                 } else {
-                    await actions.add_mute(user_id, username, {type: "user"});
+                    await ppixiv.muting.add_mute(user_id, username, {type: "user"});
                 }
                 
                 this.refresh();
@@ -651,7 +418,7 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
         // Add each tag on the image.
         for(let tag of tags)
         {
-            let is_muted = muting.singleton.any_tag_muted([tag]);
+            let is_muted = ppixiv.muting.any_tag_muted([tag]);
 
             let label = tag;
             let tag_translation = translated_tags[tag];
@@ -663,10 +430,10 @@ ppixiv.muted_tags_for_post_popup = class extends ppixiv.dialog_widget
             entry.querySelector(".toggle-mute").addEventListener("click", async (e) => {
                 if(is_muted)
                 {
-                    actions.remove_extra_mute(tag, {type: "tag"});
-                    await actions.remove_pixiv_mute(tag, {type: "tag"});
+                    ppixiv.muting.remove_extra_mute(tag, {type: "tag"});
+                    await ppixiv.muting.remove_pixiv_mute(tag, {type: "tag"});
                 } else {
-                    await actions.add_mute(tag, tag, {type: "tag"});
+                    await ppixiv.muting.add_mute(tag, tag, {type: "tag"});
                 }
 
                 this.refresh();

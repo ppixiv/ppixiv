@@ -1,5 +1,3 @@
-"use strict";
-
 export default function installPolyfills()
 {
     // Make IDBRequest an async generator.
