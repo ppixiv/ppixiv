@@ -1,30 +1,51 @@
-import { DataSourceFromPage } from 'vview/data-sources/data-source.js';
+import DataSource from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
 import { helpers } from 'vview/misc/helpers.js';
 
-export default class DataSource_SearchUsers extends DataSourceFromPage
+export default class DataSource_SearchUsers extends DataSource
 {
     get name() { return "search-users"; }
     get can_return_manga() { return false; }
   
-    parse_document(doc)
+    async load_page_internal(page)
     {
-        var illust_ids = [];
-        for(let item of doc.querySelectorAll(".user-recommendation-items .user-recommendation-item"))
-        {
-            let username = item.querySelector(".title").innerText;
-            let user_id = item.querySelector(".follow").dataset.id;
-            let profile_image = item.querySelector("._user-icon").dataset.src;
+        // This API only returns 10 results per page  This search only seems useful for looking
+        // for somebody specific, so just load the first page to prevent spamming the API.
+        if(page > 1)
+            return;
 
+        // Use the mobile API for this.  THe desktop site has no API and has to be scraped, and if
+        // we're on mobile we can't access the desktop page, but the mobile site's API works either
+        // way.
+        let result = await helpers.get_request("/touch/ajax/search/users", {
+            nick: this.username,
+            s_mode: "s_usr",
+            p: page,
+            lang: "en",
+        });
+
+        if(result.error)
+        {
+            ppixiv.message.show("Error reading search: " + result.message);
+            return;
+        }
+
+        // This returns images for each user, but that doesn't seem useful (this is a user search,
+        // not discovery), and the format is different from everything else, so it's a bit of a pain
+        // to use.  Just return users.
+        let media_ids = [];
+        for(let user of result.body.users)
+        {
             ppixiv.extra_cache.add_quick_user_data({
-                user_id: user_id,
-                user_name: username,
-                profile_img: profile_image,
+                user_id: user.user_id,
+                user_name: user.user_name,
+                profile_img: user.profile_img.main,
             }, "user_search");
 
-            illust_ids.push("user:" + user_id);
+            media_ids.push(`user:${user.user_id}`);
         }
-        return illust_ids;
+
+        this.add_page(page, media_ids);
     }
 
     get username()
