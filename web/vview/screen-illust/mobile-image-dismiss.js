@@ -114,7 +114,7 @@ export default class MobileImageDismiss
             let width = viewPosition.width * 0.75;
             let height = viewPosition.height * 0.75;
             let x = (window.innerWidth - width) / 2;
-            let y =  (window.innerHeight - height) / 2;
+            let y = (window.innerHeight - height) / 2;
             thumbRect = new FixedDOMRect(x, y, x + width, y + height);
         }
 
@@ -122,15 +122,15 @@ export default class MobileImageDismiss
         let scale = Math.max(thumbRect.width / width, thumbRect.height / height);
 
         // Shift the center of the image to 0x0:
-        let animation_x = -(x + width/2) * scale;
-        let animation_y = -(y + height/2) * scale;
+        let animationX = -(x + width/2) * scale;
+        let animationY = -(y + height/2) * scale;
 
         // Align to the center of the thumb.
-        animation_x += thumbRect.x + thumbRect.width / 2;
-        animation_y += thumbRect.y + thumbRect.height / 2;
+        animationX += thumbRect.x + thumbRect.width / 2;
+        animationY += thumbRect.y + thumbRect.height / 2;
 
-        this.parent.container.style.setProperty("--animation-x", `${animation_x}px`);
-        this.parent.container.style.setProperty("--animation-y", `${animation_y}px`);
+        this.parent.container.style.setProperty("--animation-x", `${animationX}px`);
+        this.parent.container.style.setProperty("--animation-y", `${animationY}px`);
         this.parent.container.style.setProperty("--animation-scale", scale);
     }
 

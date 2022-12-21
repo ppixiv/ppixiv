@@ -53,7 +53,7 @@ export default class DataSource_Search extends DataSource
         this.cache_search_title();
     }
 
-    get supports_start_page() { return true; }
+    get supportsStartPage() { return true; }
 
     get no_results()
     {

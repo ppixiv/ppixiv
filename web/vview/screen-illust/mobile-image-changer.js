@@ -11,22 +11,21 @@ export default class DragImageChanger
     constructor({parent})
     {
         this.parent = parent;
-        this.recent_pointer_movement = new FlingVelocity({
+        this.recentPointerMovement = new FlingVelocity({
             sample_period: 0.150,
         });
 
         // The amount we've dragged.  This is relative to the main image, so it doesn't need to
         // be adjusted when we add or remove viewers.
-        this.drag_distance = 0;
+        this.dragDistance = 0;
 
         // A list of viewers that we're dragging between.  This always includes the main viewer
         // which is owned by the screen.
         this.viewers = [];
-        this.addingViewer = false;
         this.animations = null;
 
         // Once we reach the left and right edge, this is set to the minimum and maximum value
-        // of this.drag_distance.
+        // of this.dragDistance.
         this.bounds = [null, null];
 
         this.dragger = new DragHandler({
@@ -50,7 +49,7 @@ export default class DragImageChanger
                 // If an animation is running, disable deferring drags, so grabbing the dragger will
                 // stop the animation.  Otherwise, defer drags until the first pointermove (the normal
                 // behavior).
-                return this.animations == null && this.drag_distance == 0;
+                return this.animations == null && this.dragDistance == 0;
             },
         });
     }
@@ -69,7 +68,7 @@ export default class DragImageChanger
 
     get container() { return this.parent.container; }
 
-    // The main viewer is the one active in the screen.  this.drag_distance is relative to
+    // The main viewer is the one active in the screen.  this.dragDistance is relative to
     // it, and it's always in this.viewers during drags.
     get mainViewer() { return this.parent.viewer; }
 
@@ -83,11 +82,11 @@ export default class DragImageChanger
     ondragstart({event})
     {
         // If we aren't grabbing a running drag, only start if the initial movement was horizontal.
-        if(this.animations == null && this.drag_distance == 0 && Math.abs(event.movementY) > Math.abs(event.movementX))
+        if(this.animations == null && this.dragDistance == 0 && Math.abs(event.movementY) > Math.abs(event.movementX))
             return false;
 
-        this.drag_distance = 0;
-        this.recent_pointer_movement.reset();
+        this.dragDistance = 0;
+        this.recentPointerMovement.reset();
         this.bounds = [null, null];
 
         if(this.animations == null)
@@ -118,10 +117,10 @@ export default class DragImageChanger
 
         // If a drag is active, set drag_distance to the X position of the main viewer to match
         // the drag to where the animation was.
-        if(this.drag_distance != null && this.mainViewer)
+        if(this.dragDistance != null && this.mainViewer)
         {
-            let main_transform = new DOMMatrix(getComputedStyle(this.mainViewer.container).transform);
-            this.drag_distance = main_transform.e; // X translation
+            let mainTransform = new DOMMatrix(getComputedStyle(this.mainViewer.container).transform);
+            this.dragDistance = mainTransform.e; // X translation
             this.refreshDragPosition();
         }
 
@@ -133,20 +132,20 @@ export default class DragImageChanger
     ondrag({event, first})
     {
         let x = event.movementX;
-        this.recent_pointer_movement.add_sample({ x });
+        this.recentPointerMovement.add_sample({ x });
 
         // If we're past the end, apply friction to indicate it.  This uses stronger overscroll
         // friction to make it distinct from regular image panning overscroll.
         let overscroll = 1;
-        if(this.bounds[0] != null && this.drag_distance > this.bounds[0])
+        if(this.bounds[0] != null && this.dragDistance > this.bounds[0])
         {
-            let distance = Math.abs(this.bounds[0] - this.drag_distance);
+            let distance = Math.abs(this.bounds[0] - this.dragDistance);
             overscroll = Math.pow(0.97, distance);
         }
 
-        if(this.bounds[1] != null && this.drag_distance < this.bounds[1])
+        if(this.bounds[1] != null && this.dragDistance < this.bounds[1])
         {
-            let distance = Math.abs(this.bounds[1] - this.drag_distance);
+            let distance = Math.abs(this.bounds[1] - this.dragDistance);
             overscroll = Math.pow(0.97, distance);
         }
         x *= overscroll;
@@ -156,7 +155,7 @@ export default class DragImageChanger
         // first movement to contain a big jump on iOS, causing drags to jump.  Count this movement
         // towards fling sampling, but skip it for the visual drag.
         if(!first)
-            this.drag_distance += x;
+            this.dragDistance += x;
         this._addViewersIfNeeded();
         this.refreshDragPosition();
     }
@@ -165,10 +164,10 @@ export default class DragImageChanger
     {
         // This offset from the main viewer.  Viewers above are negative and below
         // are positive.
-        let relative_idx = viewer_index - this.mainViewerIndex;
+        let relativeIdx = viewer_index - this.mainViewerIndex;
 
-        let x = this.viewerDistance * relative_idx;
-        x += this.drag_distance;
+        let x = this.viewerDistance * relativeIdx;
+        x += this.dragDistance;
         return x;
     }
 
@@ -206,67 +205,52 @@ export default class DragImageChanger
     // Add a new viewer if we've dragged far enough to need one.
     async _addViewersIfNeeded()
     {
-        // If we're already adding a viewer, don't try to add another until it finishes.
-        if(this.addingViewer)
-            return;
-
         let drag_threshold = 5;
 
         // See if we need to add another viewer in either direction.
         //
         // The right edge of the leftmost viewer, including the gap between images.  If this is
         // 0, it's just above the screen.
-        let left_viewer_edge = this.getViewerX(-1) + this.viewerDistance;
-        let add_forwards = null;
-        if(left_viewer_edge > drag_threshold)
-            add_forwards = false;
+        let leftViewerEdge = this.getViewerX(-1) + this.viewerDistance;
+        let addForwards = null;
+        if(leftViewerEdge > drag_threshold)
+            addForwards = false;
 
         // The left edge of the rightmost viewer.
-        let right_viewer_edge = this.getViewerX(this.viewers.length) - this.imageGap;
-        if(right_viewer_edge < window.innerWidth - drag_threshold)
-            add_forwards = true;
+        let rightViewerEdge = this.getViewerX(this.viewers.length) - this.imageGap;
+        if(rightViewerEdge < window.innerWidth - drag_threshold)
+            addForwards = true;
 
         // If the user drags multiple times quickly, the drag target may be past the end.
         // Add a viewer for it as soon as it's been dragged to, even though it may be well
         // off-screen, so we're able to transition to it.
-        let target_viewer_index = this.currentDragTarget();
-        if(target_viewer_index < 0)
-            add_forwards = false;
-        else if(target_viewer_index >= this.viewers.length)
-            add_forwards = true;
+        let targetViewerIndex = this.currentDragTarget();
+        if(targetViewerIndex < 0)
+            addForwards = false;
+        else if(targetViewerIndex >= this.viewers.length)
+            addForwards = true;
 
         // Stop if we're not adding a viewer.
-        if(add_forwards == null)
+        if(addForwards == null)
             return;
 
-        // Capture the viewers list, so we always work with this list if this.viewers gets reset
-        // while we're loading.
-        let viewers = this.viewers;
-
         // The viewer ID we're adding next to:
-        let neighborViewer = viewers[add_forwards? viewers.length-1:0];
+        let neighborViewer = this.viewers[addForwards? this.viewers.length-1:0];
         let neighborMediaId = neighborViewer.mediaId;
 
-        this.addingViewer = true;
-        let mediaId, earlyIllustData;
-        try {
-            // Get the next or previous media ID.
-            mediaId = await this.parent.getNavigation(add_forwards, { navigate_from_media_id: neighborMediaId });
-            if(mediaId != null)
-                earlyIllustData = await ppixiv.media_cache.get_media_info(mediaId, { full: false });
-        } finally {
-            // Stop if the viewer list changed while we were loading.
-            if(this.viewers !== viewers)
-                return;
+        let { mediaId, earlyIllustData, cancelled } = await this._createViewer(addForwards, neighborMediaId);
+        if(cancelled)
+        {
+            // The viewer list changed while we were loading, or another call to _addViewersIfNeeded
+            // was made.
+            return;
         }
-
-        this.addingViewer = false;
 
         if(mediaId == null)
         {
             // There's nothing in this direction, so remember that this is the boundary.  Once we
             // do this, overscroll will activate in this direction.
-            if(add_forwards)
+            if(addForwards)
                 this.bounds[1] = this.viewerDistance * (this.viewers.length - 1 - this.mainViewerIndex);
             else
                 this.bounds[0] = this.viewerDistance * (0 - this.mainViewerIndex);
@@ -284,10 +268,43 @@ export default class DragImageChanger
         viewer.visible = false;
 
         // Insert the new viewer.
-        viewers.splice(add_forwards? viewers.length:0, 0, viewer);
+        this.viewers.splice(addForwards? this.viewers.length:0, 0, viewer);
 
         // Set the initial position.
         this.refreshDragPosition();        
+    }
+
+    // Create a new viewer relative to the given media ID, and look up its media info.
+    // Return { mediaId, mediaInfo }.
+    //
+    // If the viewer list changes or another call is made before this completes, discard
+    // the result and return { cancelled: true }.
+    async _createViewer(addForwards, neighborMediaId)
+    {
+        let viewers = this.viewers;
+        let sentinel = this.addingViewer = new Object();
+
+        try {
+            // Get the next or previous media ID.
+            let mediaId = await this.parent.getNavigation(addForwards, { navigateFromMediaId: neighborMediaId });
+            if(mediaId == null)
+                return { }
+
+            let earlyIllustData = await ppixiv.media_cache.get_media_info(mediaId, { full: false });
+            return { mediaId, earlyIllustData };
+        } finally {
+            let cancelled = sentinel != this.addingViewer;
+            if(sentinel == this.addingViewer)
+                this.addingViewer = null;
+
+            // Cancel if the viewer list changed while we were loading.
+            if(this.viewers !== viewers)
+                cancelled = true;
+
+            // If we were cancelled, discard our return value.
+            if(cancelled)
+                return { cancelled: true };
+        }
     }
 
     removeViewers()
@@ -299,10 +316,6 @@ export default class DragImageChanger
                 viewer.shutdown();
         }
         this.viewers = [];
-
-        // Clear addingViewer.  If an _addViewersIfNeeded call is running, it'll see that
-        // this.viewers changed and stop.
-        this.addingViewer = false;
     }
 
     // Get the viewer index that we'd want to go to if the user released the drag now.
@@ -310,13 +323,13 @@ export default class DragImageChanger
     currentDragTarget()
     {
         // If the user flung horizontally, move relative to the main viewer.
-        let recent_velocity = this.recent_pointer_movement.current_velocity.x;
+        let recentVelocity = this.recentPointerMovement.current_velocity.x;
         let threshold = 200;
-        if(Math.abs(recent_velocity) > threshold)
+        if(Math.abs(recentVelocity) > threshold)
         {
-            if(recent_velocity > threshold)
+            if(recentVelocity > threshold)
                 return this.mainViewerIndex - 1;
-            else if(recent_velocity < -threshold)
+            else if(recentVelocity < -threshold)
                 return this.mainViewerIndex + 1;
         }
 
@@ -325,21 +338,21 @@ export default class DragImageChanger
         // and we're animating to an offscreen main viewer, and the user stops the
         // animation in the middle, this stops us on a nearby image instead of continuing
         // to where we were going before.
-        let closest_viewer_index = 0;
-        let closest_viewer_distance = 999999;
+        let closestViewreIndex = 0;
+        let closestViewerDistance = 999999;
         for(let idx = 0; idx < this.viewers.length; ++idx)
         {
             let x = this.getViewerX(idx);
             let center = x + window.innerWidth/2;
             let distance = Math.abs((window.innerWidth / 2) - center);
-            if(distance < closest_viewer_distance)
+            if(distance < closestViewerDistance)
             {
-                closest_viewer_distance = distance;
-                closest_viewer_index = idx;
+                closestViewerDistance = distance;
+                closestViewreIndex = idx;
             }
         }
 
-        return closest_viewer_index;
+        return closestViewreIndex;
     }
 
     // A drag finished.  See if we should transition the image or undo.
@@ -348,24 +361,24 @@ export default class DragImageChanger
     // down during a drag.  cancel is true if this was a cancelled pointer event.
     async ondragend({interactive, cancel}={})
     {
-        let dragged_to_viewer = null;
+        let draggedToViewer = null;
         if(interactive && !cancel)
         {
-            let target_viewer_index = this.currentDragTarget();
-            if(target_viewer_index >= 0 && target_viewer_index < this.viewers.length)
-                dragged_to_viewer = this.viewers[target_viewer_index];
+            let targetViewerIndex = this.currentDragTarget();
+            if(targetViewerIndex >= 0 && targetViewerIndex < this.viewers.length)
+                draggedToViewer = this.viewers[targetViewerIndex];
         }
 
         // If we start a fling from this release, this is the velocity we'll try to match.
-        let recent_velocity = this.recent_pointer_movement.current_velocity.x;
+        let recentVelocity = this.recentPointerMovement.current_velocity.x;
 
-        this.recent_pointer_movement.reset();
+        this.recentPointerMovement.reset();
 
         // If this isn't interactive, we're just shutting down, so remove viewers without
         // animating.
         if(!interactive)
         {
-            this.drag_distance = 0;
+            this.dragDistance = 0;
             this.cancelAnimation();
             this.removeViewers();
             return;
@@ -373,15 +386,15 @@ export default class DragImageChanger
 
         // The image was released interactively.  If we're not transitioning to a new
         // image, transition back to normal.
-        if(dragged_to_viewer)
+        if(draggedToViewer)
         {
             // Set latestNavigationDirectionDown to true if we're navigating forwards or false
             // if we're navigating backwards.  This is a hint for speculative loading.
-            let old_main_index = this.mainViewerIndex;
-            let new_main_index = this._findViewerIndex(dragged_to_viewer);
-            this.parent.latestNavigationDirectionDown = new_main_index > old_main_index;
+            let oldMainIndex = this.mainViewerIndex;
+            let newMainIndex = this._findViewerIndex(draggedToViewer);
+            this.parent.latestNavigationDirectionDown = newMainIndex > oldMainIndex;
 
-            // The drag was released and we're selecting dragged_to_viewer.  Make it active immediately,
+            // The drag was released and we're selecting draggedToViewer.  Make it active immediately,
             // without waiting for the animation to complete.  This lets the UI update quickly, and
             // makes it easier to handle quickly dragging multiple times.  We keep our viewer list until
             // the animation finishes.
@@ -391,7 +404,7 @@ export default class DragImageChanger
             this.parent.takeViewer();
 
             // Make our neighboring viewer primary.
-            this.parent.showImageViewer({ newViewer: dragged_to_viewer });
+            this.parent.showImageViewer({ newViewer: draggedToViewer });
         }
 
         let duration = 400;
@@ -407,28 +420,28 @@ export default class DragImageChanger
             let this_idx = idx - mainViewerIndex;
 
             // The animation starts at the current translateX.
-            let start_x = new DOMMatrix(getComputedStyle(viewer.container).transform).e;
-            //let start_x = this.getViewerX(idx);
+            let startX = new DOMMatrix(getComputedStyle(viewer.container).transform).e;
+            //let startX = this.getViewerX(idx);
 
             // Animate everything to their default positions relative to the main image.
-            let end_x = this.viewerDistance * this_idx;
+            let endX = this.viewerDistance * this_idx;
 
             // Estimate a curve to match the fling.
             let easing = Bezier2D.find_curve_for_velocity({
-                distance: Math.abs(end_x - start_x),
+                distance: Math.abs(endX - startX),
                 duration: duration / 1000, // in seconds
-                target_velocity: Math.abs(recent_velocity),
+                target_velocity: Math.abs(recentVelocity),
             });
 
             // If we're panning left but the user dragged right (or vice versa), that usually means we
             // dragged past the end into overscroll, and all we're doing is moving back in bounds.  Ignore
             // the drag velocity since it isn't related to our speed.
-            if((end_x > start_x) != (recent_velocity > 0))
+            if((endX > startX) != (recentVelocity > 0))
                 easing = "ease-out";
 
             let animation = new DirectAnimation(new KeyframeEffect(viewer.container, [
                 { transform: viewer.container.style.transform },
-                { transform: `translateX(${end_x}px)` },
+                { transform: `translateX(${endX}px)` },
             ], {
                 duration,
                 fill: "forwards",
@@ -438,15 +451,15 @@ export default class DragImageChanger
             animations.push(animation);
         }
 
-        this.drag_distance = 0;
+        this.dragDistance = 0;
 
         this.animations = animations;
 
-        let animations_finished = Promise.all(animations.map((animation) => animation.finished));
+        let animationsFinished = Promise.all(animations.map((animation) => animation.finished));
 
         try {
             // Wait for the animations to complete.
-            await animations_finished;
+            await animationsFinished;
         } catch(e) {
             // If this fails, it should be from ondragstart cancelling the animations due to a
             // new touch.

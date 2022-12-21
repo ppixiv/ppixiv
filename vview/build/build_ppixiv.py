@@ -456,7 +456,6 @@ class Build(object):
 
         # Add the list of source files to resources, so bootstrap.js knows what to load.
         init = {
-            'modules': modules,
         }
 
         # Add resources.  These are already encoded as JavaScript strings, including quotes
@@ -470,6 +469,7 @@ class Build(object):
                 output_resources[fn] = script
 
         result.append(f'env.init = {json.dumps(init, indent=4)};\n')
+        result.append(f'env.modules = {json.dumps(modules, indent=4)};\n')
 
         # Output resources.  We do it this way instead of just putting everything in a dictionary
         # and JSON-encoding the dictionary so that source files are output in a readable format.  If

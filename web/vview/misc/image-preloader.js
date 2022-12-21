@@ -37,7 +37,7 @@ export default class ImagePreloader
 
     // Set the media_id the user is currently viewing.  If media_id is null, the user isn't
     // viewing an image (eg. currently viewing thumbnails).
-    async set_current_image(media_id)
+    async setCurrentImage(media_id)
     {
         if(this.currentMediaId == media_id)
             return;

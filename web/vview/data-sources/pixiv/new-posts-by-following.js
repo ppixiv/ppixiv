@@ -14,7 +14,7 @@ export default class DataSource_NewPostsByFollowing extends DataSource
         this.bookmark_tags = [];
     }
 
-    get supports_start_page() { return true; }
+    get supportsStartPage() { return true; }
 
     async load_page_internal(page)
     {

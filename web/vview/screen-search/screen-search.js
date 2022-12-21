@@ -219,7 +219,7 @@ export default class ScreenSearch extends Screen
 
         // Remove listeners from the old data source.
         if(this.dataSource != null)
-            this.dataSource.removeEventListener("updated", this.dataSource_updated);
+            this.dataSource.removeEventListener("updated", this.dataSourceUpdated);
 
         this.dataSource = data_source;
 
@@ -251,7 +251,7 @@ export default class ScreenSearch extends Screen
             }
         }
         // Listen to the data source loading new pages, so we can refresh the list.
-        this.dataSource.addEventListener("updated", this.dataSource_updated);
+        this.dataSource.addEventListener("updated", this.dataSourceUpdated);
         this.refreshUi();
     };
 
@@ -367,58 +367,3 @@ export default class ScreenSearch extends Screen
         }
     }
 }
-
-// Set the page URL to a slideshow, but don't actually start the slideshow.  This lets the
-// user bookmark the slideshow URL before the illust ID changes from "*" to an actual ID.
-// This is mostly just a workaround for an iOS UI bug: there's no way to create a home
-// screen bookmark for a link, only for a URL that's already loaded.
-//
-// This is usually used from the search screen, but there's currently no good place to put
-// it there, so it's inside the settings menu and technically can be accessed while viewing
-// an image.
-// XXX: move this
-ppixiv.slideshow_staging_dialog = class extends DialogWidget
-{
-    static show()
-    {
-        let slideshow_args = ppixiv.app.slideshowURL;
-        if(slideshow_args == null)
-            return;
-
-        // Set the slideshow URL without sending popstate, so it'll be the current browser URL
-        // that can be bookmarked but we won't actually navigate to it.  We don't want to navigate
-        // to it since that'll change the placeholder "*" illust ID to a real illust ID, which
-        // isn't what we want to bookmark.
-        helpers.navigate(slideshow_args, { send_popstate: false });
-
-        new slideshow_staging_dialog();
-    }
-
-    constructor({...options}={})
-    {
-        super({...options, header: "Slideshow",
-        template: `
-            <div class=items>
-                This page can be bookmarked. or added to the home screen on iOS.<br>
-                <br>
-                The bookmark will begin a slideshow with the current search.
-            </div>
-        `});
-
-        this.url = helpers.args.location;
-    }
-
-    visibility_changed()
-    {
-        super.visibility_changed();
-
-        if(!this.visible)
-        {
-            // If the URL is still pointing at the slideshow, back out to restore the original
-            // URL.  This is needed if we're exiting from the user clicking out of the dialog,
-            // but don't do it if we're exiting from browser back.
-            if(helpers.args.location.toString() == this.url.toString())
-                ppixiv.phistory.back();
-        }
-    }
-};

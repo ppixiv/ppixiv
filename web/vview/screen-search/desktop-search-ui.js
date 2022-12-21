@@ -153,6 +153,13 @@ export default class DesktopSearchUI extends Widget
         if(this.dataSource == dataSource)
             return;
 
+        // Remove any previous data source's UI.
+        if(this.currentDataSourceUi)
+        {
+            this.currentDataSourceUi.shutdown();
+            this.currentDataSourceUi = null;
+        }
+
         this.dataSource = dataSource;
         this.avatarWidget.setUserId(null);
         this.avatarWidget.visible = false;
@@ -160,13 +167,6 @@ export default class DesktopSearchUI extends Widget
 
         if(dataSource == null)
             return;
-
-        // Remove any previous data source's UI.
-        if(this.currentDataSourceUi)
-        {
-            this.currentDataSourceUi.shutdown();
-            this.currentDataSourceUi = null;
-        }
 
         // Create the new data source's UI.
         if(this.dataSource.ui)
@@ -177,8 +177,6 @@ export default class DesktopSearchUI extends Widget
                 container: dataSourceUiContainer,
             });
         }
-
-        this.container.querySelector(".refresh-search-from-page-button").hidden = !this.dataSource.supports_start_page;
     }
     
     updateFromSettings = () =>
@@ -188,6 +186,7 @@ export default class DesktopSearchUI extends Widget
 
     refreshUi()
     {
+        this.container.querySelector(".refresh-search-from-page-button").hidden = !this.dataSource.supportsStartPage;
         if(this.dataSource)
         {
             let { userId, imageUrl, imageLinkUrl } = this.dataSource.uiInfo;

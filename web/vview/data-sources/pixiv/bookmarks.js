@@ -47,7 +47,7 @@ export class DataSource_BookmarksBase extends DataSource
         await this.continue_loading_page_internal(page);
     };
 
-    get supports_start_page()
+    get supportsStartPage()
     {
         // Disable start pages when we're shuffling pages anyway.
         return !this.shuffle;

@@ -4,12 +4,12 @@ export default class RecentBookmarkTags
 {
     static setRecentBookmarkTags(tags)
     {
-        settings.set("recent-bookmark-tags", JSON.stringify(tags));
+        ppixiv.settings.set("recent-bookmark-tags", JSON.stringify(tags));
     }
 
     static getRecentBookmarkTags()
     {
-        let recentBookmarkTags = settings.get("recent-bookmark-tags");
+        let recentBookmarkTags = ppixiv.settings.get("recent-bookmark-tags");
         if(recentBookmarkTags == null)
             return [];
         return JSON.parse(recentBookmarkTags);

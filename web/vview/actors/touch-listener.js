@@ -1,7 +1,7 @@
-// ppixiv.pointer_listener is complicated because it deals with overlapping LMB and RMB
-// presses, and a bunch of browser weirdness around context menus and other things that
-// a lot of UI doesn't need.  touch_listener is a simpler interface that only listens for
-// left-clicks.  Touch inputs will see multitouch if the multi flag is true.
+// PointerListener is complicated because it deals with overlapping LMB and RMB presses,
+// and a bunch of browser weirdness around context menus and other things that a lot of
+// UI doesn't need.  touch_listener is a simpler interface that only listens for left-clicks.
+// Touch inputs will see multitouch if the multi flag is true.
 export default class TouchListener
 {
     // callback(event) will be called each time buttons change.  The event will be the event

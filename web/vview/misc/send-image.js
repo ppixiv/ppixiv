@@ -2,6 +2,7 @@
 
 import Widget from 'vview/widgets/widget.js';
 import DialogWidget from 'vview/widgets/dialog.js';
+import { LocalBroadcastChannel } from 'vview/misc/local-api.js';
 import { Timer } from 'vview/misc/helpers.js';
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -10,14 +11,13 @@ export default class SendImage
     constructor()
     {
         // This is a singleton, so we never close this channel.
-        this.send_image_channel = new ppixiv.LocalBroadcastChannel("ppixiv:send-image");
+        this.send_image_channel = new LocalBroadcastChannel("ppixiv:send-image");
 
         // A UUID we use to identify ourself to other tabs:
         this.tab_id = this.create_tab_id();
         this.tab_id_tiebreaker = Date.now()
 
         this.pending_movement = [0, 0];
-        this.listeners = {};
 
         window.addEventListener("unload", this.window_onunload);
 
@@ -79,14 +79,6 @@ export default class SendImage
     }
 
     messages = new EventTarget();
-
-    add_message_listener(message, func)
-    {
-        if(!this.listeners[message])
-            this.listeners[message] = [];
-        this.listeners[message].push(func);
-
-    }
 
     // If we're sending an image and the page is unloaded, try to cancel it.  This is
     // only registered when we're sending an image.
@@ -171,13 +163,6 @@ export default class SendImage
         let event = new Event(data.message);
         event.message = data;
         this.messages.dispatchEvent(event);
-
-        // Call any listeners for this message.
-        if(this.listeners[data.message])
-        {
-            for(let func of this.listeners[data.message])
-                func(data);
-        }
 
         if(data.message == "tab-info")
         {
@@ -379,7 +364,7 @@ export default class SendImage
     }
 };
 
-ppixiv.link_tabs_popup = class extends Widget
+export class LinkTabsPopup extends Widget
 {
     constructor({...options})
     {
@@ -406,7 +391,7 @@ ppixiv.link_tabs_popup = class extends Widget
         if(!this.visible)
             return;
 
-        SendImage.send_message({
+        ppixiv.send_image.send_message({
             message: "show-link-tab",
             linked_tabs: ppixiv.settings.get("linked_tabs", []),
         });
@@ -418,7 +403,7 @@ ppixiv.link_tabs_popup = class extends Widget
 
         if(!this.visible)
         {
-            SendImage.send_message({ message: "hide-link-tab" });
+            ppixiv.send_image.send_message({ message: "hide-link-tab" });
             return;
         }
 
@@ -429,7 +414,7 @@ ppixiv.link_tabs_popup = class extends Widget
 
         // The other tab will send these messages when the link and unlink buttons
         // are clicked.
-        SendImage.messages.addEventListener("link-this-tab", (e) => {
+        ppixiv.send_image.messages.addEventListener("link-this-tab", (e) => {
             let message = e.message;
 
             let tab_ids = ppixiv.settings.get("linked_tabs", []);
@@ -439,9 +424,9 @@ ppixiv.link_tabs_popup = class extends Widget
             ppixiv.settings.set("linked_tabs", tab_ids);
 
             this.send_link_tab_message();
-        }, { signal: this.visibility_abort.signal });
+        }, this._signal);
 
-        SendImage.messages.addEventListener("unlink-this-tab", (e) => {
+        ppixiv.send_image.messages.addEventListener("unlink-this-tab", (e) => {
             let message = e.message;
             let tab_ids = ppixiv.settings.get("linked_tabs", []);
             let idx = tab_ids.indexOf(message.from);
@@ -451,7 +436,7 @@ ppixiv.link_tabs_popup = class extends Widget
             ppixiv.settings.set("linked_tabs", tab_ids);
 
             this.send_link_tab_message();
-        }, { signal: this.visibility_abort.signal });
+        }, this._signal);
     }
 }
 
@@ -467,29 +452,32 @@ export class LinkThisTabPopup extends DialogWidget
         
         // Show ourself when we see a show-link-tab message and hide if we see a
         // hide-link-tab-message.
-        ppixiv.send_image.add_message_listener("show-link-tab", (message) => {
-            ppixiv.LinkThisTabPopup.other_tab_id = message.from;
+        ppixiv.send_image.messages.addEventListener("show-link-tab", ({message}) => {
+            LinkThisTabPopup.other_tab_id = message.from;
             hide_timer.set(2000);
 
-            if(dialog == null)
-            {
-                dialog = new ppixiv.LinkThisTabPopup();
-                dialog.shutdown_signal.signal.addEventListener("abort", () => {
-                    hide_timer.clear();
-                    dialog = null;
-                });
-            }
+            if(dialog != null)
+                return;
 
-            ppixiv.send_image.add_message_listener("hide-link-tab", (message) => {
+            dialog = new LinkThisTabPopup({ message });
+
+            dialog.shutdown_signal.signal.addEventListener("abort", () => {
+                hide_timer.clear();
+                dialog = null;
+            });
+
+            ppixiv.send_image.messages.addEventListener("hide-link-tab", ({message}) => {
                 // Close the dialog if it's running.
                 if(dialog)
                     dialog.visible = false;
-            });
+            }, dialog._signal);
         });
-
     }
 
-    constructor({...options}={})
+    constructor({
+        message,
+        ...options
+    }={})
     {
         super({...options,
             dialog_class: "simple-button-dialog",
@@ -501,28 +489,39 @@ export class LinkThisTabPopup extends DialogWidget
             template: `
                 ${ helpers.create_box_link({ label: "Link this tab", classes: ["link-this-tab"]}) }
                 ${ helpers.create_box_link({ label: "Unlink this tab", classes: ["unlink-this-tab"]}) }
-        `});
+            `
+        });
+
+        this.link_this_tab = this.querySelector(".link-this-tab");
+        this.unlink_this_tab = this.querySelector(".unlink-this-tab");
+        this.link_this_tab.hidden = true;
+        this.unlink_this_tab.hidden = true;
 
         // Show ourself when we see a show-link-tab message and hide if we see a
         // hide-link-tab-message.
-        SendImage.add_message_listener("show-link-tab", (message) => {
-            let linked = message.linked_tabs.indexOf(SendImage.tab_id) != -1;
-            this.container.querySelector(".link-this-tab").hidden = linked;
-            this.container.querySelector(".unlink-this-tab").hidden = !linked;
-        });
+        ppixiv.send_image.messages.addEventListener("show-link-tab", ({message}) => this.showLinkTabMessage({message}), this._signal);
 
         // When "link this tab" is clicked, send a link-this-tab message.
-        this.container.querySelector(".link-this-tab").addEventListener("click", (e) => {
-            SendImage.send_message({ message: "link-this-tab", to: [ppixiv.LinkThisTabPopup.other_tab_id] });
+        this.link_this_tab.addEventListener("click", (e) => {
+            ppixiv.send_image.send_message({ message: "link-this-tab", to: [LinkThisTabPopup.other_tab_id] });
 
             // If we're linked to another tab, clear our linked tab list, to try to make
             // sure we don't have weird chains of tabs linking each other.
             ppixiv.settings.set("linked_tabs", []);
-        });
+        }, this._signal);
 
-        this.container.querySelector(".unlink-this-tab").addEventListener("click", (e) => {
-            SendImage.send_message({ message: "unlink-this-tab", to: [ppixiv.LinkThisTabPopup.other_tab_id] });
-        });
+        this.unlink_this_tab.addEventListener("click", (e) => {
+            ppixiv.send_image.send_message({ message: "unlink-this-tab", to: [LinkThisTabPopup.other_tab_id] });
+        }, this._signal);
+        
+        this.showLinkTabMessage({message});
+    }
+
+    showLinkTabMessage({message})
+    {
+        let linked = message.linked_tabs.indexOf(ppixiv.send_image.tab_id) != -1;
+        this.link_this_tab.hidden = linked;
+        this.unlink_this_tab.hidden = !linked;
     }
 }
 
@@ -559,12 +558,12 @@ export class SendImagePopup extends DialogWidget
             ppixiv.send_image.send_message({ message: "show-send-image" });
         }, 1000, this.shutdown_signal.signal);
 
-        ppixiv.send_image.add_message_listener("take-image", (message) => {
+        ppixiv.send_image.messages.addEventListener("take-image", ({message}) => {
             let tab_id = message.from;
             ppixiv.send_image.send_image(media_id, [tab_id], "display");
 
             this.visible = false;
-        });
+        }, this._signal);
     }
 
     shutdown()
@@ -586,7 +585,7 @@ export class SendHerePopup extends DialogWidget
         });
 
         let dialog = null;
-        ppixiv.send_image.add_message_listener("show-send-image", (message) => {
+        ppixiv.send_image.messages.addEventListener("show-send-image", ({message}) => {
             SendHerePopup.other_tab_id = message.from;
             hide_timer.set(2000);
 
@@ -598,13 +597,13 @@ export class SendHerePopup extends DialogWidget
                     dialog = null;
                 });
             }
-        });
+        }, this._signal);
 
-        ppixiv.send_image.add_message_listener("hide-send-image", (message) => {
+        ppixiv.send_image.messages.addEventListener("hide-send-image", ({message}) => {
             // Close the dialog if it's running.
             if(dialog)
                 dialog.visible = false;
-        });
+        }, this._signal);
     }
 
     constructor({...options}={})

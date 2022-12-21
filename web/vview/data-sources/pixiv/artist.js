@@ -10,13 +10,15 @@
 import DataSource, { PaginateMediaIds, TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
+import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 export default class DataSources_Artist extends DataSource
 {
     get name() { return "artist"; }
-  
+    get ui() { return UI; }
+
     constructor(url)
     {
         super(url);
@@ -25,7 +27,7 @@ export default class DataSources_Artist extends DataSource
         this.booth_url = null;
     }
 
-    get supports_start_page() { return true; }
+    get supportsStartPage() { return true; }
 
     get viewingUserId()
     {
@@ -230,128 +232,6 @@ export default class DataSources_Artist extends DataSource
         return args.query.get("tag");
     }
 
-    get ui()
-    {
-        return class extends Widget
-        {
-            constructor({data_source, ...options})
-            {
-                super({ ...options, template: `
-                    <div>
-                        <div class="box-button-row search-options-row">
-                            ${ helpers.create_box_link({label: "Works",    popup: "Show all works",            data_type: "artist-works" }) }
-                            ${ helpers.create_box_link({label: "Illusts",  popup: "Show illustrations only",   data_type: "artist-illust" }) }
-                            ${ helpers.create_box_link({label: "Manga",    popup: "Show manga only",           data_type: "artist-manga" }) }
-                            ${ helpers.create_box_link({label: "Tags",     popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] }) }
-                        </div>
-
-                        <vv-container class=avatar-container></vv-container>
-                    </div>
-                `});
-
-                this.data_source = data_source;
-
-                data_source.addEventListener("_refresh_ui", () => {
-                    // Refresh the displayed label in case we didn't have it when we created the widget.
-                    this.tag_dropdown.set_button_popup_highlight();
-                }, this._signal);
-
-                data_source.set_path_item(this.container, "artist-works", 2, "artworks");
-                data_source.set_path_item(this.container, "artist-illust", 2, "illustrations");
-                data_source.set_path_item(this.container, "artist-manga", 2, "manga");
-
-                // On mobile, create our own avatar display for the search popup.
-                if(ppixiv.mobile)
-                {
-                    let avatar_container = this.container.querySelector(".avatar-container");
-                    this.avatar_widget = new avatar_widget({
-                        container: avatar_container,
-                        big: true,
-                        mode: "dropdown",
-                    });
-                    this.avatar_widget.set_user_id(data_source.viewingUserId);
-                }
-
-                class tag_dropdown extends TagDropdownWidget
-                {
-                    refresh_tags()
-                    {
-                        // Refresh the post tag list.
-                        helpers.remove_elements(this.container);
-
-                        if(data_source.post_tags != null)
-                        {
-                            this.add_tag_link({ tag: "All" });
-                            for(let tag_info of data_source.post_tags || [])
-                                this.add_tag_link(tag_info);
-                        }
-                        else
-                        {
-                            // Tags aren't loaded yet.  We'll be refreshed after tag_list_opened loads tags.
-                            // If a tag is selected, fill in just that tag so the button text works.
-                            var span = document.createElement("span");
-                            span.innerText = "Loading...";
-                            this.container.appendChild(span);
-
-                            this.add_tag_link({ tag: "All" });
-
-                            let current_tag = data_source.current_tag;
-                            if(current_tag != null)
-                                this.add_tag_link({ tag: current_tag });
-                        }
-                    }
-
-                    add_tag_link(tag_info)
-                    {
-                        // Skip tags with very few posts.  This list includes every tag the author
-                        // has ever used, and ends up being pages long with tons of tags that were
-                        // only used once.
-                        if(tag_info.tag != "All" && tag_info.cnt < 5)
-                            return;
-
-                        let tag = tag_info.tag;
-                        let translated_tag = tag;
-                        if(data_source.translated_tags && data_source.translated_tags[tag])
-                            translated_tag = data_source.translated_tags[tag];
-
-                        let classes = ["tag-entry"];
-
-                        // If the user has searched for this tag recently, add the recent tag.  This is added
-                        // in tag_list_opened.
-                        if(tag_info.recent)
-                            classes.push("recent");
-
-                        let a = helpers.create_box_link({
-                            label: translated_tag,
-                            classes,
-                            popup: tag_info?.cnt,
-                            link: "#",
-                            as_element: true,
-                            data_type: "artist-tag",
-                        });
-
-                        data_source.set_item(a, { fields: {"tag": tag != "All"? tag:null} });
-
-                        if(tag == "All")
-                            a.dataset["default"] = 1;
-
-                        this.container.appendChild(a);
-                    };
-                };
-
-                this.tag_dropdown = new DropdownMenuOpener({
-                    button: this.querySelector(".member-tags-button"),
-                    create_box: ({...options}) => new tag_dropdown({data_source, ...options}),
-                    onvisibilitychanged: (opener) => {
-                        // Populate the tags dropdown if it's opened, so we don't load user tags for every user page.
-                        if(opener.visible);
-                            data_source.tag_list_opened();
-                    }
-                });
-            }
-        }
-    }
-
     get uiInfo()
     {
         return {
@@ -447,4 +327,122 @@ export default class DataSources_Artist extends DataSource
         else
             return "Illustrations";
     };
+}
+
+class UI extends Widget
+{
+    constructor({data_source, ...options})
+    {
+        super({ ...options, template: `
+            <div>
+                <div class="box-button-row search-options-row">
+                    ${ helpers.create_box_link({label: "Works",    popup: "Show all works",            data_type: "artist-works" }) }
+                    ${ helpers.create_box_link({label: "Illusts",  popup: "Show illustrations only",   data_type: "artist-illust" }) }
+                    ${ helpers.create_box_link({label: "Manga",    popup: "Show manga only",           data_type: "artist-manga" }) }
+                    ${ helpers.create_box_link({label: "Tags",     popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] }) }
+                </div>
+
+                <vv-container class=avatar-container></vv-container>
+            </div>
+        `});
+
+        this.data_source = data_source;
+
+        data_source.addEventListener("_refresh_ui", () => {
+            // Refresh the displayed label in case we didn't have it when we created the widget.
+            this.tag_dropdown.set_button_popup_highlight();
+        }, this._signal);
+
+        data_source.set_path_item(this.container, "artist-works", 2, "artworks");
+        data_source.set_path_item(this.container, "artist-illust", 2, "illustrations");
+        data_source.set_path_item(this.container, "artist-manga", 2, "manga");
+
+        // On mobile, create our own avatar display for the search popup.
+        if(ppixiv.mobile)
+        {
+            let avatarWidget = new AvatarWidget({
+                container: this.container.querySelector(".avatar-container"),
+                big: true,
+                mode: "dropdown",
+            });
+            avatarWidget.setUserId(data_source.viewingUserId);
+        }
+
+        class tag_dropdown extends TagDropdownWidget
+        {
+            refresh_tags()
+            {
+                // Refresh the post tag list.
+                helpers.remove_elements(this.container);
+
+                if(data_source.post_tags != null)
+                {
+                    this.add_tag_link({ tag: "All" });
+                    for(let tag_info of data_source.post_tags || [])
+                        this.add_tag_link(tag_info);
+                }
+                else
+                {
+                    // Tags aren't loaded yet.  We'll be refreshed after tag_list_opened loads tags.
+                    // If a tag is selected, fill in just that tag so the button text works.
+                    var span = document.createElement("span");
+                    span.innerText = "Loading...";
+                    this.container.appendChild(span);
+
+                    this.add_tag_link({ tag: "All" });
+
+                    let current_tag = data_source.current_tag;
+                    if(current_tag != null)
+                        this.add_tag_link({ tag: current_tag });
+                }
+            }
+
+            add_tag_link(tag_info)
+            {
+                // Skip tags with very few posts.  This list includes every tag the author
+                // has ever used, and ends up being pages long with tons of tags that were
+                // only used once.
+                if(tag_info.tag != "All" && tag_info.cnt < 5)
+                    return;
+
+                let tag = tag_info.tag;
+                let translated_tag = tag;
+                if(data_source.translated_tags && data_source.translated_tags[tag])
+                    translated_tag = data_source.translated_tags[tag];
+
+                let classes = ["tag-entry"];
+
+                // If the user has searched for this tag recently, add the recent tag.  This is added
+                // in tag_list_opened.
+                if(tag_info.recent)
+                    classes.push("recent");
+
+                let a = helpers.create_box_link({
+                    label: translated_tag,
+                    classes,
+                    popup: tag_info?.cnt,
+                    link: "#",
+                    as_element: true,
+                    data_type: "artist-tag",
+                });
+
+                data_source.set_item(a, { fields: {"tag": tag != "All"? tag:null} });
+
+                if(tag == "All")
+                    a.dataset["default"] = 1;
+
+                this.container.appendChild(a);
+            };
+        };
+
+        this.tag_dropdown = new DropdownMenuOpener({
+            button: this.querySelector(".member-tags-button"),
+            create_box: ({...options}) => new tag_dropdown({data_source, ...options}),
+            onvisibilitychanged: (opener) => {
+                // Populate the tags dropdown if it's opened, so we don't load user tags for every user page.
+                if(opener.visible);
+                    data_source.tag_list_opened();
+            }
+        });
+    }
 }

@@ -50,80 +50,6 @@ async function Bootstrap(env)
 
     console.log(`${native? "vview":"ppixiv"} ${env.version} bootstrap`);
 
-    // Create the environment.
-    let ppixiv = {
-        resources: env.resources,
-        version: env.version,
-        native,
-        ios,
-        android,
-        mobile: ios || android,
-    };
-
-    let showed_error = false;
-    function run_script(source, { path }={})
-    {
-        let script = document.createElement("script");
-
-        // For some reason script.onerror isn't called, and we have to do this on window.onerror.
-        let success = true;
-        let onerror = (e) => {
-            success = false;
-            if(showed_error)
-                return;
-            showed_error = true;
-            if(path) path = ' ' + path;
-            alert(`Error loading ppixiv${path ?? ''}:\n\n${e.message}`);
-        };
-
-        // For now, don't use this on iOS.  For some reason this sometimes picks up random errors
-        // from Pixiv that don't affect us and pops up an alert dialog.  It's not obvious why, since
-        // inserting a script node shouldn't be causing other script nodes to be run synchronously.
-        if(ios)
-            onerror = null;
-
-        window.addEventListener("error", onerror);
-        script.textContent = source;
-        document.documentElement.appendChild(script);
-        window.removeEventListener("error", onerror);
-        script.remove();
-
-        return success;
-    }
-
-    // Load modules into script nodes with the "internal" type.  These will be loaded
-    // by AppStartup.
-    for(let [name, path] of Object.entries(env.init.modules))
-    {
-        let source = env.resources[path];
-        if(!source)
-        {
-            console.error("Source file missing:", path);
-            continue;
-        }
-
-        let script = document.createElement("script");
-        script.type = "vview/module";
-        script.dataset.module = name;
-        script.dataset.sourceRoot = "https://desktop.zewt.org/web/";
-        script.textContent = source;
-        document.documentElement.appendChild(script);
-    }
-
-    // Create window.ppixiv.
-    run_script(`window.ppixiv = ${JSON.stringify(ppixiv)}`, { path: "environment" });
-
-    // Load app_startup.
-    {
-        let path = env.init.modules["vview/app_startup.js"];
-        delete env.init.modules["vview/app_startup.js"];
-        let source = env.resources[path];
-
-        // Stop loading if a file fails to load.
-        if(!run_script(`with(ppixiv) { ${source} }`, { path }))
-            return;
-    }
-
     // If we're running in a user script and we have access to GM.xmlHttpRequest, give access to
     // it to support saving image files to disk.  Since we may be sandboxed, we do this through
     // a MessagePort.  We have to send this to the page, since the page has no way to send messages
@@ -132,7 +58,7 @@ async function Bootstrap(env)
     // helpers.cleanup_environment disables postMessage.  If we're not sandboxed, we'll be affected
     // by this too, so save a copy of postMessage in the same way that it does.
     window.MessagePort.prototype.xhrServerPostMessage = window.MessagePort.prototype.postMessage;
-    function create_xhr_handler()
+    function createXhrHandler()
     {
         let { port1: client_port, port2: server_port }  = new MessageChannel();
         window.postMessage({ cmd: "download-setup" }, "*", [client_port]);
@@ -170,12 +96,58 @@ async function Bootstrap(env)
     // Listen to requests from helpers._get_xhr_server.
     window.addEventListener("request-download-channel", (e) => {
         e.preventDefault();
-        create_xhr_handler();
+        createXhrHandler();
     });
 
-    console.log(`${ppixiv.native? "vview":"ppixiv"} setup`);
-    console.log("Browser:", navigator.userAgent);
+    let showedError = false;
+    function runScript(source)
+    {
+        let script = document.createElement("script");
 
-    // Create the main controller.
-    run_script(`new ppixiv.AppStartup();`, { path: "controller" });
+        // For some reason script.onerror isn't called, and we have to do this on window.onerror.
+        let success = true;
+        let onerror = (e) => {
+            success = false;
+            if(showedError)
+                return;
+            showedError = true;
+            alert(`Error loading ppixiv:\n\n${e.message}`);
+        };
+
+        // For now, don't use this on iOS.  For some reason this sometimes picks up random errors
+        // from Pixiv that don't affect us and pops up an alert dialog.  It's not obvious why, since
+        // inserting a script node shouldn't be causing other script nodes to be run synchronously.
+        if(ios)
+            onerror = null;
+
+        window.addEventListener("error", onerror);
+        script.textContent = source;
+        document.documentElement.appendChild(script);
+        window.removeEventListener("error", onerror);
+        script.remove();
+
+        return success;
+    }
+
+    // Pull app-startup out of the module list.  It's the main entry point and not a module.
+    // This is where we exit the script sandbox, if any.
+    let startupPath = env.modules["vview/app-startup.js"];
+    let appStartup = env.resources[startupPath];
+    delete env.modules["vview/app-startup.js"];
+    delete env.resources[startupPath];
+
+    // Run AppStartup.  Make sure the contents of appStartup are on the first line of the
+    // script node, so line numbers match up and the sourceURL works.
+    let args = {
+        modules: env.modules,
+        resources: env.resources,
+        version: env.version,
+        native,
+        ios,
+        android,
+        mobile: ios || android,
+    };
+    runScript(`${appStartup}
+        new AppStartup(${JSON.stringify(args)});
+    `);
 }

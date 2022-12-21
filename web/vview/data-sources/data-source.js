@@ -29,7 +29,7 @@ export default class DataSource extends EventTarget
         // If this data source supports a start page, store the page we started on.
         // This isn't increased as we load more pages, but if we load earlier results
         // because the user clicks "load previous results", we'll reduce it.
-        if(this.supports_start_page)
+        if(this.supportsStartPage)
         {
             let args = new helpers.args(url);
             
@@ -178,7 +178,7 @@ export default class DataSource extends EventTarget
         await this.load_page_internal(page);
 
         // Reduce the start page, which will update the "load more results" button if any.
-        if(this.supports_start_page && page < this.initial_page)
+        if(this.supportsStartPage && page < this.initial_page)
             this.initial_page = page;
 
         // If there were no results, then we've loaded the last page.  Don't try to load
@@ -286,7 +286,7 @@ export default class DataSource extends EventTarget
     set_current_media_id(mediaId, args)
     {
         let [illust_id] = helpers.media_id_to_illust_id_and_page(mediaId);
-        if(this.supports_start_page)
+        if(this.supportsStartPage)
         {
             // Store the page the illustration is on in the hash, so if the page is reloaded while
             // we're showing an illustration, we'll start on that page.  If we don't do this and
@@ -328,7 +328,7 @@ export default class DataSource extends EventTarget
     get transient() { return false; }
 
     // Some data sources can restart the search at a page.
-    get supports_start_page() { return false; }
+    get supportsStartPage() { return false; }
 
     // If true, all pages are loaded.  This is only used by data_sources.vview.
     get all_pages_loaded() { return false; }
@@ -343,7 +343,7 @@ export default class DataSource extends EventTarget
 
     // Store the current page in the URL.
     //
-    // This is only used if supports_start_page is true.
+    // This is only used if supportsStartPage is true.
     set_start_page(args, page)
     {
         // Remove the page for page 1 to keep the initial URL clean.
@@ -641,7 +641,7 @@ export default class DataSource extends EventTarget
     //
     // This currently won't load more than one page.  If we load a page and it only has users,
     // we won't try another page.
-    async get_or_load_neighboring_media_id(mediaId, next, options={})
+    async getOrLoadNeighboringMediaId(mediaId, next, options={})
     {
         // See if it's already loaded.
         let newMediaId = this.id_list.getNeighboringMediaId(mediaId, next, options);
@@ -692,11 +692,11 @@ export default class DataSource extends EventTarget
     }
 
     // Get the next or previous image to from_media_id.  If we're at the end, loop back
-    // around to the other end.  options is the same as get_or_load_neighboring_media_id.
-    async get_neighboring_media_id_with_loop(from_media_id, next, options={})
+    // around to the other end.  options is the same as getOrLoadNeighboringMediaId.
+    async getOrLoadNeighboringMediaIdWithLoop(from_media_id, next, options={})
     {
         // See if we can keep moving in this direction.
-        let mediaId = await this.get_or_load_neighboring_media_id(from_media_id, next, options);
+        let mediaId = await this.getOrLoadNeighboringMediaId(from_media_id, next, options);
         if(mediaId)
             return mediaId;
 

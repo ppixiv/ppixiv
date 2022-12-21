@@ -259,7 +259,7 @@ export default class SearchView extends Widget
 
         // If the data source supports a start page, update the page number in the URL to reflect
         // the first visible thumb.
-        if(this.dataSource == null || !this.dataSource.supports_start_page || first_thumb.dataset.searchPage == null)
+        if(this.dataSource == null || !this.dataSource.supportsStartPage || first_thumb.dataset.searchPage == null)
             return;
 
         let args = helpers.args.location;
@@ -1602,7 +1602,7 @@ export default class SearchView extends Widget
 
         element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
 
-        helpers.set_class(element, "dot", helpers.tags_contain_dot(info.tagList));
+        helpers.set_class(element, "dot", helpers.tagsContainDot(info.tagList));
 
         // Set expanded-thumb if this is an expanded manga post.  This is also updated in
         // setMediaIdExpanded.  Set the border to a random-ish value to try to make it

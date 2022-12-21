@@ -244,14 +244,14 @@ class IllustBottomMenuBar extends Widget
         this.buttonSlider = this.container.querySelector(".button-similar");
         this.buttonSlider.hidden = ppixiv.native;
         this.buttonSlider.addEventListener("click", (e) => {
-            let [illust_id] = helpers.media_id_to_illust_id_and_page(this._mediaId);
-            let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv?recommendations=1`);
+            let [illustId] = helpers.media_id_to_illust_id_and_page(this._mediaId);
+            let args = new helpers.args(`/bookmark_detail.php?illust_id=${illustId}#ppixiv?recommendations=1`);
             helpers.navigate(args);
         });
 
         this.buttonBookmark.addEventListener("click", (e) => {
             new BookmarkTagDialog({
-                media_id: this._mediaId
+                mediaId: this._mediaId
             });
             
             this.parent.hide();
@@ -376,7 +376,7 @@ class BookmarkTagDialog extends DialogWidget
             private_bookmark_button: this.privateBookmark,
         });
 
-        this.publicBookmark = BookmarkButtonWidget({
+        this.publicBookmark = new BookmarkButtonWidget({
             contents: this.container.querySelector(".public"),
             bookmark_type: "public",
 

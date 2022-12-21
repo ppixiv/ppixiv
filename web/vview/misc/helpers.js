@@ -1569,7 +1569,7 @@ export class helpers
     }
 
     // Return true if the given illust_data.tags contains the pixel art (ドット絵) tag.
-    static tags_contain_dot(tag_list)
+    static tagsContainDot(tag_list)
     {
         if(tag_list == null)
             return false;
@@ -2560,7 +2560,7 @@ export class helpers
             helpers.set_page_icon(ppixiv.resources['resources/regular-pixiv-icon.png']);
     }
 
-    static set_title_and_icon(illust_data)
+    static setTitleAndIcon(illust_data)
     {
         helpers.set_title(illust_data)
         helpers.set_icon()

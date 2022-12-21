@@ -105,7 +105,7 @@ export default class ViewerImages extends Viewer
         // If set, this is a function returning a promise which resolves when any transitions
         // are complete.  We'll wait until this resolves before switching to the full image to
         // reduce frame skips.
-        wait_for_transitions=() => { },
+        waitForTransitions=() => { },
         ...options
     })
     {
@@ -121,7 +121,7 @@ export default class ViewerImages extends Viewer
             </div>
         `});
 
-        this._wait_for_transitions = wait_for_transitions;
+        this._waitForTransitions = waitForTransitions;
 
         this._image_box = this.container.querySelector(".image-box");
         this._crop_box = this.container.querySelector(".crop-box");
@@ -427,7 +427,7 @@ export default class ViewerImages extends Viewer
         // do it in the middle of transitions.  This helps prevent frame hitches on mobile.  On
         // desktop we may have already displayed the full image, but this is only important for
         // mobile.
-        await this._wait_for_transitions();
+        await this._waitForTransitions();
         signal.check();
 
         // Decode the image asynchronously before adding it.  This is cleaner for large images,

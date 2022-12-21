@@ -25,7 +25,7 @@ export default class DataSource_VView extends DataSource
         this.load_page(this.initial_page, { cause: "preload" });
     }
 
-    get supports_start_page() { return true; }
+    get supportsStartPage() { return true; }
 
     // If we've loaded all pages, this is true to let the context menu know it
     // should display page numbers.

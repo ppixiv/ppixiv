@@ -53,7 +53,7 @@ window.NativeLoader = class
         
         return {
             resources,
-            init,
+            modules: init.modules,
             version: 'native',
         };
     }
@@ -92,7 +92,7 @@ window.NativeLoader = class
         if(url.pathname.endsWith(".js"))
         {
             data += "\n";
-            data += `//# sourceURL=${source_url}\n`; // split so browsers don't interpret this line as a sourceURL
+            data += `//` + `# sourceURL=${source_url}\n`; // split so browsers don't interpret this line as a sourceURL
         }
 
         return data;

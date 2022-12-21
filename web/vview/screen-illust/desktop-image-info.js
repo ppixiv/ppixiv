@@ -8,6 +8,7 @@ import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
 import Actions from 'vview/misc/actions.js';
 import TagListWidget from 'vview/widgets/tag-list-widget.js';
 import LocalAPI from 'vview/misc/local-api.js';
+import { getUrlForMediaId } from 'vview/misc/media-ids.js'
 import { helpers, ClassFlags } from 'vview/misc/helpers.js';
 
 export default class DesktopImageInfo extends Widget

@@ -193,23 +193,6 @@ export default class Actor extends EventTarget
         }
     }
 
-    // Return an array of all ancestors.  If include_self is true, yield ourself too.
-    ancestors({include_self=false}={})
-    {
-        let result = [];
-        if(include_self)
-            result.push(result);
-
-        let node = this.parent;
-        while(node)
-        {
-            result.push(node);
-            node = node.parent;
-        }
-
-        return result;
-    }
-
     // Yield all descendants of this node, depth-first.  If include_self is true, yield ourself too.
     *descendents({include_self=false}={})
     {

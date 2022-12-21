@@ -15,7 +15,7 @@ export default class DataSource_Follows extends DataSource
         this.follow_tags = [];
     }
 
-    get supports_start_page()
+    get supportsStartPage()
     {
         return true;
     }

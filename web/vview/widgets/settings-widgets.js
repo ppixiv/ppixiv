@@ -3,6 +3,7 @@ import { MenuOptionButton, MenuOptionRow, MenuOptionOptionsSetting, MenuOptionsT
     MenuOptionSliderSetting, MenuOptionToggleSetting } from 'vview/widgets/menu-option.js';
 
 import { EditMutedTagsWidget } from 'vview/widgets/mutes.js';
+import { LinkTabsPopup } from 'vview/misc/send-image.js';
 import DialogWidget from 'vview/widgets/dialog.js';
 import PointerListener from 'vview/actors/pointer-listener.js';
 import { helpers } from 'vview/misc/helpers.js';
@@ -208,7 +209,7 @@ function create_settings_widget({ global_options })
                     // Close the settings dialog.
                     global_options.close_settings();
 
-                    ppixiv.slideshow_staging_dialog.show();
+                    SlideshowStagingDialog.show();
                 },
             });
 
@@ -335,7 +336,7 @@ function create_settings_widget({ global_options })
             });
         },
         link_tabs: () => {
-            let widget = new ppixiv.link_tabs_popup({
+            let widget = new LinkTabsPopup({
                 ...global_options,
             });
 
@@ -673,3 +674,58 @@ export class SettingsPageDialog extends DialogWidget
         });
     }
 };
+
+
+// Set the page URL to a slideshow, but don't actually start the slideshow.  This lets the
+// user bookmark the slideshow URL before the illust ID changes from "*" to an actual ID.
+// This is mostly just a workaround for an iOS UI bug: there's no way to create a home
+// screen bookmark for a link, only for a URL that's already loaded.
+//
+// This is usually used from the search screen, but there's currently no good place to put
+// it there, so it's inside the settings menu and technically can be accessed while viewing
+// an image.
+class SlideshowStagingDialog extends DialogWidget
+{
+    static show()
+    {
+        let slideshow_args = ppixiv.app.slideshowURL;
+        if(slideshow_args == null)
+            return;
+
+        // Set the slideshow URL without sending popstate, so it'll be the current browser URL
+        // that can be bookmarked but we won't actually navigate to it.  We don't want to navigate
+        // to it since that'll change the placeholder "*" illust ID to a real illust ID, which
+        // isn't what we want to bookmark.
+        helpers.navigate(slideshow_args, { send_popstate: false });
+
+        new SlideshowStagingDialog();
+    }
+
+    constructor({...options}={})
+    {
+        super({...options, header: "Slideshow",
+        template: `
+            <div class=items>
+                This page can be bookmarked. or added to the home screen on iOS.<br>
+                <br>
+                The bookmark will begin a slideshow with the current search.
+            </div>
+        `});
+
+        this.url = helpers.args.location;
+    }
+
+    visibility_changed()
+    {
+        super.visibility_changed();
+
+        if(!this.visible)
+        {
+            // If the URL is still pointing at the slideshow, back out to restore the original
+            // URL.  This is needed if we're exiting from the user clicking out of the dialog,
+            // but don't do it if we're exiting from browser back.
+            if(helpers.args.location.toString() == this.url.toString())
+                ppixiv.phistory.back();
+        }
+    }
+}

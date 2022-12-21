@@ -6,7 +6,7 @@ export default class DataSources_CompletedRequests extends DataSource
 {
     get name() { return "completed-requests"; }
   
-    get supports_start_page()
+    get supportsStartPage()
     {
         return true;
     }

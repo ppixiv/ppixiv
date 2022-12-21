@@ -499,7 +499,7 @@ export default class LocalAPI
 // LocalBroadcastChannel implements the same API as BroadcastChannel, but sends messages
 // over the local WebSockets connection.  This allows sending messages across browsers and
 // machines.  If the local API isn't enabled, this is just a wrapper around BroadcastChannel.
-ppixiv.LocalBroadcastChannel = class extends EventTarget
+export class LocalBroadcastChannel extends EventTarget
 {
     constructor(name)
     {

@@ -986,7 +986,7 @@ export default class App
         // Load data URLs into blobs.
         for(let [name, dataURL] of Object.entries(ppixiv.resources))
         {
-            if(!dataURL.startsWith || !dataURL.startsWith("data:"))
+            if(!dataURL.startsWith || !dataURL.startsWith("data:") || !dataURL.startsWith("blob:"))
                 continue;
 
             let result = await realFetch(dataURL);
@@ -1058,7 +1058,7 @@ export default class App
     // Return the URL args to display a slideshow from the current page.
     //
     // This is usually used from a search, and displays a slideshow for the current
-    // search.  It can also be called while on an illust from slideshow_staging_dialog.
+    // search.  It can also be called while on an illust from SlideshowStagingDialog.
     get slideshowURL()
     {
         let data_source = this.data_source;

@@ -69,8 +69,9 @@ export default class ViewerError extends Viewer
             img.src = user_info.imageBig;
         }
 
-        let muted_tag = muting.singleton.any_tag_muted(illust_data.tagList);
-        let muted_user = muting.singleton.is_muted_user_id(illust_data.userId);
+        let muted_tag = ppixiv.muting.any_tag_muted(illust_data.tagList);
+        let muted_user = ppixiv.muting.is_muted_user_id(illust_data.userId);
+        console.log("x", muted_tag, muted_user);
 
         this.container.querySelector(".muted-label").hidden = false;
         this.container.querySelector(".view-muted-image").hidden = false;
