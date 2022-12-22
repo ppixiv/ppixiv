@@ -35,7 +35,7 @@ export class DataSource_BookmarksBase extends DataSource
         this.fetchBookmarkTagCounts();
         
         // Load the user's info.  We don't need to wait for this to finish.
-        let userInfoPromise = ppixiv.user_cache.get_user_info_full(this.viewingUserId);
+        let userInfoPromise = ppixiv.userCache.get_user_info_full(this.viewingUserId);
         userInfoPromise.then((user_info) => {
             // Stop if we were deactivated before this finished.
             if(!this.active)
@@ -201,7 +201,7 @@ export class DataSource_BookmarksBase extends DataSource
                 // illust.id is an int if this image is deleted.  Convert it to a string so it's
                 // like other images.
                 let mediaId = helpers.illust_id_to_media_id(illust.id.toString());
-                ppixiv.extra_cache.update_cached_bookmark_image_tags(mediaId, tags);
+                ppixiv.extraCache.update_cached_bookmark_image_tags(mediaId, tags);
             }
         }
 
@@ -376,7 +376,7 @@ export class Bookmarks extends DataSource_BookmarksBase
         if(this.shuffle)
             helpers.shuffle_array(mediaIds);
         
-        await ppixiv.media_cache.add_media_infos_partial(result.works, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(result.works, "normal");
 
         // Register the new page of data.  If we're shuffling, use the original page number, not the
         // shuffled page.
@@ -455,7 +455,7 @@ export class BookmarksMerged extends DataSource_BookmarksBase
         for(let illust_data of result.works)
             mediaIds.push(helpers.illust_id_to_media_id(illust_data.id));
 
-        await ppixiv.media_cache.add_media_infos_partial(result.works, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(result.works, "normal");
 
         // If there are no results, remember that this is the last page, so we don't
         // make more requests for this type.  Use the "empty" flag for this and not

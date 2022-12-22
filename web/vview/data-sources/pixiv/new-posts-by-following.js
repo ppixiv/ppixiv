@@ -32,7 +32,7 @@ export default class DataSource_NewPostsByFollowing extends DataSource
         let data = result.body;
 
         // Add translations.
-        ppixiv.tag_translations.add_translations_dict(data.tagTranslation);
+        ppixiv.tagTranslations.add_translations_dict(data.tagTranslation);
 
         // Store bookmark tags.
         this.bookmarkTags = data.page.tags;
@@ -40,7 +40,7 @@ export default class DataSource_NewPostsByFollowing extends DataSource
         this.dispatchEvent(new Event("_refresh_ui"));
 
         // Populate thumbnail data with this data.
-        await ppixiv.media_cache.add_media_infos_partial(data.thumbnails.illust, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(data.thumbnails.illust, "normal");
 
         let mediaIds = [];
         for(let illust of data.thumbnails.illust)

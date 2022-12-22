@@ -20,7 +20,7 @@ export default class DataSource_Illust extends DataSource
 
     async _loadMediaInfo()
     {
-        this.mediaInfo = await ppixiv.media_cache.get_media_info(this.mediaId, { full: false });
+        this.mediaInfo = await ppixiv.mediaCache.get_media_info(this.mediaId, { full: false });
     }
 
     // Show the illustration by default.

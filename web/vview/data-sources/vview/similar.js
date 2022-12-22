@@ -44,7 +44,7 @@ export default class DataSources_VViewSimilar extends DataSource
             // Register the results with media_cache.
             let entry = item.entry;
             LocalAPI.adjust_illust_info(entry);
-            await ppixiv.media_cache.add_media_info_full(entry, { preprocessed: true });
+            await ppixiv.mediaCache.add_media_info_full(entry, { preprocessed: true });
 
             mediaIds.push(entry.mediaId);
         }

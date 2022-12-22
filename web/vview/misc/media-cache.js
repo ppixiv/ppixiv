@@ -13,7 +13,7 @@
 // in IDB for Pixiv images, and natively by the local API.
 // 
 // Bookmark tags aren't handled here.  It requires a separate API call to load and we don't
-// always need it, so it doesn't fit here.  See ppixiv.extra_cache.load_bookmark_details.
+// always need it, so it doesn't fit here.  See ppixiv.extraCache.load_bookmark_details.
 // 
 // Callers can request full or partial data.  If partial data is requested, we can return
 // full data instead if we already have it, since it's a superset.  If we have to load info
@@ -285,10 +285,10 @@ export default class MediaCache extends EventTarget
 
             illust_data = illust_result.body;
         }
-        ppixiv.tag_translations.add_translations(illust_data.tags.tags);
+        ppixiv.tagTranslations.add_translations(illust_data.tags.tags);
 
         // If we have extra data stored for this image, load it.
-        let extra_data = await ppixiv.extra_image_data.load_all_pages_for_illust(illust_id);
+        let extra_data = await ppixiv.extraImageData.load_all_pages_for_illust(illust_id);
         illust_data.extraData = extra_data;
 
         // Now that we have illust data, load anything we weren't able to load before.
@@ -387,7 +387,7 @@ export default class MediaCache extends EventTarget
         delete illust_data.id;
         delete illust_data.userIllusts;
 
-        ppixiv.guess_image_url.add_info(illust_data);
+        ppixiv.guessImageUrl.add_info(illust_data);
 
         this._check_illust_data(illust_data);
 
@@ -557,7 +557,7 @@ export default class MediaCache extends EventTarget
         // Load any extra image data stored for these media IDs.  These are stored per page, but
         // batch loaded per image.
         let media_ids = all_thumb_info.map((info) => info.illustId);
-        let extra_data = await ppixiv.extra_image_data.batch_load_all_pages_for_illust(media_ids);
+        let extra_data = await ppixiv.extraImageData.batch_load_all_pages_for_illust(media_ids);
 
         for(let info of all_thumb_info)
         {
@@ -616,7 +616,7 @@ export default class MediaCache extends EventTarget
         let [illust_id] = helpers.media_id_to_illust_id_and_page(media_id);
 
         // Load the current data from the database, in case our cache is out of date.
-        let results = await ppixiv.extra_image_data.load_illust_data([media_id]);
+        let results = await ppixiv.extraImageData.load_illust_data([media_id]);
         let data = results[media_id] ?? { illust_id: illust_id };
 
         // Update each key, removing any keys which are null.
@@ -635,9 +635,9 @@ export default class MediaCache extends EventTarget
 
         // Save the new data.  If the only fields left are illust_id and edited_at, delete the record.
         if(Object.keys(data).length == 2)
-            await ppixiv.extra_image_data.delete_illust(media_id);
+            await ppixiv.extraImageData.delete_illust(media_id);
         else
-            await ppixiv.extra_image_data.save_illust(media_id, data);
+            await ppixiv.extraImageData.save_illust(media_id, data);
 
         this.replace_extra_data(media_id, data);
 

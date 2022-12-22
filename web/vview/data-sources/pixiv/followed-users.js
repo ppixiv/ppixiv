@@ -36,7 +36,7 @@ export default class DataSource_Follows extends DataSource
     {
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.userInfo = await ppixiv.user_cache.get_user_info_full(this.viewingUserId);
+        this.userInfo = await ppixiv.userCache.get_user_info_full(this.viewingUserId);
 
         // Update to refresh our page title, which uses user_info.
         this.callUpdateListeners();
@@ -69,7 +69,7 @@ export default class DataSource_Follows extends DataSource
                 continue;
 
             // Register this as quick user data, for use in thumbnails.
-            ppixiv.extra_cache.add_quick_user_data(followedUser, "following");
+            ppixiv.extraCache.add_quick_user_data(followedUser, "following");
 
             if(!followedUser.illusts.length)
             {
@@ -89,7 +89,7 @@ export default class DataSource_Follows extends DataSource
         for(let illust of illusts)
             media_ids.push("user:" + illust.userId);
 
-        await ppixiv.media_cache.add_media_infos_partial(illusts, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(illusts, "normal");
 
         // Register the new page of data.
         this.addPage(page, media_ids);

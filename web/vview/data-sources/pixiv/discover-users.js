@@ -42,7 +42,7 @@ export default class DataSource_DiscoverUsers extends DataSource
         if(this.showingUserId != null)
         {
             // Make sure the user info is loaded.
-            this.userInfo = await ppixiv.user_cache.get_user_info_full(this.showingUserId);
+            this.userInfo = await ppixiv.userCache.get_user_info_full(this.showingUserId);
 
             // Update to refresh our page title, which uses user_info.
             this.callUpdateListeners();
@@ -66,20 +66,20 @@ export default class DataSource_DiscoverUsers extends DataSource
             });
 
             // This one includes tag translations.
-            ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
+            ppixiv.tagTranslations.add_translations_dict(result.body.tagTranslation);
         }
 
         if(result.error)
             throw "Error reading suggestions: " + result.message;
 
-        await ppixiv.media_cache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
 
         for(let user of result.body.users)
         {
-            ppixiv.user_cache.add_user_data(user);
+            ppixiv.userCache.add_user_data(user);
 
             // Register this as quick user data, for use in thumbnails.
-            ppixiv.extra_cache.add_quick_user_data(user, "recommendations");
+            ppixiv.extraCache.add_quick_user_data(user, "recommendations");
         }
 
         // Pixiv's motto: "never do the same thing the same way twice"

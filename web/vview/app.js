@@ -50,13 +50,13 @@ export default class App
         // Create singletons.
         ppixiv.phistory = new VirtualHistory();
         ppixiv.settings = new Settings();
-        ppixiv.media_cache = new MediaCache();
-        ppixiv.user_cache = new UserCache();
-        ppixiv.extra_image_data = new ExtraImageData();
-        ppixiv.extra_cache = new ExtraCache();
-        ppixiv.send_image = new SendImage();
-        ppixiv.tag_translations = new TagTranslations();
-        ppixiv.guess_image_url = new GuessImageURL();
+        ppixiv.mediaCache = new MediaCache();
+        ppixiv.userCache = new UserCache();
+        ppixiv.extraImageData = new ExtraImageData();
+        ppixiv.extraCache = new ExtraCache();
+        ppixiv.sendImage = new SendImage();
+        ppixiv.tagTranslations = new TagTranslations();
+        ppixiv.guessImageUrl = new GuessImageURL();
         ppixiv.muting = new Muting();
         
         // Run any one-time settings migrations.
@@ -125,9 +125,9 @@ export default class App
         {
             preload = JSON.parse(preload.getAttribute("content"));
             for(var preload_user_id in preload.user)
-                ppixiv.user_cache.add_user_data(preload.user[preload_user_id]);
+                ppixiv.userCache.add_user_data(preload.user[preload_user_id]);
             for(var preload_illust_id in preload.illust)
-                ppixiv.media_cache.add_media_info_full(preload.illust[preload_illust_id]);
+                ppixiv.mediaCache.add_media_info_full(preload.illust[preload_illust_id]);
         }
 
         window.addEventListener("click", this.window_onclick_capture);
@@ -381,7 +381,7 @@ export default class App
         // Read the folder list.  If we have any mounts, navigate to the first one.  Otherwise,
         // show folder:/ as a fallback.
         let media_id = "folder:/";
-        let result = await ppixiv.media_cache.localSearch(media_id);
+        let result = await ppixiv.mediaCache.localSearch(media_id);
         if(result.results.length)
             media_id = result.results[0].mediaId;
 
@@ -630,7 +630,7 @@ export default class App
         if(mediaId == null)
             return false;
             
-        let info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+        let info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
         if(info == null)
             return false;
 

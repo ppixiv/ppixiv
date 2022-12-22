@@ -146,7 +146,7 @@ export default class GuessImageURL
         console.assert(type != "folder");
         if(type == "file")
         {
-            let thumb = ppixiv.media_cache.get_media_info_sync(media_id, { full: false });
+            let thumb = ppixiv.mediaCache.get_media_info_sync(media_id, { full: false });
             if(thumb?.illustType == "video")
                 return null;
             else
@@ -154,7 +154,7 @@ export default class GuessImageURL
         }
     
         // If we already have illust info, use it.
-        let illust_info = ppixiv.media_cache.get_media_info_sync(media_id);
+        let illust_info = ppixiv.mediaCache.get_media_info_sync(media_id);
         if(illust_info != null)
             return illust_info.mangaPages[page].urls.original;
 
@@ -164,7 +164,7 @@ export default class GuessImageURL
             return stored_url;
         
         // Get thumbnail data.  We need the thumbnail URL to figure out the image URL.
-        let thumb = ppixiv.media_cache.get_media_info_sync(media_id, { full: false });
+        let thumb = ppixiv.mediaCache.get_media_info_sync(media_id, { full: false });
         if(thumb == null)
             return null;
 

@@ -24,14 +24,14 @@ export default class DataSource_MangaPages extends DataSource
         if(page != 1)
             return;
 
-        // We need full illust info for get_manga_aspect_ratio, but we can fill out most of the
+        // We need full illust info for getMangaAspectRatio, but we can fill out most of the
         // UI with thumbnail or illust info.  Load whichever one we have first and update, so we
         // display initial info quickly.
-        this.mediaInfo = await ppixiv.media_cache.get_media_info(this.mediaId, { full: false });
+        this.mediaInfo = await ppixiv.mediaCache.get_media_info(this.mediaId, { full: false });
         this.callUpdateListeners();
 
         // Load media info before continuing.
-        this.illustInfo = await ppixiv.media_cache.get_media_info(this.mediaId);
+        this.illustInfo = await ppixiv.mediaCache.get_media_info(this.mediaId);
         if(this.illustInfo == null)
             return;
 
@@ -65,7 +65,7 @@ export default class DataSource_MangaPages extends DataSource
         if(this.illustInfo == null)
             return null;
 
-        return helpers.get_manga_aspect_ratio(this.illustInfo.mangaPages);
+        return this.getMangaAspectRatio(this.illustInfo.mangaPages);
     }
 
     get uiInfo()
@@ -73,5 +73,32 @@ export default class DataSource_MangaPages extends DataSource
         return {
             userId: this.mediaInfo?.userId,
         }
+    }
+
+    // Given a list of manga info, return the aspect ratio to use to display them.
+    // This can be passed as the "ratio" option to make_thumbnail_sizing_style.
+    getMangaAspectRatio(mangaPages)
+    {
+        // A lot of manga posts use the same resolution for all images, or just have
+        // one or two exceptions for things like title pages.  If most images have
+        // about the same aspect ratio, use it.
+        let total = 0;
+        for(let mangaPage of mangaPages)
+            total += mangaPage.width / mangaPage.height;
+
+        let averageAspectRatio = total / mangaPages.length;
+        let illustsFarFromAverage = 0;
+        for(let mangaPage of mangaPages)
+        {
+            let ratio = mangaPage.width / mangaPage.height;
+            if(Math.abs(averageAspectRatio - ratio) > 0.1)
+                illustsFarFromAverage++;
+        }
+
+        // If we didn't find a common aspect ratio, just use square thumbs.
+        if(illustsFarFromAverage > 3)
+            return 1;
+        else
+            return averageAspectRatio;
     }
 }

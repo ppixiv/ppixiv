@@ -109,7 +109,7 @@ export class EditMutedTagsWidget extends Widget
                 tags_to_translate.push(mute.value);
         }
 
-        let translated_tags = await ppixiv.tag_translations.get_translations(tags_to_translate);
+        let translated_tags = await ppixiv.tagTranslations.get_translations(tags_to_translate);
 
         let create_muted_tag_entry = (tag, tag_list_container) =>
         {
@@ -360,14 +360,14 @@ export class MutedTagsForPostDialog extends DialogWidget
         {
             // We have a media ID.  Load its info to get the tag list, and use the user ID and
             // username from it.
-            let illust_data = await ppixiv.media_cache.get_media_info(this.media_id, { full: false });
+            let illust_data = await ppixiv.mediaCache.get_media_info(this.media_id, { full: false });
             await this.refresh_for_data(illust_data.tagList, illust_data.userId, illust_data.userName);
         }
         else
         {
             // We only have a user ID, so look up the user to get the username.  Don't display
             // any tags.
-            let user_info = await ppixiv.user_cache.get_user_info(this.user_id);
+            let user_info = await ppixiv.userCache.get_user_info(this.user_id);
             await this.refresh_for_data([], this.user_id, user_info.name);
         }       
     }
@@ -375,7 +375,7 @@ export class MutedTagsForPostDialog extends DialogWidget
     async refresh_for_data(tags, user_id, username)
     {
         // Do a batch lookup of muted tag translations.
-        let translated_tags = await ppixiv.tag_translations.get_translations(tags);
+        let translated_tags = await ppixiv.tagTranslations.get_translations(tags);
 
         let create_entry = (label, is_muted) =>
         {

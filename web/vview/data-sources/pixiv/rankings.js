@@ -132,7 +132,7 @@ export default class DataSource_Rankings extends DataSource
             mediaIds.push(helpers.illust_id_to_media_id("" + item.illust_id));
 
         // Register this as thumbnail data.
-        await ppixiv.media_cache.add_media_infos_partial(result.contents, "rankings");
+        await ppixiv.mediaCache.add_media_infos_partial(result.contents, "rankings");
 
         return { mediaIds, thisDate, nextDate, prevDate, lastPage };
     }

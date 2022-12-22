@@ -51,7 +51,7 @@ export default class ViewerUgoira extends ViewerVideoBase
             // Load early data to show the low-res preview quickly.  This is a simpler version of
             // what viewer_images does.
             let load_sentinel = this._loadSentinel = new Object();
-            let early_illust_data = await ppixiv.media_cache.get_media_info(this.mediaId, { full: false });
+            let early_illust_data = await ppixiv.mediaCache.get_media_info(this.mediaId, { full: false });
             if(load_sentinel !== this._loadSentinel)
                 return;
             this.create_preview_images(early_illust_data.previewUrls[0], null);

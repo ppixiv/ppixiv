@@ -32,7 +32,7 @@ export default class TagListWidget extends Widget
 
         // Look up tag translations.
         let tag_list = this.tags;
-        let translated_tags = await ppixiv.tag_translations.get_translations(tag_list, "en");
+        let translated_tags = await ppixiv.tagTranslations.get_translations(tag_list, "en");
         
         // Stop if the tag list changed while we were reading tag translations.
         if(tag_list != this.tags)

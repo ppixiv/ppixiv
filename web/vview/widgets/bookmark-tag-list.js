@@ -132,7 +132,7 @@ export class BookmarkTagListWidget extends IllustWidget
 
         // If the tag list is open, populate bookmark details to get bookmark tags.
         // If the image isn't bookmarked this won't do anything.
-        let active_tags = await ppixiv.extra_cache.load_bookmark_details(media_id);
+        let active_tags = await ppixiv.extraCache.load_bookmark_details(media_id);
 
         // Remember which illustration's bookmark tags are actually loaded.
         this.displaying_media_id = media_id;
@@ -231,7 +231,7 @@ export class BookmarkTagListWidget extends IllustWidget
             return;
 
         // Get the tags currently on the bookmark to compare.
-        let old_tags = await ppixiv.extra_cache.load_bookmark_details(media_id);
+        let old_tags = await ppixiv.extraCache.load_bookmark_details(media_id);
 
         var equal = new_tags.length == old_tags.length;
         for(let tag of new_tags)

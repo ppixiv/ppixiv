@@ -95,10 +95,10 @@ export default class WidgetDragger
         let reversed = direction == "left" || direction == "up";
 
         // Create the velocity tracker used to detect flings.
-        this.recent_pointer_movement = new FlingVelocity({ sample_period: 0.150 });
+        this.recent_pointer_movement = new FlingVelocity({ samplePeriod: 0.150 });
 
         // Create the velocity tracker for the speed the animated property is changing.
-        this.recent_value_movement = new FlingVelocity({ sample_period: 0.150 });
+        this.recent_value_movement = new FlingVelocity({ samplePeriod: 0.150 });
 
         let property_start = animated_property_inverted? 1:0;
         let property_end = animated_property_inverted? 0:1;
@@ -131,7 +131,7 @@ export default class WidgetDragger
                     return;
 
                 let delta = Math.abs(value - old_value);
-                this.recent_value_movement.add_sample({ x: delta });
+                this.recent_value_movement.addSample({ x: delta });
             },
         });
 
@@ -186,7 +186,7 @@ export default class WidgetDragger
                 // Drags should always be in the dragging state, and won't change state.
                 console.assert(this._state == "dragging", this._state);
 
-                this.recent_pointer_movement.add_sample({ x: event.movementX, y: event.movementY });
+                this.recent_pointer_movement.addSample({ x: event.movementX, y: event.movementY });
 
                 // The first movement is thresholded by the browser, and counts towards fling velocity
                 // but doesn't actually move the widget.
@@ -228,7 +228,7 @@ export default class WidgetDragger
                 }
 
                 // See if there was a fling.
-                let { velocity } = this.recent_pointer_movement.get_movement_in_direction(direction);
+                let { velocity } = this.recent_pointer_movement.getMovementInDirection(direction);
 
                 let threshold = 150;
                 if(velocity > threshold)
@@ -330,7 +330,7 @@ export default class WidgetDragger
         // of the animated property.
         if(easing == null)
         {
-            let property_velocity = this.recent_value_movement.current_velocity.x;
+            let property_velocity = this.recent_value_movement.currentVelocity.x;
             let property_start = this.drag_animation.current_property_value;
             let property_end = this.drag_animation.property_value_for_position(end_position);
             // console.log("->", property_start, property_end, property_velocity);

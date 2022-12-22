@@ -10,7 +10,7 @@ export class IllustWidget extends Widget
         super(options);
 
         // Refresh when the image data changes.
-        ppixiv.media_cache.addEventListener("mediamodified", (e) => {
+        ppixiv.mediaCache.addEventListener("mediamodified", (e) => {
             if(e.media_id == this._media_id)
                 this.refresh();
         }, { signal: this.shutdown_signal.signal });
@@ -49,7 +49,7 @@ export class IllustWidget extends Widget
             let full = this.needed_data == "full";
 
             // See if we have the data the widget wants already.
-            info.media_info = ppixiv.media_cache.get_media_info_sync(this._media_id, { full });
+            info.media_info = ppixiv.mediaCache.get_media_info_sync(this._media_id, { full });
 
             // If we need to load data, clear the widget while we load, so we don't show the old
             // data while we wait for data.  Skip this if we don't need to load, so we don't clear
@@ -58,7 +58,7 @@ export class IllustWidget extends Widget
             if(info.media_info == null)
                 await this.refresh_internal(info);
 
-            info.media_info = await ppixiv.media_cache.get_media_info(this._media_id, { full });
+            info.media_info = await ppixiv.mediaCache.get_media_info(this._media_id, { full });
         }
 
         // Stop if the media ID changed while we were async.
@@ -186,7 +186,7 @@ export class BookmarkButtonWidget extends IllustWidget
 
         this._fire_onedited();
 
-        let illust_data = await ppixiv.media_cache.get_media_info(this._media_id, { full: false });
+        let illust_data = await ppixiv.mediaCache.get_media_info(this._media_id, { full: false });
         let private_bookmark = this.bookmark_type == "private";
 
         // If the image is bookmarked and a delete bookmark button or the same privacy button was clicked, remove the bookmark.
@@ -272,7 +272,7 @@ export class LikeButtonWidget extends IllustWidget
         // Hide the like button for local IDs.
         this.container.closest(".button-container").hidden = helpers.is_media_id_local(media_id);
 
-        let liked_recently = media_id != null? ppixiv.extra_cache.get_liked_recently(media_id):false;
+        let liked_recently = media_id != null? ppixiv.extraCache.get_liked_recently(media_id):false;
         helpers.set_class(this.container, "liked", liked_recently);
         helpers.set_class(this.container, "enabled", !liked_recently);
 

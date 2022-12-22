@@ -12,7 +12,7 @@ export default class Actions
     static async _bookmarkAddInternal(media_id, options)
     {
         let illustId = helpers.media_id_to_illust_id_and_page(media_id)[0];
-        let mediaInfo = await ppixiv.media_cache.get_media_info(media_id, { full: false });
+        let mediaInfo = await ppixiv.mediaCache.get_media_info(media_id, { full: false });
         
         if(options == null)
             options = {};
@@ -46,7 +46,7 @@ export default class Actions
             throw "Didn't get a bookmark ID";
 
         // Store the ID of the new bookmark, so the unbookmark button works.
-        ppixiv.media_cache.update_media_info(media_id, {
+        ppixiv.mediaCache.update_media_info(media_id, {
             bookmarkData: {
                 id: newBookmarkId,
                 private: !!request.restrict,
@@ -61,13 +61,13 @@ export default class Actions
 
         // Even if we weren't given tags, we still know that they're unset, so set tags so
         // we won't need to request bookmark details later.
-        ppixiv.extra_cache.update_cached_bookmark_image_tags(media_id, request.tags);
+        ppixiv.extraCache.update_cached_bookmark_image_tags(media_id, request.tags);
         console.log("Updated bookmark data:", media_id, newBookmarkId, request.restrict, request.tags);
 
         if(!wasBookmarked)
         {
             // If we have full illust data loaded, increase its bookmark count locally.
-            let fullMediaInfo = ppixiv.media_cache.get_media_info_sync(media_id);
+            let fullMediaInfo = ppixiv.mediaCache.get_media_info_sync(media_id);
             if(fullMediaInfo)
                 fullMediaInfo.bookmarkCount++;
         }
@@ -76,7 +76,7 @@ export default class Actions
                 wasBookmarked? "Bookmark edited":
                 options.private? "Bookmarked privately":"Bookmarked");
 
-        ppixiv.media_cache.call_illust_modified_callbacks(media_id);
+        ppixiv.mediaCache.call_illust_modified_callbacks(media_id);
     }
 
     // Create or edit a bookmark.
@@ -101,7 +101,7 @@ export default class Actions
         if(options.private == null && ppixiv.settings.get("bookmark_privately_by_default"))
             options.private = true;
 
-        let mediaInfo = await ppixiv.media_cache.get_media_info(media_id, { full: false });
+        let mediaInfo = await ppixiv.mediaCache.get_media_info(media_id, { full: false });
 
         console.log("Add bookmark for", media_id, "options:", options);
 
@@ -137,7 +137,7 @@ export default class Actions
 
         // If we're modifying tags, we need bookmark details loaded, so we can preserve
         // the current privacy status.  This will insert the info into mediaInfo.bookmarkData.
-        let bookmarkTags = await ppixiv.extra_cache.load_bookmark_details(media_id);
+        let bookmarkTags = await ppixiv.extraCache.load_bookmark_details(media_id);
 
         let bookmarkParams = {
             // Don't auto-like if we're editing an existing bookmark.
@@ -176,7 +176,7 @@ export default class Actions
         if(helpers.is_media_id_local(media_id))
             return await this._localBookmarkRemove(media_id);
 
-        let mediaInfo = await ppixiv.media_cache.get_media_info(media_id, { full: false });
+        let mediaInfo = await ppixiv.mediaCache.get_media_info(media_id, { full: false });
         if(mediaInfo.bookmarkData == null)
         {
             console.log("Not bookmarked");
@@ -193,28 +193,28 @@ export default class Actions
 
         console.log("Removing bookmark finished");
 
-        ppixiv.media_cache.update_media_info(media_id, {
+        ppixiv.mediaCache.update_media_info(media_id, {
             bookmarkData: null
         });
 
         // If we have full image data loaded, update the like count locally.
-        let fullMediaInfo = ppixiv.media_cache.get_media_info_sync(media_id);
+        let fullMediaInfo = ppixiv.mediaCache.get_media_info_sync(media_id);
         if(fullMediaInfo)
         {
             fullMediaInfo.bookmarkCount--;
-            ppixiv.media_cache.call_illust_modified_callbacks(media_id);
+            ppixiv.mediaCache.call_illust_modified_callbacks(media_id);
         }
         
-        ppixiv.extra_cache.update_cached_bookmark_image_tags(media_id, null);
+        ppixiv.extraCache.update_cached_bookmark_image_tags(media_id, null);
 
         ppixiv.message.show("Bookmark removed");
 
-        ppixiv.media_cache.call_illust_modified_callbacks(media_id);
+        ppixiv.mediaCache.call_illust_modified_callbacks(media_id);
     }
 
     static async _localBookmarkAdd(media_id, options)
     {
-        let mediaInfo = await ppixiv.media_cache.get_media_info(media_id, { full: false });
+        let mediaInfo = await ppixiv.mediaCache.get_media_info(media_id, { full: false });
         let bookmark_options = { };
         if(options.tags != null)
             bookmark_options.tags = options.tags;
@@ -232,8 +232,8 @@ export default class Actions
         }
 
         // Update bookmark tags and thumbnail data.
-        ppixiv.extra_cache.update_cached_bookmark_image_tags(media_id, result.bookmark.tags);
-        ppixiv.media_cache.update_media_info(media_id, {
+        ppixiv.extraCache.update_cached_bookmark_image_tags(media_id, result.bookmark.tags);
+        ppixiv.mediaCache.update_media_info(media_id, {
             bookmarkData: result.bookmark
         });
 
@@ -243,12 +243,12 @@ export default class Actions
             wasBookmarked? "Bookmark edited":
             type == "folder"? "Bookmarked folder":"Bookmarked",
         );
-        ppixiv.media_cache.call_illust_modified_callbacks(media_id);
+        ppixiv.mediaCache.call_illust_modified_callbacks(media_id);
     }
 
     static async _localBookmarkRemove(media_id)
     {
-        let mediaInfo = await ppixiv.media_cache.get_media_info(media_id, { full: false });
+        let mediaInfo = await ppixiv.mediaCache.get_media_info(media_id, { full: false });
         if(mediaInfo.bookmarkData == null)
         {
             console.log("Not bookmarked");
@@ -262,13 +262,13 @@ export default class Actions
             return;
         }
 
-        ppixiv.media_cache.update_media_info(media_id, {
+        ppixiv.mediaCache.update_media_info(media_id, {
             bookmarkData: null
         });
 
         ppixiv.message.show("Bookmark removed");
 
-        ppixiv.media_cache.call_illust_modified_callbacks(media_id);
+        ppixiv.mediaCache.call_illust_modified_callbacks(media_id);
     }
 
     // Change an existing bookmark to public or private.
@@ -277,7 +277,7 @@ export default class Actions
         if(helpers.is_media_id_local(media_id))
             return;
 
-        let mediaInfo = await ppixiv.media_cache.get_media_info(media_id, { full: false });
+        let mediaInfo = await ppixiv.mediaCache.get_media_info(media_id, { full: false });
         if(!mediaInfo.bookmarkData)
         {
             console.log(`Illust ${media_id} wasn't bookmarked`);
@@ -292,7 +292,7 @@ export default class Actions
         });
 
         // Update bookmark info.
-        ppixiv.media_cache.update_media_info(media_id, {
+        ppixiv.mediaCache.update_media_info(media_id, {
             bookmarkData: {
                 id: bookmarkId,
                 private: private_bookmark,
@@ -301,7 +301,7 @@ export default class Actions
         
         ppixiv.message.show(private_bookmark? "Bookmarked privately":"Bookmarked");
 
-        ppixiv.media_cache.call_illust_modified_callbacks(media_id);
+        ppixiv.mediaCache.call_illust_modified_callbacks(media_id);
     }
 
     // Show a prompt to enter tags, so the user can add tags that aren't already in the
@@ -324,7 +324,7 @@ export default class Actions
 
         // This should already be loaded, since the only way to open this prompt is
         // in the tag dropdown.
-        let bookmarkTags = await ppixiv.extra_cache.load_bookmark_details(media_id);
+        let bookmarkTags = await ppixiv.extraCache.load_bookmark_details(media_id);
 
         // Add each tag the user entered to the tag list to update it.
         let active_tags = [...bookmarkTags];
@@ -359,7 +359,7 @@ export default class Actions
 
         console.log("Clicked like on", media_id);
         
-        if(ppixiv.extra_cache.get_liked_recently(media_id))
+        if(ppixiv.extraCache.get_liked_recently(media_id))
         {
             if(!quiet)
                 ppixiv.message.show("Already liked this image");
@@ -374,17 +374,17 @@ export default class Actions
         let was_already_liked = result.body.is_liked;
 
         // Remember that we liked this image recently.
-        ppixiv.extra_cache.add_liked_recently(media_id);
+        ppixiv.extraCache.add_liked_recently(media_id);
 
         // If we have illust data, increase the like count locally.  Don't load it
         // if it's not loaded already.
-        let mediaInfo = ppixiv.media_cache.get_media_info_sync(media_id);
+        let mediaInfo = ppixiv.mediaCache.get_media_info_sync(media_id);
         if(!was_already_liked && mediaInfo)
             mediaInfo.likeCount++;
 
         // Let widgets know that the image was liked recently, and that the like count
         // may have changed.
-        ppixiv.media_cache.call_illust_modified_callbacks(media_id);
+        ppixiv.mediaCache.call_illust_modified_callbacks(media_id);
 
         if(!quiet)
         {
@@ -412,7 +412,7 @@ export default class Actions
             return;
 
         // We need to do this differently depending on whether we were already following the user.
-        let userInfo = await ppixiv.user_cache.get_userInfo_full(user_id);
+        let userInfo = await ppixiv.userCache.get_userInfo_full(user_id);
         if(userInfo.isFollowed)
         {
             // If we were already following, we're just updating privacy.  We don't update follow
@@ -444,14 +444,14 @@ export default class Actions
         if(tag != null)
         {
             tagSet.add(tag);
-            ppixiv.user_cache.add_to_cached_all_user_follow_tags(tag);
+            ppixiv.userCache.add_to_cached_all_user_follow_tags(tag);
         }
         let info = {
             tags: tagSet,
             following_privately: followPrivately,
         };
 
-        ppixiv.user_cache.update_cached_follow_info(user_id, true, info);
+        ppixiv.userCache.update_cached_follow_info(user_id, true, info);
 
         let message = "Followed " + userInfo.name;
         if(followPrivately)
@@ -475,15 +475,15 @@ export default class Actions
         }
 
         // If we had cached follow info, update it with the new privacy.
-        let info = ppixiv.user_cache.get_user_follow_info_sync(userId);
+        let info = ppixiv.userCache.get_user_follow_info_sync(userId);
         if(info  != null)
         {
             console.log("Updating cached follow privacy");
             info.following_privately = followPrivately;
-            ppixiv.user_cache.update_cached_follow_info(userId, true, info);
+            ppixiv.userCache.update_cached_follow_info(userId, true, info);
         }
 
-        let userInfo = await ppixiv.user_cache.get_userInfo(ususerIder_id);
+        let userInfo = await ppixiv.userCache.get_userInfo(ususerIder_id);
         let message = `Now following ${userInfo.name} ${followPrivately? "privately":"publically"}`;
         ppixiv.message.show(message);
     }
@@ -503,13 +503,13 @@ export default class Actions
             return;
         }
 
-        let userInfo = await ppixiv.user_cache.get_userInfo(userId);
+        let userInfo = await ppixiv.userCache.get_userInfo(userId);
         let message = add? `Added the tag "${tag}" to ${userInfo.name}`:`Removed the tag "${tag}" from ${userInfo.name}`;
         ppixiv.message.show(message);
 
         // Get follow info so we can update the tag list.  This will usually already be loaded,
         // since the caller will have had to load it to show the UI in the first place.
-        let follow_info = await ppixiv.user_cache.get_user_follow_info(ususerIder_id);
+        let follow_info = await ppixiv.userCache.get_user_follow_info(ususerIder_id);
         if(follow_info == null)
         {
             console.log("Error retrieving follow info to update tags");
@@ -521,12 +521,12 @@ export default class Actions
             follow_info.tags.add(tag);
 
             // Make sure the tag is in the full tag list too.
-            ppixiv.user_cache.add_to_cached_all_user_follow_tags(tag);
+            ppixiv.userCache.add_to_cached_all_user_follow_tags(tag);
         }
         else
             follow_info.tags.delete(tag);
 
-        ppixiv.user_cache.update_cached_follow_info(userId, true, follow_info);
+        ppixiv.userCache.update_cached_follow_info(userId, true, follow_info);
     }
 
     static async unfollow(userId)
@@ -540,10 +540,10 @@ export default class Actions
             id: userId,
         });
 
-        let userData = await ppixiv.user_cache.get_userInfo(userId);
+        let userData = await ppixiv.userCache.get_userInfo(userId);
 
         // Record that we're no longer following and refresh the UI.
-        ppixiv.user_cache.update_cached_follow_info(user_id, false);
+        ppixiv.userCache.update_cached_follow_info(user_id, false);
 
         ppixiv.message.show("Unfollowed " + userData.name);
     }
@@ -553,8 +553,8 @@ export default class Actions
     // Download mediaInfo.
     static async downloadIllust(media_id, downloadType)
     {
-        let mediaInfo = await ppixiv.media_cache.get_media_info(media_id);
-        let userInfo = await ppixiv.user_cache.get_userInfo(mediaInfo.userId);
+        let mediaInfo = await ppixiv.mediaCache.get_media_info(media_id);
+        let userInfo = await ppixiv.userCache.get_userInfo(mediaInfo.userId);
         console.log("Download", media_id, "with type", downloadType);
 
         if(downloadType == "MKV")

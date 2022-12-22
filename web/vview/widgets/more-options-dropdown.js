@@ -161,7 +161,7 @@ export default class MoreOptionsDropdown extends IllustWidget
 
                     onclick: async () => {
                         this.parent.hide();
-                        ppixiv.media_cache.refresh_media_info(this.media_id);
+                        ppixiv.mediaCache.refresh_media_info(this.media_id);
                     }
                 });
             },
@@ -179,14 +179,14 @@ export default class MoreOptionsDropdown extends IllustWidget
                         if(media_id == null || helpers.is_media_id_local(media_id))
                             return false;
 
-                        let media_info = ppixiv.media_cache.get_media_info_sync(media_id, { full: false });
+                        let media_info = ppixiv.mediaCache.get_media_info_sync(media_id, { full: false });
                         return media_info && media_info.illustType != 2;
                     },
 
                     onclick: async () => {
-                        let illust_data = await ppixiv.media_cache.get_media_info(this._media_id, { full: true });
+                        let illust_data = await ppixiv.mediaCache.get_media_info(this._media_id, { full: true });
                         let page = helpers.parse_media_id(this.media_id).page;
-                        let { url } = ppixiv.media_cache.get_main_image_url(illust_data, page);
+                        let { url } = ppixiv.mediaCache.get_main_image_url(illust_data, page);
 
                         let title = `${illust_data.userName} - ${illust_data.illustId}`;
                         if(illust_data.mangaPages.length > 1)
@@ -382,7 +382,7 @@ export default class MoreOptionsDropdown extends IllustWidget
             this.menu_options.push(menu_options.similar_local_images());
         }
 
-        if(ppixiv.send_image.enabled)
+        if(ppixiv.sendImage.enabled)
         {
             this.menu_options.push(menu_options.send_to_tab());
             this.menu_options.push(menu_options.linked_tabs());

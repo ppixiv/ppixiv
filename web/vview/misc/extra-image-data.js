@@ -234,7 +234,7 @@ export default class ExtraImageData
 
         // Tell image_data that we've replaced extra data, so any loaded images are updated.
         for(let [media_id, data] of Object.entries(data_by_media_id))
-            ppixiv.media_cache.replace_extra_data(media_id, data);
+            ppixiv.mediaCache.replace_extra_data(media_id, data);
 
         ppixiv.message.show(`Imported edits for ${data.data.length} ${data.data.length == 1? "image":"images"}.`);
     }

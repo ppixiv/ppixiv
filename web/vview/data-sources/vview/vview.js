@@ -116,7 +116,7 @@ export default class DataSource_VView extends DataSource
         }
 
         // Note that this registers the results with media_info automatically.
-        let result = await ppixiv.media_cache.localSearch(folderId, {
+        let result = await ppixiv.mediaCache.localSearch(folderId, {
             ...search_options,
 
             order: order,

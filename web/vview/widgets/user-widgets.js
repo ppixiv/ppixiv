@@ -38,7 +38,7 @@ export class AvatarWidget extends Widget
 
         helpers.set_class(this.container, "big", big);
 
-        ppixiv.user_cache.addEventListener("usermodified", this.user_changed, { signal: this.shutdown_signal.signal });
+        ppixiv.userCache.addEventListener("usermodified", this.user_changed, { signal: this.shutdown_signal.signal });
 
         let element_author_avatar = this.container.querySelector(".avatar");
         let avatar_link = this.container.querySelector(".avatar-link");
@@ -139,7 +139,7 @@ export class AvatarWidget extends Widget
 
         // If we've seen this user's profile image URL from thumbnail data, start loading it
         // now.  Otherwise, we'll have to wait until user info finishes loading.
-        let cached_profile_url = ppixiv.media_cache.user_profile_urls[this.userId];
+        let cached_profile_url = ppixiv.mediaCache.user_profile_urls[this.userId];
         if(cached_profile_url)
             this.img.src = cached_profile_url;
 
@@ -157,7 +157,7 @@ export class AvatarWidget extends Widget
         this.container.classList.remove("loading");
         this.container.querySelector(".follow-icon").hidden = true;
 
-        let user_data = await ppixiv.user_cache.get_user_info(this.userId);
+        let user_data = await ppixiv.userCache.get_user_info(this.userId);
         this.user_data = user_data;
         if(user_data == null)
             return;
@@ -405,7 +405,7 @@ class FollowWidget extends Widget
         this.container.querySelector(".add-follow-tag").addEventListener("click", (e) => this._addFollowTag());
 
         // Refresh if the user we're displaying changes.
-        ppixiv.user_cache.addEventListener("usermodified", this.user_changed, this._signal);
+        ppixiv.userCache.addEventListener("usermodified", this.user_changed, this._signal);
     }
 
     user_changed = ({user_id}) =>
@@ -451,7 +451,7 @@ class FollowWidget extends Widget
 
             // Refresh with whether we're followed or not, so the follow/unfollow UI is
             // displayed as early as possible.
-            let user_info = await ppixiv.user_cache.get_user_info(this.userId);
+            let user_info = await ppixiv.userCache.get_user_info(this.userId);
             if(!this.visible)
                 return;
 
@@ -460,15 +460,15 @@ class FollowWidget extends Widget
             if(!user_info.isFollowed)
             {
                 // We're not following, so just load the follow tag list.
-                let all_tags = await ppixiv.user_cache.load_all_user_follow_tags();
+                let all_tags = await ppixiv.userCache.load_all_user_follow_tags();
                 this._refreshWithData({ user_info, following: user_info.isFollowed, all_tags, selected_tags: new Set() });
                 return;
             }
 
             // Get full follow info to find out if the follow is public or private, and which
             // tags are selected.
-            let follow_info = await ppixiv.user_cache.get_user_follow_info(this.userId);
-            let all_tags = await ppixiv.user_cache.load_all_user_follow_tags();
+            let follow_info = await ppixiv.userCache.get_user_follow_info(this.userId);
+            let all_tags = await ppixiv.userCache.load_all_user_follow_tags();
             this._refreshWithData({user_info, following: true, following_privately: follow_info?.following_privately, all_tags, selected_tags: follow_info?.tags});
         } finally {
             this.refreshing = false;
@@ -577,7 +577,7 @@ class FollowWidget extends Widget
         let userId = this.userId;
 
         // If the user isn't followed, the first tag is added by following.
-        let user_data = await ppixiv.user_cache.get_user_info(userId);
+        let user_data = await ppixiv.userCache.get_user_info(userId);
         if(!user_data.isFollowed)
         {
             // We're not following, so follow the user with default privacy and the
@@ -587,7 +587,7 @@ class FollowWidget extends Widget
         }
 
         // We're already following, so update the existing tags.
-        let follow_info = await ppixiv.user_cache.get_user_follow_info(userId);
+        let follow_info = await ppixiv.userCache.get_user_follow_info(userId);
         if(follow_info == null)
         {
             console.log("Error retrieving follow info to update tags");

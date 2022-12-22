@@ -16,12 +16,12 @@ export default class TouchListener
         this.element = element;
         this.callback = callback;
         this.multi = multi;
-        this.pressed_pointer_ids = new Set();        
-        this.event_options = { };
+        this.pressedPointerIds = new Set();        
+        this.eventOptions = { };
         if(signal)
-            this.event_options.signal = signal;
+            this.eventOptions.signal = signal;
 
-        this.element.addEventListener("pointerdown", this.onpointerevent, this.event_options);
+        this.element.addEventListener("pointerdown", this.onpointerevent, this.eventOptions);
     }
 
     // Register events that we only register while one or more buttons are pressed.
@@ -29,19 +29,19 @@ export default class TouchListener
     // We only register pointermove as needed, so we don't get called for every mouse
     // movement, and we only register pointerup as needed so we don't register a ton
     // of events on window.
-    _update_events_while_pressed()
+    _updateEventsWhilePressed()
     {
-        if(this.pressed_pointer_ids.size > 0)
+        if(this.pressedPointerIds.size > 0)
         {
             // These need to go on window, so if a mouse button is pressed and that causes
             // the element to be hidden, we still get the pointerup.
-            window.addEventListener("pointerup", this.onpointerevent, { capture: true, ...this.event_options });
-            window.addEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.event_options });
-            window.addEventListener("blur", this.onblur, this.event_options);
+            window.addEventListener("pointerup", this.onpointerevent, { capture: true, ...this.eventOptions });
+            window.addEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.eventOptions });
+            window.addEventListener("blur", this.onblur, this.eventOptions);
         } else {
-            window.removeEventListener("pointerup", this.onpointerevent, { capture: true, ...this.event_options });
-            window.removeEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.event_options });
-            window.removeEventListener("blur", this.onblur, this.event_options);
+            window.removeEventListener("pointerup", this.onpointerevent, { capture: true, ...this.eventOptions });
+            window.removeEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.eventOptions });
+            window.removeEventListener("blur", this.onblur, this.eventOptions);
         }
     }
 
@@ -54,11 +54,11 @@ export default class TouchListener
         //
         // If this happens, we get a blur event, so if we get a blur event and we were still pressed,
         // send an emulated pointercancel event to end the drag.
-        for(let pointer_id of this.pressed_pointer_ids)
+        for(let pointerId of this.pressedPointerIds)
         {
-            console.warn(`window.blur for ${pointer_id} fired without a pointer event being cancelled, simulating it`);
+            console.warn(`window.blur for ${pointerId} fired without a pointer event being cancelled, simulating it`);
             this.onpointerevent(new PointerEvent("pointercancel", {
-                pointerId: pointer_id,
+                pointerId,
                 button: 0,
                 buttons: 0,
             }));
@@ -67,24 +67,24 @@ export default class TouchListener
 
     onpointerevent = (event) =>
     {
-        let is_pressed = event.type == "pointerdown";
+        let isPressed = event.type == "pointerdown";
 
         // Stop if this doesn't change the state of this pointer.
-        if(this.pressed_pointer_ids.has(event.pointerId) == is_pressed)
+        if(this.pressedPointerIds.has(event.pointerId) == isPressed)
             return;
 
         // If this is a multitouch and multi isn't enabled, ignore it.
-        if(!this.multi && is_pressed && this.pressed_pointer_ids.size > 0)
+        if(!this.multi && isPressed && this.pressedPointerIds.size > 0)
             return;
 
         // We need to register pointermove to see presses past the first.
-        if(is_pressed)
-            this.pressed_pointer_ids.add(event.pointerId);
+        if(isPressed)
+            this.pressedPointerIds.add(event.pointerId);
         else
-            this.pressed_pointer_ids.delete(event.pointerId);
-        this._update_events_while_pressed();
+            this.pressedPointerIds.delete(event.pointerId);
+        this._updateEventsWhilePressed();
 
-        event.pressed = is_pressed;
+        event.pressed = isPressed;
         this.callback(event);
         delete event.pressed;
     }

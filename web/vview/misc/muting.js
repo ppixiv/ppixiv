@@ -242,7 +242,7 @@ export default class Muting extends EventTarget
             if(type == "user" && label == null)
             {
                 // We need to know the user's username to add to our local mute list.
-                let user_data = await ppixiv.user_cache.get_user_info(value);
+                let user_data = await ppixiv.userCache.get_user_info(value);
                 label = user_data.name;
             }
             
@@ -273,7 +273,7 @@ export default class Muting extends EventTarget
         // end.
         let label = value;
         if(type == "user")
-            label = (await ppixiv.user_cache.get_user_info(value)).name;
+            label = (await ppixiv.userCache.get_user_info(value)).name;
 
         // Note that this doesn't return an error if the mute list is full.  It returns success
         // and silently does nothing.
@@ -313,7 +313,7 @@ export default class Muting extends EventTarget
         // end.
         let label = value;
         if(type == "user")
-            label = (await ppixiv.user_cache.get_user_info(value)).name;
+            label = (await ppixiv.userCache.get_user_info(value)).name;
 
         let result = await helpers.rpc_post_request("/ajax/mute/items/delete", {
             context: "illust",

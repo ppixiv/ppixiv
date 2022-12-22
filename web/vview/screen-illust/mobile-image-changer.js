@@ -12,7 +12,7 @@ export default class DragImageChanger
     {
         this.parent = parent;
         this.recentPointerMovement = new FlingVelocity({
-            sample_period: 0.150,
+            samplePeriod: 0.150,
         });
 
         // The amount we've dragged.  This is relative to the main image, so it doesn't need to
@@ -132,7 +132,7 @@ export default class DragImageChanger
     ondrag({event, first})
     {
         let x = event.movementX;
-        this.recentPointerMovement.add_sample({ x });
+        this.recentPointerMovement.addSample({ x });
 
         // If we're past the end, apply friction to indicate it.  This uses stronger overscroll
         // friction to make it distinct from regular image panning overscroll.
@@ -290,7 +290,7 @@ export default class DragImageChanger
             if(mediaId == null)
                 return { }
 
-            let earlyIllustData = await ppixiv.media_cache.get_media_info(mediaId, { full: false });
+            let earlyIllustData = await ppixiv.mediaCache.get_media_info(mediaId, { full: false });
             return { mediaId, earlyIllustData };
         } finally {
             let cancelled = sentinel != this.addingViewer;
@@ -323,7 +323,7 @@ export default class DragImageChanger
     currentDragTarget()
     {
         // If the user flung horizontally, move relative to the main viewer.
-        let recentVelocity = this.recentPointerMovement.current_velocity.x;
+        let recentVelocity = this.recentPointerMovement.currentVelocity.x;
         let threshold = 200;
         if(Math.abs(recentVelocity) > threshold)
         {
@@ -370,7 +370,7 @@ export default class DragImageChanger
         }
 
         // If we start a fling from this release, this is the velocity we'll try to match.
-        let recentVelocity = this.recentPointerMovement.current_velocity.x;
+        let recentVelocity = this.recentPointerMovement.currentVelocity.x;
 
         this.recentPointerMovement.reset();
 

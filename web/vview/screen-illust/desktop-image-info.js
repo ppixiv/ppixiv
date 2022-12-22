@@ -165,7 +165,7 @@ export default class DesktopImageInfo extends Widget
             contents: this.container.querySelector(".tag-list"),
         });
 
-        ppixiv.media_cache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
+        ppixiv.mediaCache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
         
         this.likeButton = new LikeButtonWidget({
             contents: this.container.querySelector(".button-like"),
@@ -322,7 +322,7 @@ export default class DesktopImageInfo extends Widget
 
         // We need image info to update.
         let mediaId = this._mediaId;
-        let mediaInfo = await ppixiv.media_cache.get_media_info(this._mediaId);
+        let mediaInfo = await ppixiv.mediaCache.get_media_info(this._mediaId);
 
         // Check if anything changed while we were loading.
         if(mediaInfo == null || mediaId != this._mediaId || !this.visible)

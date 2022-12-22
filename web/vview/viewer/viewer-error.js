@@ -59,10 +59,10 @@ export default class ViewerError extends Viewer
             return;
         }
 
-        let illust_data = await ppixiv.media_cache.get_media_info(this.mediaId);
+        let illust_data = await ppixiv.mediaCache.get_media_info(this.mediaId);
 
         // Show the user's avatar instead of the muted image.
-        let user_info = await ppixiv.user_cache.get_user_info(illust_data.userId);
+        let user_info = await ppixiv.userCache.get_user_info(illust_data.userId);
         if(user_info)
         {
             let img = this.container.querySelector(".muted-image");
@@ -78,7 +78,7 @@ export default class ViewerError extends Viewer
 
         if(muted_tag)
         {
-            let translated_tag = await ppixiv.tag_translations.get_translation(muted_tag);
+            let translated_tag = await ppixiv.tagTranslations.get_translation(muted_tag);
             this.error_text.innerText = translated_tag;
         }
         else if(muted_user)

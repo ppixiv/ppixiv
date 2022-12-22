@@ -61,13 +61,13 @@ export default class DataSources_Artist extends DataSource
         let currentTag = this.currentTag;
         if(currentTag != null)
         {
-            this.translatedTags = await ppixiv.tag_translations.get_translations([currentTag], "en");
+            this.translatedTags = await ppixiv.tagTranslations.get_translations([currentTag], "en");
             this.callUpdateListeners();
         }
 
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.userInfo = await ppixiv.user_cache.get_user_info_full(this.viewingUserId);
+        this.userInfo = await ppixiv.userCache.get_user_info_full(this.viewingUserId);
 
         // Update to refresh our page title, which uses userInfo.
         this.callUpdateListeners();
@@ -93,7 +93,7 @@ export default class DataSources_Artist extends DataSource
             // to complete, since we don't need to and it'll cause the search view to take longer to
             // appear.
             let mediaIds = this.pages[page-1] || [];
-            ppixiv.media_cache.batch_get_media_info_partial(mediaIds, { user_id: this.viewingUserId });
+            ppixiv.mediaCache.batch_get_media_info_partial(mediaIds, { user_id: this.viewingUserId });
 
             // Register this page.
             this.addPage(page, mediaIds);
@@ -130,7 +130,7 @@ export default class DataSources_Artist extends DataSource
             for(let illustData of result.body.works)
                 mediaIds.push(helpers.illust_id_to_media_id(illustData.id)); 
 
-            await ppixiv.media_cache.add_media_infos_partial(result.body.works, "normal");
+            await ppixiv.mediaCache.add_media_infos_partial(result.body.works, "normal");
 
             // Register the new page of data.
             this.addPage(page, mediaIds);
@@ -241,7 +241,7 @@ export default class DataSources_Artist extends DataSource
     {
         // Get user info.  We probably have this on this.userInfo, but that async load
         // might not be finished yet.
-        let userInfo = await ppixiv.user_cache.get_user_info_full(this.viewingUserId);
+        let userInfo = await ppixiv.userCache.get_user_info_full(this.viewingUserId);
         console.log("Loading tags for user", userInfo.userId);
 
         // Load this artist's common tags.
@@ -264,7 +264,7 @@ export default class DataSources_Artist extends DataSource
         let tags = [];
         for(let tagInfo of this.postTags)
             tags.push(tagInfo.tag);
-        this.translatedTags = await ppixiv.tag_translations.get_translations(tags, "en");
+        this.translatedTags = await ppixiv.tagTranslations.get_translations(tags, "en");
 
         // Refresh the tag list now that it's loaded.
         this.dispatchEvent(new Event("_refresh_ui"));
@@ -302,7 +302,7 @@ export default class DataSources_Artist extends DataSource
                 },
             });
         }
-        ppixiv.tag_translations.add_translations(translations);
+        ppixiv.tagTranslations.add_translations(translations);
 
         // Cache the results on the user info.
         userInfo.frequentTags = result.body;

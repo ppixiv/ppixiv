@@ -25,13 +25,13 @@ export default class DataSource_Discovery extends DataSource
         // result.body.recommendedIllusts[].recommendMethods, recommendSeedIllustIds
         // has info about why it recommended it.
         let thumbs = result.body.thumbnails.illust;
-        await ppixiv.media_cache.add_media_infos_partial(thumbs, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(thumbs, "normal");
 
         let mediaIds = [];
         for(let thumb of thumbs)
             mediaIds.push(helpers.illust_id_to_media_id(thumb.id));
 
-        ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
+        ppixiv.tagTranslations.add_translations_dict(result.body.tagTranslation);
         this.addPage(page, mediaIds);
     }
 }

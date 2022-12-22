@@ -59,7 +59,7 @@ export default class DataSource_NewPostsByEveryone extends DataSource
         for(let illust_data of result.body.illusts)
             mediaIds.push(helpers.illust_id_to_media_id(illust_data.id));
 
-        await ppixiv.media_cache.add_media_infos_partial(result.body.illusts, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(result.body.illusts, "normal");
 
         // Register the new page of data.
         this.addPage(page, mediaIds);

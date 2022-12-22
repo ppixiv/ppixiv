@@ -74,7 +74,7 @@ export default class ViewerVideoBase extends Viewer
     {
         let load_sentinel = this._loadSentinel = new Object();
 
-        this.mediaInfo = await ppixiv.media_cache.get_media_info(this.mediaId);
+        this.mediaInfo = await ppixiv.mediaCache.get_media_info(this.mediaId);
 
         return load_sentinel;
     }

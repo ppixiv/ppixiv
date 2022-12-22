@@ -183,7 +183,7 @@ export default class IllustIdList
             // next page.
             if(next)
             {
-                let info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+                let info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
                 if(info == null)
                 {
                     // This can happen if we're viewing a deleted image, which has no illust info.
@@ -242,7 +242,7 @@ export default class IllustIdList
         // If we're navigating backwards and we're not in skip-to-first mode, get the last page on newMediaId.
         if(!next && manga != 'skip-to-first' && helpers.parse_media_id(newMediaId).type == "illust")
         {
-            let info = ppixiv.media_cache.get_media_info_sync(newMediaId, { full: false });
+            let info = ppixiv.mediaCache.get_media_info_sync(newMediaId, { full: false });
             if(info == null)
             {
                 console.log("Thumbnail info missing for", mediaId);

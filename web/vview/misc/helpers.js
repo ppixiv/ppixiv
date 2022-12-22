@@ -2208,8 +2208,6 @@ export class helpers
     static async wait_for_image_dimensions(img, abort_signal)
     {
         return new Promise((resolve, reject) => {
-            let src = img.src;
-
             if(abort_signal && abort_signal.aborted)
                 resolve(false);
             if(img.naturalWidth != 0)
@@ -2254,36 +2252,6 @@ export class helpers
 
         // Wait for whichever finishes first.
         return await Promise.any([promise, sleep]);
-    }
-
-    static wait_for_transitionend(node)
-    {
-        return new Promise((accept) => {
-            // CSS transition events are a headache: you have to listen to both transitionend
-            // and transitioncancel every time, and you always have to check if there's any
-            // transition to trigger the event, which requires looking at the animation list.
-            // They made this a lot more complicated than it needed to be.
-            let animations = node.getAnimations();
-            let transitions = animations.filter((anim) => anim instanceof CSSTransition);
-            if(transitions.length == 0)
-            {
-                accept();
-                return;
-            }
-
-            let abort = new AbortController();
-            let finished = (e) => {
-                // Ignore bubbling transition events.  There may be other nested things running
-                // their own transitions, and we need to wait for just the node we asked for.
-                if(e.target != node)
-                    return;
-
-                abort.abort();
-                accept();
-            };
-            node.addEventListener("transitionend", finished, { signal: abort.signal });
-            node.addEventListener("transitioncancel", finished, { signal: abort.signal });
-        });
     }
 
     // Asynchronously wait for an animation frame.  Return true on success, or false if
@@ -2403,33 +2371,6 @@ export class helpers
         container_width = best_columns*thumb_width + (best_columns-1)*padding;
         return {columns: best_columns, padding, thumb_width, thumb_height, container_width};
     }
-
-    // Given a list of manga info, return the aspect ratio to use to display them.
-    // This can be passed as the "ratio" option to make_thumbnail_sizing_style.
-    static get_manga_aspect_ratio(manga_info)
-    {
-        // A lot of manga posts use the same resolution for all images, or just have
-        // one or two exceptions for things like title pages.  If most images have
-        // about the same aspect ratio, use it.
-        let total = 0;
-        for(let manga_page of manga_info)
-            total += manga_page.width / manga_page.height;
-        let average_aspect_ratio = total / manga_info.length;
-
-        let illusts_far_from_average = 0;
-        for(let manga_page of manga_info)
-        {
-            let ratio = manga_page.width / manga_page.height;
-            if(Math.abs(average_aspect_ratio - ratio) > 0.1)
-                illusts_far_from_average++;
-        }
-
-        // If we didn't find a common aspect ratio, just use square thumbs.
-        if(illusts_far_from_average > 3)
-            return 1;
-        else
-            return average_aspect_ratio;
-    }    
     
     // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
     // If the aspect ratio is portrait, use vertical panning.

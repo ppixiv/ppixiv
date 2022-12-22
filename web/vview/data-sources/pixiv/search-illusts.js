@@ -105,7 +105,7 @@ export default class DataSource_Search extends DataSource
         let tags = this._searchTags;
         if(tags)
         {
-            tags = await ppixiv.tag_translations.translate_tag_list(tags, "en");
+            tags = await ppixiv.tagTranslations.translate_tag_list(tags, "en");
             let tagList = document.createElement("span");
             for(let tag of tags)
             {
@@ -201,7 +201,7 @@ export default class DataSource_Search extends DataSource
                 translation: body.tagTranslation[tag],
             });
         }
-        ppixiv.tag_translations.add_translations(translations);
+        ppixiv.tagTranslations.add_translations(translations);
 
         // /tag/TAG/illustrations returns results in body.illust.
         // /tag/TAG/artworks returns results in body.illustManga.
@@ -210,7 +210,7 @@ export default class DataSource_Search extends DataSource
         illusts = illusts.data;
 
         // Populate thumbnail data with this data.
-        await ppixiv.media_cache.add_media_infos_partial(illusts, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(illusts, "normal");
 
         let media_ids = [];
         for(let illust of illusts)

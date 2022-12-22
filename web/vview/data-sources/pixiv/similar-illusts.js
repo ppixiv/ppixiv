@@ -24,7 +24,7 @@ export default class DataSource_SimilarIllusts extends DataSource
             // Don't wait for this to finish before continuing.
             let illustId = this.url.searchParams.get("illust_id");
             let mediaId = helpers.illust_id_to_media_id(illustId)
-            ppixiv.media_cache.get_media_info(mediaId).then((mediaInfo) => {
+            ppixiv.mediaCache.get_media_info(mediaId).then((mediaInfo) => {
                 this.mediaInfo = mediaInfo;
                 this.callUpdateListeners();
             }).catch((e) => {
@@ -56,13 +56,13 @@ export default class DataSource_SimilarIllusts extends DataSource
         // result.body.recommendedIllusts[].recommendMethods, recommendSeedIllustIds
         // has info about why it recommended it.
         let thumbs = result.body.thumbnails.illust;
-        await ppixiv.media_cache.add_media_infos_partial(thumbs, "normal");
+        await ppixiv.mediaCache.add_media_infos_partial(thumbs, "normal");
 
         let mediaIds = [];
         for(let thumb of thumbs)
             mediaIds.push(helpers.illust_id_to_media_id(thumb.id));
 
-        ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
+        ppixiv.tagTranslations.add_translations_dict(result.body.tagTranslation);
         this.addPage(page, mediaIds);
     };
 

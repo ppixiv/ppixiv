@@ -818,7 +818,7 @@ export default class ContextMenu extends Widget
             return;
         }
 
-        let user_id = await ppixiv.user_cache.get_user_id_for_media_id(media_id);
+        let user_id = await ppixiv.userCache.get_user_id_for_media_id(media_id);
 
         // Stop if the media ID changed.
         if(media_id != this.effective_media_id)
@@ -912,7 +912,7 @@ export default class ContextMenu extends Widget
                 if(mediaId == null)
                     return;
 
-                let illust_data = ppixiv.media_cache.get_media_info(mediaId, { full: false });
+                let illust_data = ppixiv.mediaCache.get_media_info(mediaId, { full: false });
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)
@@ -972,7 +972,7 @@ export default class ContextMenu extends Widget
 
                 // Download the image or video by default.  If alt is pressed and the image has
                 // multiple pages, download a ZIP instead.
-                let media_info = await ppixiv.media_cache.get_media_info(mediaId, { full: false });
+                let media_info = await ppixiv.mediaCache.get_media_info(mediaId, { full: false });
                 let download_type = "image";
                 if(Actions.isDownloadTypeAvailable("image", media_info))
                     download_type = "image";
@@ -1008,7 +1008,7 @@ export default class ContextMenu extends Widget
                 if(user_id == null)
                     return;
 
-                var user_info = await ppixiv.user_cache.get_user_info_full(user_id);
+                var user_info = await ppixiv.userCache.get_user_info_full(user_id);
                 if(user_info == null)
                     return;
 
@@ -1171,7 +1171,7 @@ export default class ContextMenu extends Widget
         this._load_user_id();
             
         let user_id = this.effective_user_id;
-        let info = media_id? ppixiv.media_cache.get_media_info_sync(media_id, { full: false }):null;
+        let info = media_id? ppixiv.mediaCache.get_media_info_sync(media_id, { full: false }):null;
 
         this.button_view_manga.dataset.popup = "View manga pages";
         helpers.set_class(this.button_view_manga, "enabled", info?.pageCount > 1);
@@ -1417,7 +1417,7 @@ class ImageInfoWidget extends IllustWidget
         // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
         // it's loaded.
         var info = "";
-        let { width, height } = ppixiv.media_cache.get_dimensions(media_info, this._media_id);
+        let { width, height } = ppixiv.mediaCache.get_dimensions(media_info, this._media_id);
         if(width != null && height != null)
             info += width + "x" + height;
         set_info(".image-info", info);

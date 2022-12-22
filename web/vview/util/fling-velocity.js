@@ -1,27 +1,28 @@
-// This calculates the current velocity from recent motion.
+// FlingVelocity takes input samples from pointer movements, and calculates velocity
+// and movement over time to calculate the direction and velocity of touch flings.
 export default class FlingVelocity
 {
-    constructor({ sample_period=0.1 }={})
+    constructor({ samplePeriod=0.1 }={})
     {
-        this.sample_period = sample_period;
+        this.samplePeriod = samplePeriod;
         this.reset();
     }
 
-    add_sample( {x=0,y=0}={} )
+    addSample( {x=0, y=0}={} )
     {
         this.samples.push({
             delta: { x, y },
             time: Date.now()/1000,
         });
 
-        this.purge();
+        this._purge();
     }
 
-    // Delete samples older than sample_period.
-    purge()
+    // Delete samples older than samplePeriod.
+    _purge()
     {
-        let delete_before = Date.now()/1000 - this.sample_period;
-        while(this.samples.length && this.samples[0].time < delete_before)
+        let deleteBefore = Date.now()/1000 - this.samplePeriod;
+        while(this.samples.length && this.samples[0].time < deleteBefore)
             this.samples.shift();
     }
 
@@ -31,11 +32,11 @@ export default class FlingVelocity
         this.samples = [];
     }
 
-    // A helper to get current_distance and current_velocity in a direction: "up", "down", "left" or "right".
-    get_movement_in_direction(direction)
+    // A helper to get currentDistance and currentVelocity in a direction: "up", "down", "left" or "right".
+    getMovementInDirection(direction)
     {
-        let distance = this.current_distance;
-        let velocity = this._get_velocity_from_current_distance(distance);
+        let distance = this.currentDistance;
+        let velocity = this._getVelocityFromCurrentDistance(distance);
         switch(direction)
         {
         case "up":    return { distance: -distance.y, velocity: -velocity.y };
@@ -48,9 +49,9 @@ export default class FlingVelocity
     }
 
     // Get the distance travelled within the sample period.
-    get current_distance()
+    get currentDistance()
     {
-        this.purge();
+        this._purge();
 
         if(this.samples.length == 0)
             return { x: 0, y: 0 };
@@ -66,14 +67,14 @@ export default class FlingVelocity
     }
 
     // Get the average velocity.
-    get current_velocity()
+    get currentVelocity()
     {
-        return this._get_velocity_from_current_distance(this.current_distance);
+        return this._getVelocityFromCurrentDistance(this.currentDistance);
     }
 
-    _get_velocity_from_current_distance(current_distance)
+    _getVelocityFromCurrentDistance(currentDistance)
     {
-        let { x, y } = current_distance;
+        let { x, y } = currentDistance;
 
         if(this.samples.length == 0)
             return { x: 0, y: 0 };

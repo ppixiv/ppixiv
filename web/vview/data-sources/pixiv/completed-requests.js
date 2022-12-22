@@ -29,10 +29,10 @@ export default class DataSources_CompletedRequests extends DataSource
             request_data[request.requestId] = request;
         
         for(let user of result.body.users)
-            ppixiv.user_cache.add_user_data(user);
+            ppixiv.userCache.add_user_data(user);
 
-        await ppixiv.media_cache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
-        ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
+        await ppixiv.mediaCache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
+        ppixiv.tagTranslations.add_translations_dict(result.body.tagTranslation);
 
         let mediaIds = [];
         let requestIds = result.body.page[showing == "latest"? "requestIds":"recommendRequestIds"];
@@ -49,7 +49,7 @@ export default class DataSources_CompletedRequests extends DataSource
 
             // This returns a lot of post IDs that don't exist.  Why are people deleting so many of these?
             // Check whether the post was in result.body.thumbnails.illust.
-            if(ppixiv.media_cache.get_media_info_sync(mediaId, { full: false }) == null)
+            if(ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false }) == null)
                 continue;
 
             mediaIds.push(mediaId);

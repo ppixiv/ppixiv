@@ -174,7 +174,7 @@ export default class ViewerImages extends Viewer
         // when the open widget list changes.
         OpenWidgets.singleton.addEventListener("changed", () => this._check_animation_finished(), this._signal);
 
-        ppixiv.media_cache.addEventListener("mediamodified", ({media_id}) => this._media_info_modified({media_id}), this._signal);
+        ppixiv.mediaCache.addEventListener("mediamodified", ({media_id}) => this._media_info_modified({media_id}), this._signal);
 
         // Create the inpaint editor.
         if(!ppixiv.mobile)
@@ -213,7 +213,7 @@ export default class ViewerImages extends Viewer
         this._refresh_from_illust_data();
 
         // Load full info if it wasn't already loaded.
-        await ppixiv.media_cache.get_media_info(this.mediaId);
+        await ppixiv.mediaCache.get_media_info(this.mediaId);
 
         // Stop if we were shutdown while we were async.
         if(this.shutdown_signal.signal.aborted)
@@ -241,13 +241,13 @@ export default class ViewerImages extends Viewer
     _refresh_from_illust_data()
     {
         // See if full info is available.
-        let illust_data = ppixiv.media_cache.get_media_info_sync(this.mediaId);
+        let illust_data = ppixiv.mediaCache.get_media_info_sync(this.mediaId);
         let page = this._page;
 
         // If we don't have full data yet and this is the first page, see if we have partial
         // data.
         if(illust_data == null && page == 0)
-            illust_data = ppixiv.media_cache.get_media_info_sync(this.mediaId, { full: false });
+            illust_data = ppixiv.mediaCache.get_media_info_sync(this.mediaId, { full: false });
 
         // Stop if we don't have any info yet.
         if(illust_data == null)
@@ -267,7 +267,7 @@ export default class ViewerImages extends Viewer
         else
         {
             let manga_page = illust_data.mangaPages[page];
-            let { url, width, height } = ppixiv.media_cache.get_main_image_url(illust_data, page);
+            let { url, width, height } = ppixiv.mediaCache.get_main_image_url(illust_data, page);
             image_info = {
                 url,
                 preview_url: manga_page.urls.small,
@@ -277,7 +277,7 @@ export default class ViewerImages extends Viewer
             };
         }
 
-        let extra_data = ppixiv.media_cache.get_extra_data(illust_data, this.mediaId, page);
+        let extra_data = ppixiv.mediaCache.get_extra_data(illust_data, this.mediaId, page);
         image_info = {
             crop: extra_data?.crop,
             pan: extra_data?.pan,
@@ -501,7 +501,7 @@ export default class ViewerImages extends Viewer
             e.stopPropagation();
             e.preventDefault();
 
-            let illust_data = await ppixiv.media_cache.get_media_info(this.mediaId, { full: false });
+            let illust_data = await ppixiv.mediaCache.get_media_info(this.mediaId, { full: false });
             if(illust_data == null)
                 return;
 
@@ -792,7 +792,7 @@ export default class ViewerImages extends Viewer
             // Send pointer movements to linked tabs.  If we're inverting scrolling, this
             // is included here, so clients will scroll the same way regardless of their
             // local settings.
-            ppixiv.send_image.send_mouse_movement_to_linked_tabs(x_offset, y_offset);
+            ppixiv.sendImage.send_mouse_movement_to_linked_tabs(x_offset, y_offset);
         }
 
         // This will make mouse dragging match the image exactly:

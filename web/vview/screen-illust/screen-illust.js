@@ -59,8 +59,8 @@ export default class ScreenIllust extends Screen
         if(ppixiv.mobile)
             uiContainer.hidden = true;
 
-        ppixiv.user_cache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdown_signal.signal });        
-        ppixiv.media_cache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdown_signal.signal });
+        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdown_signal.signal });        
+        ppixiv.mediaCache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdown_signal.signal });
         ppixiv.settings.addEventListener("recent-bookmark-tags", this.refreshUi, { signal: this.shutdown_signal.signal });
 
         this.viewContainer = this.container.querySelector(".view-container");
@@ -226,7 +226,7 @@ export default class ScreenIllust extends Screen
         // If remote quick view is active, cancel it if we leave the image.
         if(ppixiv.settings.get("linked_tabs_enabled"))
         {
-            ppixiv.send_image.send_message({
+            ppixiv.sendImage.send_message({
                 message: "send-image",
                 action: "cancel",
                 to: ppixiv.settings.get("linked_tabs", []),
@@ -248,7 +248,7 @@ export default class ScreenIllust extends Screen
         else if(isError)
         {
             viewerClass = ViewerError;
-            options = { ...options, error: ppixiv.media_cache.get_media_load_error(mediaId) };
+            options = { ...options, error: ppixiv.mediaCache.get_media_load_error(mediaId) };
         }
         else if(earlyIllustData.illustType == 2)
             viewerClass = ViewerUgoira;
@@ -309,7 +309,7 @@ export default class ScreenIllust extends Screen
         // many pages it has, and whether it's muted.  This will always complete immediately
         // if we're coming from a search or anywhere else that will already have this info,
         // but it can block if we're loading from scratch.
-        let earlyIllustData = await ppixiv.media_cache.get_media_info(mediaId, { full: false });
+        let earlyIllustData = await ppixiv.mediaCache.get_media_info(mediaId, { full: false });
 
         // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
         if(!this.active || this._wantedMediaId != mediaId)
@@ -357,7 +357,7 @@ export default class ScreenIllust extends Screen
         // This should always be available, because the caller always looks up media info
         // in order to create the viewer, which means we don't have to go async here.  If
         // this returns null, it should always mean we're viewing an image's error page.
-        let earlyIllustData = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+        let earlyIllustData = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
         helpers.setTitleAndIcon(earlyIllustData);
 
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
@@ -365,7 +365,7 @@ export default class ScreenIllust extends Screen
 
         // If linked tabs are active, send this image.
         if(ppixiv.settings.get("linked_tabs_enabled"))
-            ppixiv.send_image.send_image(mediaId, ppixiv.settings.get("linked_tabs", []), "temp-view");
+            ppixiv.sendImage.send_image(mediaId, ppixiv.settings.get("linked_tabs", []), "temp-view");
 
         // Tell the preloader about the current image.
         ImagePreloader.singleton.setCurrentImage(mediaId);

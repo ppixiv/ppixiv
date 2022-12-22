@@ -36,7 +36,7 @@ export default class DataSource_SearchUsers extends DataSource
         let mediaIds = [];
         for(let user of result.body.users)
         {
-            ppixiv.extra_cache.add_quick_user_data({
+            ppixiv.extraCache.add_quick_user_data({
                 user_id: user.user_id,
                 user_name: user.user_name,
                 profile_img: user.profile_img.main,

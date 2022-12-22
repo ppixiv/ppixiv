@@ -32,7 +32,7 @@ export default class ScreenSearch extends Screen
             </div>
         `});
 
-        ppixiv.user_cache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdown_signal.signal });        
+        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdown_signal.signal });        
         
         // Add the top search UI if we're on desktop.
         if(!ppixiv.mobile)

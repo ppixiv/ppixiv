@@ -578,7 +578,7 @@ class ImageInfoWidget extends IllustWidget
         // it's loaded.
         let info = "";
         
-        let { width, height } = ppixiv.media_cache.get_dimensions(media_info, this.media_id);
+        let { width, height } = ppixiv.mediaCache.get_dimensions(media_info, this.media_id);
         if(width != null && height != null)
             info += width + "x" + height;
         setInfo(".image-info-text", info);

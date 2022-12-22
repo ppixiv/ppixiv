@@ -30,7 +30,7 @@ class TreeWidget extends Widget
         this.items = this.container.querySelector(".items");
 
         // Listen to illust changes so we can refresh nodes.
-        ppixiv.media_cache.addEventListener("mediamodified", this.illust_modified, { signal: this.shutdown_signal.signal });
+        ppixiv.mediaCache.addEventListener("mediamodified", this.illust_modified, { signal: this.shutdown_signal.signal });
 
         // Create the root item.  This is TreeWidgetItem or a subclass.
         if(add_root)
@@ -615,7 +615,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         super.refresh();
 
         // Show or hide the bookmark icon.
-        let info = ppixiv.media_cache.get_media_info_sync(this.path, { full: false });
+        let info = ppixiv.mediaCache.get_media_info_sync(this.path, { full: false });
         let bookmarked = info?.bookmarkData != null;
         this.container.querySelector(".button-bookmark").hidden = !bookmarked;
 
@@ -663,7 +663,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
             return true;
         this.loaded = true;
 
-        let result = await ppixiv.media_cache.localSearch(this.path, {
+        let result = await ppixiv.mediaCache.localSearch(this.path, {
             id: this.path,
 
             // This tells the server to only include directories.  It's much faster, since

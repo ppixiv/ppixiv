@@ -51,7 +51,7 @@ export default class ImagePreloader
             return;
 
         // Get the image data.  This will often already be available.
-        let illust_info = await ppixiv.media_cache.get_media_info(this.currentMediaId);
+        let illust_info = await ppixiv.mediaCache.get_media_info(this.currentMediaId);
 
         // Stop if the illust was changed while we were loading.
         if(this.currentMediaId != media_id)
@@ -76,7 +76,7 @@ export default class ImagePreloader
             return;
 
         // Get the image data.  This will often already be available.
-        let illust_info = await ppixiv.media_cache.get_media_info(this._speculativeMediaId);
+        let illust_info = await ppixiv.mediaCache.get_media_info(this._speculativeMediaId);
         if(this._speculativeMediaId != media_id)
             return;
 
@@ -257,7 +257,7 @@ export default class ImagePreloader
         let page = helpers.parse_media_id(media_id).page;
         if(page < mediaInfo.mangaPages.length)
         {
-            let { url } = ppixiv.media_cache.get_main_image_url(mediaInfo, page);
+            let { url } = ppixiv.mediaCache.get_main_image_url(mediaInfo, page);
             results.push(new ImgResourceLoader(url));
         }
 
@@ -269,7 +269,7 @@ export default class ImagePreloader
                 if(p == page)
                     continue;
 
-                let { url } = ppixiv.media_cache.get_main_image_url(mediaInfo, page);
+                let { url } = ppixiv.mediaCache.get_main_image_url(mediaInfo, page);
                 results.push(new ImgResourceLoader(url));
             }
         }
@@ -295,7 +295,7 @@ export default class ImagePreloader
         let guessedUrl = null;
         if(media_id != null)
         {
-            guessedUrl = await ppixiv.guess_image_url.guess_url(media_id);
+            guessedUrl = await ppixiv.guessImageUrl.guess_url(media_id);
             if(this.guessedPreload && this.guessedPreload.url == guessedUrl)
                 return;
         }
@@ -313,7 +313,7 @@ export default class ImagePreloader
             this.guessedPreload = new ImgResourceLoader(guessedUrl, () => {
                 // The image load failed.  Let guessed_preload know.
                 // console.info("Guessed image load failed");
-                ppixiv.guess_image_url.guessed_url_incorrect(media_id);
+                ppixiv.guessImageUrl.guessed_url_incorrect(media_id);
             });
             this.guessedPreload.start();
         }

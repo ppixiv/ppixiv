@@ -180,7 +180,7 @@ export default class TouchScroller
 
         // Store this motion sample, so we can estimate fling velocity later.  This should be
         // affected by axis locking above.
-        this.fling_velocity.add_sample({ x: -movementX, y: -movementY });
+        this.fling_velocity.addSample({ x: -movementX, y: -movementY });
 
         // If we zoomed in and now have room to move on an axis that was locked before,
         // unlock it.  We won't lock it again until a new drag is started.
@@ -232,7 +232,7 @@ export default class TouchScroller
         }
 
         // Set the initial velocity to the average recent speed of all touches.
-        this.velocity = this.fling_velocity.current_velocity;
+        this.velocity = this.fling_velocity.currentVelocity;
 
         this._set_state("animating", onanimationstart_options);
 

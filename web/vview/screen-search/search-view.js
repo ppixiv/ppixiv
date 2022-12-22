@@ -73,7 +73,7 @@ export default class SearchView extends Widget
         this._mediaIdExpandedCache = null;
         ppixiv.muting.addEventListener("mutes-changed", () => this._mediaIdExpandedCache = null, this._signal);
 
-        ppixiv.media_cache.addEventListener("infoloaded", this.mediaInfoLoaded);
+        ppixiv.mediaCache.addEventListener("infoloaded", this.mediaInfoLoaded);
         new ResizeObserver(() => this.refreshImages()).observe(this.container);
 
         // The scroll position may not make sense when if scroller changes size (eg. the window was resized
@@ -86,7 +86,7 @@ export default class SearchView extends Widget
         }).observe(this.scrollContainer);
 
         // When a bookmark is modified, refresh the heart icon.
-        ppixiv.media_cache.addEventListener("mediamodified", this.refreshThumbnail, { signal: this.shutdown_signal.signal });
+        ppixiv.mediaCache.addEventListener("mediamodified", this.refreshThumbnail, { signal: this.shutdown_signal.signal });
 
         this.container.addEventListener("load", (e) => {
             if(e.target.classList.contains("thumb"))
@@ -119,7 +119,7 @@ export default class SearchView extends Widget
             if(type != "illust")
                 return;
 
-            await ppixiv.media_cache.get_media_info(a.dataset.mediaId);
+            await ppixiv.mediaCache.get_media_info(a.dataset.mediaId);
         }, { capture: true });
 
         this.thumbnailBox.addEventListener("click", this.thumbnailClick);
@@ -480,7 +480,7 @@ export default class SearchView extends Widget
         if(!this.isMediaIdExpanded(mediaId))
             return null;
 
-        let info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+        let info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
         if(info == null || info.pageCount <= 1)
             return null;
 
@@ -665,7 +665,7 @@ export default class SearchView extends Widget
     {
         // Stop if the range is already loaded.
         let mediaIds = allMediaIds.slice(startIdx, endIdx+1);
-        if(ppixiv.media_cache.are_all_media_ids_loaded_or_loading(mediaIds))
+        if(ppixiv.mediaCache.are_all_media_ids_loaded_or_loading(mediaIds))
             return;
 
         // Make a list of IDs that need to be loaded, removing ones that are already
@@ -673,7 +673,7 @@ export default class SearchView extends Widget
         let mediaIdsToLoad = [];
         for(let mediaId of mediaIds)
         {
-            if(!ppixiv.media_cache.is_media_id_loaded_or_loading(mediaId))
+            if(!ppixiv.mediaCache.is_media_id_loaded_or_loading(mediaId))
                 mediaIdsToLoad.push(mediaId);
         }
 
@@ -695,18 +695,18 @@ export default class SearchView extends Widget
         while(mediaIdsToLoad.length < minToLoad && (loadStartIdx >= 0 || loadEndIdx < allMediaIds.length))
         {
             let mediaId = allMediaIds[loadStartIdx];
-            if(mediaId != null && !ppixiv.media_cache.is_media_id_loaded_or_loading(mediaId))
+            if(mediaId != null && !ppixiv.mediaCache.is_media_id_loaded_or_loading(mediaId))
                 mediaIdsToLoad.push(mediaId);
 
             mediaId = allMediaIds[loadEndIdx];
-            if(mediaId != null && !ppixiv.media_cache.is_media_id_loaded_or_loading(mediaId))
+            if(mediaId != null && !ppixiv.mediaCache.is_media_id_loaded_or_loading(mediaId))
                 mediaIdsToLoad.push(mediaId);
 
             loadStartIdx--;
             loadEndIdx++;
         }
 
-        ppixiv.media_cache.batch_get_media_info_partial(mediaIdsToLoad);
+        ppixiv.mediaCache.batch_get_media_info_partial(mediaIdsToLoad);
     }
 
     // Return the first and last media IDs that are nearby (or all of them if all is true).
@@ -1155,7 +1155,7 @@ export default class SearchView extends Widget
 
         // If the image is muted, never expand it by default, even if we're set to expand by default.
         // We'll just show a wall of muted thumbs.
-        let info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+        let info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
         if(info != null)
         {
             let mutedTag = ppixiv.muting.any_tag_muted(info.tagList);
@@ -1183,7 +1183,7 @@ export default class SearchView extends Widget
         let show_expanded = this.dataSource?.allowExpandingMangaPages && this.isMediaIdExpanded(mediaId);
         helpers.set_class(thumb, "expanded-thumb", show_expanded);
 
-        let info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+        let info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
         let [illustId, illustPage] = helpers.media_id_to_illust_id_and_page(mediaId);
         
         helpers.set_class(thumb, "expanded-manga-post", show_expanded);
@@ -1246,7 +1246,7 @@ export default class SearchView extends Widget
         let width, height;
         if(illustPage == 0)
         {
-            let info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+            let info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
             if(info != null)
             {
                 width = info.width;
@@ -1337,7 +1337,7 @@ export default class SearchView extends Widget
 
         // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
         // a manga post is shown on all pages if it's expanded.
-        let media_info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+        let media_info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
         if(media_info == null)
             return;
 
@@ -1362,7 +1362,7 @@ export default class SearchView extends Widget
             return;
 
         // Get thumbnail info.
-        let mediaInfo = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+        let mediaInfo = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
         if(mediaInfo == null)
             return;
 
@@ -1500,7 +1500,7 @@ export default class SearchView extends Widget
         if(thumbType == "illust" || thumbType == "file" || thumbType == "folder")
         {
             // Get thumbnail info.
-            info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
+            info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
             if(info == null)
                 return;
         }
@@ -1524,7 +1524,7 @@ export default class SearchView extends Widget
 
             link.dataset.userId = userId;
 
-            let quick_user_data = ppixiv.extra_cache.get_quick_user_data(userId);
+            let quick_user_data = ppixiv.extraCache.get_quick_user_data(userId);
             if(quick_user_data == null)
             {
                 // We should always have this data for users if the data source asked us to display this user.
@@ -1556,7 +1556,7 @@ export default class SearchView extends Widget
         {
             // The image will be obscured, but we still shouldn't load the image the user blocked (which
             // is something Pixiv does wrong).  Load the user profile image instead.
-            thumb.src = ppixiv.media_cache.get_profile_picture_url(info.userId);
+            thumb.src = ppixiv.mediaCache.get_profile_picture_url(info.userId);
             element.classList.add("muted");
 
             let muted_label = element.querySelector(".muted-label");
@@ -1564,7 +1564,7 @@ export default class SearchView extends Widget
             // Quick hack to look up translations, since we're not async:
             (async() => {
                 if(mutedTag)
-                    mutedTag = await ppixiv.tag_translations.get_translation(mutedTag);
+                    mutedTag = await ppixiv.tagTranslations.get_translation(mutedTag);
                 muted_label.textContent = mutedTag? mutedTag:info.userName;
             })();
 

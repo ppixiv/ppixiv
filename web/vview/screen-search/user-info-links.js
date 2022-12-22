@@ -23,7 +23,7 @@ export default class UserInfoLinks extends Widget
 
         // Load info for this user.
         this._showingUserId = userId;
-        let userInfo = await ppixiv.user_cache.get_user_info_full(userId);
+        let userInfo = await ppixiv.userCache.get_user_info_full(userId);
 
         // Stop if the user ID changed since we started this request.
         if(userId != this._showingUserId)

@@ -184,14 +184,14 @@ function create_settings_widget({ global_options })
                 icon: "file_upload",
                 label: "Import",
                 container: widget.container,
-                onclick: () => ppixiv.extra_image_data.import(),
+                onclick: () => ppixiv.extraImageData.import(),
             });
 
             new MenuOptionButton({
                 icon: "file_download",
                 label: "Export",
                 container: widget.container,
-                onclick: () => ppixiv.extra_image_data.export(),
+                onclick: () => ppixiv.extraImageData.export(),
             });
             return widget;
         },
@@ -449,7 +449,7 @@ export class SettingsDialog extends DialogWidget
             this.create_page_button("user_muting");
         }
 
-        if(ppixiv.send_image.enabled)
+        if(ppixiv.sendImage.enabled)
             this.create_page_button("linked_tabs");
 
         this.create_page_button("other");

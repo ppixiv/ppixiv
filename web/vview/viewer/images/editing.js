@@ -253,8 +253,8 @@ export default class ImageEditor extends IllustWidget
         // the data for the first page, as an extraData dictionary with page media IDs as keys.
         //
         // Pull out the dictionary containing editing data for this image to give to the editor.
-        let { width, height } = ppixiv.media_cache.get_dimensions(media_info, media_id);
-        let extra_data = ppixiv.media_cache.get_extra_data(media_info, media_id);
+        let { width, height } = ppixiv.mediaCache.get_dimensions(media_info, media_id);
+        let extra_data = ppixiv.mediaCache.get_extra_data(media_info, media_id);
 
         // Give the editors the new illust data.
         for(let editor of Object.values(this.editors))
@@ -422,12 +422,12 @@ export default class ImageEditor extends IllustWidget
                 // Update cached media info to include the change.
                 media_info = result.illust;
                 LocalAPI.adjust_illust_info(media_info);
-                ppixiv.media_cache.update_media_info(this.media_id, media_info);
+                ppixiv.mediaCache.update_media_info(this.media_id, media_info);
             }
             else
             {
                 // Save data for Pixiv images to image_data.
-                media_info = await ppixiv.media_cache.save_extra_image_data(this.media_id, edits);                
+                media_info = await ppixiv.mediaCache.save_extra_image_data(this.media_id, edits);                
             }
 
             // Let the widgets know that we saved.

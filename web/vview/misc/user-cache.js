@@ -29,7 +29,7 @@ export default class UserCache extends EventTarget
 
         // Fetch media info.  We don't need to coalesce these requests if this is called
         // multiple times, since media_cache will do that for us.
-        let media_info = await ppixiv.media_cache.get_media_info(media_id, { full: false });
+        let media_info = await ppixiv.mediaCache.get_media_info(media_id, { full: false });
         return media_info?.userId;
     }
 

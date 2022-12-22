@@ -28,7 +28,7 @@ export default class SendImage
             this.finalize_quick_view_image();
         }, { capture: true });
 
-        ppixiv.media_cache.addEventListener("mediamodified", ({media_id}) => { this.broadcast_illust_changes(media_id); });
+        ppixiv.mediaCache.addEventListener("mediamodified", ({media_id}) => { this.broadcast_illust_changes(media_id); });
 
         this.send_image_channel.addEventListener("message", this.received_message);
         this.broadcast_tab_info();
@@ -98,10 +98,10 @@ export default class SendImage
     {
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
-        let media_info = ppixiv.media_cache.get_media_info_sync(media_id);
+        let media_info = ppixiv.mediaCache.get_media_info_sync(media_id);
 
         let user_id = media_info?.userId;
-        let user_info = user_id? ppixiv.user_cache.get_user_info_sync(user_id):null;
+        let user_info = user_id? ppixiv.userCache.get_user_info_sync(user_id):null;
 
         this.send_message({
             message: "send-image",
@@ -136,17 +136,17 @@ export default class SendImage
     {
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
-        let media_info = ppixiv.media_cache.get_media_info_sync(media_id);
+        let media_info = ppixiv.mediaCache.get_media_info_sync(media_id);
 
         let user_id = media_info?.userId;
-        let user_info = user_id? ppixiv.user_cache.get_user_info_sync(user_id):null;
+        let user_info = user_id? ppixiv.userCache.get_user_info_sync(user_id):null;
 
         this.send_message({
             message: "image-info",
             from: this.tab_id,
             media_id: media_id,
             media_info,
-            bookmark_tags: ppixiv.extra_cache.get_bookmark_details_sync(media_id),
+            bookmark_tags: ppixiv.extraCache.get_bookmark_details_sync(media_id),
             user_info: user_info,
             origin: window.origin,
         }, false);
@@ -203,11 +203,11 @@ export default class SendImage
                 console.log("Registering cached image info");
                 let user_info = data.user_info;
                 if(user_info != null)
-                    ppixiv.user_cache.add_user_data(user_info);
+                    ppixiv.userCache.add_user_data(user_info);
 
                 let media_info = data.media_info;
                 if(media_info != null)
-                    ppixiv.media_cache.add_media_info_full(media_info, { preprocessed: true });
+                    ppixiv.mediaCache.add_media_info_full(media_info, { preprocessed: true });
             }
             // To finalize, just remove preview and quick-view from the URL to turn the current
             // preview into a real navigation.  This is slightly different from sending "display"
@@ -257,15 +257,15 @@ export default class SendImage
                 // update it.
                 let media_info = data.media_info;
                 if(media_info != null)
-                    ppixiv.media_cache.update_media_info(data.media_id, media_info);
+                    ppixiv.mediaCache.update_media_info(data.media_id, media_info);
 
                 let bookmark_tags = data.bookmark_tags;
                 if(bookmark_tags != null)
-                    ppixiv.extra_cache.update_cached_bookmark_image_tags(data.media_id, bookmark_tags);
+                    ppixiv.extraCache.update_cached_bookmark_image_tags(data.media_id, bookmark_tags);
 
                 let user_info = data.user_info;
                 if(user_info != null)
-                    ppixiv.user_cache.add_user_data(user_info);
+                    ppixiv.userCache.add_user_data(user_info);
             } finally {
                 this.handling_broadcasted_image_info = false;
             }
@@ -391,7 +391,7 @@ export class LinkTabsPopup extends Widget
         if(!this.visible)
             return;
 
-        ppixiv.send_image.send_message({
+        ppixiv.sendImage.send_message({
             message: "show-link-tab",
             linked_tabs: ppixiv.settings.get("linked_tabs", []),
         });
@@ -403,7 +403,7 @@ export class LinkTabsPopup extends Widget
 
         if(!this.visible)
         {
-            ppixiv.send_image.send_message({ message: "hide-link-tab" });
+            ppixiv.sendImage.send_message({ message: "hide-link-tab" });
             return;
         }
 
@@ -414,7 +414,7 @@ export class LinkTabsPopup extends Widget
 
         // The other tab will send these messages when the link and unlink buttons
         // are clicked.
-        ppixiv.send_image.messages.addEventListener("link-this-tab", (e) => {
+        ppixiv.sendImage.messages.addEventListener("link-this-tab", (e) => {
             let message = e.message;
 
             let tab_ids = ppixiv.settings.get("linked_tabs", []);
@@ -426,7 +426,7 @@ export class LinkTabsPopup extends Widget
             this.send_link_tab_message();
         }, this._signal);
 
-        ppixiv.send_image.messages.addEventListener("unlink-this-tab", (e) => {
+        ppixiv.sendImage.messages.addEventListener("unlink-this-tab", (e) => {
             let message = e.message;
             let tab_ids = ppixiv.settings.get("linked_tabs", []);
             let idx = tab_ids.indexOf(message.from);
@@ -452,7 +452,7 @@ export class LinkThisTabPopup extends DialogWidget
         
         // Show ourself when we see a show-link-tab message and hide if we see a
         // hide-link-tab-message.
-        ppixiv.send_image.messages.addEventListener("show-link-tab", ({message}) => {
+        ppixiv.sendImage.messages.addEventListener("show-link-tab", ({message}) => {
             LinkThisTabPopup.other_tab_id = message.from;
             hide_timer.set(2000);
 
@@ -466,7 +466,7 @@ export class LinkThisTabPopup extends DialogWidget
                 dialog = null;
             });
 
-            ppixiv.send_image.messages.addEventListener("hide-link-tab", ({message}) => {
+            ppixiv.sendImage.messages.addEventListener("hide-link-tab", ({message}) => {
                 // Close the dialog if it's running.
                 if(dialog)
                     dialog.visible = false;
@@ -499,11 +499,11 @@ export class LinkThisTabPopup extends DialogWidget
 
         // Show ourself when we see a show-link-tab message and hide if we see a
         // hide-link-tab-message.
-        ppixiv.send_image.messages.addEventListener("show-link-tab", ({message}) => this.showLinkTabMessage({message}), this._signal);
+        ppixiv.sendImage.messages.addEventListener("show-link-tab", ({message}) => this.showLinkTabMessage({message}), this._signal);
 
         // When "link this tab" is clicked, send a link-this-tab message.
         this.link_this_tab.addEventListener("click", (e) => {
-            ppixiv.send_image.send_message({ message: "link-this-tab", to: [LinkThisTabPopup.other_tab_id] });
+            ppixiv.sendImage.send_message({ message: "link-this-tab", to: [LinkThisTabPopup.other_tab_id] });
 
             // If we're linked to another tab, clear our linked tab list, to try to make
             // sure we don't have weird chains of tabs linking each other.
@@ -511,7 +511,7 @@ export class LinkThisTabPopup extends DialogWidget
         }, this._signal);
 
         this.unlink_this_tab.addEventListener("click", (e) => {
-            ppixiv.send_image.send_message({ message: "unlink-this-tab", to: [LinkThisTabPopup.other_tab_id] });
+            ppixiv.sendImage.send_message({ message: "unlink-this-tab", to: [LinkThisTabPopup.other_tab_id] });
         }, this._signal);
         
         this.showLinkTabMessage({message});
@@ -519,7 +519,7 @@ export class LinkThisTabPopup extends DialogWidget
 
     showLinkTabMessage({message})
     {
-        let linked = message.linked_tabs.indexOf(ppixiv.send_image.tab_id) != -1;
+        let linked = message.linked_tabs.indexOf(ppixiv.sendImage.tab_id) != -1;
         this.link_this_tab.hidden = linked;
         this.unlink_this_tab.hidden = !linked;
     }
@@ -555,12 +555,12 @@ export class SendImagePopup extends DialogWidget
             // We should always be visible when this is called.
             console.assert(this.visible);
 
-            ppixiv.send_image.send_message({ message: "show-send-image" });
+            ppixiv.sendImage.send_message({ message: "show-send-image" });
         }, 1000, this.shutdown_signal.signal);
 
-        ppixiv.send_image.messages.addEventListener("take-image", ({message}) => {
+        ppixiv.sendImage.messages.addEventListener("take-image", ({message}) => {
             let tab_id = message.from;
-            ppixiv.send_image.send_image(media_id, [tab_id], "display");
+            ppixiv.sendImage.send_image(media_id, [tab_id], "display");
 
             this.visible = false;
         }, this._signal);
@@ -570,7 +570,7 @@ export class SendImagePopup extends DialogWidget
     {
         super.shutdown();
 
-        ppixiv.send_image.send_message({ message: "hide-send-image" });
+        ppixiv.sendImage.send_message({ message: "hide-send-image" });
     }
 }
 
@@ -585,7 +585,7 @@ export class SendHerePopup extends DialogWidget
         });
 
         let dialog = null;
-        ppixiv.send_image.messages.addEventListener("show-send-image", ({message}) => {
+        ppixiv.sendImage.messages.addEventListener("show-send-image", ({message}) => {
             SendHerePopup.other_tab_id = message.from;
             hide_timer.set(2000);
 
@@ -599,7 +599,7 @@ export class SendHerePopup extends DialogWidget
             }
         }, this._signal);
 
-        ppixiv.send_image.messages.addEventListener("hide-send-image", ({message}) => {
+        ppixiv.sendImage.messages.addEventListener("hide-send-image", ({message}) => {
             // Close the dialog if it's running.
             if(dialog)
                 dialog.visible = false;
@@ -624,6 +624,6 @@ export class SendHerePopup extends DialogWidget
     take_image = (e) =>
     {
         // Send take-image.  The sending tab will respond with a send-image message.
-        ppixiv.send_image.send_message({ message: "take-image", to: [SendHerePopup.other_tab_id] });
+        ppixiv.sendImage.send_message({ message: "take-image", to: [SendHerePopup.other_tab_id] });
     }
 }
