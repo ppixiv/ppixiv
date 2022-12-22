@@ -55,21 +55,14 @@ def _get_path_timestamp_suffix(path):
     return f'?{mtime}'
 
 def get_modules():
-    modules = {}
-    modules_top = Path('web/vview')
-    for root, dirs, files in os.walk(modules_top):
-        for file in files:
-            # web/vview/module/path.js -> [vview/module/path.js] = /web/vview/module/path.js?timestamp
-            path = Path(root) / file
-            relative_path = path.relative_to(modules_top)
-            module_name = 'vview' / relative_path
-            
-            url_path = '/web/vview' / relative_path
-            suffix = _get_path_timestamp_suffix(path)
-            modules[module_name.as_posix()] = url_path.as_posix() + suffix
+    modules = Build.get_modules()
 
-    from pprint import pprint
-    pprint(modules)
+    # Replace the module path with the API path, and add a cache timestamp.
+    for module_name, path in modules.items():
+        url_path = '/web/' / PurePosixPath(module_name)
+        suffix = _get_path_timestamp_suffix(path)
+        modules[module_name] = url_path.as_posix() + suffix
+
     return modules
 
 def get_resources():
@@ -110,22 +103,15 @@ def handle_client(request):
     path = Path(path)
 
     cache_control = 'public, immutable'
-    if path in (Path('js/bootstrap.js'), Path('js/bootstrap-native.js')):
+    if path in (Path('startup/bootstrap.js'), Path('startup/bootstrap-native.js')):
         # Don't cache these.  They're loaded before URL cache busting is available.
         cache_control = 'no-store'
 
-    if path.parts[0] == 'js':
-        # XXX: Remove this once everything is converted to modules in web/vview.
-        path = Path(*path.parts[1:])
-        path = 'web/startup' / path
-    elif path.parts[0] == 'vview':
-        path = Path(*path.parts[1:])
-        path = 'web/vview' / path
-    elif path.parts[0] == 'resources':
+    if path.parts[0] == 'resources':
         # OK
         pass
     else:
-        raise aiohttp.web.HTTPNotFound()
+        path = 'web' / path
     
     path = root_dir / path
     path = path.resolve()

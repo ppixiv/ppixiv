@@ -197,12 +197,12 @@ class Build(object):
 
     // Load NativeLoader.
     let xhr = new XMLHttpRequest();
-    xhr.open("GET", `${window.vviewURL}/client/js/bootstrap_native.js`, false);
+    xhr.open("GET", `${window.vviewURL}/client/startup/bootstrap_native.js`, false);
     xhr.send();
     eval(xhr.responseText);
 
     xhr = new XMLHttpRequest();
-    xhr.open("GET", `${window.vviewURL}/client/js/bootstrap.js`, false);
+    xhr.open("GET", `${window.vviewURL}/client/startup/bootstrap.js`, false);
     xhr.send();
     eval(xhr.responseText);
 
@@ -419,6 +419,27 @@ class Build(object):
 
         return version
 
+    @classmethod
+    def get_modules(cls):
+        """
+        Return a dict of source modules, mapping from the module name to a path.
+        """
+        modules = {}
+        modules_top = Path('web/vview')
+        for root, dirs, files in os.walk(modules_top):
+            for file in files:
+                # Ignore dotfiles.
+                if file.startswith('.'):
+                    continue
+
+                # web/vview/module/path.js -> vview/module/path.js
+                path = Path(root) / file
+                relative_path = path.relative_to(modules_top)
+                module_name = 'vview' / relative_path
+                modules[module_name.as_posix()] = path
+
+        return modules
+
     def build_output(self):
         result = self.build_header(for_debug=False)
         result.append(f'// ==/UserScript==')
@@ -436,23 +457,17 @@ class Build(object):
         output_resources = collections.OrderedDict()
 
         # Find modules, and add their contents as resources.
-        modules = {}
-        modules_top = Path('web/vview')
-        for root, dirs, files in os.walk(modules_top):
-            for file in files:
-                path = Path(root) / file
+        modules = self.get_modules()
 
-                # web/vview/module/path.js -> vview/module/path.js
-                relative_path = path.relative_to(modules_top)
-                url_path = 'vview' / relative_path
-                modules[url_path.as_posix()] = url_path.as_posix()
-
-                with path.open('rt', encoding='utf-8') as input_file:
-                    script = input_file.read()
+        for module_name, path in modules.items():
+            with path.open('rt', encoding='utf-8') as input_file:
+                script = input_file.read()
 
                 script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), path.as_posix())
                 script = to_javascript_string(script)
-                output_resources[url_path.as_posix()] = script
+                output_resources[module_name] = script
+
+                modules[module_name] = module_name
 
         # Add the list of source files to resources, so bootstrap.js knows what to load.
         init = {
@@ -479,7 +494,7 @@ class Build(object):
             result.append(data)
 
         # Add the bootstrap code directly.
-        bootstrap = open('web/startup/bootstrap.js', 'rt', encoding='utf-8').read()
+        bootstrap = open('client/startup/bootstrap.js', 'rt', encoding='utf-8').read()
         result.append(bootstrap)
         result.append('Bootstrap(env);\n')
 
