@@ -241,7 +241,7 @@ export default class App
         if(document.querySelector("title") == null)
             document.head.appendChild(document.createElement("title"));
         
-        // Create the shared page icon.  This is set by set_page_icon.
+        // Create the shared page icon.  This is set by setPageIcon.
         let documentIcon = document.head.appendChild(document.createElement("link"));
         documentIcon.setAttribute("rel", "icon");
 
@@ -428,7 +428,7 @@ export default class App
         var new_screen_name;
         let args = helpers.args.location;
         if(!args.hash.has("view"))
-            new_screen_name = data_source.default_screen;
+            new_screen_name = data_source.defaultScreen;
         else
             new_screen_name = args.hash.get("view");
 
@@ -454,7 +454,7 @@ export default class App
         // The media ID we're displaying if we're going to screen_illust:
         let mediaId = null;
         if(new_screen_name == "illust")
-        mediaId = data_source.get_current_media_id(args);
+        mediaId = data_source.getCurrentMediaId(args);
 
         // If we're entering screen_search, ignore clicks for a while.  See window_onclick_capture.
         if(new_screen_name == "search")
@@ -543,14 +543,14 @@ export default class App
         if(type == "user")
             return new helpers.args(`/users/${id}/artworks#ppixiv`);
 
-        let oldMediaId = this.data_source.get_current_media_id(args);
+        let oldMediaId = this.data_source.getCurrentMediaId(args);
         let [old_illust_id] = helpers.media_id_to_illust_id_and_page(oldMediaId);
 
         // Update the URL to display this mediaId.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
         this._setActiveScreenInUrl(args, screen);
-        this.data_source.set_current_media_id(mediaId, args);
+        this.data_source.setCurrentMediaId(mediaId, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
         let [illust_id, page] = helpers.media_id_to_illust_id_and_page(mediaId);
@@ -603,7 +603,7 @@ export default class App
     _setActiveScreenInUrl(args, screen)
     {
         // If this is the default, just remove it.
-        if(screen == this.data_source.default_screen)
+        if(screen == this.data_source.defaultScreen)
             args.hash.delete("view");
         else
             args.hash.set("view", screen);
@@ -626,7 +626,7 @@ export default class App
         if(this.currentScreenName != "illust" || this.data_source == null)
             return false;
 
-        let mediaId = this.data_source.get_current_media_id(helpers.args.location);
+        let mediaId = this.data_source.getCurrentMediaId(helpers.args.location);
         if(mediaId == null)
             return false;
             
@@ -643,7 +643,7 @@ export default class App
         if(!this.navigate_out_enabled)
             return;
             
-        let mediaId = this.data_source.get_current_media_id(helpers.args.location);
+        let mediaId = this.data_source.getCurrentMediaId(helpers.args.location);
         if(mediaId == null)
             return;
 
@@ -1071,7 +1071,7 @@ export default class App
         if(data_source.name == "vview")
             args.hash.set("file", "*");
         else if(data_source.name != "manga")
-            data_source.set_current_media_id("*", args);
+            data_source.setCurrentMediaId("*", args);
 
         args.hash.set("slideshow", "1");
         args.hash.set("view", "illust");
@@ -1098,7 +1098,7 @@ export default class App
                 return;
 
             let tag = helpers._get_search_tags_from_url(url);
-            console.log("Adding to tag search history:", tag);
+            // console.log("Adding to tag search history:", tag);
             SavedSearchTags.add(tag);
         });
     }

@@ -211,9 +211,9 @@ export default class MoreOptionsDropdown extends IllustWidget
                     icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
-                    available: () => { return this.media_info && Actions.is_download_type_available("image", this.media_info); },
+                    available: () => { return this.media_info && Actions.isDownloadTypeAvailable("image", this.media_info); },
                     onclick: () => {
-                        Actions.download_illust(this.media_id, "image");
+                        Actions.downloadIllust(this.media_id, "image");
                         this.parent.hide();
                     }
                 });
@@ -226,9 +226,9 @@ export default class MoreOptionsDropdown extends IllustWidget
                     icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
-                    available: () => { return this.media_info && Actions.is_download_type_available("ZIP", this.media_info); },
+                    available: () => { return this.media_info && Actions.isDownloadTypeAvailable("ZIP", this.media_info); },
                     onclick: () => {
-                        Actions.download_illust(this.media_id, "ZIP");
+                        Actions.downloadIllust(this.media_id, "ZIP");
                         this.parent.hide();
                     }
                 });
@@ -241,9 +241,9 @@ export default class MoreOptionsDropdown extends IllustWidget
                     icon: "mat:download",
                     hide_if_unavailable: true,
                     requires_image: true,
-                    available: () => { return this.media_info && Actions.is_download_type_available("MKV", this.media_info); },
+                    available: () => { return this.media_info && Actions.isDownloadTypeAvailable("MKV", this.media_info); },
                     onclick: () => {
-                        Actions.download_illust(this.media_id, "MKV");
+                        Actions.downloadIllust(this.media_id, "MKV");
                         this.parent.hide();
                     }
                 });

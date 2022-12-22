@@ -107,7 +107,7 @@ export default class LocalAPI
         illust.aiType = 0;
     }
 
-    static async load_recent_bookmark_tags()
+    static async loadRecentBookmarkTags()
     {
         let result = await LocalAPI.local_post_request(`/api/bookmark/tags`);
         if(!result.success)

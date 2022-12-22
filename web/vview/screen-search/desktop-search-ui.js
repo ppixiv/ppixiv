@@ -104,7 +104,7 @@ export default class DesktopSearchUI extends Widget
 
         this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", () => this.parent.refreshSearchFromPage());
         this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
-            this.parent.search_view.toggle_expanding_media_ids_by_default();
+            this.parent.search_view.toggleExpandingMediaIdsByDefault();
         });
 
         this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
@@ -173,7 +173,7 @@ export default class DesktopSearchUI extends Widget
         {
             let dataSourceUiContainer = this.container.querySelector(".data-source-ui");
             this.currentDataSourceUi = new this.dataSource.ui({
-                data_source: this.dataSource,
+                dataSource: this.dataSource,
                 container: dataSourceUiContainer,
             });
         }
@@ -202,10 +202,10 @@ export default class DesktopSearchUI extends Widget
         }
 
         let element_displaying = this.container.querySelector(".displaying");
-        element_displaying.hidden = this.dataSource?.get_displaying_text == null;
-        if(this.dataSource?.get_displaying_text != null)
+        element_displaying.hidden = this.dataSource?.getDisplayingText == null;
+        if(this.dataSource?.getDisplayingText != null)
         {
-            let text = this.dataSource.get_displaying_text();
+            let text = this.dataSource.getDisplayingText();
             element_displaying.replaceChildren(text);
         }
 
@@ -238,9 +238,7 @@ export default class DesktopSearchUI extends Widget
         
         // Hide the button if the data source can never return manga posts to be expanded, or
         // if it's the manga page itself which always expands.
-        button.hidden =
-            !this.dataSource?.can_return_manga ||
-            this.dataSource?.includes_manga_pages;
+        button.hidden = !this.dataSource?.allowExpandingMangaPages;
     }
 
     refreshRefreshSearchFromPage()
@@ -250,7 +248,7 @@ export default class DesktopSearchUI extends Widget
 
         // Refresh the "refresh from page #" button popup.  This is updated by search_view
         // as the user scrolls.
-        let start_page = this.dataSource.get_start_page(helpers.args.location);
+        let start_page = this.dataSource.getStartPage(helpers.args.location);
         this.container.querySelector(".refresh-search-from-page-button").dataset.popup = `Refresh search from page ${start_page}`;
     }
 }

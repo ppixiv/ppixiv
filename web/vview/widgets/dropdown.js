@@ -75,6 +75,7 @@ export class DropdownBoxOpener extends Actor
         {
             this.box_widget = this.create_box({
                 container: document.body,
+                parent: this,
             });
 
             // Stop if no widget was created.

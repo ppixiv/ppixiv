@@ -396,13 +396,13 @@ export default class DesktopImageInfo extends Widget
 
         // Set the download button popup text.
         let downloadImageButton = this.container.querySelector(".download-image-button");
-        downloadImageButton.hidden = !Actions.is_download_type_available("image", mediaInfo);
+        downloadImageButton.hidden = !Actions.isDownloadTypeAvailable("image", mediaInfo);
 
         let downloadMangaButton = this.container.querySelector(".download-manga-button");
-        downloadMangaButton.hidden = !Actions.is_download_type_available("ZIP", mediaInfo);
+        downloadMangaButton.hidden = !Actions.isDownloadTypeAvailable("ZIP", mediaInfo);
 
         let downloadVideoButton = this.container.querySelector(".download-video-button");
-        downloadVideoButton.hidden = !Actions.is_download_type_available("MKV", mediaInfo);
+        downloadVideoButton.hidden = !Actions.isDownloadTypeAvailable("MKV", mediaInfo);
     }
 
     setPostInfo(post_info_container)
@@ -447,7 +447,7 @@ export default class DesktopImageInfo extends Widget
             for(let frame of mediaInfo.ugoiraMetadata.frames)
                 seconds += frame.delay / 1000;
 
-            let duration = seconds.toFixed(duration >= 10? 0:1);
+            duration = seconds.toFixed(duration >= 10? 0:1);
             duration += seconds == 1? " second":" seconds";
         }
         set_info(".ugoira-duration", duration);
@@ -473,7 +473,7 @@ export default class DesktopImageInfo extends Widget
         e.stopPropagation();
 
         let download_type = clickedButton.dataset.download;
-        Actions.download_illust(this._mediaId, download_type, this.displayedPage);
+        Actions.downloadIllust(this._mediaId, download_type, this.displayedPage);
     }
  }
 

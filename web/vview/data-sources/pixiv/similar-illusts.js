@@ -9,32 +9,33 @@ import { helpers } from 'vview/misc/helpers.js';
 export default class DataSource_SimilarIllusts extends DataSource
 {
     get name() { return "related-illusts"; }
-   
-    get estimated_items_per_page() { return 60; }
+    get pageTitle() { return "Similar Illusts"; }
+    getDisplayingText() { return "Similar Illustrations"; }
+    get estimatedItemsPerPage() { return 60; }
 
-    async _load_page_async(page, cause)
+    async _loadPageAsync(page, cause)
     {
         // The first time we load a page, get info about the source illustration too, so
         // we can show it in the UI.
-        if(!this.fetched_illust_info)
+        if(!this.fetchedMediaInfo)
         {
-            this.fetched_illust_info = true;
+            this.fetchedMediaInfo = true;
 
             // Don't wait for this to finish before continuing.
-            let illust_id = this.url.searchParams.get("illust_id");
-            let mediaId = helpers.illust_id_to_media_id(illust_id)
-            ppixiv.media_cache.get_media_info(mediaId).then((illust_info) => {
-                this.illust_info = illust_info;
-                this.call_update_listeners();
+            let illustId = this.url.searchParams.get("illust_id");
+            let mediaId = helpers.illust_id_to_media_id(illustId)
+            ppixiv.media_cache.get_media_info(mediaId).then((mediaInfo) => {
+                this.mediaInfo = mediaInfo;
+                this.callUpdateListeners();
             }).catch((e) => {
                 console.error(e);
             });
         }
 
-        return await super._load_page_async(page, cause);
+        return await super._loadPageAsync(page, cause);
     }
      
-    async load_page_internal(page)
+    async loadPageInternal(page)
     {
         // Don't load more than one page.  Related illusts for the same post generally
         // returns the same results, so if we load more pages we can end up making lots of
@@ -48,7 +49,7 @@ export default class DataSource_SimilarIllusts extends DataSource
         let result = await helpers.get_request("/ajax/discovery/artworks", {
             sampleIllustId: this.url.searchParams.get("illust_id"),
             mode: mode,
-            limit: this.estimated_items_per_page,
+            limit: this.estimatedItemsPerPage,
             lang: "en",
         });
 
@@ -57,25 +58,22 @@ export default class DataSource_SimilarIllusts extends DataSource
         let thumbs = result.body.thumbnails.illust;
         await ppixiv.media_cache.add_media_infos_partial(thumbs, "normal");
 
-        let media_ids = [];
+        let mediaIds = [];
         for(let thumb of thumbs)
-            media_ids.push(helpers.illust_id_to_media_id(thumb.id));
+            mediaIds.push(helpers.illust_id_to_media_id(thumb.id));
 
         ppixiv.tag_translations.add_translations_dict(result.body.tagTranslation);
-        this.add_page(page, media_ids);
+        this.addPage(page, mediaIds);
     };
-
-    get page_title() { return "Similar Illusts"; }
-    get_displaying_text() { return "Similar Illustrations"; }
 
     get uiInfo()
     {
         let imageUrl = null;
         let imageLinkUrl = null;
-        if(this.illust_info)
+        if(this.mediaInfo)
         {
-            imageLinkUrl = `/artworks/${this.illust_info.illustId}#ppixiv`;
-            imageUrl = this.illust_info.previewUrls[0];
+            imageLinkUrl = `/artworks/${this.mediaInfo.illustId}#ppixiv`;
+            imageUrl = this.mediaInfo.previewUrls[0];
         }
 
         return { imageUrl, imageLinkUrl };

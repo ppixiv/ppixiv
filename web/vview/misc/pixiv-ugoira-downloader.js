@@ -6,7 +6,7 @@
 // in eg. VLC, but it's not a WebM file and browsers don't support it.  These can also be played
 // when reading from the local API, since it'll decode these videos and turn them back into a ZIP.
 
-import encodeMKV from "vview/misc/encode_mkv.js";
+import EncodeMKV from "vview/misc/encode-mkv.js";
 import ZipImageDownloader from 'vview/misc/zip-image-downloader.js';
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -52,9 +52,9 @@ export default class PixivUgoiraDownloader
 
         // Some posts have the wrong dimensions in illustData (63162632).  If we use it, the resulting
         // file won't play.  Decode the first image to find the real resolution.
-        var img = document.createElement("img");
-        var blob = new Blob([this.frames[0]], {type: this.mimeType || "image/png"});
-        var firstFrameURL = URL.createObjectURL(blob);
+        let img = document.createElement("img");
+        let blob = new Blob([this.frames[0]], {type: this.mimeType || "image/png"});
+        let firstFrameURL = URL.createObjectURL(blob);
         img.src = firstFrameURL;
 
         await helpers.wait_for_image_load(img);
@@ -64,13 +64,13 @@ export default class PixivUgoiraDownloader
         let height = img.naturalHeight;
 
         try {
-            var encoder = new encodeMKV(width, height);
+            let encoder = new EncodeMKV(width, height);
             
             // Add each frame to the encoder.
-            var frameCount = this.illustData.ugoiraMetadata.frames.length;
-            for(var frame = 0; frame < frameCount; ++frame)
+            let frameCount = this.illustData.ugoiraMetadata.frames.length;
+            for(let frame = 0; frame < frameCount; ++frame)
             {
-                var frameData = this.frames[frame];
+                let frameData = this.frames[frame];
                 let duration = this.metadata.frames[frame].delay;
                 encoder.add(frameData, duration);
             };
@@ -83,12 +83,12 @@ export default class PixivUgoiraDownloader
             //
             // In theory we could set the "invisible" bit on this frame ("decoded but not displayed"), but that
             // doesn't seem to be used, at least not by VLC.
-            var frameData = this.frames[frameCount-1];
+            let frameData = this.frames[frameCount-1];
             encoder.add(frameData, 0);
             
             // Build the file.
-            var mkv = encoder.build();
-            var filename = this.illustData.userName + " - " + this.illustData.illustId + " - " + this.illustData.illustTitle + ".mkv";
+            let mkv = encoder.build();
+            let filename = this.illustData.userName + " - " + this.illustData.illustId + " - " + this.illustData.illustTitle + ".mkv";
             helpers.save_blob(mkv, filename);
         } catch(e) {
             console.error(e);

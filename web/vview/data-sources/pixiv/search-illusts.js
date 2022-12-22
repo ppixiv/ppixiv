@@ -39,6 +39,7 @@ import { helpers } from 'vview/misc/helpers.js';
 export default class DataSource_Search extends DataSource
 {
     get name() { return "search"; }
+    get ui() { return UI; }
 
     constructor(url)
     {
@@ -46,25 +47,25 @@ export default class DataSource_Search extends DataSource
 
         // Add the search tags to tag history.  We only do this at the start when the
         // data source is created, not every time we navigate back to the search.
-        let tag = this._search_tags;
+        let tag = this._searchTags;
         if(tag)
             SavedSearchTags.add(tag);
 
-        this.cache_search_title();
+        this.cacheSearchTitle();
     }
 
     get supportsStartPage() { return true; }
 
-    get no_results()
+    get hasNoResults()
     {
         // Don't display "No Results" while we're still waiting for the user to enter a tag.
-        if(!this._search_tags)
+        if(!this._searchTags)
             return false;
 
-        return super.no_results;
+        return super.hasNoResults;
     }
 
-    get _search_tags()
+    get _searchTags()
     {
         return helpers._get_search_tags_from_url(this.url);
     }
@@ -73,7 +74,7 @@ export default class DataSource_Search extends DataSource
     // or "novels" (not supported).  It can also be omitted, which is the "top" page,
     // but that gives the same results as "artworks" with a different page layout, so
     // we treat it as "artworks".
-    get _search_type()
+    get _searchType()
     {
         // ["", "tags", tag list, type]
         let url = helpers.get_url_without_language(this.url);
@@ -89,30 +90,30 @@ export default class DataSource_Search extends DataSource
         super.startup();
 
         // Refresh our title when translations are toggled.
-        ppixiv.settings.addEventListener("disable-translations", this.cache_search_title);
+        ppixiv.settings.addEventListener("disable-translations", this.cacheSearchTitle);
     }
 
     shutdown()
     {
         super.shutdown();
-        ppixiv.settings.removeEventListener("disable-translations", this.cache_search_title);
+        ppixiv.settings.removeEventListener("disable-translations", this.cacheSearchTitle);
     }
 
-    cache_search_title = async() =>
+    cacheSearchTitle = async() =>
     {
         this.title = "Search: ";
-        let tags = this._search_tags;
+        let tags = this._searchTags;
         if(tags)
         {
             tags = await ppixiv.tag_translations.translate_tag_list(tags, "en");
-            var tag_list = document.createElement("span");
+            let tagList = document.createElement("span");
             for(let tag of tags)
             {
                 // Force "or" lowercase.
                 if(tag.toLowerCase() == "or")
                     tag = "or";
                 
-                var span = document.createElement("span");
+                let span = document.createElement("span");
                 span.innerText = tag;
                 span.classList.add("word");
                 if(tag == "or")
@@ -122,18 +123,18 @@ export default class DataSource_Search extends DataSource
                 else
                     span.classList.add("tag");
                 
-                tag_list.appendChild(span);
+                tagList.appendChild(span);
             }
 
             this.title += tags.join(" ");
-            this.displaying_tags = tag_list;
+            this.displaying_tags = tagList;
         }
         
         // Update our page title.
-        this.call_update_listeners();
+        this.callUpdateListeners();
     }
 
-    async load_page_internal(page)
+    async loadPageInternal(page)
     {
         let args = { };
         this.url.searchParams.forEach((value, key) => { args[key] = value; });
@@ -142,33 +143,33 @@ export default class DataSource_Search extends DataSource
 
         // "artworks" and "illustrations" are different on the search page: "artworks" uses "/tag/TAG/artworks",
         // and "illustrations" is "/tag/TAG/illustrations?type=illust_and_ugoira".
-        let search_type = this._search_type;
-        let search_mode = this.get_url_search_mode();
-        let api_search_type = null;
-        if(search_mode == "all")
+        let searchType = this._searchType;
+        let searchMode = this.getUrlSearchMode();
+        let apiSearchType = null;
+        if(searchMode == "all")
         {
             // "artworks" doesn't use the type field.
-            api_search_type = "artworks";
+            apiSearchType = "artworks";
         }
-        else if(search_mode == "illust")
+        else if(searchMode == "illust")
         {
-            api_search_type = "illustrations";
+            apiSearchType = "illustrations";
             args.type = "illust_and_ugoira";
         }
-        else if(search_mode == "manga")
+        else if(searchMode == "manga")
         {
-            api_search_type = "manga";
+            apiSearchType = "manga";
             args.type = "manga";
         }
-        else if(search_mode == "ugoira")
+        else if(searchMode == "ugoira")
         {
-            api_search_type = "illustrations";
+            apiSearchType = "illustrations";
             args.type = "ugoira";
         }
         else
-            console.error("Invalid search type:", search_type);
+            console.error("Invalid search type:", searchType);
 
-        let tag = this._search_tags;
+        let tag = this._searchTags;
 
         // If we have no tags, we're probably on the "/tags" page, which is just a list of tags.  Don't
         // run a search with no tags.
@@ -178,16 +179,16 @@ export default class DataSource_Search extends DataSource
             return;
         }
 
-        var url = "/ajax/search/" + api_search_type + "/" + encodeURIComponent(tag);
+        let url = "/ajax/search/" + apiSearchType + "/" + encodeURIComponent(tag);
 
-        var result = await helpers.get_request(url, args);
+        let result = await helpers.get_request(url, args);
         let body = result.body;
 
         // Store related tags.  Only do this the first time and don't change it when we read
         // future pages, so the tags don't keep changing as you scroll around.
-        if(this.related_tags == null)
+        if(this.relatedTags == null)
         {
-            this.related_tags = body.relatedTags;
+            this.relatedTags = body.relatedTags;
             this.dispatchEvent(new Event("_refresh_ui"));
         }
 
@@ -216,27 +217,27 @@ export default class DataSource_Search extends DataSource
             media_ids.push(helpers.illust_id_to_media_id(illust.id));
 
         // Register the new page of data.
-        this.add_page(page, media_ids);
+        this.addPage(page, media_ids);
     }
 
-    get page_title()
+    get pageTitle()
     {
         return this.title;
     }
 
-    get_displaying_text()
+    getDisplayingText()
     {
         return this.displaying_tags ?? "Search works";
     };
 
     // Return the search mode, which is selected by the "Type" search option.  This generally
     // corresponds to the underlying page's search modes.
-    get_url_search_mode()
+    getUrlSearchMode()
     {
         // "/tags/tag/illustrations" has a "type" parameter with the search type.  This is used for
         // "illust" (everything except animations) and "ugoira".
-        let search_type = this._search_type;
-        if(search_type == "illustrations")
+        let searchType = this._searchType;
+        if(searchType == "illustrations")
         {
             let query_search_type = this.url.searchParams.get("type");
             if(query_search_type == "ugoira") return "ugoira";
@@ -246,9 +247,9 @@ export default class DataSource_Search extends DataSource
             return "all";
         }
         
-        if(search_type == "artworks")
+        if(searchType == "artworks")
             return "all";
-        if(search_type == "manga")
+        if(searchType == "manga")
             return "manga";
 
         // Use "all" for unrecognized types.
@@ -256,7 +257,7 @@ export default class DataSource_Search extends DataSource
     }
 
     // Return URL with the search mode set to mode.
-    set_url_search_mode(url, mode)
+    setUrlSearchMode(url, mode)
     {
         url = new URL(url);
         url = helpers.get_url_without_language(url);
@@ -269,293 +270,290 @@ export default class DataSource_Search extends DataSource
         else
             url.searchParams.delete("type");
 
-        let search_type = "artworks";
+        let searchType = "artworks";
         if(mode == "manga")
-            search_type = "manga";
+            searchType = "manga";
         else if(mode == "ugoira" || mode == "illust")
-            search_type = "illustrations";
+            searchType = "illustrations";
 
         // Set the type in the URL.
         let parts = url.pathname.split("/");
-        parts[3] = search_type;
+        parts[3] = searchType;
         url.pathname = parts.join("/");
         return url;
     }
+}
 
-    get ui()
+class UI extends Widget
+{
+    constructor({ dataSource, ...options })
     {
-        return class extends Widget
+        super({ ...options, template: `
+            <div>
+                <div class=tag-search-with-related-tags>
+                    <vv-container class=tag-search-box-container></vv-container>
+
+                    ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["related-tags-button"] }) }
+                </div>
+
+                <div class="box-button-row search-options-row">
+                    ${ helpers.create_box_link({label: "Ages",    classes: ["ages-button"] }) }
+                    ${ helpers.create_box_link({label: "Sort",    classes: ["sort-button"] }) }
+                    ${ helpers.create_box_link({label: "Type",    classes: [["search-type-button"]] }) }
+                    ${ helpers.create_box_link({label: "Search mode",    classes: ["search-mode-button"] }) }
+                    ${ helpers.create_box_link({label: "Image size",    classes: ["image-size-button"] }) }
+                    ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["aspect-ratio-button"] }) }
+                    ${ helpers.create_box_link({label: "Bookmarks",    classes: ["bookmark-count-button", "premium-only"] }) }
+                    ${ helpers.create_box_link({label: "Time",    classes: ["time-ago-button"] }) }
+                    ${ helpers.create_box_link({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
+                </div>
+            </div>
+        `});
+
+        this.dataSource = dataSource;
+        this.dataSource.addEventListener("_refresh_ui", () => this.refresh(), this._signal);
+
+        class RelatedTagDropdown extends TagDropdownWidget
         {
-            constructor({ data_source, ...options })
+            constructor({...options})
             {
-                super({ ...options, template: `
-                    <div>
-                        <div class=tag-search-with-related-tags>
-                            <vv-container class=tag-search-box-container></vv-container>
+                super({...options});
 
-                            ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["related-tags-button"] }) }
+                this.relatedTagWidget = new TagListWidget({
+                    contents: this.container,
+                });
+
+                this.refreshTags();
+            }
+
+            refreshTags()
+            {
+                if(this.dataSource.relatedTags && this.relatedTagWidget)
+                    this.relatedTagWidget.set(this.dataSource.relatedTags);
+            }
+        };
+
+        this.tagDropdown = new DropdownMenuOpener({
+            button: this.querySelector(".related-tags-button"),
+            create_box: ({...options}) => new RelatedTagDropdown({ dataSource, ...options }),
+        });
+
+        dataSource.setupDropdown(this.querySelector(".ages-button"), [{
+            createOptions: { label: "All",  dataset: { default: true } },
+            setupOptions: { fields: {mode: null} },
+        }, {
+            createOptions: { label: "All ages" },
+            setupOptions: { fields: {mode: "safe"} },
+        }, {
+            createOptions: { label: "R18", classes: ["r18"] },
+            setupOptions: { fields: {mode: "r18"} },
+        }]);
+
+        dataSource.setupDropdown(this.querySelector(".sort-button"), [{
+            createOptions: { label: "Newest",              dataset: { default: true } },
+            setupOptions: { fields: {order: null}, defaults: {order: "date_d"} }
+        }, {
+            createOptions: { label: "Oldest" },
+            setupOptions: { fields: {order: "date"} }
+        }, {
+            createOptions: { label: "Popularity",          classes: ["premium-only"] },
+            setupOptions: { fields: {order: "popular_d"} }
+        }, {
+            createOptions: { label: "Popular with men",    classes: ["premium-only"] },
+            setupOptions: { fields: {order: "popular_male_d"} }
+        }, {
+            createOptions: { label: "Popular with women",  classes: ["premium-only"] },
+            setupOptions:  { fields: {order: "popular_female_d"} }
+        }]);
+
+        let urlFormat = "tags/tag/type";
+        dataSource.setupDropdown(this.querySelector(".search-type-button"), [{
+            createOptions: { label: "All",             dataset: { default: true } },
+            setupOptions: {
+                urlFormat,
+                fields: {"/type": "artworks", type: null},
+            }
+        }, {
+            createOptions: { label: "Illustrations" },
+            setupOptions: {
+                urlFormat,
+                fields: {"/type": "illustrations", type: "illust"},
+            }
+        }, {
+            createOptions: { label: "Manga" },
+            setupOptions: {
+                urlFormat,
+                fields: {"/type": "manga", type: null},
+            }
+        }, {
+            createOptions: { label: "Animations" },
+            setupOptions: {
+                urlFormat,
+                fields: {"/type": "illustrations", type: "ugoira"},
+            }
+        }]);
+
+        dataSource.setupDropdown(this.querySelector(".search-mode-button"), [{
+            createOptions: { label: "Tag",               dataset: { default: true } },
+            setupOptions: { fields: {s_mode: null}, defaults: {s_mode: "s_tag"} },
+        }, {
+            createOptions: { label: "Exact tag match" },
+            setupOptions:  { fields: {s_mode: "s_tag_full"} },
+        }, {
+            createOptions: { label: "Text search" },
+            setupOptions:  { fields: {s_mode: "s_tc"} },
+        }]);
+
+        dataSource.setupDropdown(this.querySelector(".image-size-button"), [{
+            createOptions: { label: "All",               dataset: { default: true } },
+            setupOptions: { fields: {wlt: null, hlt: null, wgt: null, hgt: null} },
+        }, {
+            createOptions: { label: "High-res" },
+            setupOptions: { fields: {wlt: 3000, hlt: 3000, wgt: null, hgt: null} },
+        }, {
+            createOptions: { label: "Medium-res" },
+            setupOptions: { fields: {wlt: 1000, hlt: 1000, wgt: 2999, hgt: 2999} },
+        }, {
+            createOptions: { label: "Low-res" },
+            setupOptions: { fields: {wlt: null, hlt: null, wgt: 999, hgt: 999} },
+        }]);
+
+        dataSource.setupDropdown(this.querySelector(".aspect-ratio-button"), [{
+            createOptions: {label: "All",               icon: "", dataset: { default: true } },
+            setupOptions: { fields: {ratio: null} },
+        }, {
+            createOptions: {label: "Landscape",         icon: "panorama" },
+            setupOptions: { fields: {ratio: "0.5"} },
+        }, {
+            createOptions: {label: "Portrait",          icon: "portrait" },
+            setupOptions: { fields: {ratio: "-0.5"} },
+        }, {
+            createOptions: {label: "Square",            icon: "crop_square" },
+            setupOptions: { fields: {ratio: "0"} },
+        }]);
+
+        // The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
+        // really useful and the query parameters let us filter differently, so we
+        // replace it with a more useful "minimum bookmarks" filter.
+        dataSource.setupDropdown(this.querySelector(".bookmark-count-button"), [{
+            createOptions: { label: "All",               data_type: "bookmarks-all",    dataset: { default: true } },
+            setupOptions: { fields: {blt: null, bgt: null} },
+        }, {
+            createOptions: { label: "100+",              data_type: "bookmarks-100" },
+            setupOptions: { fields: {blt: 100, bgt: null} },
+        }, {
+            createOptions: { label: "250+",              data_type: "bookmarks-250" },
+            setupOptions: { fields: {blt: 250, bgt: null} },
+        }, {
+            createOptions: { label: "500+",              data_type: "bookmarks-500" },
+            setupOptions: { fields: {blt: 500, bgt: null} },
+        }, {
+            createOptions: { label: "1000+",             data_type: "bookmarks-1000" },
+            setupOptions: { fields: {blt: 1000, bgt: null} },
+        }, {
+            createOptions: { label: "2500+",             data_type: "bookmarks-2500" },
+            setupOptions: { fields: {blt: 2500, bgt: null} },
+        }, {
+            createOptions: { label: "5000+",             data_type: "bookmarks-5000" },
+            setupOptions: { fields: {blt: 5000, bgt: null} },
+        }]);
+
+        // The time-ago dropdown has a custom layout, so create it manually.
+        new DropdownMenuOpener({
+            button: this.querySelector(".time-ago-button"),
+            create_box: ({...options}) => {
+                let dropdown = new Widget({
+                    ...options,
+                    template: `
+                        <div class=vertical-list>
+                            ${ helpers.create_box_link({label: "All",               data_type: "time-all",  dataset: { default: true } }) }
+                            ${ helpers.create_box_link({label: "This week",         data_type: "time-week", dataset: { shortLabel: "Weekly" } }) }
+                            ${ helpers.create_box_link({label: "This month",        data_type: "time-month" }) }
+                            ${ helpers.create_box_link({label: "This year",         data_type: "time-year" }) }
+
+                            <div class=years-ago>
+                                ${ helpers.create_box_link({label: "1",             data_type: "time-years-ago-1", dataset: { shortLabel: "1 year" } }) }
+                                ${ helpers.create_box_link({label: "2",             data_type: "time-years-ago-2", dataset: { shortLabel: "2 years" } }) }
+                                ${ helpers.create_box_link({label: "3",             data_type: "time-years-ago-3", dataset: { shortLabel: "3 years" } }) }
+                                ${ helpers.create_box_link({label: "4",             data_type: "time-years-ago-4", dataset: { shortLabel: "4 years" } }) }
+                                ${ helpers.create_box_link({label: "5",             data_type: "time-years-ago-5", dataset: { shortLabel: "5 years" } }) }
+                                ${ helpers.create_box_link({label: "6",             data_type: "time-years-ago-6", dataset: { shortLabel: "6 years" } }) }
+                                ${ helpers.create_box_link({label: "7",             data_type: "time-years-ago-7", dataset: { shortLabel: "7 years" } }) }
+                                <span>years ago</span>
+                            </div>
                         </div>
+                    `,
+                });
 
-                        <div class="box-button-row search-options-row">
-                            ${ helpers.create_box_link({label: "Ages",    classes: ["ages-button"] }) }
-                            ${ helpers.create_box_link({label: "Sort",    classes: ["sort-button"] }) }
-                            ${ helpers.create_box_link({label: "Type",    classes: [["search-type-button"]] }) }
-                            ${ helpers.create_box_link({label: "Search mode",    classes: ["search-mode-button"] }) }
-                            ${ helpers.create_box_link({label: "Image size",    classes: ["image-size-button"] }) }
-                            ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["aspect-ratio-button"] }) }
-                            ${ helpers.create_box_link({label: "Bookmarks",    classes: ["bookmark-count-button", "premium-only"] }) }
-                            ${ helpers.create_box_link({label: "Time",    classes: ["time-ago-button"] }) }
-                            ${ helpers.create_box_link({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
-                        </div>
-                    </div>
-                `});
+                // The time filter is a range, but I'm not sure what time zone it filters in
+                // (presumably either JST or UTC).  There's also only a date and not a time,
+                // which means you can't actually filter "today", since there's no way to specify
+                // which "today" you mean.  So, we offer filtering starting at "this week",
+                // and you can just use the default date sort if you want to see new posts.
+                // For "this week", we set the end date a day in the future to make sure we
+                // don't filter out posts today.
+                dataSource.setItem(dropdown, { type: "time-all", fields: {scd: null, ecd: null} });
 
-                this.data_source = data_source;
-                this.data_source.addEventListener("_refresh_ui", () => this.refresh(), this._signal);
-
-                class related_tag_dropdown extends TagDropdownWidget
+                let formatDate = (date) =>
                 {
-                    constructor({...options})
-                    {
-                        super({...options});
-
-                        this.relatedTagWidget = new TagListWidget({
-                            contents: this.container,
-                        });
-
-                        this.refresh_tags();
-                    }
-
-                    refresh_tags()
-                    {
-                        if(this.data_source.related_tags && this.relatedTagWidget)
-                            this.relatedTagWidget.set(this.data_source.related_tags);
-                    }
+                    return (date.getYear() + 1900).toFixed().padStart(2, "0") + "-" +
+                            (date.getMonth() + 1).toFixed().padStart(2, "0") + "-" +
+                            date.getDate().toFixed().padStart(2, "0");
                 };
 
-                this.tag_dropdown = new DropdownMenuOpener({
-                    button: this.querySelector(".related-tags-button"),
-                    create_box: ({...options}) => new related_tag_dropdown({ data_source, ...options }),
-                });
+                let setDateFilter = (name, start, end) =>
+                {
+                    let start_date = formatDate(start);
+                    let end_date = formatDate(end);
+                    dataSource.setItem(dropdown, { type: name, fields: {scd: start_date, ecd: end_date} });
+                };
 
-                data_source.setup_dropdown(this.querySelector(".ages-button"), [{
-                    create_options: { label: "All",  dataset: { default: true } },
-                    setup_options: { fields: {mode: null} },
-                }, {
-                    create_options: { label: "All ages" },
-                    setup_options: { fields: {mode: "safe"} },
-                }, {
-                    create_options: { label: "R18", classes: ["r18"] },
-                    setup_options: { fields: {mode: "r18"} },
-                }]);
+                let tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+                let lastWeek = new Date(); lastWeek.setDate(lastWeek.getDate() - 7);
+                let lastMonth = new Date(); lastMonth.setMonth(lastMonth.getMonth() - 1);
+                let lastYear = new Date(); lastYear.setFullYear(lastYear.getFullYear() - 1);
+                setDateFilter("time-week", lastWeek, tomorrow);
+                setDateFilter("time-month", lastMonth, tomorrow);
+                setDateFilter("time-year", lastYear, tomorrow);
+                for(let years_ago = 1; years_ago <= 7; ++years_ago)
+                {
+                    let start_year = new Date(); start_year.setFullYear(start_year.getFullYear() - years_ago - 1);
+                    let end_year = new Date(); end_year.setFullYear(end_year.getFullYear() - years_ago);
+                    setDateFilter("time-years-ago-" + years_ago, start_year, end_year);
+                }
 
-                data_source.setup_dropdown(this.querySelector(".sort-button"), [{
-                    create_options: { label: "Newest",              dataset: { default: true } },
-                    setup_options: { fields: {order: null}, default_values: {order: "date_d"} }
-                }, {
-                    create_options: { label: "Oldest" },
-                    setup_options: { fields: {order: "date"} }
-                }, {
-                    create_options: { label: "Popularity",          classes: ["premium-only"] },
-                    setup_options: { fields: {order: "popular_d"} }
-                }, {
-                    create_options: { label: "Popular with men",    classes: ["premium-only"] },
-                    setup_options: { fields: {order: "popular_male_d"} }
-                }, {
-                    create_options: { label: "Popular with women",  classes: ["premium-only"] },
-                    setup_options:  { fields: {order: "popular_female_d"} }
-                }]);
+                // The "reset search" button removes everything in the query except search terms, and resets
+                // the search type.
+                let box = this.querySelector(".reset-search");
+                let url = new URL(this.dataSource.url);
+                let tag = helpers._get_search_tags_from_url(url);
+                url.search = "";
+                if(tag == null)
+                    url.pathname = "/tags";
+                else
+                    url.pathname = "/tags/" + encodeURIComponent(tag) + "/artworks";
+                box.href = url;
 
-                let url_format = "tags/tag/type";
-                data_source.setup_dropdown(this.querySelector(".search-type-button"), [{
-                    create_options: { label: "All",             dataset: { default: true } },
-                    setup_options: {
-                        url_format,
-                        fields: {"/type": "artworks", type: null},
-                    }
-                }, {
-                    create_options: { label: "Illustrations" },
-                    setup_options: {
-                        url_format,
-                        fields: {"/type": "illustrations", type: "illust"},
-                    }
-                }, {
-                    create_options: { label: "Manga" },
-                    setup_options: {
-                        url_format,
-                        fields: {"/type": "manga", type: null},
-                    }
-                }, {
-                    create_options: { label: "Animations" },
-                    setup_options: {
-                        url_format,
-                        fields: {"/type": "illustrations", type: "ugoira"},
-                    }
-                }]);
+                return dropdown;
+            },
+        });
 
-                data_source.setup_dropdown(this.querySelector(".search-mode-button"), [{
-                    create_options: { label: "Tag",               dataset: { default: true } },
-                    setup_options: { fields: {s_mode: null}, default_values: {s_mode: "s_tag"} },
-                }, {
-                    create_options: { label: "Exact tag match" },
-                    setup_options:  { fields: {s_mode: "s_tag_full"} },
-                }, {
-                    create_options: { label: "Text search" },
-                    setup_options:  { fields: {s_mode: "s_tc"} },
-                }]);
+        // Create the tag dropdown for the search page input.
+        this.tagSearchBox = new TagSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
 
-                data_source.setup_dropdown(this.querySelector(".image-size-button"), [{
-                    create_options: { label: "All",               dataset: { default: true } },
-                    setup_options: { fields: {wlt: null, hlt: null, wgt: null, hgt: null} },
-                }, {
-                    create_options: { label: "High-res" },
-                    setup_options: { fields: {wlt: 3000, hlt: 3000, wgt: null, hgt: null} },
-                }, {
-                    create_options: { label: "Medium-res" },
-                    setup_options: { fields: {wlt: 1000, hlt: 1000, wgt: 2999, hgt: 2999} },
-                }, {
-                    create_options: { label: "Low-res" },
-                    setup_options: { fields: {wlt: null, hlt: null, wgt: 999, hgt: 999} },
-                }]);
+        // Fill the search box with the current tag.
+        //
+        // Add a space to the end, so another tag can be typed immediately after focusing an existing search.
+        let search = this.dataSource._searchTags;
+        if(search)
+            search += " ";
+        this.querySelector(".tag-search-box .input-field-container > input").value = search;
+    }
 
-                data_source.setup_dropdown(this.querySelector(".aspect-ratio-button"), [{
-                    create_options: {label: "All",               icon: "", dataset: { default: true } },
-                    setup_options: { fields: {ratio: null} },
-                }, {
-                    create_options: {label: "Landscape",         icon: "panorama" },
-                    setup_options: { fields: {ratio: "0.5"} },
-                }, {
-                    create_options: {label: "Portrait",          icon: "portrait" },
-                    setup_options: { fields: {ratio: "-0.5"} },
-                }, {
-                    create_options: {label: "Square",            icon: "crop_square" },
-                    setup_options: { fields: {ratio: "0"} },
-                }]);
+    refresh()
+    {
+        super.refresh();
 
-                // The Pixiv search form shows 300-499, 500-999 and 1000-.  That's not
-                // really useful and the query parameters let us filter differently, so we
-                // replace it with a more useful "minimum bookmarks" filter.
-                data_source.setup_dropdown(this.querySelector(".bookmark-count-button"), [{
-                    create_options: { label: "All",               data_type: "bookmarks-all",    dataset: { default: true } },
-                    setup_options: { fields: {blt: null, bgt: null} },
-                }, {
-                    create_options: { label: "100+",              data_type: "bookmarks-100" },
-                    setup_options: { fields: {blt: 100, bgt: null} },
-                }, {
-                    create_options: { label: "250+",              data_type: "bookmarks-250" },
-                    setup_options: { fields: {blt: 250, bgt: null} },
-                }, {
-                    create_options: { label: "500+",              data_type: "bookmarks-500" },
-                    setup_options: { fields: {blt: 500, bgt: null} },
-                }, {
-                    create_options: { label: "1000+",             data_type: "bookmarks-1000" },
-                    setup_options: { fields: {blt: 1000, bgt: null} },
-                }, {
-                    create_options: { label: "2500+",             data_type: "bookmarks-2500" },
-                    setup_options: { fields: {blt: 2500, bgt: null} },
-                }, {
-                    create_options: { label: "5000+",             data_type: "bookmarks-5000" },
-                    setup_options: { fields: {blt: 5000, bgt: null} },
-                }]);
-
-                // The time-ago dropdown has a custom layout, so create it manually.
-                new DropdownMenuOpener({
-                    button: this.querySelector(".time-ago-button"),
-                    create_box: ({...options}) => {
-                        let dropdown = new Widget({
-                            ...options,
-                            template: `
-                                <div class=vertical-list>
-                                    ${ helpers.create_box_link({label: "All",               data_type: "time-all",  dataset: { default: true } }) }
-                                    ${ helpers.create_box_link({label: "This week",         data_type: "time-week", dataset: { shortLabel: "Weekly" } }) }
-                                    ${ helpers.create_box_link({label: "This month",        data_type: "time-month" }) }
-                                    ${ helpers.create_box_link({label: "This year",         data_type: "time-year" }) }
-
-                                    <div class=years-ago>
-                                        ${ helpers.create_box_link({label: "1",             data_type: "time-years-ago-1", dataset: { shortLabel: "1 year" } }) }
-                                        ${ helpers.create_box_link({label: "2",             data_type: "time-years-ago-2", dataset: { shortLabel: "2 years" } }) }
-                                        ${ helpers.create_box_link({label: "3",             data_type: "time-years-ago-3", dataset: { shortLabel: "3 years" } }) }
-                                        ${ helpers.create_box_link({label: "4",             data_type: "time-years-ago-4", dataset: { shortLabel: "4 years" } }) }
-                                        ${ helpers.create_box_link({label: "5",             data_type: "time-years-ago-5", dataset: { shortLabel: "5 years" } }) }
-                                        ${ helpers.create_box_link({label: "6",             data_type: "time-years-ago-6", dataset: { shortLabel: "6 years" } }) }
-                                        ${ helpers.create_box_link({label: "7",             data_type: "time-years-ago-7", dataset: { shortLabel: "7 years" } }) }
-                                        <span>years ago</span>
-                                    </div>
-                                </div>
-                            `,
-                        });
-
-                        // The time filter is a range, but I'm not sure what time zone it filters in
-                        // (presumably either JST or UTC).  There's also only a date and not a time,
-                        // which means you can't actually filter "today", since there's no way to specify
-                        // which "today" you mean.  So, we offer filtering starting at "this week",
-                        // and you can just use the default date sort if you want to see new posts.
-                        // For "this week", we set the end date a day in the future to make sure we
-                        // don't filter out posts today.
-                        data_source.set_item(dropdown, { type: "time-all", fields: {scd: null, ecd: null} });
-
-                        let format_date = (date) =>
-                        {
-                            return (date.getYear() + 1900).toFixed().padStart(2, "0") + "-" +
-                                    (date.getMonth() + 1).toFixed().padStart(2, "0") + "-" +
-                                    date.getDate().toFixed().padStart(2, "0");
-                        };
-
-                        let set_date_filter = (name, start, end) =>
-                        {
-                            let start_date = format_date(start);
-                            let end_date = format_date(end);
-                            data_source.set_item(dropdown, { type: name, fields: {scd: start_date, ecd: end_date} });
-                        };
-
-                        let tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-                        let last_week = new Date(); last_week.setDate(last_week.getDate() - 7);
-                        let last_month = new Date(); last_month.setMonth(last_month.getMonth() - 1);
-                        let last_year = new Date(); last_year.setFullYear(last_year.getFullYear() - 1);
-                        set_date_filter("time-week", last_week, tomorrow);
-                        set_date_filter("time-month", last_month, tomorrow);
-                        set_date_filter("time-year", last_year, tomorrow);
-                        for(let years_ago = 1; years_ago <= 7; ++years_ago)
-                        {
-                            let start_year = new Date(); start_year.setFullYear(start_year.getFullYear() - years_ago - 1);
-                            let end_year = new Date(); end_year.setFullYear(end_year.getFullYear() - years_ago);
-                            set_date_filter("time-years-ago-" + years_ago, start_year, end_year);
-                        }
-
-                        // The "reset search" button removes everything in the query except search terms, and resets
-                        // the search type.
-                        let box = this.querySelector(".reset-search");
-                        let url = new URL(this.data_source.url);
-                        let tag = helpers._get_search_tags_from_url(url);
-                        url.search = "";
-                        if(tag == null)
-                            url.pathname = "/tags";
-                        else
-                            url.pathname = "/tags/" + encodeURIComponent(tag) + "/artworks";
-                        box.href = url;
-
-                        return dropdown;
-                    },
-                });
-
-                // Create the tag dropdown for the search page input.
-                this.tag_search_box = new TagSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
-
-                // Fill the search box with the current tag.
-                //
-                // Add a space to the end, so another tag can be typed immediately after focusing an existing search.
-                let search = this.data_source._search_tags;
-                if(search)
-                    search += " ";
-                this.querySelector(".tag-search-box .input-field-container > input").value = search;
-            }
-
-            refresh()
-            {
-                super.refresh();
-
-                helpers.set_class(this.querySelector(".related-tags-button"), "disabled", this.data_source.related_tags == null);
-            }
-        }
+        helpers.set_class(this.querySelector(".related-tags-button"), "disabled", this.dataSource.relatedTags == null);
     }
 }

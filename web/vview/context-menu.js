@@ -14,6 +14,7 @@ import { HideMouseCursorOnIdle } from 'vview/util/hide-mouse-cursor-on-idle.js';
 import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
+import FixChromeClicks from 'vview/misc/fix-chrome-clicks.js';
 import { ViewInExplorerWidget } from 'vview/widgets/local-widgets.js';
 import { IllustWidget } from 'vview/widgets/illust-widgets.js';
 import PointerListener from 'vview/actors/pointer-listener.js';
@@ -152,11 +153,7 @@ export default class ContextMenu extends Widget
         new KeyListener("Control", this.ctrl_pressed);
 
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
-        // XXX
-        (async() => {
-            let { default: FixChromeClicks } = await ppixiv.importModule("vview/misc/fix-chrome-clicks.js");
-            new FixChromeClicks(this.container);
-        })();
+        new FixChromeClicks(this.container);
 
         this.container.addEventListener("mouseover", this.onmouseover, true);
         this.container.addEventListener("mouseout", this.onmouseout, true);
@@ -903,7 +900,7 @@ export default class ContextMenu extends Widget
                 if(mediaId == null)
                     return;
 
-                Actions.like_image(mediaId);
+                Actions.likeImage(mediaId);
             })();
 
             return true;
@@ -920,7 +917,7 @@ export default class ContextMenu extends Widget
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)
                 {
-                    Actions.add_new_tag(mediaId);
+                    Actions.addNewBookmarkTag(mediaId);
                     return;
                 }
 
@@ -933,7 +930,7 @@ export default class ContextMenu extends Widget
                         return;
                     }
 
-                    Actions.bookmark_remove(mediaId);
+                    Actions.bookmarkRemove(mediaId);
                     return;
                 }
 
@@ -949,7 +946,7 @@ export default class ContextMenu extends Widget
                     return;
                 }
 
-                Actions.bookmark_add(mediaId, {
+                Actions.bookmarkAdd(mediaId, {
                     private: bookmark_privately
                 });
             })();
@@ -977,15 +974,15 @@ export default class ContextMenu extends Widget
                 // multiple pages, download a ZIP instead.
                 let media_info = await ppixiv.media_cache.get_media_info(mediaId, { full: false });
                 let download_type = "image";
-                if(Actions.is_download_type_available("image", media_info))
+                if(Actions.isDownloadTypeAvailable("image", media_info))
                     download_type = "image";
-                else if(Actions.is_download_type_available("MKV", media_info))
+                else if(Actions.isDownloadTypeAvailable("MKV", media_info))
                     download_type = "MKV";
 
-                if(e.altKey && Actions.is_download_type_available("ZIP", media_info))
+                if(e.altKey && Actions.isDownloadTypeAvailable("ZIP", media_info))
                     download_type = "ZIP";
     
-                Actions.download_illust(mediaId, download_type);
+                Actions.downloadIllust(mediaId, download_type);
             })();
 
             return true;
@@ -1281,7 +1278,7 @@ export default class ContextMenu extends Widget
     // Return the illust ID whose parent the parent button will go to.
     get folder_id_for_parent()
     {
-        return this.effective_media_id || this.data_source.viewing_folder;
+        return this.effective_media_id || this.data_source.viewingFolder;
     }
 
     // Return the folder ID that the parent button goes to.
@@ -1380,10 +1377,10 @@ class ImageInfoWidget extends IllustWidget
         let current_page = this._page;
         let page_count = media_info.pageCount;
         let show_page_number = this._show_page_number;
-        if(this.data_source?.name == "vview" && this.data_source.all_pages_loaded)
+        if(this.data_source?.name == "vview" && this.data_source.allPagesLoaded)
         {
-            let { page } = this.data_source.id_list.getPageForMediaId(media_id);
-            let ids = this.data_source.id_list.mediaIdsByPage.get(page);
+            let { page } = this.data_source.idList.getPageForMediaId(media_id);
+            let ids = this.data_source.idList.mediaIdsByPage.get(page);
             if(ids != null)
             {
                 current_page = ids.indexOf(media_id);

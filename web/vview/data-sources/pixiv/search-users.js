@@ -5,9 +5,9 @@ import { helpers } from 'vview/misc/helpers.js';
 export default class DataSource_SearchUsers extends DataSource
 {
     get name() { return "search-users"; }
-    get can_return_manga() { return false; }
+    get allowExpandingMangaPages() { return false; }
   
-    async load_page_internal(page)
+    async loadPageInternal(page)
     {
         // This API only returns 10 results per page  This search only seems useful for looking
         // for somebody specific, so just load the first page to prevent spamming the API.
@@ -33,7 +33,7 @@ export default class DataSource_SearchUsers extends DataSource
         // This returns images for each user, but that doesn't seem useful (this is a user search,
         // not discovery), and the format is different from everything else, so it's a bit of a pain
         // to use.  Just return users.
-        let media_ids = [];
+        let mediaIds = [];
         for(let user of result.body.users)
         {
             ppixiv.extra_cache.add_quick_user_data({
@@ -42,10 +42,10 @@ export default class DataSource_SearchUsers extends DataSource
                 profile_img: user.profile_img.main,
             }, "user_search");
 
-            media_ids.push(`user:${user.user_id}`);
+            mediaIds.push(`user:${user.user_id}`);
         }
 
-        this.add_page(page, media_ids);
+        this.addPage(page, mediaIds);
     }
 
     get username()
@@ -55,61 +55,63 @@ export default class DataSource_SearchUsers extends DataSource
 
     get ui()
     {
-        return class extends Widget
-        {
-            constructor({ data_source, ...options })
-            {
-                super({ ...options, template: `
-                    <div class="search-box">
-                        <div class="user-search-box input-field-container hover-menu-box">
-                            <input class=search-users placeholder="Search users">
-                            <span class="search-submit-button right-side-button">
-                                ${ helpers.create_icon("search") }
-                            </span>
-                        </div>
-                    </div>
-                `});
-
-                this.data_source = data_source;
-
-                this.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submit_user_search);
-                helpers.input_handler(this.querySelector(".user-search-box input.search-users"), this.submit_user_search);
-
-                this.querySelector(".search-users").value = data_source.username;
-            }
-
-            // Handle submitting searches on the user search page.
-            submit_user_search = (e) =>
-            {
-                let search = this.querySelector(".user-search-box input.search-users").value;
-                let url = new URL("/search_user.php#ppixiv", ppixiv.plocation);
-                url.searchParams.append("nick", search);
-                url.searchParams.append("s_mode", "s_usr");
-                helpers.navigate(url);
-            }
-        }
+        return UI;
     }
     
-    get no_results()
+    get hasNoResults()
     {
         // Don't display "No Results" while we're still waiting for the user to enter a search.
         if(!this.username)
             return false;
 
-        return super.no_results;
+        return super.hasNoResults;
     }
 
-    get page_title()
+    get pageTitle()
     {
         let search = this.username;
         if(search)
             return "Search users: " + search;
         else
             return "Search users";
-    };
+    }
 
-    get_displaying_text()
+    getDisplayingText()
     {
-        return this.page_title;
-    };
+        return this.pageTitle;
+    }
+}
+
+class UI extends Widget
+{
+    constructor({ dataSource, ...options })
+    {
+        super({ ...options, template: `
+            <div class="search-box">
+                <div class="user-search-box input-field-container hover-menu-box">
+                    <input class=search-users placeholder="Search users">
+                    <span class="search-submit-button right-side-button">
+                        ${ helpers.create_icon("search") }
+                    </span>
+                </div>
+            </div>
+        `});
+
+        this.dataSource = dataSource;
+
+        this.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submitUserSearch);
+        helpers.input_handler(this.querySelector(".user-search-box input.search-users"), this.submitUserSearch);
+
+        this.querySelector(".search-users").value = dataSource.username;
+    }
+
+    // Handle submitting searches on the user search page.
+    submitUserSearch = (e) =>
+    {
+        let search = this.querySelector(".user-search-box input.search-users").value;
+        let url = new URL("/search_user.php#ppixiv", ppixiv.plocation);
+        url.searchParams.append("nick", search);
+        url.searchParams.append("s_mode", "s_usr");
+        helpers.navigate(url);
+    }
 }

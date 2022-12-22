@@ -1,5 +1,3 @@
-"use strict";
-
 // XXX
 export class Args
 {
@@ -165,10 +163,10 @@ export class helpers
     {
         // We don't need to add the element to the document for the images to load, which means
         // we don't need to do a bunch of extra work to figure out when we can remove them.
-        var preload = document.createElement("div");
-        for(var i = 0; i < images.length; ++i)
+        let preload = document.createElement("div");
+        for(let i = 0; i < images.length; ++i)
         {
-            var img = document.createElement("img");
+            let img = document.createElement("img");
             img.src = images[i];
             preload.appendChild(img);
         }
@@ -176,9 +174,9 @@ export class helpers
 
     static move_children(parent, new_parent)
     {
-        for(var child = parent.firstChild; child; )
+        for(let child = parent.firstChild; child; )
         {
-            var next = child.nextSibling;
+            let next = child.nextSibling;
             new_parent.appendChild(child);
             child = next;
         }
@@ -193,7 +191,6 @@ export class helpers
     // Return true if ancestor is one of descendant's parents, or if descendant is ancestor.
     static is_above(ancestor, descendant)
     {
-        var node = descendant;
         while(descendant != null && descendant != ancestor)
             descendant = descendant.parentNode;
         return descendant == ancestor;
@@ -201,7 +198,7 @@ export class helpers
 
     static create_style(css, { id }={})
     {
-        var style = document.realCreateElement("style");
+        let style = document.realCreateElement("style");
         style.type = "text/css";
         if(id)
             style.id = id;
@@ -279,18 +276,18 @@ export class helpers
     // for creating thumbs, which don't need this.
     static create_from_template(type, {make_svg_unique=true}={})
     {
-        var template;
+        let template;
         if(typeof(type) == "string")
             template = this.get_template(type);
         else
             template = type;
 
-        var node = document.importNode(template.content, true).firstElementChild;
+        let node = document.importNode(template.content, true).firstElementChild;
         
         if(make_svg_unique)
         {
             // Make all IDs in the template we just cloned unique.
-            for(var svg of node.querySelectorAll("svg"))
+            for(let svg of node.querySelectorAll("svg"))
                 this.make_svg_ids_unique(svg);
         }
         
@@ -528,10 +525,10 @@ export class helpers
                     new_value = "#" + new_id;
                 }
 
-                var re = /url\(#.*?\)/;
+                let re = /url\(#.*?\)/;
                 new_value = new_value.replace(re, (str) => {
-                    var re = /url\(#(.*)\)/;
-                    var old_id = str.match(re)[1];
+                    let re = /url\(#(.*)\)/;
+                    let old_id = str.match(re)[1];
                     let new_id = id_map[old_id];
                     if(new_id == null)
                     {
@@ -578,22 +575,22 @@ export class helpers
     // Return a Uint8Array containing a blank (black) image with the given dimensions and type.
     static create_blank_image(image_type, width, height)
     {
-        var canvas = document.createElement("canvas");
+        let canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
 
-        var context = canvas.getContext('2d');
+        let context = canvas.getContext('2d');
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        var blank_frame = canvas.toDataURL(image_type, 1);
+        let blank_frame = canvas.toDataURL(image_type, 1);
         if(!blank_frame.startsWith("data:" + image_type))
             throw "This browser doesn't support encoding " + image_type;
 
-        var binary = atob(blank_frame.slice(13 + image_type.length));
+        let binary = atob(blank_frame.slice(13 + image_type.length));
 
         // This is completely stupid.  Why is there no good way to go from a data URL to an ArrayBuffer?
-        var array = new Uint8Array(binary.length);
-        for(var i = 0; i < binary.length; ++i)
+        let array = new Uint8Array(binary.length);
+        for(let i = 0; i < binary.length; ++i)
             array[i] = binary.charCodeAt(i);
         return array;
     }
@@ -774,7 +771,7 @@ export class helpers
     // Create a node from HTML.
     static create_node(html)
     {
-        var temp = document.createElement("div");
+        let temp = document.createElement("div");
         temp.innerHTML = html;
         return temp.firstElementChild;
     }
@@ -951,7 +948,7 @@ export class helpers
 
     // Return the value of a list of CSS expressions.  For example:
     //
-    // get_css_values({ value1: "calc(var(--value) * 2)" });
+    // get_css_values({ value1: "calc(let(--value) * 2)" });
     static get_css_values(properties)
     {
         let div = document.createElement("div");
@@ -991,9 +988,9 @@ export class helpers
 
     static date_to_string(date)
     {
-        var date = new Date(date);
-        var day = date.toLocaleDateString();
-        var time = date.toLocaleTimeString();
+        date = new Date(date);
+        let day = date.toLocaleDateString();
+        let time = date.toLocaleTimeString();
         return day + " " + time;
     }
 
@@ -1004,10 +1001,10 @@ export class helpers
         if(future)
             seconds = -seconds;
 
-        var to_plural = function(label, places, value)
+        function to_plural(label, places, value)
         {
-            var factor = Math.pow(10, places);
-            var plural_value = Math.round(value * factor);
+            let factor = Math.pow(10, places);
+            let plural_value = Math.round(value * factor);
             if(plural_value > 1)
                 label += "s";
                 
@@ -1017,19 +1014,19 @@ export class helpers
         };
         if(seconds < 60)
             return to_plural("sec", 0, seconds);
-        var minutes = seconds / 60;
+        let minutes = seconds / 60;
         if(minutes < 60)
             return to_plural("min", 0, minutes);
-        var hours = minutes / 60;
+        let hours = minutes / 60;
         if(hours < 24)
             return to_plural("hour", 0, hours);
-        var days = hours / 24;
+        let days = hours / 24;
         if(days < 30)
             return to_plural("day", 0, days);
-        var months = days / 30;
+        let months = days / 30;
         if(months < 12)
             return to_plural("month", 0, months);
-        var years = months / 12;
+        let years = months / 12;
         return to_plural("year", 1, years);
     }
 
@@ -1063,7 +1060,7 @@ export class helpers
 
     static get_extension(fn)
     {
-        var parts = fn.split(".");
+        let parts = fn.split(".");
         return parts[parts.length-1];
     }
 
@@ -1091,8 +1088,8 @@ export class helpers
     }
     
     static encode_query(data) {
-        var str = [];
-        for (var key in data)
+        let str = [];
+        for(let key in data)
         {
             if(!data.hasOwnProperty(key))
                 continue;
@@ -1148,7 +1145,7 @@ export class helpers
         // Only set x-csrf-token for requests to www.pixiv.net.  It's only needed for API
         // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
         // mode and set headers, since it'll trigger CORS.
-        var hostname = new URL(options.url, ppixiv.plocation).hostname;
+        let hostname = new URL(options.url, ppixiv.plocation).hostname;
         if(hostname == "www.pixiv.net" && "global_data" in window)
         {
             options.headers["x-csrf-token"] = global_data.csrf_token;
@@ -1176,7 +1173,7 @@ export class helpers
     // Why does Pixiv have 300 APIs?
     static async rpc_post_request(url, data)
     {
-        var result = await this.send_pixiv_request({
+        let result = await this.send_pixiv_request({
             "method": "POST",
             "url": url,
 
@@ -1197,14 +1194,14 @@ export class helpers
         if(options == null)
             options = {};
 
-        var params = new URLSearchParams();
-        for(var key in data)
+        let params = new URLSearchParams();
+        for(let key in data)
             params.set(key, data[key]);
-        var query = params.toString();
+        let query = params.toString();
         if(query != "")
             url += "?" + query;
         
-        var result = await this.send_pixiv_request({
+        let result = await this.send_pixiv_request({
             "method": "GET",
             "url": url,
             "responseType": "json",
@@ -1220,7 +1217,7 @@ export class helpers
 
     static async post_request(url, data)
     {
-        var result = await this.send_pixiv_request({
+        let result = await this.send_pixiv_request({
             "method": "POST",
             "url": url,
             "responseType": "json",
@@ -1259,11 +1256,11 @@ export class helpers
     {
         let params = this.create_search_params(data);
 
-        var query = params.toString();
+        let query = params.toString();
         if(query != "")
             url += "?" + query;
 
-        var result = await this.send_pixiv_request({
+        let result = await this.send_pixiv_request({
             method: "GET",
             url: url,
             responseType: "json",
@@ -1542,8 +1539,8 @@ export class helpers
     {
         // Find all script elements that set pixiv.xxx.  There are two of these, and we need
         // both of them.
-        var init_elements = [];
-        for(var element of doc.querySelectorAll("script"))
+        let init_elements = [];
+        for(let element of doc.querySelectorAll("script"))
         {
             if(element.innerText == null)
                 continue;
@@ -1558,10 +1555,10 @@ export class helpers
         
         // Create a stub around the scripts to let them execute as if they're initializing the
         // original object.
-        var init_script = "";
+        let init_script = "";
         init_script += "(function() {";
-        init_script += "var pixiv = { config: {}, context: {}, user: {} }; ";
-        for(var element of init_elements)
+        init_script += "let pixiv = { config: {}, context: {}, user: {} }; ";
+        for(let element of init_elements)
             init_script += element.innerText;
         init_script += "return pixiv;";
         init_script += "})();";
@@ -1590,9 +1587,9 @@ export class helpers
         if(ppixiv.native)
             return;
 
-        for(var a of root.querySelectorAll("A"))
+        for(let a of root.querySelectorAll("A"))
         {
-            var url = new URL(a.href, ppixiv.plocation);
+            let url = new URL(a.href, ppixiv.plocation);
             if(url.hostname != "pixiv.net" && url.hostname != "www.pixiv.net" || url.hash != "")
                 continue;
 
@@ -1612,7 +1609,7 @@ export class helpers
             return url.searchParams.get("url");
         else
         {
-            var target = url.search.substr(1); // remove "?"
+            let target = url.search.substr(1); // remove "?"
             target = decodeURIComponent(target);
             return target;
         }
@@ -1620,10 +1617,10 @@ export class helpers
 
     static fix_pixiv_links(root)
     {
-        for(var a of root.querySelectorAll("A[target='_blank']"))
+        for(let a of root.querySelectorAll("A[target='_blank']"))
             a.target = "";
 
-        for(var a of root.querySelectorAll("A"))
+        for(let a of root.querySelectorAll("A"))
         {
             if(a.relList == null)
                 a.rel += " noreferrer noopener"; // stupid Edge
@@ -1634,7 +1631,7 @@ export class helpers
             }
         }
 
-        for(var a of root.querySelectorAll("A[href*='jump.php']"))
+        for(let a of root.querySelectorAll("A[href*='jump.php']"))
             a.href = this.fix_pixiv_link(a.href);
     }
 
@@ -1694,7 +1691,7 @@ export class helpers
         document.dispatchEvent(new Event("windowtitlechanged"));
     }
 
-    static set_page_icon(url)
+    static setPageIcon(url)
     {
         document.querySelector("link[rel='icon']").href = url;
     }
@@ -1761,7 +1758,7 @@ export class helpers
     }={})
     {
         // Make a copy of the URL.
-        var url = new URL(url);
+        url = new URL(url);
 
         // Remove /en from the URL if it's present.
         url = helpers.get_url_without_language(url);
@@ -1931,8 +1928,8 @@ export class helpers
         let search_keys = Array.from(search.keys());
         search_keys.sort();
 
-        var result = new URLSearchParams();
-        for(var key of search_keys)
+        let result = new URLSearchParams();
+        for(let key of search_keys)
             result.set(key, search.get(key));
         return result;
     }
@@ -2014,15 +2011,15 @@ export class helpers
 
     static setup_popups(container, selectors)
     {
-        var setup_popup = function(box)
+        function setup_popup(box)
         {
             box.addEventListener("mouseover", function(e) { helpers.set_class(box, "popup-visible", true); });
             box.addEventListener("mouseout", function(e) { helpers.set_class(box, "popup-visible", false); });
         }
 
-        for(var selector of selectors)
+        for(let selector of selectors)
         {
-            var box = container.querySelector(selector);
+            let box = container.querySelector(selector);
             if(box == null)
             {
                 console.warn("Couldn't find", selector);
@@ -2035,7 +2032,7 @@ export class helpers
     // Return the offset of element relative to an ancestor.
     static get_relative_pos(element, ancestor)
     {
-        var x = 0, y = 0;
+        let x = 0, y = 0;
         while(element != null && element != ancestor)
         {
             x += element.offsetLeft;
@@ -2043,7 +2040,7 @@ export class helpers
             // Advance through parents until we reach the offsetParent or the ancestor
             // that we're stopping at.  We do this rather than advancing to offsetParent,
             // in case ancestor isn't an offsetParent.
-            var search_for = element.offsetParent;
+            let search_for = element.offsetParent;
             while(element != ancestor && element != search_for)
                 element = element.parentNode;
         }
@@ -2347,7 +2344,7 @@ export class helpers
         // The container might have a fractional size, and clientWidth will round it, which is
         // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
         // won't actually fit.  Get the bounding box instead, which isn't rounded.
-        // var container_width = container.parentNode.clientWidth;
+        // let container_width = container.parentNode.clientWidth;
         let container_width = Math.floor(container.parentNode.getBoundingClientRect().width);
         let padding = minPadding;
         
@@ -2420,7 +2417,7 @@ export class helpers
         let average_aspect_ratio = total / manga_info.length;
 
         let illusts_far_from_average = 0;
-        for(var manga_page of manga_info)
+        for(let manga_page of manga_info)
         {
             let ratio = manga_page.width / manga_page.height;
             if(Math.abs(average_aspect_ratio - ratio) > 0.1)
@@ -2456,10 +2453,10 @@ export class helpers
             return null;
         }
 
-        var aspect_ratio = width / height;
+        let aspect_ratio = width / height;
         aspect_ratio /= container_aspect_ratio;
-        var min_aspect_for_pan = 1.1;
-        var max_aspect_for_pan = 4;
+        let min_aspect_for_pan = 1.1;
+        let max_aspect_for_pan = 4;
         if(aspect_ratio > (1/max_aspect_for_pan) && aspect_ratio < 1/min_aspect_for_pan)
             return "vertical";
         else if(aspect_ratio > min_aspect_for_pan && aspect_ratio < max_aspect_for_pan)
@@ -2555,9 +2552,9 @@ export class helpers
     static set_icon({vview=false}={})
     {
         if(ppixiv.native || vview)
-            helpers.set_page_icon(ppixiv.resources['resources/vview-icon.png']);
+            helpers.setPageIcon(ppixiv.resources['resources/vview-icon.png']);
         else
-            helpers.set_page_icon(ppixiv.resources['resources/regular-pixiv-icon.png']);
+            helpers.setPageIcon(ppixiv.resources['resources/regular-pixiv-icon.png']);
     }
 
     static setTitleAndIcon(illust_data)
@@ -2593,8 +2590,8 @@ export class helpers
         if(typeof radius === 'number') {
             radius = {tl: radius, tr: radius, br: radius, bl: radius};
         } else {
-            var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
-            for(var side in defaultRadius)
+            let defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
+            for(let side in defaultRadius)
                 radius[side] = radius[side] || defaultRadius[side];
         }
 
@@ -2944,10 +2941,10 @@ export class helpers
         // /c/540x540_70/img-master/img/.../12345678_master1200.jpg
         //
         // The resolution field is changed, and "square1200" is changed to "master1200".
-        var url = new URL(url, ppixiv.plocation);
-        var path = url.pathname;
-        var re = /(\/c\/)([^\/]+)(.*)(square1200|master1200|custom1200).jpg/;
-        var match = re.exec(path);
+        url = new URL(url, ppixiv.plocation);
+        let path = url.pathname;
+        let re = /(\/c\/)([^\/]+)(.*)(square1200|master1200|custom1200).jpg/;
+        let match = re.exec(path);
         if(match == null)
         {
             console.warn("Couldn't parse thumbnail URL:", path);

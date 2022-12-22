@@ -56,7 +56,7 @@ export default class MobileImageDismiss
                     // a navigation that has already happened (browser back).
                     if(this.parent._active)
                     {
-                        let args = new helpers.args(this.parent.data_source.search_url.toString());
+                        let args = new helpers.args(this.parent.data_source.searchUrl.toString());
                         ppixiv.app.navigate_from_image_to_search(args);
                     }
 

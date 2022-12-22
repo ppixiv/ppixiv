@@ -50,7 +50,7 @@ let dataSourcesByUrl = {};
 export function getDataSourceForUrl(url)
 {
     // url is usually document.location, which for some reason doesn't have .searchParams.
-    var url = new URL(url);
+    url = new URL(url);
     url = helpers.get_url_without_language(url);
 
     if(ppixiv.native)
@@ -101,12 +101,12 @@ export function getDataSourceForUrl(url)
         // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
         // we're viewing all bookmarks, so use allDataSources.BookmarksMerged.  Otherwise,
         // use allDataSources.bookmarks.
-        var args = new helpers.args(url);
-        var user_id = helpers.get_path_part(url, 1);
+        let args = new helpers.args(url);
+        let user_id = helpers.get_path_part(url, 1);
         if(user_id == null)
             user_id = window.global_data.user_id;
-        var viewing_own_bookmarks = user_id == window.global_data.user_id;
-        var both_public_and_private = viewing_own_bookmarks && args.hash.get("show-all") != "0";
+        let viewingOwnBookmarks = user_id == window.global_data.user_id;
+        let both_public_and_private = viewingOwnBookmarks && args.hash.get("show-all") != "0";
         return both_public_and_private? allDataSources.BookmarksMerged:allDataSources.Bookmarks;
 
     }
@@ -178,18 +178,18 @@ export function createDataSourceForUrl(url, {
     if(!force && canonical_url in dataSourcesByUrl)
     {
         // console.log("Reusing data source for", url.toString());
-        let data_source = dataSourcesByUrl[canonical_url];
-        if(data_source)
+        let dataSource = dataSourcesByUrl[canonical_url];
+        if(dataSource)
         {
             // If the URL has a page number in it, only return it if this data source can load the
             // page the caller wants.  If we have a data source that starts at page 10 and the caller
             // wants page 1, the data source probably won't be able to load it since pages are always
             // contiguous.
-            let page = data_source.get_start_page(args);
-            if(!data_source.can_load_page(page))
+            let page = dataSource.getStartPage(args);
+            if(!dataSource.canLoadPage(page))
                 console.log(`Not using cached data source because it can't load page ${page}`);
             else
-                return data_source;
+                return dataSource;
         }
     }
     
@@ -204,12 +204,12 @@ export function createDataSourceForUrl(url, {
 
 // If we have the given data source cached, discard it, so it'll be recreated
 // the next time it's used.
-export function discardDataSource(data_source)
+export function discardDataSource(dataSource)
 {
     let urls_to_remove = [];
     for(let url in dataSourcesByUrl)
     {
-        if(dataSourcesByUrl[url] === data_source)
+        if(dataSourcesByUrl[url] === dataSource)
             urls_to_remove.push(url);
     }
 

@@ -595,6 +595,6 @@ class FollowWidget extends Widget
         }
 
         let tag_was_selected = follow_info.tags.has(tag);
-        Actions.change_follow_tags(userId, {tag: tag, add: !tag_was_selected});
+        Actions.changeFollowTags(userId, {tag: tag, add: !tag_was_selected});
     }
 };

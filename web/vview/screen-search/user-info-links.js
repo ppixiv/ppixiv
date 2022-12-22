@@ -197,7 +197,7 @@ export default class UserInfoLinks extends Widget
         // since it requires an extra API call, so put this at the end to prevent the other
         // buttons from shifting around.
         if(dataSource != null)
-            dataSource.add_extra_links(extraLinks);
+            dataSource.addExtraLinks(extraLinks);
 
         // Map from link types to icons:
         let link_types = {

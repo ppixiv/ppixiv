@@ -192,7 +192,8 @@ export default class ScreenSearch extends Screen
 
     async activate({ oldMediaId })
     {
-        console.log("Showing search, came from media ID:", oldMediaId);
+        if(oldMediaId)
+            console.log("Showing search, came from media ID:", oldMediaId);
 
         super.activate();
 
@@ -245,7 +246,7 @@ export default class ScreenSearch extends Screen
             {
                 let data_source_ui_container = this.container.querySelector(".title-bar .data-source-ui");
                 this.current_data_source_ui = new this.dataSource.ui({
-                    data_source: this.dataSource,
+                    dataSource: this.dataSource,
                     container: data_source_ui_container,
                 });
             }
@@ -275,9 +276,9 @@ export default class ScreenSearch extends Screen
         // Update the title even if we're not active, so it's up to date for transitions.
         if(this.titleBarWidget)
         {
-            if(this.dataSource?.get_displaying_text != null)
+            if(this.dataSource?.getDisplayingText != null)
             {
-                let text = this.dataSource?.get_displaying_text();
+                let text = this.dataSource?.getDisplayingText();
                 this.titleBarWidget.container.querySelector(".title").replaceChildren(text);
             }
         }
@@ -290,8 +291,8 @@ export default class ScreenSearch extends Screen
         if(this.thumbnailUiMobile)
             this.thumbnailUiMobile.refreshUi();
 
-        this.dataSource.set_page_icon();
-        helpers.set_page_title(this.dataSource.page_title || "Loading...");
+        this.dataSource.setPageIcon();
+        helpers.set_page_title(this.dataSource.pageTitle || "Loading...");
         
         // Refresh whether we're showing the local navigation widget and toggle button.
         helpers.set_dataset(this.container.dataset, "showNavigation", this.can_show_local_navigation && this.local_navigation_visible);
@@ -332,7 +333,7 @@ export default class ScreenSearch extends Screen
         if(user_id != null)
             return "user:" + user_id;
 
-        let folder_id = this.dataSource.viewing_folder;
+        let folder_id = this.dataSource.viewingFolder;
         if(folder_id != null)
             return folder_id;
     

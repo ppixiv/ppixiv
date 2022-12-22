@@ -164,19 +164,6 @@ class LocalSearchDropdownWidget extends Widget
         // Restore input-dropdown's width.
         refresh_dropdown_width();
 
-        // Sometimes the popup closes when searches are clicked and sometimes they're not.  Make sure
-        // we always close on navigation.
-        this.container.addEventListener("click", (e) => {
-            if(e.defaultPrevented)
-                return;
-            let a = e.target.closest("A");
-            if(a == null)
-                return;
-
-            this.inputElement.blur();
-            this.hide();
-        });
-
         this._load();
     }
 

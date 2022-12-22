@@ -18,51 +18,50 @@ export default class DataSource_DiscoverUsers extends DataSource
         super(url);
 
         let args = new helpers.args(this.url);
-        let user_id = args.hash.get("user_id");
-        if(user_id != null)
-            this.showing_user_id = user_id;
+        let userId = args.hash.get("user_id");
+        if(userId != null)
+            this.showingUserId = userId;
 
-        this.original_url = url;
-        this.seen_user_ids = {};
+        this.seenUserIds = {};
     }
 
-    get users_per_page() { return 20; }
-    get estimated_items_per_page()
+    get usersPerPage() { return 20; }
+    get estimatedItemsPerPage()
     {
-        let illusts_per_user = this.showing_user_id != null? 3:5;
-        return this.users_per_page + (users_per_page * illusts_per_user);
+        let illustsPerUser = this.showingUserId != null? 3:5;
+        return this.usersPerPage + (usersPerPage * illustsPerUser);
     }
     
-    async load_page_internal(page)
+    async loadPageInternal(page)
     {
         // If we're showing similar users, only show one page, since the API returns the
         // same thing every time.
-        if(this.showing_user_id && page > 1)
+        if(this.showingUserId && page > 1)
             return;
 
-        if(this.showing_user_id != null)
+        if(this.showingUserId != null)
         {
             // Make sure the user info is loaded.
-            this.user_info = await ppixiv.user_cache.get_user_info_full(this.showing_user_id);
+            this.userInfo = await ppixiv.user_cache.get_user_info_full(this.showingUserId);
 
             // Update to refresh our page title, which uses user_info.
-            this.call_update_listeners();
+            this.callUpdateListeners();
         }
  
         // Get suggestions.  Each entry is a user, and contains info about a small selection of
         // images.
         let result;
-        if(this.showing_user_id != null)
+        if(this.showingUserId != null)
         {
-            result = await helpers.get_request(`/ajax/user/${this.showing_user_id}/recommends`, {
-                userNum: this.users_per_page,
+            result = await helpers.get_request(`/ajax/user/${this.showingUserId}/recommends`, {
+                userNum: this.usersPerPage,
                 workNum: 8,
                 isR18: true,
                 lang: "en"
             });
         } else {
             result = await helpers.get_request("/ajax/discovery/users", {
-                limit: this.users_per_page,
+                limit: this.usersPerPage,
                 lang: "en",
             });
 
@@ -86,48 +85,48 @@ export default class DataSource_DiscoverUsers extends DataSource
         // Pixiv's motto: "never do the same thing the same way twice"
         // ajax/user/#/recommends is body.recommendUsers and user.illustIds.
         // discovery/users is body.recommendedUsers and user.recentIllustIds.
-        let recommended_users = result.body.recommendUsers || result.body.recommendedUsers;
-        let media_ids = [];
-        for(let user of recommended_users)
+        let recommendedUsers = result.body.recommendUsers || result.body.recommendedUsers;
+        let mediaIds = [];
+        for(let user of recommendedUsers)
         {
             // Each time we load a "page", we're actually just getting a new randomized set of recommendations
-            // for our seed, so we'll often get duplicate results.  Ignore users that we've seen already.  id_list
+            // for our seed, so we'll often get duplicate results.  Ignore users that we've seen already.  IllustIdList
             // will remove dupes, but we might get different sample illustrations for a duplicated artist, and
             // those wouldn't be removed.
-            if(this.seen_user_ids[user.userId])
+            if(this.seenUserIds[user.userId])
                 continue;
-            this.seen_user_ids[user.userId] = true;
+            this.seenUserIds[user.userId] = true;
 
-            media_ids.push("user:" + user.userId);
+            mediaIds.push("user:" + user.userId);
             
             let illustIds = user.illustIds || user.recentIllustIds;
             for(let illust_id of illustIds)
-                media_ids.push(helpers.illust_id_to_media_id(illust_id));
+                mediaIds.push(helpers.illust_id_to_media_id(illust_id));
         }
 
         // Register the new page of data.
-        this.add_page(page, media_ids);
+        this.addPage(page, mediaIds);
     }
 
-    get estimated_items_per_page() { return 30; }
-    get page_title()
+    get estimatedItemsPerPage() { return 30; }
+    get pageTitle()
     {
-        if(this.showing_user_id == null)
+        if(this.showingUserId == null)
             return "Recommended Users";
 
-        if(this.user_info)
-            return this.user_info.name;
+        if(this.userInfo)
+            return this.userInfo.name;
         else
             return "Loading...";
     }
     
-    get_displaying_text()
+    getDisplayingText()
     {
-        if(this.showing_user_id == null)
+        if(this.showingUserId == null)
             return "Recommended Users";
 
-        if(this.user_info)
-            return "Similar artists to " + this.user_info.name;
+        if(this.userInfo)
+            return "Similar artists to " + this.userInfo.name;
         else
             return "Illustrations";
     };

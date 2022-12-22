@@ -129,7 +129,7 @@ export default class SearchView extends Widget
             e.preventDefault();
             e.stopImmediatePropagation();
 
-            let page = this.dataSource.id_list.getLowestLoadedPage() - 1;
+            let page = this.dataSource.idList.getLowestLoadedPage() - 1;
             console.debug(`Load previous page button pressed, loading page ${page}`);
             this.loadPage(page);
         });
@@ -263,7 +263,7 @@ export default class SearchView extends Widget
             return;
 
         let args = helpers.args.location;
-        this.dataSource.set_start_page(args, first_thumb.dataset.searchPage);
+        this.dataSource.setStartPage(args, first_thumb.dataset.searchPage);
         helpers.navigate(args, { add_to_history: false, cause: "viewing-page", send_popstate: false });
     }
 
@@ -343,7 +343,7 @@ export default class SearchView extends Widget
         // Wait for the initial page to finish loading.  This load should already have been started
         // by set_data_source, but this will wait for the same request.
         let loadInitialPageId = this._load_initial_page_id = new Object();
-        await this.dataSource.load_page(this.dataSource.initial_page, { cause: "initial scroll" });
+        await this.dataSource.loadPage(this.dataSource.initialPage, { cause: "initial scroll" });
 
         // Stop if we were called again while we were waiting.
         if(loadInitialPageId !== this._load_initial_page_id)
@@ -357,7 +357,7 @@ export default class SearchView extends Widget
         let args = helpers.args.location;
         if(args.state.scroll == null && oldMediaId == null)
         {
-            console.log("Scroll to top for new search");
+            // console.log("Scroll to top for new search");
             this.scrollContainer.scrollTop = 0;
             return;
         }
@@ -369,7 +369,7 @@ export default class SearchView extends Widget
             // try to scroll the search screen to the image that was displayed.
             if(this.scrollToMediaId(oldMediaId))
             {
-                console.log("Restored scroll position to:", oldMediaId);
+                // console.log("Restored scroll position to:", oldMediaId);
                 return;
             }
 
@@ -440,7 +440,7 @@ export default class SearchView extends Widget
         if(this.dataSource == null)
             return { allMediaIds, mediaIdPages };
 
-        let idList = this.dataSource.id_list;
+        let idList = this.dataSource.idList;
         let minPage = idList.getLowestLoadedPage();
         let maxPage = idList.getHighestLoadedPage();
         for(let page = minPage; page <= maxPage; ++page)
@@ -749,7 +749,7 @@ export default class SearchView extends Widget
         let {columns, padding, thumb_width, thumb_height, container_width} = helpers.make_thumbnail_sizing_style({
             container: this.thumbnailBox,
             desiredSize,
-            ratio: this.dataSource.get_thumbnail_aspect_ratio(),
+            ratio: this.dataSource.getThumbnailAspectRatio(),
 
             // Limit the number of columns on most views, so we don't load too much data at once.
             // Allow more columns on the manga view, since that never loads more than one image.
@@ -910,7 +910,7 @@ export default class SearchView extends Widget
 
         // If this data source supports a start page and we started after page 1, show the "load more"
         // button.
-        this.loadPreviousPageButton.hidden = this.dataSource == null || this.dataSource.initial_page == 1;
+        this.loadPreviousPageButton.hidden = this.dataSource == null || this.dataSource.initialPage == 1;
 
         this.restoreScrollPosition(savedScroll);
 
@@ -938,8 +938,8 @@ export default class SearchView extends Widget
         // time through there's no previous page to reach the end of.  Always make sure the
         // first page is loaded (usually page 1).
         let loadPage = null;
-        if(this.dataSource && !this.dataSource.is_page_loaded_or_loading(this.dataSource.initial_page))
-            loadPage = this.dataSource.initial_page;
+        if(this.dataSource && !this.dataSource.isPageLoadedOrLoading(this.dataSource.initialPage))
+            loadPage = this.dataSource.initialPage;
         else
         {
             // Load the next page when the last nearby thumbnail (set by the "nearby" IntersectionObserver)
@@ -956,7 +956,7 @@ export default class SearchView extends Widget
 
         if(loadPage != null)
         {
-            let result = await this.dataSource.load_page(loadPage, { cause: "thumbnails" });
+            let result = await this.dataSource.loadPage(loadPage, { cause: "thumbnails" });
 
             // If this page didn't load, it probably means we've reached the end, so stop trying
             // to load more pages.
@@ -965,7 +965,7 @@ export default class SearchView extends Widget
         }
 
         // If we have no IDs and nothing is loading, the data source is empty (no results).
-        if(this.dataSource?.no_results)
+        if(this.dataSource?.hasNoResults)
             noResults.hidden = false;
     }
 
@@ -988,15 +988,15 @@ export default class SearchView extends Widget
     async loadPage(page)
     {
         // We can only add pages that are immediately before or after the pages we currently have.
-        let minPage = this.dataSource.id_list.getLowestLoadedPage();
-        let maxPage = this.dataSource.id_list.getHighestLoadedPage();
+        let minPage = this.dataSource.idList.getLowestLoadedPage();
+        let maxPage = this.dataSource.idList.getHighestLoadedPage();
         if(page < minPage-1)
             return false;
         if(page > maxPage+1)
             return false;
         
         console.log("Loading page:", page);
-        await this.dataSource.load_page(page, { cause: "previous page" });
+        await this.dataSource.loadPage(page, { cause: "previous page" });
         return true;
     }
 
@@ -1134,7 +1134,7 @@ export default class SearchView extends Widget
     {
         // Never expand manga posts on data sources that include manga pages themselves.
         // This can result in duplicate media IDs.
-        if(this.dataSource?.includes_manga_pages)
+        if(!this.dataSource?.allowExpandingMangaPages)
             return false;
 
         mediaId = helpers.get_media_id_first_page(mediaId);
@@ -1180,7 +1180,7 @@ export default class SearchView extends Widget
 
         // Don't set expanded-thumb on the manga view, since it's always expanded.
         let mediaId = thumb.dataset.id;
-        let show_expanded = !this.dataSource?.includes_manga_pages && this.isMediaIdExpanded(mediaId);
+        let show_expanded = this.dataSource?.allowExpandingMangaPages && this.isMediaIdExpanded(mediaId);
         helpers.set_class(thumb, "expanded-thumb", show_expanded);
 
         let info = ppixiv.media_cache.get_media_info_sync(mediaId, { full: false });
@@ -1216,10 +1216,10 @@ export default class SearchView extends Widget
         if(this.dataSource == null)
             return;
 
-        let page = this.dataSource.get_start_page(helpers.args.location);
+        let page = this.dataSource.getStartPage(helpers.args.location);
         let previousPageLink = this.loadPreviousPageButton.querySelector("a.load-previous-button");
         let args = helpers.args.location;
-        this.dataSource.set_start_page(args, page-1);
+        this.dataSource.setStartPage(args, page-1);
         previousPageLink.href = args.url;
     }
 
@@ -1271,7 +1271,7 @@ export default class SearchView extends Widget
         // displayed thumbnail aspect ratio.  Ths thumbnail aspect ratio is usually 1 for square thumbs,
         // but it can be different on the manga page.  Get this from the data source, since using offsetWidth
         // causes a reflow.
-        let thumbAspectRatio = this.dataSource.get_thumbnail_aspect_ratio() ?? 1;
+        let thumbAspectRatio = this.dataSource.getThumbnailAspectRatio() ?? 1;
 
         // console.log(`Thumbnail ${mediaId} loaded at ${cause}: ${width} ${height} ${thumb.src}`);
         helpers.create_thumbnail_animation(thumb, width, height, thumbAspectRatio);
@@ -1370,7 +1370,7 @@ export default class SearchView extends Widget
         let showAI = mediaInfo.aiType == 2;
 
         let showBookmarkHeart = mediaInfo.bookmarkData != null;
-        if(this.dataSource != null && !this.dataSource.show_bookmark_icons)
+        if(this.dataSource != null && !this.dataSource.showBookmarkIcons)
             showBookmarkHeart = false;
 
         // On mobile, don't show ai-image if we're showing a bookmark to reduce clutter.

@@ -54,9 +54,9 @@ export default class IllustIdList
     //
     // If the page cache has been invalidated, return false.  This happens if we think the
     // results have changed too much for us to reconcile it.
-    add_page(page, mediaIds, {
+    addPage(page, mediaIds, {
         // If mediaIds is empty, that normally means we're past the end of the results, so we
-        // don't add the page.  That way, can_load_page() will return false for future pages.
+        // don't add the page.  That way, canLoadPage() will return false for future pages.
         // If allowEmpty is true, allow adding empty pages.  This is used when we have an empty
         // page but we know we're not actually at the end.
         allowEmpty=false,
@@ -74,22 +74,22 @@ export default class IllustIdList
         }
 
         // Make a list of all IDs we already have.
-        let all_illusts = this.getAllMediaIds();
+        let allIllusts = this.getAllMediaIds();
 
         // For fast-moving pages like new_illust.php, we'll very often get a few entries at the
         // start of page 2 that were at the end of page 1 when we requested it, because new posts
         // have been added to page 1 that we haven't seen.  Remove any duplicate IDs.
-        let ids_to_remove = [];
-        for(let new_id of mediaIds)
+        let idsToRemove = [];
+        for(let newId of mediaIds)
         {
-            if(all_illusts.indexOf(new_id) != -1)
-                ids_to_remove.push(new_id);
+            if(allIllusts.indexOf(newId) != -1)
+                idsToRemove.push(newId);
         }
 
-        if(ids_to_remove.length > 0)
-            console.log("Removing duplicate illustration IDs:", ids_to_remove.join(", "));
+        if(idsToRemove.length > 0)
+            console.log("Removing duplicate illustration IDs:", idsToRemove.join(", "));
         mediaIds = mediaIds.slice();
-        for(let newId of ids_to_remove)
+        for(let newId of idsToRemove)
         {
             let idx = mediaIds.indexOf(newId);
             mediaIds.splice(idx, 1);
@@ -191,8 +191,8 @@ export default class IllustIdList
                 }
                 else
                 {
-                    let [old_illust_id, old_page] = helpers.media_id_to_illust_id_and_page(mediaId);
-                    if(old_page < info.pageCount - 1)
+                    let [oldIllustId, oldPage] = helpers.media_id_to_illust_id_and_page(mediaId);
+                    if(oldPage < info.pageCount - 1)
                     {
                         // There are more pages, so just navigate to the next page.
                         id.page++;

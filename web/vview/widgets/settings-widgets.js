@@ -7,6 +7,7 @@ import { LinkTabsPopup } from 'vview/misc/send-image.js';
 import DialogWidget from 'vview/widgets/dialog.js';
 import PointerListener from 'vview/actors/pointer-listener.js';
 import { helpers } from 'vview/misc/helpers.js';
+import WhatsNew from "vview/widgets/whats-new.js";
 
 function create_settings_widget({ global_options })
 {
@@ -383,8 +384,6 @@ function create_settings_widget({ global_options })
             return widget;
         },
         whats_new: async() => {
-            let { default: WhatsNew } = await ppixiv.importModule("vview/widgets/whats-new.js");
-
             let widget = new WhatsNew({
                 ...global_options,
             });

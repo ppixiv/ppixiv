@@ -208,7 +208,7 @@ export class BookmarkButtonWidget extends IllustWidget
             }
 
             let media_id = this._media_id;
-            await Actions.bookmark_remove(this._media_id);
+            await Actions.bookmarkRemove(this._media_id);
 
             // If the current image changed while we were async, stop.
             if(media_id != this._media_id)
@@ -225,7 +225,7 @@ export class BookmarkButtonWidget extends IllustWidget
         }
 
         // Add or edit the bookmark.
-        await Actions.bookmark_add(this._media_id, {
+        await Actions.bookmarkAdd(this._media_id, {
             private: private_bookmark,
             tags: tag_list,
         });
@@ -286,7 +286,7 @@ export class LikeButtonWidget extends IllustWidget
         e.stopPropagation();
 
         if(this._media_id != null)
-            Actions.like_image(this._media_id);
+            Actions.likeImage(this._media_id);
     }
 }
 

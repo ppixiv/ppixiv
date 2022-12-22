@@ -315,7 +315,7 @@ class IllustBottomMenuBar extends Widget
     // Return the illust ID whose parent the parent button will go to.
     get folderIdForParent()
     {
-        return this._mediaId || this.dataSource?.viewing_folder;
+        return this._mediaId || this.dataSource?.viewingFolder;
     }
 
     // Return the folder ID that the parent button goes to.
@@ -540,10 +540,10 @@ class ImageInfoWidget extends IllustWidget
         let currentPage = this._page;
         let pageCount = media_info.pageCount;
         let showPageNumber = this._show_page_number;
-        if(this.dataSource?.name == "vview" && this.dataSource.all_pages_loaded)
+        if(this.dataSource?.name == "vview" && this.dataSource.allPagesLoaded)
         {
-            let { page } = this.dataSource.id_list.getPageForMediaId(media_id);
-            let ids = this.dataSource.id_list.mediaIdsByPage.get(page);
+            let { page } = this.dataSource.idList.getPageForMediaId(media_id);
+            let ids = this.dataSource.idList.mediaIdsByPage.get(page);
             if(ids != null)
             {
                 currentPage = ids.indexOf(media_id);

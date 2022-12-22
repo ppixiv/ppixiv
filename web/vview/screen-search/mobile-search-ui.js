@@ -117,7 +117,7 @@ class mobile_edit_search_dialog extends DialogWidget
                 e.preventDefault();
         });
 
-        this.search_url = helpers.args.location;
+        this.searchUrl = helpers.args.location;
 
         this.refresh();
     }

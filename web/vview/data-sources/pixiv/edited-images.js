@@ -9,13 +9,14 @@ import { DataSourceFakePagination } from 'vview/data-sources/data-source.js';
 export default class DataSources_EditedImages extends DataSourceFakePagination
 {
     get name() { return "edited"; }
-    get includes_manga_pages() { return true; }
+    get pageTitle() { return "Edited"; }
+    getDisplayingText() { return "Edited Images"; }
 
-    async load_all_results()
+    // This can return manga pages directly, so don't allow expanding pages.
+    get allowExpandingMangaPages() { return false; }
+
+    async loadAllResults()
     {
         return await ppixiv.extra_image_data.get_all_edited_images();
-    };
-
-    get page_title() { return "Edited"; }
-    get_displaying_text() { return "Edited Images"; }
+    }
 }

@@ -561,11 +561,11 @@ class TreeWidgetItem extends Widget
 
         // Load the first page.  This will overlap with the search loading it, and
         // will wait on the same request.
-        if(!data_source.id_list.isPageLoaded(1))
-            await data_source.load_page(1);
+        if(!data_source.idList.isPageLoaded(1))
+            await data_source.loadPage(1);
 
         // Navigate to the first image on the first page.
-        let media_ids = data_source.id_list.mediaIdsByPage.get(1);
+        let media_ids = data_source.idList.mediaIdsByPage.get(1);
         console.log("files for double click:", media_ids?.length);
         if(media_ids != null)
             ppixiv.app.show_media(media_ids[0], {add_to_history: true, source: "dblclick"});

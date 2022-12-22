@@ -187,7 +187,7 @@ export class BookmarkTagListWidget extends IllustWidget
             icon: helpers.create_icon("add", { as_element: true }),
             classes: ["add-button"],
         });
-        add_button.addEventListener("click", () => Actions.add_new_tag(this._media_id));
+        add_button.addEventListener("click", () => Actions.addNewBookmarkTag(this._media_id));
 
         for(let tag of shown_tags)
         {
@@ -208,7 +208,7 @@ export class BookmarkTagListWidget extends IllustWidget
         });
 
         sync_button.addEventListener("click", async (e) => {
-            let bookmark_tags = await Actions.load_recent_bookmark_tags();
+            let bookmark_tags = await Actions.loadRecentBookmarkTags();
             RecentBookmarkTags.setRecentBookmarkTags(bookmark_tags);
         });
     }
@@ -245,7 +245,7 @@ export class BookmarkTagListWidget extends IllustWidget
         
         // Save the tags.  If the image wasn't bookmarked, this will create a public bookmark.
         console.log(`Tag list closing and tags have changed: ${old_tags.join(",")} -> ${new_tags.join(",")}`);
-        await Actions.bookmark_add(this._media_id, {
+        await Actions.bookmarkAdd(this._media_id, {
             tags: new_tags,
         });
     }

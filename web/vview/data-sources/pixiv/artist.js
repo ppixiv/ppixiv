@@ -23,8 +23,8 @@ export default class DataSources_Artist extends DataSource
     {
         super(url);
 
-        this.fanbox_url = null;
-        this.booth_url = null;
+        this.fanboxUrl = null;
+        this.boothUrl = null;
     }
 
     get supportsStartPage() { return true; }
@@ -36,7 +36,7 @@ export default class DataSources_Artist extends DataSource
     };
 
     // Return "artworks" (all), "illustrations" or "manga".
-    get viewing_type()
+    get viewingType()
     {
         // The URL is one of:
         //
@@ -54,26 +54,26 @@ export default class DataSources_Artist extends DataSource
         return parts[3] || "artworks";
     }
 
-    async load_page_internal(page)
+    async loadPageInternal(page)
     {
         // We'll load translations for all tags if the tag dropdown is opened, but for now
         // just load the translation for the selected tag, so it's available for the button text.
-        let current_tag = this.current_tag;
-        if(current_tag != null)
+        let currentTag = this.currentTag;
+        if(currentTag != null)
         {
-            this.translated_tags = await ppixiv.tag_translations.get_translations([current_tag], "en");
-            this.call_update_listeners();
+            this.translatedTags = await ppixiv.tag_translations.get_translations([currentTag], "en");
+            this.callUpdateListeners();
         }
 
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.user_info = await ppixiv.user_cache.get_user_info_full(this.viewingUserId);
+        this.userInfo = await ppixiv.user_cache.get_user_info_full(this.viewingUserId);
 
-        // Update to refresh our page title, which uses user_info.
-        this.call_update_listeners();
+        // Update to refresh our page title, which uses userInfo.
+        this.callUpdateListeners();
 
         let args = new helpers.args(this.url);
-        var tag = args.query.get("tag") || "";
+        let tag = args.query.get("tag") || "";
         if(tag == "")
         {
             // If we're not filtering by tag, use the profile/all request.  This returns all of
@@ -83,8 +83,8 @@ export default class DataSources_Artist extends DataSource
             // we do it this way since that's what the site does.
             if(this.pages == null)
             {
-                let all_media_ids = await this.load_all_results();
-                this.pages = PaginateMediaIds(all_media_ids, this.estimated_items_per_page);
+                let allMediaIds = await this.loadAllResults();
+                this.pages = PaginateMediaIds(allMediaIds, this.estimatedItemsPerPage);
             }
 
             // Tell media_cache to start loading these media IDs.  This will happen anyway if we don't
@@ -92,26 +92,26 @@ export default class DataSources_Artist extends DataSource
             // to hint batch_get_media_info_partial to use the user-specific API.  Don't wait for this
             // to complete, since we don't need to and it'll cause the search view to take longer to
             // appear.
-            let media_ids = this.pages[page-1] || [];
-            ppixiv.media_cache.batch_get_media_info_partial(media_ids, { user_id: this.viewingUserId });
+            let mediaIds = this.pages[page-1] || [];
+            ppixiv.media_cache.batch_get_media_info_partial(mediaIds, { user_id: this.viewingUserId });
 
             // Register this page.
-            this.add_page(page, media_ids);
+            this.addPage(page, mediaIds);
         }
         else
         {
             // We're filtering by tag.
-            var type = args.query.get("type");
+            let type = args.query.get("type");
 
             // For some reason, this API uses a random field in the URL for the type instead of a normal
             // query parameter.
-            var type_for_url =
+            let typeForUrl =
                 type == null? "illustmanga":
                 type == "illust"?"illusts":
                 "manga";
 
-            var request_url = "/ajax/user/" + this.viewingUserId + "/" + type_for_url + "/tag";
-            var result = await helpers.get_request(request_url, {
+            let requestUrl = "/ajax/user/" + this.viewingUserId + "/" + typeForUrl + "/tag";
+            let result = await helpers.get_request(requestUrl, {
                 tag: tag,
                 offset: (page-1)*48,
                 limit: 48,
@@ -120,32 +120,32 @@ export default class DataSources_Artist extends DataSource
             // This data doesn't have profileImageUrl or userName.  That's presumably because it's
             // used on user pages which get that from user data, but this seems like more of an
             // inconsistency than an optimization.  Fill it in for media_info.
-            for(var item of result.body.works)
+            for(let item of result.body.works)
             {
-                item.userName = this.user_info.name;
-                item.profileImageUrl = this.user_info.imageBig;
+                item.userName = this.userInfo.name;
+                item.profileImageUrl = this.userInfo.imageBig;
             }
 
-            var media_ids = [];
-            for(var illust_data of result.body.works)
-                media_ids.push(helpers.illust_id_to_media_id(illust_data.id)); 
+            let mediaIds = [];
+            for(let illustData of result.body.works)
+                mediaIds.push(helpers.illust_id_to_media_id(illustData.id)); 
 
             await ppixiv.media_cache.add_media_infos_partial(result.body.works, "normal");
 
             // Register the new page of data.
-            this.add_page(page, media_ids);
+            this.addPage(page, mediaIds);
         }
     }
     
-    add_extra_links(links)
+    addExtraLinks(links)
     {
         // Add the Fanbox link to the list if we have one.
-        if(this.fanbox_url)
-            links.push({url: this.fanbox_url, label: "Fanbox"});
-        if(this.booth_url)
-            links.push({url: this.booth_url, label: "Booth"});
+        if(this.fanboxUrl)
+            links.push({url: this.fanboxUrl, label: "Fanbox"});
+        if(this.boothUrl)
+            links.push({url: this.boothUrl, label: "Booth"});
 
-        if(this.accepting_requests)
+        if(this.acceptingRequests)
         {
             links.push({
                 url: new URL(`/users/${this.viewingUserId}/request#no-ppixiv`, ppixiv.plocation),
@@ -155,14 +155,14 @@ export default class DataSources_Artist extends DataSource
         }
     }
 
-    async load_all_results()
+    async loadAllResults()
     {
-        let type = this.viewing_type;
+        let type = this.viewingType;
 
         let result = await helpers.get_request("/ajax/user/" + this.viewingUserId + "/profile/all", {});
 
         // Remember if this user is accepting requests, so we can add a link.
-        this.accepting_requests = result.body.request.showRequestTab;
+        this.acceptingRequests = result.body.request.showRequestTab;
 
         // See if there's a Fanbox link.
         //
@@ -176,57 +176,54 @@ export default class DataSources_Artist extends DataSource
             // Remove the Google analytics junk from the URL.
             let url = new URL(pickup.contentUrl);
             url.search = "";
-            this.fanbox_url = url.toString();
+            this.fanboxUrl = url.toString();
         }
-        this.call_update_listeners();
+        this.callUpdateListeners();
 
         // If this user has a linked Booth account, look it up.  Only do this if the profile indicates
         // that it exists.  Don't wait for this to complete.
         if(result.body?.externalSiteWorksStatus?.booth)
             this.load_booth();
 
-        var illust_ids = [];
+        let illustIds = [];
         if(type == "artworks" || type == "illustrations")
-            for(var illust_id in result.body.illusts)
-                illust_ids.push(illust_id);
+            for(let illustId in result.body.illusts)
+                illustIds.push(illustId);
         if(type == "artworks" || type == "manga")
-            for(var illust_id in result.body.manga)
-                illust_ids.push(illust_id);
+            for(let illustId in result.body.manga)
+                illustIds.push(illustId);
 
         // Sort the two sets of IDs back together, putting higher (newer) IDs first.
-        illust_ids.sort(function(lhs, rhs)
-        {
-            return parseInt(rhs) - parseInt(lhs);
-        });
+        illustIds.sort((lhs, rhs) => parseInt(rhs) - parseInt(lhs));
 
-        var media_ids = [];
-        for(let illust_id of illust_ids)
-            media_ids.push(helpers.illust_id_to_media_id(illust_id));
+        let mediaIds = [];
+        for(let illustId of illustIds)
+            mediaIds.push(helpers.illust_id_to_media_id(illustId));
 
-        return media_ids;
+        return mediaIds;
     };
 
     async load_booth()
     {
-        let booth_request = await helpers.get_request("https://api.booth.pm/pixiv/shops/show.json", {
+        let bootRequest = await helpers.get_request("https://api.booth.pm/pixiv/shops/show.json", {
             pixiv_user_id: this.viewingUserId,
             adult: "include",
             limit: 24,
         });
 
-        let booth = await booth_request;
+        let booth = await bootRequest;
         if(booth.error)
         {
             console.log(`Error reading Booth profile for ${this.viewingUserId}`);
             return;
         }
 
-        this.booth_url = booth.body.url;
-        this.call_update_listeners();
+        this.boothUrl = booth.body.url;
+        this.callUpdateListeners();
     }
 
     // If we're filtering a follow tag, return it.  Otherwise, return null.
-    get current_tag()
+    get currentTag()
     {
         let args = new helpers.args(this.url);
         return args.query.get("tag");
@@ -240,24 +237,24 @@ export default class DataSources_Artist extends DataSource
     }
 
     // This is called when the tag list dropdown is opened.
-    async tag_list_opened()
+    async tagListOpened()
     {
-        // Get user info.  We probably have this on this.user_info, but that async load
+        // Get user info.  We probably have this on this.userInfo, but that async load
         // might not be finished yet.
-        let user_info = await ppixiv.user_cache.get_user_info_full(this.viewingUserId);
-        console.log("Loading tags for user", user_info.userId);
+        let userInfo = await ppixiv.user_cache.get_user_info_full(this.viewingUserId);
+        console.log("Loading tags for user", userInfo.userId);
 
         // Load this artist's common tags.
-        this.post_tags = await this.get_user_tags(user_info);
+        this.postTags = await this.getUserTags(userInfo);
 
-        // Mark the tags in this.post_tags that the user has searched for recently, so they can be
+        // Mark the tags in this.postTags that the user has searched for recently, so they can be
         // marked in the UI.
         let user_tag_searches = SavedSearchTags.get_all_used_tags();
-        for(let tag of this.post_tags)
+        for(let tag of this.postTags)
             tag.recent = user_tag_searches.has(tag.tag);
 
         // Move tags that this artist uses to the top if the user has searched for them recently.
-        this.post_tags.sort((lhs, rhs) => {
+        this.postTags.sort((lhs, rhs) => {
             if(rhs.recent != lhs.recent)
                 return rhs.recent - lhs.recent;
             else
@@ -265,25 +262,25 @@ export default class DataSources_Artist extends DataSource
         });
 
         let tags = [];
-        for(let tag_info of this.post_tags)
-            tags.push(tag_info.tag);
-        this.translated_tags = await ppixiv.tag_translations.get_translations(tags, "en");
+        for(let tagInfo of this.postTags)
+            tags.push(tagInfo.tag);
+        this.translatedTags = await ppixiv.tag_translations.get_translations(tags, "en");
 
         // Refresh the tag list now that it's loaded.
         this.dispatchEvent(new Event("_refresh_ui"));
     }
 
-    async get_user_tags(user_info)
+    async getUserTags(userInfo)
     {
-        if(user_info.frequentTags)
-            return Array.from(user_info.frequentTags);
+        if(userInfo.frequentTags)
+            return Array.from(userInfo.frequentTags);
 
-        var result = await helpers.get_request("/ajax/user/" + user_info.userId + "/illustmanga/tags", {});
+        let result = await helpers.get_request("/ajax/user/" + userInfo.userId + "/illustmanga/tags", {});
         if(result.error)
         {
-            console.error("Error fetching tags for user " + user_info.userId + ": " + result.error);
-            user_info.frequentTags = [];
-            return Array.from(user_info.frequentTags);
+            console.error("Error fetching tags for user " + userInfo.userId + ": " + result.error);
+            userInfo.frequentTags = [];
+            return Array.from(userInfo.frequentTags);
         }
 
         // Sort most frequent tags first.
@@ -293,37 +290,37 @@ export default class DataSources_Artist extends DataSource
 
         // Store translations.
         let translations = [];
-        for(let tag_info of result.body)
+        for(let tagInfo of result.body)
         {
-            if(tag_info.tag_translation == "")
+            if(tagInfo.tag_translation == "")
                 continue;
 
             translations.push({
-                tag: tag_info.tag,
+                tag: tagInfo.tag,
                 translation: {
-                    en: tag_info.tag_translation,
+                    en: tagInfo.tag_translation,
                 },
             });
         }
         ppixiv.tag_translations.add_translations(translations);
 
         // Cache the results on the user info.
-        user_info.frequentTags = result.body;
-        return Array.from(user_info.frequentTags);
+        userInfo.frequentTags = result.body;
+        return Array.from(userInfo.frequentTags);
     }
 
-    get page_title()
+    get pageTitle()
     {
-        if(this.user_info)
-            return this.user_info.name;
+        if(this.userInfo)
+            return this.userInfo.name;
         else
             return "Loading...";
     }
 
-    get_displaying_text()
+    getDisplayingText()
     {
-        if(this.user_info)
-            return this.user_info.name + "'s Illustrations";
+        if(this.userInfo)
+            return this.userInfo.name + "'s Illustrations";
         else
             return "Illustrations";
     };
@@ -331,7 +328,7 @@ export default class DataSources_Artist extends DataSource
 
 class UI extends Widget
 {
-    constructor({data_source, ...options})
+    constructor({dataSource, ...options})
     {
         super({ ...options, template: `
             <div>
@@ -346,16 +343,16 @@ class UI extends Widget
             </div>
         `});
 
-        this.data_source = data_source;
+        this.dataSource = dataSource;
 
-        data_source.addEventListener("_refresh_ui", () => {
+        dataSource.addEventListener("_refresh_ui", () => {
             // Refresh the displayed label in case we didn't have it when we created the widget.
-            this.tag_dropdown.set_button_popup_highlight();
+            this.tagDropdown.set_button_popup_highlight();
         }, this._signal);
 
-        data_source.set_path_item(this.container, "artist-works", 2, "artworks");
-        data_source.set_path_item(this.container, "artist-illust", 2, "illustrations");
-        data_source.set_path_item(this.container, "artist-manga", 2, "manga");
+        dataSource.setPathItem(this.container, "artist-works", 2, "artworks");
+        dataSource.setPathItem(this.container, "artist-illust", 2, "illustrations");
+        dataSource.setPathItem(this.container, "artist-manga", 2, "manga");
 
         // On mobile, create our own avatar display for the search popup.
         if(ppixiv.mobile)
@@ -365,68 +362,68 @@ class UI extends Widget
                 big: true,
                 mode: "dropdown",
             });
-            avatarWidget.setUserId(data_source.viewingUserId);
+            avatarWidget.setUserId(dataSource.viewingUserId);
         }
 
-        class tag_dropdown extends TagDropdownWidget
+        class TagDropdown extends TagDropdownWidget
         {
-            refresh_tags()
+            refreshTags()
             {
                 // Refresh the post tag list.
                 helpers.remove_elements(this.container);
 
-                if(data_source.post_tags != null)
+                if(dataSource.postTags != null)
                 {
-                    this.add_tag_link({ tag: "All" });
-                    for(let tag_info of data_source.post_tags || [])
-                        this.add_tag_link(tag_info);
+                    this.addTagLink({ tag: "All" });
+                    for(let tagInfo of dataSource.postTags || [])
+                        this.addTagLink(tagInfo);
                 }
                 else
                 {
-                    // Tags aren't loaded yet.  We'll be refreshed after tag_list_opened loads tags.
+                    // Tags aren't loaded yet.  We'll be refreshed after tagListOpened loads tags.
                     // If a tag is selected, fill in just that tag so the button text works.
-                    var span = document.createElement("span");
+                    let span = document.createElement("span");
                     span.innerText = "Loading...";
                     this.container.appendChild(span);
 
-                    this.add_tag_link({ tag: "All" });
+                    this.addTagLink({ tag: "All" });
 
-                    let current_tag = data_source.current_tag;
-                    if(current_tag != null)
-                        this.add_tag_link({ tag: current_tag });
+                    let currentTag = dataSource.currentTag;
+                    if(currentTag != null)
+                        this.addTagLink({ tag: currentTag });
                 }
             }
 
-            add_tag_link(tag_info)
+            addTagLink(tagInfo)
             {
                 // Skip tags with very few posts.  This list includes every tag the author
                 // has ever used, and ends up being pages long with tons of tags that were
                 // only used once.
-                if(tag_info.tag != "All" && tag_info.cnt < 5)
+                if(tagInfo.tag != "All" && tagInfo.cnt < 5)
                     return;
 
-                let tag = tag_info.tag;
-                let translated_tag = tag;
-                if(data_source.translated_tags && data_source.translated_tags[tag])
-                    translated_tag = data_source.translated_tags[tag];
+                let tag = tagInfo.tag;
+                let translatedTag = tag;
+                if(dataSource.translatedTags && dataSource.translatedTags[tag])
+                    translatedTag = dataSource.translatedTags[tag];
 
                 let classes = ["tag-entry"];
 
                 // If the user has searched for this tag recently, add the recent tag.  This is added
-                // in tag_list_opened.
-                if(tag_info.recent)
+                // in tagListOpened.
+                if(tagInfo.recent)
                     classes.push("recent");
 
                 let a = helpers.create_box_link({
-                    label: translated_tag,
+                    label: translatedTag,
                     classes,
-                    popup: tag_info?.cnt,
+                    popup: tagInfo?.cnt,
                     link: "#",
                     as_element: true,
                     data_type: "artist-tag",
                 });
 
-                data_source.set_item(a, { fields: {"tag": tag != "All"? tag:null} });
+                dataSource.setItem(a, { fields: {"tag": tag != "All"? tag:null} });
 
                 if(tag == "All")
                     a.dataset["default"] = 1;
@@ -435,13 +432,13 @@ class UI extends Widget
             };
         };
 
-        this.tag_dropdown = new DropdownMenuOpener({
+        this.tagDropdown = new DropdownMenuOpener({
             button: this.querySelector(".member-tags-button"),
-            create_box: ({...options}) => new tag_dropdown({data_source, ...options}),
+            create_box: ({...options}) => new TagDropdown({dataSource, ...options}),
             onvisibilitychanged: (opener) => {
                 // Populate the tags dropdown if it's opened, so we don't load user tags for every user page.
                 if(opener.visible);
-                    data_source.tag_list_opened();
+                    dataSource.tagListOpened();
             }
         });
     }
