@@ -34,19 +34,19 @@ export default class CropEditor extends Widget
         this.width = 1;
         this.height = 1;
 
-        this.editor_overlay = this.container.querySelector(".crop-editor-overlay");
-        this.editor_overlay.remove();
-        this.current_crop = null;
+        this._editorOverlay = this.container.querySelector(".crop-editor-overlay");
+        this._editorOverlay.remove();
+        this._currentCrop = null;
 
-        this.editor_overlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdown_signal.signal });
+        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal.signal });
 
         new PointerListener({
-            element: this.editor_overlay,
+            element: this._editorOverlay,
             callback: this.pointerevent,
-            signal: this.shutdown_signal.signal,
+            signal: this.shutdownSignal.signal,
         });
         
-        this.box = this.editor_overlay.querySelector(".crop-box");
+        this.box = this._editorOverlay.querySelector(".crop-box");
 
         this.refresh();
     }
@@ -56,8 +56,8 @@ export default class CropEditor extends Widget
     {
         e.preventDefault();
         e.stopPropagation();
-        this.parent.save_undo();
-        this.current_crop = null;
+        this.parent.saveUndo();
+        this._currentCrop = null;
         this.refresh();
     }
 
@@ -71,28 +71,28 @@ export default class CropEditor extends Widget
             window.removeEventListener("pointermove", this.pointermove);
 
             // If the crop was inverted, fix it up now.
-            this.current_crop = this.effective_crop;
+            this._currentCrop = this._effectiveCrop;
             return;
         }
 
-        let clicked_handle = null;
-        if(this.current_crop == null)
+        let clickedHandle = null;
+        if(this._currentCrop == null)
         {
-            let {x,y} = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
-            this.current_crop = new FixedDOMRect(x, y, x, y);
-            clicked_handle = "bottomright";
+            let {x,y} = this.clientToContainerPos({ x: e.clientX, y: e.clientY });
+            this._currentCrop = new FixedDOMRect(x, y, x, y);
+            clickedHandle = "bottomright";
         }
         else
-            clicked_handle = e.target.dataset.crop;
-        if(clicked_handle == null)
+            clickedHandle = e.target.dataset.crop;
+        if(clickedHandle == null)
             return;
 
         e.preventDefault();
         e.stopPropagation();
-        this.parent.save_undo();
+        this.parent.saveUndo();
 
         // Which dimensions each handle moves:
-        let drag_parts = {
+        let dragParts = {
             all: "move",
             topleft: {y: "y1", x: "x1"},
             top: {y: "y1"},
@@ -105,14 +105,14 @@ export default class CropEditor extends Widget
         }
 
         window.addEventListener("pointermove", this.pointermove);
-        this.dragging = drag_parts[clicked_handle];
-        this.drag_pos = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
+        this.dragging = dragParts[clickedHandle];
+        this.drag_pos = this.clientToContainerPos({ x: e.clientX, y: e.clientY });
         this.refresh();
     }
 
-    client_to_container_pos({x, y})
+    clientToContainerPos({x, y})
     {
-        let {width, height, top, left} = this.editor_overlay.getBoundingClientRect();
+        let {width, height, top, left} = this._editorOverlay.getBoundingClientRect();
         x -= left;
         y -= top;
 
@@ -126,28 +126,28 @@ export default class CropEditor extends Widget
     {
         // Get the delta in client coordinates.  Don't use movementX/movementY, since it's
         // in screen pixels and will be wrong if the browser is scaled.
-        let pos = this.client_to_container_pos({ x: e.clientX, y: e.clientY });
+        let pos = this.clientToContainerPos({ x: e.clientX, y: e.clientY });
         let delta = { x: pos.x - this.drag_pos.x, y: pos.y - this.drag_pos.y };
         this.drag_pos = pos;
 
         // Apply the drag.
         if(this.dragging == "move")
         {
-            this.current_crop.x += delta.x;
-            this.current_crop.y += delta.y;
+            this._currentCrop.x += delta.x;
+            this._currentCrop.y += delta.y;
 
-            this.current_crop.x = Math.max(0, this.current_crop.x);
-            this.current_crop.y = Math.max(0, this.current_crop.y);
-            this.current_crop.x = Math.min(this.width - this.current_crop.width, this.current_crop.x);
-            this.current_crop.y = Math.min(this.height - this.current_crop.height, this.current_crop.y);
+            this._currentCrop.x = Math.max(0, this._currentCrop.x);
+            this._currentCrop.y = Math.max(0, this._currentCrop.y);
+            this._currentCrop.x = Math.min(this.width - this._currentCrop.width, this._currentCrop.x);
+            this._currentCrop.y = Math.min(this.height - this._currentCrop.height, this._currentCrop.y);
         }
         else
         {
             let dragging = this.dragging;
             if(dragging.x != null)
-                this.current_crop[dragging.x] += delta.x;
+                this._currentCrop[dragging.x] += delta.x;
             if(dragging.y != null)
-                this.current_crop[dragging.y] += delta.y;
+                this._currentCrop[dragging.y] += delta.y;
         }
 
         this.refresh();
@@ -155,17 +155,17 @@ export default class CropEditor extends Widget
 
     // Return the current crop.  If we're dragging, clean up the rectangle, making sure it
     // has a minimum size and isn't inverted.
-    get effective_crop()
+    get _effectiveCrop()
     {
         // If we're not dragging, just return the current crop rectangle.
         if(this.dragging == null)
-            return this.current_crop;
+            return this._currentCrop;
 
         let crop = new FixedDOMRect(
-            this.current_crop.x1,
-            this.current_crop.y1,
-            this.current_crop.x2,
-            this.current_crop.y2,
+            this._currentCrop.x1,
+            this._currentCrop.y1,
+            this._currentCrop.x2,
+            this._currentCrop.y2,
         );
 
         // Keep the rect from being too small.  If the width is too small, push the horizontal
@@ -179,23 +179,23 @@ export default class CropEditor extends Widget
                 y2: "y1",
             }
 
-            let min_size = 5;
-            if(this.dragging.x != null && Math.abs(crop.width) < min_size)
+            let minSize = 5;
+            if(this.dragging.x != null && Math.abs(crop.width) < minSize)
             {
                 let opposite_x = opposites[this.dragging.x];
                 if(crop[this.dragging.x] < crop[opposite_x])
-                    crop[this.dragging.x] = crop[opposite_x] - min_size;
+                    crop[this.dragging.x] = crop[opposite_x] - minSize;
                 else
-                    crop[this.dragging.x] = crop[opposite_x] + min_size;
+                    crop[this.dragging.x] = crop[opposite_x] + minSize;
             }
 
-            if(this.dragging.y != null && Math.abs(crop.height) < min_size)
+            if(this.dragging.y != null && Math.abs(crop.height) < minSize)
             {
                 let opposite_y = opposites[this.dragging.y];
                 if(crop[this.dragging.y] < crop[opposite_y])
-                    crop[this.dragging.y] = crop[opposite_y] - min_size;
+                    crop[this.dragging.y] = crop[opposite_y] - minSize;
                 else
-                    crop[this.dragging.y] = crop[opposite_y] + min_size;
+                    crop[this.dragging.y] = crop[opposite_y] + minSize;
             }            
         }
 
@@ -215,64 +215,64 @@ export default class CropEditor extends Widget
 
     refresh()
     {
-        let box = this.editor_overlay.querySelector(".crop-box");
-        box.hidden = this.current_crop == null;
-        if(this.current_crop == null)
+        let box = this._editorOverlay.querySelector(".crop-box");
+        box.hidden = this._currentCrop == null;
+        if(this._currentCrop == null)
             return;
 
-        let crop = this.effective_crop;
+        let crop = this._effectiveCrop;
         box.style.width = `${100 * crop.width / this.width}%`;
         box.style.height = `${100 * crop.height / this.height}%`;
         box.style.left = `${100 * crop.left / this.width}%`;
         box.style.top = `${100 * crop.top / this.height}%`;
     }
 
-    set_illust_data({replace_editor_data, extra_data, width, height})
+    setIllustData({replaceEditorData, extraData, width, height})
     {
-        if(extra_data == null)
+        if(extraData == null)
             return;
 
         this.width = width;
         this.height = height;
         this.box.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
     
-        if(replace_editor_data)
-            this.set_state(extra_data.crop);
+        if(replaceEditorData)
+            this.setState(extraData.crop);
 
         this.refresh();
     }
 
-    set overlay_container(overlay_container)
+    set overlayContainer(overlayContainer)
     {
-        console.assert(overlay_container instanceof ImageEditingOverlayContainer);
-        if(this.editor_overlay.parentNode)
-            this.editor_overlay.remove();
+        console.assert(overlayContainer instanceof ImageEditingOverlayContainer);
+        if(this._editorOverlay.parentNode)
+            this._editorOverlay.remove();
 
-        overlay_container.crop_editor_overlay = this.editor_overlay;
-        this._overlay_container = overlay_container;
+        overlayContainer.cropEditorOverlay = this._editorOverlay;
+        this._overlay_container = overlayContainer;
     }
 
-    get_data_to_save()
+    getDataToSave()
     {
         // If there's no crop, save an empty array to clear it.
-        let state = this.get_state();
+        let state = this.getState();
         return {
             crop: state,
         };
     }
     
-    async after_save(media_info)
+    async afterSave(mediaInfo)
     {
         // Disable cropping after saving, so the crop is visible.
         ppixiv.settings.set("image_editing_mode", null);
     }
 
-    get_state()
+    getState()
     {
-        if(this.current_crop == null)
+        if(this._currentCrop == null)
             return null;
 
-        let crop = this.effective_crop;
+        let crop = this._effectiveCrop;
         return [
             Math.round(crop.left),
             Math.round(crop.top),
@@ -281,18 +281,18 @@ export default class CropEditor extends Widget
         ]
     }
 
-    set_state(crop)
+    setState(crop)
     {
         if(crop == null)
-            this.current_crop = null;
+            this._currentCrop = null;
         else
-            this.current_crop = new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]);
+            this._currentCrop = new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]);
         this.refresh();
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
-        this.editor_overlay.hidden = !this.visible;
+        super.visibilityChanged();
+        this._editorOverlay.hidden = !this.visible;
     }
 }

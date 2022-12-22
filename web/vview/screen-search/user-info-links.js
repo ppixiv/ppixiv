@@ -18,12 +18,12 @@ export default class UserInfoLinks extends Widget
     async setUserIdAndDataSource({userId, dataSource})
     {
         // If we're viewing ourself (our own bookmarks page), hide this.
-        if(userId == window.global_data.user_id)
+        if(userId == ppixiv.pixivInfo.userId)
         userId = null;
 
         // Load info for this user.
         this._showingUserId = userId;
-        let userInfo = await ppixiv.userCache.get_user_info_full(userId);
+        let userInfo = await ppixiv.userCache.getUserInfoFull(userId);
 
         // Stop if the user ID changed since we started this request.
         if(userId != this._showingUserId)
@@ -38,20 +38,20 @@ export default class UserInfoLinks extends Widget
         
         for(let {url, label, type, icon} of extraLinks)
         {
-            let entry = this.create_template({name: "extra-link", html: `
+            let entry = this.createTemplate({name: "extra-link", html: `
                 <div class=extra-profile-link-button>
                     <a href=# class="extra-link icon-button popup popup-bottom" rel="noreferer noopener"></a>
                 </div>
             `});
 
-            let icon_node;
+            let iconNode;
             if(icon.endsWith(".svg"))
-                icon_node = helpers.create_ppixiv_inline(icon);
+                iconNode = helpers.createInlineIcon(icon);
             else
-                icon_node = helpers.create_icon(icon, { as_element: true });
+                iconNode = helpers.createIcon(icon, { asElement: true });
 
-            icon_node.classList.add(type);
-            entry.querySelector(".extra-link").appendChild(icon_node);
+            iconNode.classList.add(type);
+            entry.querySelector(".extra-link").appendChild(iconNode);
 
             let a = entry.querySelector(".extra-link");
             if(url)
@@ -71,10 +71,10 @@ export default class UserInfoLinks extends Widget
                     e.preventDefault();
                     e.stopPropagation();
     
-                    if(ppixiv.muting.is_muted_user_id(userId))
-                        ppixiv.muting.unmute_user_id(userId);
+                    if(ppixiv.muting.isUserIdMuted(userId))
+                        ppixiv.muting.unmuteUserId(userId);
                     else
-                        await ppixiv.muting.add_mute(userId, null, {type: "user"});
+                        await ppixiv.muting.addMute(userId, null, {type: "user"});
                 });
             }
 
@@ -97,7 +97,7 @@ export default class UserInfoLinks extends Widget
         let extraLinks = [];
         if(userInfo != null)
         {
-            let muted = ppixiv.muting.is_muted_user_id(userInfo.userId);
+            let muted = ppixiv.muting.isUserIdMuted(userInfo.userId);
             extraLinks.push({
                 type: "mute",
                 label: `${muted? "Unmute":"Mute"} ${userInfo?.name || "this user"}`,
@@ -129,32 +129,32 @@ export default class UserInfoLinks extends Widget
         }
 
         // Set the pawoo link.
-        let pawoo_url = userInfo?.social?.pawoo?.url;
-        if(pawoo_url != null)
+        let pawooUrl = userInfo?.social?.pawoo?.url;
+        if(pawooUrl != null)
         {
             extraLinks.push({
-                url: pawoo_url,
+                url: pawooUrl,
                 type: "pawoo-icon",
                 label: "Pawoo",
             });
         }
 
         // Add the twitter link if there's one in the profile.
-        let twitter_url = userInfo?.social?.twitter?.url;
-        if(twitter_url != null)
+        let twitterUrl = userInfo?.social?.twitter?.url;
+        if(twitterUrl != null)
         {
             extraLinks.push({
-                url: twitter_url,
+                url: twitterUrl,
                 type: "twitter-icon",
             });
         }
 
         // Set the circle.ms link.
-        let circlems_url = userInfo?.social?.circlems?.url;
-        if(circlems_url != null)
+        let circlemsUrl = userInfo?.social?.circlems?.url;
+        if(circlemsUrl != null)
         {
             extraLinks.push({
-                url: circlems_url,
+                url: circlemsUrl,
                 type: "circlems-icon",
                 label: "Circle.ms",
             });
@@ -164,12 +164,12 @@ export default class UserInfoLinks extends Widget
         //
         // If the webpage link is on a known site, disable the webpage link and add this to the
         // generic links list, so it'll use the specialized icon.
-        let webpage_url = userInfo?.webpage;
-        if(webpage_url != null)
+        let webpageUrl = userInfo?.webpage;
+        if(webpageUrl != null)
         {
-            let type = this.findLinkImageType(webpage_url);
+            let type = this.findLinkImageType(webpageUrl);
             extraLinks.push({
-                url: webpage_url,
+                url: webpageUrl,
                 type: type || "webpage-link",
                 label: "Webpage",
             });
@@ -200,7 +200,7 @@ export default class UserInfoLinks extends Widget
             dataSource.addExtraLinks(extraLinks);
 
         // Map from link types to icons:
-        let link_types = {
+        let linkTypes = {
             ["default-icon"]: "ppixiv:link",
             ["shopping-cart"]: "mat:shopping_cart",
             ["twitter-icon"]: "ppixiv:twitter",
@@ -252,7 +252,7 @@ export default class UserInfoLinks extends Widget
             }
 
             // Fill in the icon.
-            link.icon = link_types[link.type];
+            link.icon = linkTypes[link.type];
 
             filteredLinks.push(link);
         }

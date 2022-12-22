@@ -4,16 +4,6 @@ import IllustIdList from 'vview/data-sources/illust-id-list.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import { helpers, SafetyBackoffTimer } from 'vview/misc/helpers.js';
 
-// A data source handles a particular source of images, depending on what page we're
-// on:
-//
-// - Retrieves batches of image IDs to display, eg. a single page of bookmark results
-// - Load another page of results with load_more()
-// - Updates the page URL to reflect the current image
-//
-// Not all data sources have multiple pages.  For example, when we're viewing a regular
-// illustration page, we get all of the author's other illust IDs at once, so we just
-// load all of them as a single page.
 export default class DataSource extends EventTarget
 {
     constructor(url)
@@ -142,9 +132,9 @@ export default class DataSource extends EventTarget
             return true;
 
         // If we've loaded pages 5-6, we can load anything between pages 5 and 7.
-        let lowest_page = this.idList.getLowestLoadedPage();
-        let highest_page = this.idList.getHighestLoadedPage();
-        return page >= lowest_page && page <= highest_page+1;
+        let lowestPage = this.idList.getLowestLoadedPage();
+        let highestPage = this.idList.getHighestLoadedPage();
+        return page >= lowestPage && page <= highestPage+1;
     }
 
     // Return true if we know page is past the end of this data source's results.
@@ -227,7 +217,7 @@ export default class DataSource extends EventTarget
             return null;
 
         let page = this.getPageFromUrl(args);
-        return helpers.illust_id_to_media_id(illustId, page);
+        return helpers.illustIdToMediaId(illustId, page);
     }
 
     // If the URL specifies a manga page, return it, otherwise return 0.
@@ -268,7 +258,7 @@ export default class DataSource extends EventTarget
     // Set the page icon.
     setPageIcon()
     {
-        helpers.set_icon();
+        helpers.setIcon();
     }
 
     // If true, "No Results" will be displayed.
@@ -288,7 +278,7 @@ export default class DataSource extends EventTarget
     // should update the history state to reflect the current state.
     setCurrentMediaId(mediaId, args)
     {
-        let [illustId] = helpers.media_id_to_illust_id_and_page(mediaId);
+        let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
         if(this.supportsStartPage)
         {
             // Store the page the illustration is on in the hash, so if the page is reloaded while
@@ -296,9 +286,9 @@ export default class DataSource extends EventTarget
             // the user clicks something that came from page 6 while the top of the search results
             // were on page 5, we'll start the search at page 5 if the page is reloaded and not find
             // the image, which is confusing.
-            let { page: original_page } = this.idList.getPageForMediaId(illustId);
-            if(original_page != null)
-                this.setStartPage(args, original_page);
+            let { page: originalPage } = this.idList.getPageForMediaId(illustId);
+            if(originalPage != null)
+                this.setStartPage(args, originalPage);
         }
 
         // By default, put the illust_id in the hash.
@@ -333,7 +323,7 @@ export default class DataSource extends EventTarget
     // Some data sources can restart the search at a page.
     get supportsStartPage() { return false; }
 
-    // If true, all pages are loaded.  This is only used by data_sources.vview.
+    // If true, all pages are loaded.  This is only used by DataSource_VView.
     get allPagesLoaded() { return false; }
 
     // The data source can override this to set the aspect ratio to use for thumbnails.
@@ -376,11 +366,11 @@ export default class DataSource extends EventTarget
 
         // If this data source doesn't return manga pages, always use the first page.
         if(this.allowExpandingMangaPages)
-            initialMediaId = helpers.get_media_id_for_page(initialMediaId, 0);
+            initialMediaId = helpers.getMediaIdForPage(initialMediaId, 0);
 
         if(page == this.initialPage &&
             initialMediaId != null &&
-            initialMediaId != "illust:*" && !LocalAPI.is_slideshow_staging(helpers.args.location) && // not slideshow staging
+            initialMediaId != "illust:*" && !LocalAPI.isSlideshowStaging(helpers.args.location) && // not slideshow staging
             this.idList.getPageForMediaId(initialMediaId).page == null &&
             mediaIds.indexOf(initialMediaId) == -1)
         {
@@ -408,6 +398,7 @@ export default class DataSource extends EventTarget
     //     imageUrl,                  // URL for an image related to this search
     //     imageLinkUrl,              // a URL where imageUrl should link to
     //     userId,                    // a user ID whose avatar should be displayed
+    //     mobileTitle,               // an alternate title for the mobile search menu
     // }
     //
     // If this changes, the "updated" event will be sent to the data source.
@@ -418,8 +409,8 @@ export default class DataSource extends EventTarget
 
     createAndSetButton(parent, createOptions, setupOptions)
     {
-        let button = helpers.create_box_link({
-            as_element: true,
+        let button = helpers.createBoxLink({
+            asElement: true,
             ...createOptions
         });
         parent.appendChild(button);
@@ -427,13 +418,13 @@ export default class DataSource extends EventTarget
         return button;
     }
 
-    // Create a common search dropdown.  button is options to create_box_link, and items
+    // Create a common search dropdown.  button is options to createBoxLink, and items
     // is options to setItem.
     setupDropdown(button, items)
     {
         return new DropdownMenuOpener({
             button,
-            create_box: ({...options}) => {
+            createBox: ({...options}) => {
                 let dropdown = new Widget({
                     ...options,
                     template: `<div class=vertical-list></div>`,
@@ -474,11 +465,11 @@ export default class DataSource extends EventTarget
         let args = new helpers.args(this.url);
 
         // Adjust the URL for this button.
-        let { args: new_args, buttonIsSelected } = this.setItemInUrl(args, options);
+        let { args: newArgs, buttonIsSelected } = this.setItemInUrl(args, options);
 
-        helpers.set_class(link, "selected", buttonIsSelected);
+        helpers.setClass(link, "selected", buttonIsSelected);
 
-        link.href = new_args.url.toString();
+        link.href = newArgs.url.toString();
     };
 
     // Apply a search filter button to a search URL, activating or deactivating a search
@@ -494,7 +485,7 @@ export default class DataSource extends EventTarget
     }={})
     {
         // Ignore the language prefix on the URL if any, so it doesn't affect urlFormat.
-        args.path = helpers.get_path_without_language(args.path);
+        args.path = helpers.getPathWithoutLanguage(args.path);
 
         // If urlParts is provided, create a map from "/segment" to a segment number like "/1" that
         // args.set uses.
@@ -517,7 +508,7 @@ export default class DataSource extends EventTarget
         let fieldData = {};
         for(let [key, value] of Object.entries(fields))
         {
-            let original_key = key;
+            let originalKey = key;
 
             let defaultValue = null;
             if(defaults && key in defaults)
@@ -537,7 +528,7 @@ export default class DataSource extends EventTarget
             
             fieldData[key] = {
                 value,
-                original_key,
+                originalKey,
                 defaultValue,
             }
         }
@@ -592,7 +583,7 @@ export default class DataSource extends EventTarget
     // makes sense when adding a single entry.
     //
     // Pixiv URLs can optionally have the language prefixed (which doesn't make sense).
-    // This is handled automatically by get_path_part and set_path_part, and index should
+    // This is handled automatically by getPathPart and setPathPart, and index should
     // always be for URLs without the language.
     setPathItem(container, type, index, value)
     {
@@ -605,19 +596,19 @@ export default class DataSource extends EventTarget
 
         // Adjust the URL for this button.
         let url = new URL(this.url);
-        url = helpers.get_url_without_language(url);
+        url = helpers.getUrlWithoutLanguage(url);
 
         // Don't include the page number in search buttons, so clicking a filter goes
         // back to page 1.
         url.searchParams.delete("p");
 
         // This button is selected if the given value was already set.
-        let buttonIsSelected = helpers.get_path_part(url, index) == value;
+        let buttonIsSelected = helpers.getPathPart(url, index) == value;
 
         // Replace the path part.
-        url = helpers.set_path_part(url, index, value);
+        url = helpers.setPathPart(url, index, value);
 
-        helpers.set_class(link, "selected", buttonIsSelected);
+        helpers.setClass(link, "selected", buttonIsSelected);
 
         link.href = url.toString();
     };
@@ -689,12 +680,12 @@ export default class DataSource extends EventTarget
         return this.idList.getNeighboringMediaId(mediaId, next, options);
     }
 
-    // Get the next or previous image to from_media_id.  If we're at the end, loop back
+    // Get the next or previous image to fromMediaId.  If we're at the end, loop back
     // around to the other end.  options is the same as getOrLoadNeighboringMediaId.
-    async getOrLoadNeighboringMediaIdWithLoop(from_media_id, next, options={})
+    async getOrLoadNeighboringMediaIdWithLoop(fromMediaId, next, options={})
     {
         // See if we can keep moving in this direction.
-        let mediaId = await this.getOrLoadNeighboringMediaId(from_media_id, next, options);
+        let mediaId = await this.getOrLoadNeighboringMediaId(fromMediaId, next, options);
         if(mediaId)
             return mediaId;
 
@@ -744,7 +735,7 @@ export class DataSourceFromPage extends DataSource
 
         console.log("Loading:", url.toString());
 
-        let doc = await helpers.fetch_document(url);
+        let doc = await helpers.fetchDocument(url);
 
         let mediaIds = this.parseDocument(doc);
         if(mediaIds == null)
@@ -765,7 +756,7 @@ export class DataSourceFromPage extends DataSource
         this.addPage(page, mediaIds);
     }
 
-    // Parse the loaded document and return the illust_ids.
+    // Parse the loaded document and return the media IDs.
     parseDocument(doc)
     {
         throw "Not implemented";

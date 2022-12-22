@@ -17,6 +17,6 @@ export default class DataSources_EditedImages extends DataSourceFakePagination
 
     async loadAllResults()
     {
-        return await ppixiv.extraImageData.get_all_edited_images();
+        return await ppixiv.extraImageData.getAllEditedImages();
     }
 }

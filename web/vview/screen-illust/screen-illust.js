@@ -59,9 +59,9 @@ export default class ScreenIllust extends Screen
         if(ppixiv.mobile)
             uiContainer.hidden = true;
 
-        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdown_signal.signal });        
-        ppixiv.mediaCache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdown_signal.signal });
-        ppixiv.settings.addEventListener("recent-bookmark-tags", this.refreshUi, { signal: this.shutdown_signal.signal });
+        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal.signal });        
+        ppixiv.mediaCache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdownSignal.signal });
+        ppixiv.settings.addEventListener("recent-bookmark-tags", this.refreshUi, { signal: this.shutdownSignal.signal });
 
         this.viewContainer = this.container.querySelector(".view-container");
 
@@ -76,7 +76,7 @@ export default class ScreenIllust extends Screen
         {
             // Fullscreen on double-click.
             this.viewContainer.addEventListener("dblclick", () => {
-                helpers.toggle_fullscreen();
+                helpers.toggleFullscreen();
             });
 
             new HideMouseCursorOnIdle(this.container.querySelector(".mouse-hidden-box"));
@@ -93,14 +93,14 @@ export default class ScreenIllust extends Screen
 
             this.mobileIllustUi = new MobileUI({
                 container: this.container,
-                transition_target: this.container,
+                transitionTarget: this.container,
             });
 
             // Toggle zoom on double-tap.
             this.doubleTapHandler = new MobileDoubleTapHandler({
                 container: this.viewContainer,
-                signal: this.shutdown_signal.signal,
-                ondbltap: (e) => this.viewer.toggle_zoom(e),
+                signal: this.shutdownSignal.signal,
+                ondbltap: (e) => this.viewer.toggleZoom(e),
             });
 
             new IsolatedTapHandler({
@@ -121,32 +121,31 @@ export default class ScreenIllust extends Screen
         this.deactivate();
     }
 
-    setDataSource(data_source)
+    setDataSource(dataSource)
     {
-        if(data_source == this.data_source)
+        if(dataSource == this.dataSource)
             return;
 
-        if(this.data_source != null)
+        if(this.dataSource != null)
         {
-            this.data_source.removeEventListener("updated", this.dataSourceUpdated);
-            this.data_source = null;
+            this.dataSource.removeEventListener("updated", this.dataSourceUpdated);
+            this.dataSource = null;
         }
 
-        this.data_source = data_source;
+        this.dataSource = dataSource;
         if(this.desktopUi)
-            this.desktopUi.data_source = data_source;
+            this.desktopUi.dataSource = dataSource;
 
-        if(this.data_source != null)
+        if(this.dataSource != null)
         {
-            this.data_source.addEventListener("updated", this.dataSourceUpdated);
-
+            this.dataSource.addEventListener("updated", this.dataSourceUpdated);
             this.refreshUi();
         }
     }
 
     async activate({ mediaId, restoreHistory })
     {
-        let was_active = this._active;
+        let wasActive = this._active;
         this._active = true;
 
         super.activate();
@@ -160,7 +159,7 @@ export default class ScreenIllust extends Screen
         if(this.mobileImageChanger)
             this.mobileImageChanger.stop();
 
-        await this.showImage(mediaId, { restoreHistory, initial: !was_active });
+        await this.showImage(mediaId, { restoreHistory, initial: !wasActive });
 
         // Tell the dragger to transition us in.
         if(this.mobileImageDismiss)
@@ -221,12 +220,12 @@ export default class ScreenIllust extends Screen
         // image displayed from triggering speculative loading, which we don't want to do when
         // clicking an image in the thumbnail view.
         ImagePreloader.singleton.setCurrentImage(null);
-        ImagePreloader.singleton.set_speculative_image(null);
+        ImagePreloader.singleton.setSpeculativeImage(null);
 
         // If remote quick view is active, cancel it if we leave the image.
         if(ppixiv.settings.get("linked_tabs_enabled"))
         {
-            ppixiv.sendImage.send_message({
+            ppixiv.sendImage.sendMessage({
                 message: "send-image",
                 action: "cancel",
                 to: ppixiv.settings.get("linked_tabs", []),
@@ -234,7 +233,7 @@ export default class ScreenIllust extends Screen
         }
     }
 
-    // Create a viewer for media_id and begin loading it asynchronously.
+    // Create a viewer for mediaId and begin loading it asynchronously.
     createViewer({ mediaId, earlyIllustData, ...options }={})
     {
         let viewerClass;
@@ -248,7 +247,7 @@ export default class ScreenIllust extends Screen
         else if(isError)
         {
             viewerClass = ViewerError;
-            options = { ...options, error: ppixiv.mediaCache.get_media_load_error(mediaId) };
+            options = { ...options, error: ppixiv.mediaCache.getMediaLoadError(mediaId) };
         }
         else if(earlyIllustData.illustType == 2)
             viewerClass = ViewerUgoira;
@@ -309,7 +308,7 @@ export default class ScreenIllust extends Screen
         // many pages it has, and whether it's muted.  This will always complete immediately
         // if we're coming from a search or anywhere else that will already have this info,
         // but it can block if we're loading from scratch.
-        let earlyIllustData = await ppixiv.mediaCache.get_media_info(mediaId, { full: false });
+        let earlyIllustData = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
 
         // If we were deactivated while waiting for image info or the image we want to show has changed, stop.
         if(!this.active || this._wantedMediaId != mediaId)
@@ -343,7 +342,7 @@ export default class ScreenIllust extends Screen
         if(newViewer == this.viewer)
             return;
 
-        helpers.set_class(document.body,  "force-ui", window.debug_show_ui);
+        helpers.setClass(document.body,  "force-ui", window.debugShowUi);
 
         let mediaId = newViewer.mediaId;
 
@@ -357,11 +356,11 @@ export default class ScreenIllust extends Screen
         // This should always be available, because the caller always looks up media info
         // in order to create the viewer, which means we don't have to go async here.  If
         // this returns null, it should always mean we're viewing an image's error page.
-        let earlyIllustData = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
+        let earlyIllustData = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
         helpers.setTitleAndIcon(earlyIllustData);
 
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
-        helpers.set_class(document.body, "dot", helpers.tagsContainDot(earlyIllustData?.tagList));
+        helpers.setClass(document.body, "dot", helpers.tagsContainDot(earlyIllustData?.tagList));
 
         // If linked tabs are active, send this image.
         if(ppixiv.settings.get("linked_tabs_enabled"))
@@ -372,7 +371,7 @@ export default class ScreenIllust extends Screen
 
         // Make sure the URL points to this image.
         let args = ppixiv.app.getMediaURL(mediaId);
-        helpers.navigate(args, { add_to_history: false, send_popstate: false });
+        helpers.navigate(args, { addToHistory: false, sendPopstate: false });
 
         // Speculatively load the next image, which is what we'll show if you press page down, so
         // advancing through images is smoother.
@@ -380,7 +379,7 @@ export default class ScreenIllust extends Screen
         // If we're not local, don't do this when showing the first image, since the most common
         // case is simply viewing a single image and then backing out to the search, so this avoids
         // doing extra loads every time you load a single illustration.
-        if(!initial || helpers.is_media_id_local(mediaId))
+        if(!initial || helpers.isMediaIdLocal(mediaId))
         {
             // getNavigation may block to load more search results.  Run this async without
             // waiting for it.
@@ -389,7 +388,7 @@ export default class ScreenIllust extends Screen
 
                 // Let ImagePreloader handle speculative loading.  If newMediaId is null,
                 // we're telling it that we don't need to load anything.
-                ImagePreloader.singleton.set_speculative_image(newMediaId);
+                ImagePreloader.singleton.setSpeculativeImage(newMediaId);
             })();
         }
 
@@ -462,27 +461,27 @@ export default class ScreenIllust extends Screen
     // already loaded, and navigate to the first result.
     async loadFirstImage(mediaId)
     {
-        if(helpers.is_media_id_local(mediaId))
+        if(helpers.isMediaIdLocal(mediaId))
         {
             let args = helpers.args.location;
-            LocalAPI.get_args_for_id(mediaId, args);
+            LocalAPI.getArgsForId(mediaId, args);
             if(args.hash.get("file") != "*")
                 return false;
         }
-        else if(helpers.parse_media_id(mediaId).id != "*")
+        else if(helpers.parseMediaId(mediaId).id != "*")
             return false;
 
         // This will load results if needed, skip folders so we only pick images, and return
         // the first ID.
-        let newMediaId = await this.data_source.getOrLoadNeighboringMediaId(null, true);
+        let newMediaId = await this.dataSource.getOrLoadNeighboringMediaId(null, true);
         if(newMediaId == null)
         {
             ppixiv.message.show("Couldn't find an image to view");
             return true;
         }
 
-        ppixiv.app.show_media(newMediaId, {
-            add_to_history: false,
+        ppixiv.app.showMediaId(newMediaId, {
+            addToHistory: false,
         });
         return true;
     }
@@ -496,12 +495,12 @@ export default class ScreenIllust extends Screen
 
     shouldHideMutedImage(earlyIllustData)
     {
-        let muted_tag = ppixiv.muting.any_tag_muted(earlyIllustData.tagList);
-        let muted_user = ppixiv.muting.is_muted_user_id(earlyIllustData.userId);
-        if(this.viewMuted || (!muted_tag && !muted_user))
+        let mutedTag = ppixiv.muting.anyTagMuted(earlyIllustData.tagList);
+        let mutedUser = ppixiv.muting.isUserIdMuted(earlyIllustData.userId);
+        if(this.viewMuted || (!mutedTag && !mutedUser))
             return { isMuted: false };
 
-        return { isMuted: true, muted_tag: muted_tag, muted_user: muted_user };
+        return { isMuted: true, mutedTag, mutedUser };
     }
     
     // Remove the old viewer, if any.
@@ -557,7 +556,7 @@ export default class ScreenIllust extends Screen
         if(this.mobileIllustUi)
         {
             this.mobileIllustUi.mediaId = this.currentMediaId;
-            this.mobileIllustUi.setDataSource(this.data_source);
+            this.mobileIllustUi.setDataSource(this.dataSource);
         }
 
         if(this.desktopUi)
@@ -623,7 +622,7 @@ export default class ScreenIllust extends Screen
     async getNavigation(down, { navigateFromMediaId=null, manga="normal", loop=false }={})
     {
         // Check if we're just changing pages within the same manga post.
-        // If we have a target media_id, move relative to it.  Otherwise, move relative to the
+        // If we have a target media ID, move relative to it.  Otherwise, move relative to the
         // displayed image.  This way, if we navigate repeatedly before a previous navigation
         // finishes, we'll keep moving rather than waiting for each navigation to complete.
         navigateFromMediaId ??= this._wantedMediaId;
@@ -631,9 +630,9 @@ export default class ScreenIllust extends Screen
 
         // Get the next (or previous) illustration after the current one.
         if(!loop)
-            return await this.data_source.getOrLoadNeighboringMediaId(navigateFromMediaId, down, { manga });
+            return await this.dataSource.getOrLoadNeighboringMediaId(navigateFromMediaId, down, { manga });
 
-        let mediaId = await this.data_source.getOrLoadNeighboringMediaIdWithLoop(navigateFromMediaId, down, { manga });
+        let mediaId = await this.dataSource.getOrLoadNeighboringMediaIdWithLoop(navigateFromMediaId, down, { manga });
 
         // If we only have one image, don't loop.  We won't actually navigate so things
         // don't quite work, since navigating to the same media ID won't trigger a navigation.
@@ -676,7 +675,7 @@ export default class ScreenIllust extends Screen
             console.log("Reached the end of the list");
             if(flashAtEnd)
                 this.flashEndIndicator(down, "last-image");
-            return { reached_end: true };
+            return { reachedEnd: true };
         }
 
         // If this.pendingNavigation is no longer the same as pendingNavigation, we navigated since
@@ -690,7 +689,7 @@ export default class ScreenIllust extends Screen
         this.pendingNavigation = null;
 
         // Go to the new illustration.
-        ppixiv.app.show_media(newMediaId);
+        ppixiv.app.showMediaId(newMediaId);
         return { mediaId: newMediaId };
     }
 

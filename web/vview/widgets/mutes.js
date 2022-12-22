@@ -8,18 +8,18 @@ import { helpers } from 'vview/misc/helpers.js';
 export class EditMutedTagsWidget extends Widget
 {
     constructor({
-        mute_type, // "tags" or "users"
+        muteType, // "tags" or "users"
         ...options})
     {
         super({...options, template: `
             <div class=muted-tags-popup>
                 <span class=add-muted-user-box>
                     Users can be muted from their user page, or by right-clicking an image and clicking
-                    ${ helpers.create_icon("settings") }.
+                    ${ helpers.createIcon("settings") }.
                 </span>
 
                 <span class=non-premium-mute-warning>
-                    ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button"] }) }
+                    ${ helpers.createBoxLink({label: "Note",      icon: "warning",  classes: ["mute-warning-button"] }) }
                 </span>
 
                 <div class=mute-warning>
@@ -35,34 +35,33 @@ export class EditMutedTagsWidget extends Widget
                 </div>
 
                 <div class=add-muted-tag-box> <!-- prevent full-line button styling -->
-                    ${ helpers.create_box_link({label: "Add",      icon: "add",  classes: ["add-muted-tag"] }) }
+                    ${ helpers.createBoxLink({label: "Add",      icon: "add",  classes: ["add-muted-tag"] }) }
                 </div>
 
                 <div class=mute-list></div>
             </div>
         `});
 
-        this.mute_type = mute_type;
+        this._muteType = muteType;
 
-        this.container.querySelector(".add-muted-tag-box").hidden = mute_type != "tag";
-        this.container.querySelector(".add-muted-user-box").hidden = mute_type != "user";
+        this.container.querySelector(".add-muted-tag-box").hidden = muteType != "tag";
+        this.container.querySelector(".add-muted-user-box").hidden = muteType != "user";
         this.container.querySelector(".add-muted-tag").addEventListener("click", this.click_add_muted_tag);
         this.container.querySelector(".mute-warning-button").addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            let mute_warning = this.container.querySelector(".mute-warning");
-            mute_warning.hidden = !mute_warning.hidden;
-
+            let muteWarning = this.container.querySelector(".mute-warning");
+            muteWarning.hidden = !muteWarning.hidden;
         });
 
         // Hide the warning for non-premium users if the user does have premium.
-        this.container.querySelector(".non-premium-mute-warning").hidden = window.global_data.premium;
+        this.container.querySelector(".non-premium-mute-warning").hidden = ppixiv.pixivInfo.premium;
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
+        super.visibilityChanged();
 
         if(this.visible)
         {
@@ -73,7 +72,7 @@ export class EditMutedTagsWidget extends Widget
         // Clear the username cache when we're hidden, so we'll re-request it the next time
         // we're viewed.
         if(!this.visible)
-            this.clear_muted_user_id_cache();
+            this._clearMutedUserIdCache();
     }
 
     refresh = async() =>
@@ -81,120 +80,120 @@ export class EditMutedTagsWidget extends Widget
         if(!this.visible)
             return;
 
-        if(this.mute_type == "tag")
-            await this.refresh_for_tags();
+        if(this._muteType == "tag")
+            await this._refreshForTags();
         else
-            await this.refresh_for_users();
+            await this._refrehsForUsers();
     }
 
-    create_entry()
+    createEntry()
     {
-        return this.create_template({name: "muted-tag-entry", html: `
+        return this.createTemplate({name: "muted-tag-entry", html: `
             <div class=muted-tag>
                 <a href=# class="remove-mute clickable">
-                    ${ helpers.create_icon("delete") }
+                    ${ helpers.createIcon("delete") }
                 </a>
                 <span class=tag-name></span>
             </div>
         `});
     }
 
-    refresh_for_tags = async() =>
+    _refreshForTags = async() =>
     {
         // Do a batch lookup of muted tag translations.
-        let tags_to_translate = [...ppixiv.muting.pixiv_muted_tags];
-        for(let mute of ppixiv.muting.extra_mutes)
+        let tagsToTranslate = [...ppixiv.muting.pixivMutedTags];
+        for(let mute of ppixiv.muting.extraMutes)
         {
             if(mute.type == "tag")
-                tags_to_translate.push(mute.value);
+                tagsToTranslate.push(mute.value);
         }
 
-        let translated_tags = await ppixiv.tagTranslations.get_translations(tags_to_translate);
+        let translatedTags = await ppixiv.tagTranslations.getTranslations(tagsToTranslate);
 
-        let create_muted_tag_entry = (tag, tag_list_container) =>
+        let createMutedTagEntry = (tag, tagListContainer) =>
         {
-            let entry = this.create_entry();
+            let entry = this.createEntry();
             entry.dataset.tag = tag;
 
             let label = tag;
-            let tag_translation = translated_tags[tag];
-            if(tag_translation)
-                label = `${tag_translation} (${tag})`;
+            let tagTranslation = translatedTags[tag];
+            if(tagTranslation)
+                label = `${tagTranslation} (${tag})`;
             entry.querySelector(".tag-name").innerText = label;
-            tag_list_container.appendChild(entry);
+            tagListContainer.appendChild(entry);
 
             return entry;
         };
 
-        let muted_tag_list = this.container.querySelector(".mute-list");
-        helpers.remove_elements(muted_tag_list);
-        for(let {type, value: tag} of ppixiv.muting.extra_mutes)
+        let mutedTagList = this.container.querySelector(".mute-list");
+        helpers.removeElements(mutedTagList);
+        for(let {type, value: tag} of ppixiv.muting.extraMutes)
         {
             if(type != "tag")
                 continue;
-            let entry = create_muted_tag_entry(tag, muted_tag_list);
+            let entry = createMutedTagEntry(tag, mutedTagList);
 
             entry.querySelector(".remove-mute").addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
 
-                ppixiv.muting.remove_extra_mute(tag, {type: "tag"});
+                ppixiv.muting.removeExtraMute(tag, {type: "tag"});
                 this.refresh();
             });
         }
 
-        for(let tag of ppixiv.muting.pixiv_muted_tags)
+        for(let tag of ppixiv.muting.pixivMutedTags)
         {
-            let entry = create_muted_tag_entry(tag, muted_tag_list);
+            let entry = createMutedTagEntry(tag, mutedTagList);
 
             entry.querySelector(".remove-mute").addEventListener("click", async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
 
-                await ppixiv.muting.remove_pixiv_mute(tag, {type: "tag"});
+                await ppixiv.muting.removePixivMute(tag, {type: "tag"});
                 this.refresh();
             });
         }
     }
 
-    refresh_for_users = async() =>
+    _refrehsForUsers = async() =>
     {
-        let create_muted_user_entry = (user_id, username, tag_list_container) =>
+        let createMutedTagEntry = (userId, username, tagListContainer) =>
         {
-            let entry = this.create_entry();
-            entry.dataset.user_id = user_id;
+            let entry = this.createEntry();
+            entry.dataset.userId = userId;
 
             entry.querySelector(".tag-name").innerText = username;
-            tag_list_container.appendChild(entry);
+            tagListContainer.appendChild(entry);
 
             return entry;
         };
 
-        let muted_user_list = this.container.querySelector(".mute-list");
-        helpers.remove_elements(muted_user_list);
+        let mutedUserList = this.container.querySelector(".mute-list");
+        helpers.removeElements(mutedUserList);
 
-        for(let {type, value: user_id, label: username} of ppixiv.muting.extra_mutes)
+        for(let {type, value: userId, label: username} of ppixiv.muting.extraMutes)
         {
             if(type != "user")
                 continue;
     
-            let entry = create_muted_user_entry(user_id, username, muted_user_list);
+            let entry = createMutedTagEntry(userId, username, mutedUserList);
 
             entry.querySelector(".remove-mute").addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
 
-                ppixiv.muting.remove_extra_mute(user_id, {type: "user"});
+                ppixiv.muting.removeExtraMute(userId, {type: "user"});
                 this.refresh();
             });
         }
 
         // We already know the muted user IDs, but we need to load the usernames for display.
         // If we don't have this yet, start the load and refresh once we have it.
-        let user_id_to_username = this.cached_muted_user_id_to_username;
-        if(user_id_to_username == null)
+        let userIdToUsername = this._cachedMutedUserIdToUsername;
+        if(userIdToUsername == null)
         {
-            this.get_muted_user_id_to_username().then(() => {
+            this._getMutedUserIdToUsername().then(() => {
                 console.log("Refreshing after muted user load");
                 this.refresh();
             });
@@ -202,76 +201,76 @@ export class EditMutedTagsWidget extends Widget
         else
         {
             // Now that we have usernames, Sort Pixiv mutes by username.
-            let mutes = ppixiv.muting.pixiv_muted_user_ids;
+            let mutes = ppixiv.muting.pixivMutedUserIds;
             mutes.sort((lhs, rhs) => {
-                lhs = user_id_to_username[lhs] || "";
-                rhs = user_id_to_username[rhs] || "";
+                lhs = userIdToUsername[lhs] || "";
+                rhs = userIdToUsername[rhs] || "";
                 return lhs.localeCompare(rhs);
             });
 
-            for(let user_id of mutes)
+            for(let userId of mutes)
             {
-                let entry = create_muted_user_entry(user_id, user_id_to_username[user_id], muted_user_list);
+                let entry = createMutedTagEntry(userId, userIdToUsername[userId], mutedUserList);
 
                 entry.querySelector(".remove-mute").addEventListener("click", async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    await ppixiv.muting.remove_pixiv_mute(user_id, {type: "user"});
+                    await ppixiv.muting.removePixivMute(userId, {type: "user"});
                     this.refresh();
                 });
             }
         }
     }
 
-    clear_muted_user_id_cache()
+    _clearMutedUserIdCache()
     {
-        this.cached_muted_user_id_to_username = null;
+        this._cachedMutedUserIdToUsername = null;
     }
 
     // Return a dictionary of muted user IDs to usernames.
-    get_muted_user_id_to_username()
+    _getMutedUserIdToUsername()
     {
         // If this completed previously, just return the cached results.
-        if(this.cached_muted_user_id_to_username)
-            return this.cached_muted_user_id_to_username;
+        if(this._cachedMutedUserIdToUsername)
+            return this._cachedMutedUserIdToUsername;
             
         // If this is already running, return the existing promise and don't start another.
-        if(this.get_muted_user_id_to_username_promise)
-            return this.get_muted_user_id_to_username_promise;
+        if(this._mutedUserIdToUsernamePromise)
+            return this._mutedUserIdToUsernamePromise;
 
-        let promise = this.get_muted_user_id_to_username_inner();
-        this.get_muted_user_id_to_username_promise = promise;
-        this.get_muted_user_id_to_username_promise.finally(() => {
-            // Clear get_muted_user_id_to_username_promise when it finishes.
-            if(this.get_muted_user_id_to_username_promise == promise)
-                this.get_muted_user_id_to_username_promise = null;
+        let promise = this._getMutedUserIdToUsernameInner();
+        this._mutedUserIdToUsernamePromise = promise;
+        this._mutedUserIdToUsernamePromise.finally(() => {
+            // Clear _mutedUserIdToUsernamePromise when it finishes.
+            if(this._mutedUserIdToUsernamePromise == promise)
+                this._mutedUserIdToUsernamePromise = null;
         });
-        return this.get_muted_user_id_to_username_promise;
+        return this._mutedUserIdToUsernamePromise;
     }
 
-    async get_muted_user_id_to_username_inner()
+    async _getMutedUserIdToUsernameInner()
     {
         // Users muted with Pixiv.  We already have the list, but we need to make an API
         // request to get usernames to actually display.
-        let result = await helpers.rpc_get_request("/ajax/mute/items", { context: "setting" });
+        let result = await helpers.rpcGetRequest("/ajax/mute/items", { context: "setting" });
         if(result.error)
         {
             ppixiv.message.show(result.message);
-            this.cached_muted_user_id_to_username = {};
-            return this.cached_muted_user_id_to_username;
+            this._cachedMutedUserIdToUsername = {};
+            return this._cachedMutedUserIdToUsername;
         }
 
-        let user_id_to_username = {};
+        let userIdToUsername = {};
         for(let item of result.body.mute_items)
         {
             // We only care about user mutes here.
             if(item.type == "user")
-                user_id_to_username[item.value] = item.label;
+                userIdToUsername[item.value] = item.label;
         }
 
-        this.cached_muted_user_id_to_username = user_id_to_username;
-        return this.cached_muted_user_id_to_username;
+        this._cachedMutedUserIdToUsername = userIdToUsername;
+        return this._cachedMutedUserIdToUsername;
     }
 
     // Add to our muted tag list.
@@ -288,32 +287,26 @@ export class EditMutedTagsWidget extends Widget
         // If the user has premium, use the regular Pixiv mute list.  Otherwise, add the tag
         // to extra mutes.  We never add anything to the Pixiv mute list for non-premium users,
         // since it's limited to only one entry.
-        if(window.global_data.premium)
-            await ppixiv.muting.add_pixiv_mute(tag, {type: "tag"});
+        if(ppixiv.pixivInfo.premium)
+            await ppixiv.muting.addPixivMute(tag, {type: "tag"});
         else
-            await ppixiv.muting.add_extra_mute(tag, tag, {type: "tag"});
+            await ppixiv.muting.addExtraMute(tag, tag, {type: "tag"});
         this.refresh();
     };
-
-    async remove_pixiv_muted_tag(tag)
-    {
-        await this.remove_pixiv_mute(tag, {type: "tag"});
-        this.refresh();
-    }
 }
 
 // A popup for editing mutes related for a post (the user and the post's tags).
 export class MutedTagsForPostDialog extends DialogWidget
 {
     constructor({
-        media_id,
-        user_id,
+        mediaId,
+        userId,
         ...options})
     {
-        super({...options, classes: "muted-tags-popup", header: "Edit mutes", dialog_type: "small", template: `
+        super({...options, classes: "muted-tags-popup", header: "Edit mutes", dialogType: "small", template: `
             <div style="display: flex; align-items: center;">
                 <span class=non-premium-mute-warning>
-                    ${ helpers.create_box_link({label: "Note",      icon: "warning",  classes: ["mute-warning-button", "clickable"] }) }
+                    ${ helpers.createBoxLink({label: "Note",      icon: "warning",  classes: ["mute-warning-button", "clickable"] }) }
                 </span>
             </div>
 
@@ -332,83 +325,83 @@ export class MutedTagsForPostDialog extends DialogWidget
             <div class=post-mute-list></div>
         `});
 
-        this.media_id = media_id;
-        this.user_id = user_id;
+        this._mediaId = mediaId;
+        this._userId = userId;
 
         this.container.querySelector(".close-button").addEventListener("click", (e) => {
             this.shutdown();
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
         this.container.querySelector(".mute-warning-button").addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            let mute_warning = this.container.querySelector(".mute-warning");
-            mute_warning.hidden = !mute_warning.hidden;
+            let muteWarning = this.container.querySelector(".mute-warning");
+            muteWarning.hidden = !muteWarning.hidden;
 
         });
 
         // Hide the warning for non-premium users if the user does have premium.
-        this.container.querySelector(".non-premium-mute-warning").hidden = window.global_data.premium;
+        this.container.querySelector(".non-premium-mute-warning").hidden = ppixiv.pixivInfo.premium;
 
         this.refresh();
     }
     
     refresh = async() =>
     {
-        if(this.media_id != null)
+        if(this._mediaId != null)
         {
             // We have a media ID.  Load its info to get the tag list, and use the user ID and
             // username from it.
-            let illust_data = await ppixiv.mediaCache.get_media_info(this.media_id, { full: false });
-            await this.refresh_for_data(illust_data.tagList, illust_data.userId, illust_data.userName);
+            let mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId, { full: false });
+            await this._refreshForData(mediaInfo.tagList, mediaInfo.userId, mediaInfo.userName);
         }
         else
         {
             // We only have a user ID, so look up the user to get the username.  Don't display
             // any tags.
-            let user_info = await ppixiv.userCache.get_user_info(this.user_id);
-            await this.refresh_for_data([], this.user_id, user_info.name);
+            let userInfo = await ppixiv.userCache.getUserInfo(this._userId);
+            await this._refreshForData([], this._userId, userInfo.name);
         }       
     }
 
-    async refresh_for_data(tags, user_id, username)
+    async _refreshForData(tags, userId, username)
     {
         // Do a batch lookup of muted tag translations.
-        let translated_tags = await ppixiv.tagTranslations.get_translations(tags);
+        let translatedTags = await ppixiv.tagTranslations.getTranslations(tags);
 
-        let create_entry = (label, is_muted) =>
+        let createEntry = (label, isMuted) =>
         {
-            let entry = this.create_template({name: "muted-tag-or-user-entry", html: `
+            let entry = this.createTemplate({name: "muted-tag-or-user-entry", html: `
                 <div class=entry>
-                    ${ helpers.create_box_link({label: "Mute",      classes: ["toggle-mute"] }) }
+                    ${ helpers.createBoxLink({label: "Mute",      classes: ["toggle-mute"] }) }
                     <span class=tag-name></span>
                 </div>
             `});
 
-            helpers.set_class(entry, "muted", is_muted);
-            entry.querySelector(".toggle-mute .label").innerText = is_muted? "Muted":"Mute";
+            helpers.setClass(entry, "muted", isMuted);
+            entry.querySelector(".toggle-mute .label").innerText = isMuted? "Muted":"Mute";
             entry.querySelector(".tag-name").innerText = label;
-            muted_list.appendChild(entry);
+            mutedList.appendChild(entry);
 
             return entry;
         };    
     
-        let muted_list = this.container.querySelector(".post-mute-list");
-        helpers.remove_elements(muted_list);
+        let mutedList = this.container.querySelector(".post-mute-list");
+        helpers.removeElements(mutedList);
 
         // Add an entry for the user.
         {
-            let is_muted = ppixiv.muting.is_muted_user_id(user_id);
-            let entry = create_entry(`User: ${username}`, is_muted);
+            let isMuted = ppixiv.muting.isUserIdMuted(userId);
+            let entry = createEntry(`User: ${username}`, isMuted);
 
             entry.querySelector(".toggle-mute").addEventListener("click", async (e) => {
-                if(is_muted)
+                if(isMuted)
                 {
-                    ppixiv.muting.remove_extra_mute(user_id, {type: "user"});
-                    await ppixiv.muting.remove_pixiv_mute(user_id, {type: "user"});
+                    ppixiv.muting.removeExtraMute(userId, {type: "user"});
+                    await ppixiv.muting.removePixivMute(userId, {type: "user"});
                 } else {
-                    await ppixiv.muting.add_mute(user_id, username, {type: "user"});
+                    await ppixiv.muting.addMute(userId, username, {type: "user"});
                 }
                 
                 this.refresh();
@@ -418,22 +411,22 @@ export class MutedTagsForPostDialog extends DialogWidget
         // Add each tag on the image.
         for(let tag of tags)
         {
-            let is_muted = ppixiv.muting.any_tag_muted([tag]);
+            let isMuted = ppixiv.muting.anyTagMuted([tag]);
 
             let label = tag;
-            let tag_translation = translated_tags[tag];
-            if(tag_translation)
-                label = `${tag_translation} (${tag})`;
+            let tagTranslation = translatedTags[tag];
+            if(tagTranslation)
+                label = `${tagTranslation} (${tag})`;
 
-            let entry = create_entry(label, is_muted);
+            let entry = createEntry(label, isMuted);
 
             entry.querySelector(".toggle-mute").addEventListener("click", async (e) => {
-                if(is_muted)
+                if(isMuted)
                 {
-                    ppixiv.muting.remove_extra_mute(tag, {type: "tag"});
-                    await ppixiv.muting.remove_pixiv_mute(tag, {type: "tag"});
+                    ppixiv.muting.removeExtraMute(tag, {type: "tag"});
+                    await ppixiv.muting.removePixivMute(tag, {type: "tag"});
                 } else {
-                    await ppixiv.muting.add_mute(tag, tag, {type: "tag"});
+                    await ppixiv.muting.addMute(tag, tag, {type: "tag"});
                 }
 
                 this.refresh();

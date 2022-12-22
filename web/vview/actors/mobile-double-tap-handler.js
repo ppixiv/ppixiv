@@ -1,5 +1,5 @@
 
-// Double-tap handling for screen_illust on mobile.
+// Double-tap handling for ScreenIllust on mobile.
 //
 // This needs to get along gracefully with the image viewer's TouchScroller.  A touch and
 // drag prevents a click event, but we do want to allow a single click to both drag and
@@ -15,17 +15,17 @@ export default class MobileDoubleTapHandler
     constructor({
         container,
         ondbltap,
-        threshold_ms=250,
+        thresholdMs=250,
         signal=null,
     })
     {
         this.container = container;
         this.ondbltap = ondbltap;
-        this.threshold_ms = threshold_ms;
+        this.thresholdMs = thresholdMs;
 
-        this.pointerdown_timestamp = -9999;
-        this.pointerdown_position = { x: 0, y: 0 };
-        this.watching_pointer_id = null;
+        this._pointerdownTimestamp = -9999;
+        this._pointerdownPosition = { x: 0, y: 0 };
+        this._watchingPointerId = null;
 
         if(ppixiv.ios)
         {
@@ -42,9 +42,9 @@ export default class MobileDoubleTapHandler
             // pointer events.)  This doesn't make sense, since the existance of an event listener
             // that doesn't do anything is supposed to be undetectable.  Add one of these the first
             // time we're used, and don't use the AbortSignal since we don't want it to be removed.
-            if(!MobileDoubleTapHandler.added_dblclick_workaround)
+            if(!MobileDoubleTapHandler.addedDblclickWorkaround)
             {
-                MobileDoubleTapHandler.added_dblclick_workaround = true;
+                MobileDoubleTapHandler.addedDblclickWorkaround = true;
                 document.addEventListener("dblclick", (e) => { });
             }
 
@@ -59,32 +59,32 @@ export default class MobileDoubleTapHandler
     pointerevent = (e) =>
     {
         // Ignore other presses while we're already watching one.
-        if(this.watching_pointer_id != null && e.pointerId != this.watching_pointer_id)
+        if(this._watchingPointerId != null && e.pointerId != this._watchingPointerId)
             return;
 
         if(e.type == "pointerup" || e.type == "pointercancel")
         {
-            this.watching_pointer_id = null;
+            this._watchingPointerId = null;
             return;
         }
 
-        this.watching_pointer_id = e.pointerId;
+        this._watchingPointerId = e.pointerId;
 
-        let time_since_click = e.timeStamp - this.pointerdown_timestamp;
+        let timeSinceClick = e.timeStamp - this._pointerdownTimestamp;
         let position = { x: e.screenX, y: e.screenY };
-        let distance = helpers.distance(position, this.pointerdown_position);
-        this.pointerdown_timestamp = e.timeStamp;
-        this.pointerdown_position = position;
+        let distance = helpers.distance(position, this._pointerdownPosition);
+        this._pointerdownTimestamp = e.timeStamp;
+        this._pointerdownPosition = position;
 
         // Check the double-click time and distance thresholds.
-        if(time_since_click > this.threshold_ms)
+        if(timeSinceClick > this.thresholdMs)
             return;
 
         if(distance > 25*window.devicePixelRatio)
             return;
 
-        this.pointerdown_timestamp = -9999;
+        this._pointerdownTimestamp = -9999;
 
         this.ondbltap(e);
     }
-};
+}

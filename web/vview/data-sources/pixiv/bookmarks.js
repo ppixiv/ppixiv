@@ -35,13 +35,13 @@ export class DataSource_BookmarksBase extends DataSource
         this.fetchBookmarkTagCounts();
         
         // Load the user's info.  We don't need to wait for this to finish.
-        let userInfoPromise = ppixiv.userCache.get_user_info_full(this.viewingUserId);
-        userInfoPromise.then((user_info) => {
+        let userInfoPromise = ppixiv.userCache.getUserInfoFull(this.viewingUserId);
+        userInfoPromise.then((userInfo) => {
             // Stop if we were deactivated before this finished.
             if(!this.active)
                 return;
 
-            this.userInfo = user_info;
+            this.userInfo = userInfo;
             this.callUpdateListeners();
         });
 
@@ -56,7 +56,7 @@ export class DataSource_BookmarksBase extends DataSource
 
     get displayingTag()
     {
-        let url = helpers.get_url_without_language(this.url);
+        let url = helpers.getUrlWithoutLanguage(this.url);
         let parts = url.pathname.split("/");
         if(parts.length < 6)
             return null;
@@ -77,17 +77,17 @@ export class DataSource_BookmarksBase extends DataSource
         this.fetchedBookmarkTagCounts = true;
 
         // If we have cached bookmark counts for ourself, load them.
-        if(this.viewingOwnBookmarks() && DataSource_BookmarksBase.cached_bookmark_tagCounts != null)
-            this.loadBookmarkTagCounts(DataSource_BookmarksBase.cached_bookmark_tagCounts);
+        if(this.viewingOwnBookmarks() && DataSource_BookmarksBase.cachedBookmarkTagCounts != null)
+            this.loadBookmarkTagCounts(DataSource_BookmarksBase.cachedBookmarkTagCounts);
         
         // Fetch bookmark tags.  We can do this in parallel with everything else.
         let url = "/ajax/user/" + this.viewingUserId + "/illusts/bookmark/tags";
-        let result = await helpers.get_request(url, {});
+        let result = await helpers.getRequest(url, {});
 
         // Cache this if we're viewing our own bookmarks, so we can display them while
         // navigating bookmarks.  We'll still refresh it as each page loads.
         if(this.viewingOwnBookmarks())
-            DataSource_BookmarksBase.cached_bookmark_tagCounts = result.body;
+            DataSource_BookmarksBase.cachedBookmarkTagCounts = result.body;
 
         this.loadBookmarkTagCounts(result.body);
     }
@@ -123,9 +123,9 @@ export class DataSource_BookmarksBase extends DataSource
             }
         }
 
-        // Fill in total_bookmarks from the tag count.  We'll get this from the search API,
+        // Fill in totalBookmarks from the tag count.  We'll get this from the search API,
         // but we can have it here earlier if we're viewing our own bookmarks and
-        // cached_bookmark_tagCounts is filled in.  We can't do this when viewing all bookmarks
+        // cachedBookmarkTagCounts is filled in.  We can't do this when viewing all bookmarks
         // (summing the counts will give the wrong answer whenever multiple tags are used on
         // one bookmark).
         let displayingTag = this.displayingTag;
@@ -158,14 +158,14 @@ export class DataSource_BookmarksBase extends DataSource
     
     // Get API arguments to query bookmarks.
     //
-    // If force_rest isn't null, it's either "show" (public) or "hide" (private), which
+    // If forceRest isn't null, it's either "show" (public) or "hide" (private), which
     // overrides the search parameters.
-    getBookmarkQueryParams(page, force_rest)
+    getBookmarkQueryParams(page, forceRest)
     {
         let queryArgs = this.url.searchParams;
         let rest = queryArgs.get("rest") || "show";
-        if(force_rest != null)
-            rest = force_rest;
+        if(forceRest != null)
+            rest = forceRest;
 
         let tag = this.displayingTag;
         if(tag == "")
@@ -187,11 +187,11 @@ export class DataSource_BookmarksBase extends DataSource
     {
         let data = this.getBookmarkQueryParams(page, rest);
         let url = `/ajax/user/${this.viewingUserId}/illusts/bookmarks`;
-        let result = await helpers.get_request(url, data);
+        let result = await helpers.getRequest(url, data);
 
         if(this.viewingOwnBookmarks())
         {
-            // This request includes each bookmark's tags.  Register those with image_data,
+            // This request includes each bookmark's tags.  Register those with MediaCache,
             // so the bookmark tag dropdown can display tags more quickly.
             for(let illust of result.body.works)
             {
@@ -200,8 +200,8 @@ export class DataSource_BookmarksBase extends DataSource
 
                 // illust.id is an int if this image is deleted.  Convert it to a string so it's
                 // like other images.
-                let mediaId = helpers.illust_id_to_media_id(illust.id.toString());
-                ppixiv.extraCache.update_cached_bookmark_image_tags(mediaId, tags);
+                let mediaId = helpers.illustIdToMediaId(illust.id.toString());
+                ppixiv.extraCache.updateCachedBookmarkTags(mediaId, tags);
             }
         }
 
@@ -243,13 +243,13 @@ export class DataSource_BookmarksBase extends DataSource
 
         let publicBookmarks = this.viewingPublic;
         let privateBookmarks = this.viewingPrivate;
-        let viewing_all = publicBookmarks && privateBookmarks;
+        let viewingAll = publicBookmarks && privateBookmarks;
         let displaying = "";
 
         if(this.totalBookmarks != -1)
             displaying += this.totalBookmarks + " ";
 
-        displaying += viewing_all? "Bookmark":
+        displaying += viewingAll? "Bookmark":
             privateBookmarks? "Private Bookmark":"Public Bookmark";
 
         // English-centric pluralization:
@@ -266,7 +266,7 @@ export class DataSource_BookmarksBase extends DataSource
     };
 
     // Return true if we're viewing publig and private bookmarks.  These are overridden
-    // in bookmarks_merged.
+    // in BookmarksMerged.
     get viewingPublic()
     {
         let args = new helpers.args(this.url);
@@ -292,13 +292,13 @@ export class DataSource_BookmarksBase extends DataSource
         //
         // This is currently only used for viewing other people's bookmarks.  Your own bookmarks are still
         // viewed with /bookmark.php with no ID.
-        return helpers.get_path_part(this.url, 1);
+        return helpers.getPathPart(this.url, 1);
     };
 
     // Return true if we're viewing our own bookmarks.
     viewingOwnBookmarks()
     {
-        return this.viewingUserId == window.global_data.user_id;
+        return this.viewingUserId == ppixiv.pixivInfo.userId;
     }
 
     // Don't show bookmark icons for the user's own bookmarks.  Every image on that page
@@ -359,7 +359,7 @@ export class Bookmarks extends DataSource_BookmarksBase
                 for(let p = 1; p <= this.totalPages; ++p)
                     this.shuffledPages.push(p);
 
-                helpers.shuffle_array(this.shuffledPages);
+                helpers.shuffleArray(this.shuffledPages);
             }
 
             if(page < this.shuffledPages.length)
@@ -369,14 +369,14 @@ export class Bookmarks extends DataSource_BookmarksBase
         let result = await this.requestBookmarks(pageToLoad, null);
 
         let mediaIds = [];
-        for(let illust_data of result.works)
-            mediaIds.push(helpers.illust_id_to_media_id(illust_data.id)); 
+        for(let illustData of result.works)
+            mediaIds.push(helpers.illustIdToMediaId(illustData.id)); 
 
         // If we're shuffling, shuffle the individual illustrations too.
         if(this.shuffle)
-            helpers.shuffle_array(mediaIds);
+            helpers.shuffleArray(mediaIds);
         
-        await ppixiv.mediaCache.add_media_infos_partial(result.works, "normal");
+        await ppixiv.mediaCache.addMediaInfosPartial(result.works, "normal");
 
         // Register the new page of data.  If we're shuffling, use the original page number, not the
         // shuffled page.
@@ -404,7 +404,7 @@ export class BookmarksMerged extends DataSource_BookmarksBase
     {
         super(url);
 
-        this.max_page_per_type = [-1, -1]; // public, private
+        this.maxPagePerType = [-1, -1]; // public, private
         this.bookmarkMediaIds = [[], []]; // public, private
         this.bookmarkTotals = [0, 0]; // public, private
     }
@@ -435,7 +435,7 @@ export class BookmarksMerged extends DataSource_BookmarksBase
     async requestBookmarkType(page, rest)
     {
         let isPrivate = rest == "hide"? 1:0;
-        let maxPage = this.max_page_per_type[isPrivate];
+        let maxPage = this.maxPagePerType[isPrivate];
         if(maxPage != -1 && page > maxPage)
         {
             // We're past the end.
@@ -452,10 +452,10 @@ export class BookmarksMerged extends DataSource_BookmarksBase
         });
 
         let mediaIds = [];
-        for(let illust_data of result.works)
-            mediaIds.push(helpers.illust_id_to_media_id(illust_data.id));
+        for(let illustData of result.works)
+            mediaIds.push(helpers.illustIdToMediaId(illustData.id));
 
-        await ppixiv.mediaCache.add_media_infos_partial(result.works, "normal");
+        await ppixiv.mediaCache.addMediaInfosPartial(result.works, "normal");
 
         // If there are no results, remember that this is the last page, so we don't
         // make more requests for this type.  Use the "empty" flag for this and not
@@ -463,11 +463,11 @@ export class BookmarksMerged extends DataSource_BookmarksBase
         // deleted.
         if(result.empty)
         {
-            if(this.max_page_per_type[isPrivate] == -1)
-                this.max_page_per_type[isPrivate] = page;
+            if(this.maxPagePerType[isPrivate] == -1)
+                this.maxPagePerType[isPrivate] = page;
             else
-                this.max_page_per_type[isPrivate] = Math.min(page, this.max_page_per_type[isPrivate]);
-            // console.log("max page for", isPrivate? "private":"public", this.max_page_per_type[isPrivate]);
+                this.maxPagePerType[isPrivate] = Math.min(page, this.maxPagePerType[isPrivate]);
+            // console.log("max page for", isPrivate? "private":"public", this.maxPagePerType[isPrivate]);
         }
 
         // Store the IDs.  We don't register them here.
@@ -487,22 +487,22 @@ class UI extends Widget
                 <div class=box-button-row>
                     <!-- These are hidden if you're viewing somebody else's bookmarks. -->
                     <span class=bookmarks-public-private style="margin-right: 25px;">
-                        ${ helpers.create_box_link({label: "All",        popup: "Show all bookmarks",       data_type: "all" }) }
-                        ${ helpers.create_box_link({label: "Public",     popup: "Show public bookmarks",    data_type: "public" }) }
-                        ${ helpers.create_box_link({label: "Private",    popup: "Show private bookmarks",   data_type: "private" }) }
+                        ${ helpers.createBoxLink({label: "All",        popup: "Show all bookmarks",       dataType: "all" }) }
+                        ${ helpers.createBoxLink({label: "Public",     popup: "Show public bookmarks",    dataType: "public" }) }
+                        ${ helpers.createBoxLink({label: "Private",    popup: "Show private bookmarks",   dataType: "private" }) }
                     </span>
 
-                    ${ helpers.create_box_link({ popup: "Shuffle", icon: "shuffle",   data_type: "order-shuffle" }) }
+                    ${ helpers.createBoxLink({ popup: "Shuffle", icon: "shuffle",   dataType: "order-shuffle" }) }
                 </div>
 
-                ${ helpers.create_box_link({label: "All bookmarks",    popup: "Bookmark tags",  icon: "ppixiv:tag", classes: ["bookmark-tag-button"] }) }
+                ${ helpers.createBoxLink({label: "All bookmarks",    popup: "Bookmark tags",  icon: "ppixiv:tag", classes: ["bookmark-tag-button"] }) }
             </div>
         `});
 
         this.dataSource = dataSource;
 
         // Refresh the displayed label in case we didn't have it when we created the widget.
-        this.dataSource.addEventListener("_refresh_ui", () => this.tagDropdown.set_button_popup_highlight(), this._signal);
+        this.dataSource.addEventListener("_refresh_ui", () => this.tagDropdown.setButtonPopupHighlight(), this._signal);
 
         // The public/private button only makes sense when viewing your own bookmarks.
         let publicPrivateButtonContainer = this.querySelector(".bookmarks-public-private");
@@ -518,9 +518,9 @@ class UI extends Widget
         // also switch to public bookmarks.  This is easier than graying it out and trying to explain it
         // in the popup, and better than hiding it which makes it hard to find.
         let args = new helpers.args(this.dataSource.url);
-        let show_all = args.hash.get("show-all") != "0";
-        let set_public = show_all? { rest: null, "#show-all": 0 }:{};
-        this.dataSource.setItem(this.container, {type: "order-shuffle", fields: {"#shuffle": 1, ...set_public}, toggle: true, defaults: {"#shuffle": null, "#show-all": 1}});
+        let showAll = args.hash.get("show-all") != "0";
+        let setPublic = showAll? { rest: null, "#show-all": 0 }:{};
+        this.dataSource.setItem(this.container, {type: "order-shuffle", fields: {"#shuffle": 1, ...setPublic}, toggle: true, defaults: {"#shuffle": null, "#show-all": 1}});
 
         class BookmarkTagsDropdown extends TagDropdownWidget
         {
@@ -557,13 +557,13 @@ class UI extends Widget
                 else
                     label = tag;
 
-                let a = helpers.create_box_link({
+                let a = helpers.createBoxLink({
                     label,
                     classes: ["tag-entry"],
                     popup: dataSource.bookmarkTagCounts[tag],
                     link: "#",
-                    as_element: true,
-                    data_type: "bookmark-tag",
+                    asElement: true,
+                    dataType: "bookmark-tag",
                 });
 
                 if(label == "All bookmarks")
@@ -584,7 +584,7 @@ class UI extends Widget
         // Create the bookmark tag dropdown.
         this.tagDropdown = new DropdownMenuOpener({
             button: this.querySelector(".bookmark-tag-button"),
-            create_box: ({...options}) => new BookmarkTagsDropdown({dataSource, ...options}),
+            createBox: ({...options}) => new BookmarkTagsDropdown({dataSource, ...options}),
         });
     }
 }

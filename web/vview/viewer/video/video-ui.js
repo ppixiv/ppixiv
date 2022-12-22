@@ -14,8 +14,8 @@ export default class VideoUI extends Widget
                 <div class=seek-bar-container-top></div>
                 <div class=video-ui-strip>
                     <vv-container class="play-button button">
-                        ${ helpers.create_icon("pause", { dataset: { play: "pause" }}) }
-                        ${ helpers.create_icon("play_arrow", { dataset: { play: "play" }}) }
+                        ${ helpers.createIcon("pause", { dataset: { play: "pause" }}) }
+                        ${ helpers.createIcon("play_arrow", { dataset: { play: "play" }}) }
                     </vv-container>
 
                     <div class=time></div>
@@ -27,12 +27,12 @@ export default class VideoUI extends Widget
                     </vv-container>
 
                     <vv-container class=button>
-                        ${ helpers.create_icon("volume_up", { dataset: { volume: "high" }}) }
-                        ${ helpers.create_icon("volume_off", { dataset: { volume: "mute" }}) }
+                        ${ helpers.createIcon("volume_up", { dataset: { volume: "high" }}) }
+                        ${ helpers.createIcon("volume_off", { dataset: { volume: "mute" }}) }
                     </vv-container>
 
                     <vv-container class="pip-button button">
-                        ${ helpers.create_icon("picture_in_picture_alt") }
+                        ${ helpers.createIcon("picture_in_picture_alt") }
                     </vv-container>
 
                     <vv-container class="fullscreen button">
@@ -45,18 +45,18 @@ export default class VideoUI extends Widget
 
         // We set .show-ui to force the video control bar to be displayed when the mobile UI
         // is visible.
-        this.refresh_show_ui();
+        this.refreshShowUi();
 
         // listen for data-mobile-ui-visible and show our UI
         ClassFlags.get.addEventListener("mobile-ui-visible", (e) => {
-            this.refresh_show_ui();
-        }, { signal: this.shutdown_signal.signal });
+            this.refreshShowUi();
+        }, { signal: this.shutdownSignal.signal });
 
         // Set .dragging to stay visible during drags.
         new PointerListener({
             element: this.container,
             callback: (e) => {
-                helpers.set_class(this.container, "dragging", e.pressed);
+                helpers.setClass(this.container, "dragging", e.pressed);
             },
         });
 
@@ -64,18 +64,18 @@ export default class VideoUI extends Widget
         this.seekBar = new SeekBar({
             container: this.container.querySelector(".seek-bar-container-top"),
         });
-        this.set_seek_bar_pos();
+        this._setSeekBarPos();
 
-        this.volume_slider = new volume_slider_widget({
+        this.volumeSlider = new VolumeSliderWidget({
             contents: this.container.querySelector(".volume-slider"),
-            started_dragging: () =>
+            startedDragging: () =>
             {
                 // Remember what the volume was before the drag started.
-                this.saved_volume = this.video.volume;
+                this.savedVolume = this.video.volume;
             },
-            stopped_dragging: () =>
+            stoppedDragging: () =>
             {
-                this.saved_volume = null;
+                this.savedVolume = null;
             },
             ondrag: (volume) =>
             {
@@ -85,7 +85,7 @@ export default class VideoUI extends Widget
                 // Dragging the volume slider to 0 mutes and resets the underlying volume.
                 if(volume == 0)
                 {
-                    this.video.volume = this.saved_volume;
+                    this.video.volume = this.savedVolume;
                     this.video.muted = true;
                 }
                 else
@@ -107,15 +107,15 @@ export default class VideoUI extends Widget
 
         this.container.querySelector(".play-button").addEventListener("click", () => {
             if(this.player != null)
-                this.player.setWantPlaying(!this.player.want_playing);
-        }, { signal: this.shutdown_signal.signal });
+                this.player.setWantPlaying(!this.player.wantPlaying);
+        }, { signal: this.shutdownSignal.signal });
 
         for(let button of this.container.querySelectorAll("[data-volume]"))
             button.addEventListener("click", () => {
                 if(this.video == null)
                     return;
                 this.video.muted = !this.video.muted;
-            }, { signal: this.shutdown_signal.signal });
+            }, { signal: this.shutdownSignal.signal });
 
         this.container.querySelector(".pip-button").addEventListener("click", async () => {
             if(this.video == null)
@@ -130,40 +130,40 @@ export default class VideoUI extends Widget
             } catch(e) {
                 return false;
             }
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
         document.addEventListener("fullscreenchange", (e) => {
-            this.set_seek_bar_pos();
-        }, { signal: this.shutdown_signal.signal });
+            this._setSeekBarPos();
+        }, { signal: this.shutdownSignal.signal });
 
         window.addEventListener("resize", (e) => {
-            this.set_seek_bar_pos();
-        }, { signal: this.shutdown_signal.signal });
+            this._setSeekBarPos();
+        }, { signal: this.shutdownSignal.signal });
 
         // Set up the fullscreen button.  Disable this on mobile, since it doesn't make sense there.
-        let fullscreen_button = this.container.querySelector(".fullscreen");
-        fullscreen_button.hidden = ppixiv.mobile;
-        fullscreen_button.addEventListener("click", () => {
-            helpers.toggle_fullscreen();
-        }, { signal: this.shutdown_signal.signal });
+        let fullscreenButton = this.container.querySelector(".fullscreen");
+        fullscreenButton.hidden = ppixiv.mobile;
+        fullscreenButton.addEventListener("click", () => {
+            helpers.toggleFullscreen();
+        }, { signal: this.shutdownSignal.signal });
 
-        this.video_changed();
+        this.videoChanged();
     }
 
-    refresh_show_ui()
+    refreshShowUi()
     {
         let show_ui = ClassFlags.get.get("mobile-ui-visible");
-        helpers.set_class(this.container, "show-ui", show_ui);
+        helpers.setClass(this.container, "show-ui", show_ui);
     }
 
     // Set whether the seek bar is above or below the video UI.
-    set_seek_bar_pos()
+    _setSeekBarPos()
     {
         // Insert the seek bar into the correct container.
         let top = ppixiv.mobile || !helpers.is_fullscreen();
         this.seekBar.container.remove();
-        let seek_bar_container = top? ".seek-bar-container-top":".seek-bar-container-bottom";
-        this.container.querySelector(seek_bar_container).appendChild(this.seekBar.container);
+        let seekBarContainer = top? ".seek-bar-container-top":".seek-bar-container-bottom";
+        this.container.querySelector(seekBarContainer).appendChild(this.seekBar.container);
 
         this.seekBar.container.dataset.position = top? "top":"bottom";
     }
@@ -171,61 +171,61 @@ export default class VideoUI extends Widget
     shutdown()
     {
         // Remove any listeners.
-        this.video_changed();
+        this.videoChanged();
 
         super.shutdown();
     }
 
-    video_changed({player=null, video=null}={})
+    videoChanged({player=null, video=null}={})
     {
-        if(this.remove_video_listeners)
+        if(this.removeVideoListeners)
         {
-            this.remove_video_listeners.abort();
-            this.remove_video_listeners = null;
+            this.removeVideoListeners.abort();
+            this.removeVideoListeners = null;
         }
 
         this.player = player;
         this.video = video;
 
         // Only display the main UI when we have a video.  Don't hide the seek bar, since
-        // it's also used by viewer_ugoira.
+        // it's also used by ViewerUgoira.
         this.container.querySelector(".video-ui-strip").hidden = this.video == null;
         if(this.video == null)
             return;
 
-        this.remove_video_listeners = new AbortController();
+        this.removeVideoListeners = new AbortController();
 
         this.video.addEventListener("volumechange", (e) => {
-            this.volume_changed();
-        }, { signal: this.remove_video_listeners.signal });
+            this.volumeChanged();
+        }, { signal: this.removeVideoListeners.signal });
 
-        this.video.addEventListener("play", (e) => { this.pause_changed(); }, { signal: this.remove_video_listeners.signal });
-        this.video.addEventListener("pause", (e) => { this.pause_changed(); }, { signal: this.remove_video_listeners.signal });
-        this.video.addEventListener("timeupdate", (e) => { this.time_changed(); }, { signal: this.remove_video_listeners.signal });
-        this.video.addEventListener("loadedmetadata", (e) => { this.time_changed(); }, { signal: this.remove_video_listeners.signal });
-        this.video.addEventListener("progress", (e) => { this.time_changed(); }, { signal: this.remove_video_listeners.signal });
+        this.video.addEventListener("play", (e) => { this.pauseChanged(); }, { signal: this.removeVideoListeners.signal });
+        this.video.addEventListener("pause", (e) => { this.pauseChanged(); }, { signal: this.removeVideoListeners.signal });
+        this.video.addEventListener("timeupdate", (e) => { this.timeChanged(); }, { signal: this.removeVideoListeners.signal });
+        this.video.addEventListener("loadedmetadata", (e) => { this.timeChanged(); }, { signal: this.removeVideoListeners.signal });
+        this.video.addEventListener("progress", (e) => { this.timeChanged(); }, { signal: this.removeVideoListeners.signal });
 
         // Hide the PIP button if the browser or this video doesn't support it.
         this.container.querySelector(".pip-button").hidden = this.video.requestPictureInPicture == null;
         
-        this.pause_changed();
-        this.volume_changed();
-        this.time_changed();
+        this.pauseChanged();
+        this.volumeChanged();
+        this.timeChanged();
     }
 
-    pause_changed()
+    pauseChanged()
     {
         this.container.querySelector("[data-play='play']").style.display = !this.video.paused? "":"none";
         this.container.querySelector("[data-play='pause']").style.display = this.video.paused? "":"none";
     }
 
-    volume_changed()
+    volumeChanged()
     {
-        if(this.video.hide_audio_controls)
+        if(this.video.hideAudioControls)
         {
             for(let element of this.container.querySelectorAll("[data-volume]"))
                 element.style.display = "none";
-            this.volume_slider.container.hidden = true;
+            this.volumeSlider.container.hidden = true;
         }
         else
         {
@@ -237,12 +237,12 @@ export default class VideoUI extends Widget
 
             // Update the volume slider.  If the video is muted, display 0 instead of the
             // underlying volume.
-            this.volume_slider.container.hidden = false;
-            this.volume_slider.set_value(this.video.muted? 0:this.video.volume);
+            this.volumeSlider.container.hidden = false;
+            this.volumeSlider.setValue(this.video.muted? 0:this.video.volume);
         }
     }
 
-    time_changed()
+    timeChanged()
     {
         if(this.video == null)
             return;
@@ -257,51 +257,51 @@ export default class VideoUI extends Widget
 
         if(duration < 10)
         {
-            let fmt = (total_seconds) => {
-                let seconds = Math.floor(total_seconds);
-                let ms = Math.round((total_seconds * 1000) % 1000);
+            let fmt = (totalSeconds) => {
+                let seconds = Math.floor(totalSeconds);
+                let ms = Math.round((totalSeconds * 1000) % 1000);
                 return "" + seconds + "." + ms.toString().padStart(3, '0');
             };
             this.time.innerText = `${fmt(now)} / ${fmt(duration)}`;
         }
         else
         {
-            this.time.innerText = `${helpers.format_seconds(now)} / ${helpers.format_seconds(duration)}`;
+            this.time.innerText = `${helpers.formatSeconds(now)} / ${helpers.formatSeconds(duration)}`;
         }
     }
 }
 
-class volume_slider_widget extends Widget
+class VolumeSliderWidget extends Widget
 {
     constructor({
         ondrag,
-        started_dragging,
-        stopped_dragging,
+        startedDragging,
+        stoppedDragging,
         ...options
     })
     {
         super(options);
 
         this.ondrag = ondrag;
-        this.started_dragging = started_dragging;
-        this.stopped_dragging = stopped_dragging;
+        this.startedDragging = startedDragging;
+        this.stoppedDragging = stoppedDragging;
 
-        this.volume_line = this.container.querySelector(".volume-line");
+        this.volumeLine = this.container.querySelector(".volume-line");
 
         new PointerListener({
             element: this.container,
             callback: (e) => {
                 if(e.pressed)
                 {
-                    this.started_dragging();
-                    this.captured_pointer_id = e.pointerId;
-                    this.container.setPointerCapture(this.captured_pointer_id);
+                    this.startedDragging();
+                    this._capturedPointerId = e.pointerId;
+                    this.container.setPointerCapture(this._capturedPointerId);
                     this.container.addEventListener("pointermove", this.pointermove);
-                    this.handle_drag(e);
+                    this.handleDrag(e);
                 }
                 else
                 {
-                    this.stop_dragging();
+                    this.stopDragging();
                 }
             },
         });
@@ -309,49 +309,49 @@ class volume_slider_widget extends Widget
 
     get is_dragging()
     {
-        return this.captured_pointer_id != null;
+        return this._capturedPointerId != null;
     }
 
     pointermove = (e) =>
     {
-        this.handle_drag(e);
+        this.handleDrag(e);
     }
 
-    stop_dragging()
+    stopDragging()
     {
-        this.stopped_dragging();
+        this.stoppedDragging();
 
         this.container.removeEventListener("pointermove", this.pointermove);
         
-        if(this.captured_pointer_id != null)
+        if(this._capturedPointerId != null)
         {
-            this.container.releasePointerCapture(this.captured_pointer_id);
-            this.captured_pointer_id = null;
+            this.container.releasePointerCapture(this._capturedPointerId);
+            this._capturedPointerId = null;
         }
     }
 
-    set_value(value)
+    setValue(value)
     {
         // Ignore external changes while we're dragging.
         if(this.is_dragging)
             return;
 
-        this.set_value_internal(value);
+        this.setValueInternal(value);
     }
 
-    set_value_internal(value)
+    setValueInternal(value)
     {
         value = 1 - value;
-        this.volume_line.style.background = `linear-gradient(to left, #000 ${value*100}%, #FFF ${value*100}px)`;
+        this.volumeLine.style.background = `linear-gradient(to left, #000 ${value*100}%, #FFF ${value*100}px)`;
     }
 
-    handle_drag(e)
+    handleDrag(e)
     {
         // Get the mouse position relative to the volume slider.
-        let {left, width} = this.volume_line.getBoundingClientRect();
+        let {left, width} = this.volumeLine.getBoundingClientRect();
         let volume = (e.clientX - left) / width;
         volume = Math.max(0, Math.min(1, volume));
-        this.set_value_internal(volume);
+        this.setValueInternal(volume);
         this.ondrag(volume);
     };
 }

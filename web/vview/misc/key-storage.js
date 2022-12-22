@@ -2,13 +2,13 @@
 // Originally from https://gist.github.com/wilsonpage/01d2eb139959c79e0d9a
 export default class KeyStorage
 {
-    constructor(store_name, {db_upgrade=null, version=1}={})
+    constructor(store_name, {upgradeDb=null, version=1}={})
     {
-        this.db_name = store_name;
-        this.db_upgrade = db_upgrade;
-        this.store_name = store_name;
-        this.version = version;
-        this.failed = false;
+        this._dbName = store_name;
+        this._upgradeDb = upgradeDb;
+        this._storeName = store_name;
+        this._version = version;
+        this._failed = false;
     }
 
     // Open the database, run func, then close the database.
@@ -19,18 +19,18 @@ export default class KeyStorage
     // close it around every op.
     //
     // If the database can't be opened, func won't be called and null will be returned.
-    async db_op(func)
+    async dbOp(func)
     {
         // Stop early if we've already failed, so we don't log an error for each op.
-        if(this.failed)
+        if(this._failed)
             return null;
 
         let db;
         try {
-            db = await this.open_database();
+            db = await this._openDatabase();
         } catch(e) {
             console.log("Couldn't open database:", e);
-            this.failed = true;
+            this._failed = true;
             return null;
         }
         
@@ -41,22 +41,22 @@ export default class KeyStorage
         }
     }
 
-    async get_db_version()
+    async getDbVersion()
     {
         let dbs = await indexedDB.databases();
         for(let db of dbs)
         {
-            if(db.name == this.db_name)
+            if(db.name == this._dbName)
                 return db.version;
         }
 
         return 0;
     }
 
-    open_database()
+    _openDatabase()
     {
         return new Promise((resolve, reject) => {
-            let request = indexedDB.open(this.db_name, this.version);
+            let request = indexedDB.open(this._dbName, this._version);
 
             // If this happens, another tab has the database open.
             request.onblocked = e => {
@@ -64,13 +64,13 @@ export default class KeyStorage
             };
 
             request.onupgradeneeded = e => {
-                // If we have a db_upgrade function, let it handle the upgrade.  Otherwise, we're
+                // If we have a upgradeDb function, let it handle the upgrade.  Otherwise, we're
                 // just creating the initial database and we're not doing anything special with it.
                 let db = e.target.result;
-                if(this.db_upgrade)
-                    this.db_upgrade(e);
+                if(this._upgradeDb)
+                    this._upgradeDb(e);
                 else
-                    db.createObjectStore(this.store_name);
+                    db.createObjectStore(this._storeName);
             };
 
             request.onsuccess = e => {
@@ -84,13 +84,13 @@ export default class KeyStorage
         });
     }
 
-    get_store(db, mode="readwrite")
+    getStore(db, mode="readwrite")
     {
-        let transaction = db.transaction(this.store_name, mode);
-        return transaction.objectStore(this.store_name);
+        let transaction = db.transaction(this._storeName, mode);
+        return transaction.objectStore(this._storeName);
     }
 
-    static await_request(request)
+    static awaitRequest(request)
     {
         return new Promise((resolve, reject) => {
             let abort = new AbortController;
@@ -106,10 +106,10 @@ export default class KeyStorage
         });        
     }
 
-    static async_store_get(store, key)
+    static asyncStoreGet(store, key)
     {
         return new Promise((resolve, reject) => {
-            var request = store.get(key);
+            let request = store.get(key);
             request.onsuccess = e => resolve(e.target.result);
             request.onerror = reject;
         });
@@ -117,28 +117,28 @@ export default class KeyStorage
 
     async get(key, store)
     {
-        return await this.db_op(async (db) => {
-            return await KeyStorage.async_store_get(this.get_store(db), key);
+        return await this.dbOp(async (db) => {
+            return await KeyStorage.asyncStoreGet(this.getStore(db), key);
         });
     }
 
     // Retrieve the values for a list of keys.  Return a dictionary of {key: value}.
-    async multi_get(keys)
+    async multiGet(keys)
     {
-        return await this.db_op(async (db) => {
-            let store = this.get_store(db, "readonly");
+        return await this.dbOp(async (db) => {
+            let store = this.getStore(db, "readonly");
 
             let promises = [];
             for(let key of keys)
-                promises.push(KeyStorage.async_store_get(store, key));
+                promises.push(KeyStorage.asyncStoreGet(store, key));
             return await Promise.all(promises);
         }) ?? {};
     }
 
-    static async_store_set(store, key, value)
+    static asyncStoreSet(store, key, value)
     {
         return new Promise((resolve, reject) => {
-            var request = store.put(value, key);
+            let request = store.put(value, key);
             request.onsuccess = resolve;
             request.onerror = reject;
         });
@@ -146,36 +146,36 @@ export default class KeyStorage
     
     async set(key, value)
     {
-        return await this.db_op(async (db) => {
-            return KeyStorage.async_store_set(this.get_store(db), key, value);
+        return await this.dbOp(async (db) => {
+            return KeyStorage.asyncStoreSet(this.getStore(db), key, value);
         });
     }
 
     // Given a dictionary, set all key/value pairs.
-    async multi_set(data)
+    async multiSet(data)
     {
-        return await this.db_op(async (db) => {
-            let store = this.get_store(db);
+        return await this.dbOp(async (db) => {
+            let store = this.getStore(db);
 
             let promises = [];
             for(let [key, value] of Object.entries(data))
             {
                 let request = store.put(value, key);
-                promises.push(KeyStorage.await_request(request));
+                promises.push(KeyStorage.awaitRequest(request));
             }
             await Promise.all(promises);
         });
     }
 
-    async multi_set_values(data)
+    async multiSetValues(data)
     {
-        return await this.db_op(async (db) => {
-            let store = this.get_store(db);
+        return await this.dbOp(async (db) => {
+            let store = this.getStore(db);
             let promises = [];
             for(let item of data)
             {
                 let request = store.put(item);
-                promises.push(KeyStorage.await_request(request));
+                promises.push(KeyStorage.awaitRequest(request));
             }
             return Promise.all(promises);
         });
@@ -183,22 +183,22 @@ export default class KeyStorage
 
     async delete(key)
     {
-        return await this.db_op(async (db) => {
-            let store = this.get_store(db);
-            return KeyStorage.await_request(store.delete(key));
+        return await this.dbOp(async (db) => {
+            let store = this.getStore(db);
+            return KeyStorage.awaitRequest(store.delete(key));
         });
     }
 
     // Delete a list of keys.
-    async multi_delete(keys)
+    async multiDelete(keys)
     {
-        return await this.db_op(async (db) => {
-            let store = this.get_store(db);
+        return await this.dbOp(async (db) => {
+            let store = this.getStore(db);
             let promises = [];
             for(let key of keys)
             {
                 let request = store.delete(key);
-                promises.push(KeyStorage.await_request(request));
+                promises.push(KeyStorage.awaitRequest(request));
             }
             return Promise.all(promises);
         });
@@ -207,8 +207,8 @@ export default class KeyStorage
     // Delete all keys.
     async clear()
     {
-        return await this.db_op(async (db) => {
-            let store = this.get_store(db);
+        return await this.dbOp(async (db) => {
+            let store = this.getStore(db);
             await store.clear();
         });
     }

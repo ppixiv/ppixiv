@@ -51,7 +51,7 @@ export function getDataSourceForUrl(url)
 {
     // url is usually document.location, which for some reason doesn't have .searchParams.
     url = new URL(url);
-    url = helpers.get_url_without_language(url);
+    url = helpers.getUrlWithoutLanguage(url);
 
     if(ppixiv.native)
     {
@@ -62,8 +62,8 @@ export function getDataSourceForUrl(url)
             return allDataSources.VView;
     }
 
-    let first_part = helpers.get_page_type_from_url(url);
-    if(first_part == "artworks")
+    let firstPart = helpers.getPageTypeFromUrl(url);
+    if(firstPart == "artworks")
     {
         let args = new helpers.args(url);
         if(args.hash.get("manga"))
@@ -71,7 +71,7 @@ export function getDataSourceForUrl(url)
         else
             return allDataSources.Illust;
     }
-    else if(first_part == "users")
+    else if(firstPart == "users")
     {
         // This is one of:
         //
@@ -83,38 +83,30 @@ export function getDataSourceForUrl(url)
         // /users/12345/following
         //
         // All of these except for bookmarks are handled by allDataSources.Artist.
-        let mode = helpers.get_path_part(url, 2);
+        let mode = helpers.getPathPart(url, 2);
         if(mode == "following")
             return allDataSources.FollowedUsers;
 
         if(mode != "bookmarks")
             return allDataSources.Artist;
 
-        // Handle a special case: we're called by early_controller just to find out if
-        // the current page is supported or not.  This happens before window.global_data
-        // exists, so we can't check if we're viewing our own bookmarks or someone else's.
-        // In this case we don't need to, since the caller just wants to see if we return
-        // a data source or not.
-        if(window.global_data == null)
-            return allDataSources.Bookmarks;
-
         // If show-all=0 isn't in the hash, and we're not viewing someone else's bookmarks,
         // we're viewing all bookmarks, so use allDataSources.BookmarksMerged.  Otherwise,
         // use allDataSources.bookmarks.
         let args = new helpers.args(url);
-        let user_id = helpers.get_path_part(url, 1);
+        let user_id = helpers.getPathPart(url, 1);
         if(user_id == null)
-            user_id = window.global_data.user_id;
-        let viewingOwnBookmarks = user_id == window.global_data.user_id;
-        let both_public_and_private = viewingOwnBookmarks && args.hash.get("show-all") != "0";
-        return both_public_and_private? allDataSources.BookmarksMerged:allDataSources.Bookmarks;
+            user_id = ppixiv.pixivInfo.userId;
+        let viewingOwnBookmarks = user_id == ppixiv.pixivInfo.userId;
+        let bothPublicAndPrivate = viewingOwnBookmarks && args.hash.get("show-all") != "0";
+        return bothPublicAndPrivate? allDataSources.BookmarksMerged:allDataSources.Bookmarks;
 
     }
     else if(url.pathname == "/new_illust.php" || url.pathname == "/new_illust_r18.php")
         return allDataSources.NewPostsByEveryone;
     else if(url.pathname == "/bookmark_new_illust.php" || url.pathname == "/bookmark_new_illust_r18.php")
         return allDataSources.NewPostsByFollowing;
-    else if(first_part == "tags")
+    else if(firstPart == "tags")
         return allDataSources.SearchIllusts;
     else if(url.pathname == "/discovery")
         return allDataSources.Discovery;
@@ -135,11 +127,11 @@ export function getDataSourceForUrl(url)
         return allDataSources.SearchUsers;
     else if(url.pathname.startsWith("/request/complete"))
         return allDataSources.CompletedRequests;
-    else if(first_part == "")
+    else if(firstPart == "")
     {
         // Data sources that don't have a corresponding Pixiv page:
         let args = new helpers.args(url);
-        if(args.hash_path == "/edits")
+        if(args.hashPath == "/edits")
             return allDataSources.EditedImages;
         else
             return null;
@@ -157,16 +149,16 @@ export function createDataSourceForUrl(url, {
     // previously created one.
     force=false,
 
-    // If remove_search_page is true, the data source page number in url will be
+    // If removeSearchPage is true, the data source page number in url will be
     // ignored, returning to page 1.  This only matters for data sources that support
     // a start page.
-    remove_search_page=false,
+    removeSearchPage=false,
 }={})
 {
     let args = new helpers.args(url);
 
-    let data_source_class = getDataSourceForUrl(url);
-    if(data_source_class == null)
+    let dataSourceClass = getDataSourceForUrl(url);
+    if(dataSourceClass == null)
     {
         console.error("Unexpected path:", url.pathname);
         return;
@@ -174,11 +166,11 @@ export function createDataSourceForUrl(url, {
 
     // Canonicalize the URL to see if we already have a data source for this URL.  We only
     // keep one data source around for each canonical URL (eg. search filters).
-    let canonical_url = helpers.get_canonical_url(url, { remove_search_page: true }).url.toString();
-    if(!force && canonical_url in dataSourcesByUrl)
+    let canonicalUrl = helpers.getCanonicalUrl(url, { removeSearchPage: true }).url.toString();
+    if(!force && canonicalUrl in dataSourcesByUrl)
     {
         // console.log("Reusing data source for", url.toString());
-        let dataSource = dataSourcesByUrl[canonical_url];
+        let dataSource = dataSourcesByUrl[canonicalUrl];
         if(dataSource)
         {
             // If the URL has a page number in it, only return it if this data source can load the
@@ -195,10 +187,10 @@ export function createDataSourceForUrl(url, {
     
     // The search page isn't part of the canonical URL, but keep it in the URL we create
     // the data source with, so it starts at the current page.
-    let base_url = helpers.get_canonical_url(url, { remove_search_page }).url.toString();
-    let source = new data_source_class(base_url);
+    let baseUrl = helpers.getCanonicalUrl(url, { removeSearchPage }).url.toString();
+    let source = new dataSourceClass(baseUrl);
 
-    dataSourcesByUrl[canonical_url] = source;
+    dataSourcesByUrl[canonicalUrl] = source;
     return source;
 }
 

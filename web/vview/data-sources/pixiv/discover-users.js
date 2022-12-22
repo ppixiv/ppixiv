@@ -42,7 +42,7 @@ export default class DataSource_DiscoverUsers extends DataSource
         if(this.showingUserId != null)
         {
             // Make sure the user info is loaded.
-            this.userInfo = await ppixiv.userCache.get_user_info_full(this.showingUserId);
+            this.userInfo = await ppixiv.userCache.getUserInfoFull(this.showingUserId);
 
             // Update to refresh our page title, which uses user_info.
             this.callUpdateListeners();
@@ -53,33 +53,33 @@ export default class DataSource_DiscoverUsers extends DataSource
         let result;
         if(this.showingUserId != null)
         {
-            result = await helpers.get_request(`/ajax/user/${this.showingUserId}/recommends`, {
+            result = await helpers.getRequest(`/ajax/user/${this.showingUserId}/recommends`, {
                 userNum: this.usersPerPage,
                 workNum: 8,
                 isR18: true,
                 lang: "en"
             });
         } else {
-            result = await helpers.get_request("/ajax/discovery/users", {
+            result = await helpers.getRequest("/ajax/discovery/users", {
                 limit: this.usersPerPage,
                 lang: "en",
             });
 
             // This one includes tag translations.
-            ppixiv.tagTranslations.add_translations_dict(result.body.tagTranslation);
+            ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
         }
 
         if(result.error)
             throw "Error reading suggestions: " + result.message;
 
-        await ppixiv.mediaCache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
+        await ppixiv.mediaCache.addMediaInfosPartial(result.body.thumbnails.illust, "normal");
 
         for(let user of result.body.users)
         {
-            ppixiv.userCache.add_user_data(user);
+            ppixiv.userCache.addUserData(user);
 
             // Register this as quick user data, for use in thumbnails.
-            ppixiv.extraCache.add_quick_user_data(user, "recommendations");
+            ppixiv.extraCache.addQuickUserData(user, "recommendations");
         }
 
         // Pixiv's motto: "never do the same thing the same way twice"
@@ -101,7 +101,7 @@ export default class DataSource_DiscoverUsers extends DataSource
             
             let illustIds = user.illustIds || user.recentIllustIds;
             for(let illust_id of illustIds)
-                mediaIds.push(helpers.illust_id_to_media_id(illust_id));
+                mediaIds.push(helpers.illustIdToMediaId(illust_id));
         }
 
         // Register the new page of data.

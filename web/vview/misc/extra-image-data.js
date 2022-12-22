@@ -15,10 +15,10 @@ export default class ExtraImageData
         if(ppixiv.native)
             return;
 
-        this.db = new KeyStorage("ppixiv-image-data", { db_upgrade: this.db_upgrade });
+        this.db = new KeyStorage("ppixiv-image-data", { upgradeDb: this.upgradeDb });
     }
 
-    db_upgrade = (e) => {
+    upgradeDb = (e) => {
         // Create our object store with an index on illust_id.
         let db = e.target.result;
         let store = db.createObjectStore("ppixiv-image-data");
@@ -26,7 +26,7 @@ export default class ExtraImageData
         store.createIndex("edited_at", "edited_at");
     }
 
-    async save_illust(media_id, data)
+    async updateMediaId(mediaId, data)
     {
         if(this.db == null)
             return;
@@ -34,88 +34,88 @@ export default class ExtraImageData
         // Request permission storage the first time the user saves image edits.  Browsers
         // seem to handle not spamming requests for this, but for safety we only do this once
         // per session.  We don't need to wait for this.
-        if(!this.requested_persistent_storage && navigator.storage?.persist)
+        if(!this._requestedPersistentStorage && navigator.storage?.persist)
         {
-            this.requested_persistent_storage = true;
+            this._requestedPersistentStorage = true;
             navigator.storage.persist();
         }
 
-        await this.db.set(media_id, data);
+        await this.db.set(mediaId, data);
     }
 
-    async delete_illust(media_id)
+    async deleteMediaId(mediaId)
     {
         if(this.db == null)
             return;
 
-        await this.db.delete(media_id);
+        await this.db.delete(mediaId);
     }
 
-    // Return extra data for the given media IDs if we have it, as a media_id: data dictionary.
-    async load_illust_data(media_ids)
+    // Return extra data for the given media IDs if we have it, as a mediaId: data dictionary.
+    async loadMediaId(mediaIds)
     {
         if(this.db == null)
             return {};
 
-        return await this.db.db_op(async (db) => {
-            let store = this.db.get_store(db);
+        return await this.db.dbOp(async (db) => {
+            let store = this.db.getStore(db);
 
             // Load data in bulk.
             let promises = {};
-            for(let media_id of media_ids)
+            for(let mediaId of mediaIds)
             {
-                let data = KeyStorage.async_store_get(store, media_id);
+                let data = KeyStorage.asyncStoreGet(store, mediaId);
                 if(data)
-                    promises[media_id] = data;
+                    promises[mediaId] = data;
             }
             return await helpers.await_map(promises);
         }) ?? {};
     }
 
-    // Return data for all pages of illust_id.
-    async load_all_pages_for_illust(illust_id)
+    // Return data for all pages of mediaId.
+    async loadAllPagesForIllust(illustId)
     {
         if(this.db == null)
             return {};
 
-        return await this.db.db_op(async (db) => {
-            let store = this.db.get_store(db);
+        return await this.db.dbOp(async (db) => {
+            let store = this.db.getStore(db);
             let index = store.index("illust_id");
-            let query = IDBKeyRange.only(illust_id);
+            let query = IDBKeyRange.only(illustId);
             let cursor = index.openCursor(query);
 
             let results = {};
             for await (let entry of cursor)
             {
-                let media_id = entry.primaryKey;
-                results[media_id] = entry.value;
+                let mediaId = entry.primaryKey;
+                results[mediaId] = entry.value;
             }
     
             return results;
         }) ?? {};
     }
 
-    // Batch load a list of illust_ids.  The results are returned mapped by illust_id.
-    async batch_load_all_pages_for_illust(illust_ids)
+    // Batch load a list of illustIds.  The results are returned mapped by illustId.
+    async batchLoadAllPagesForIllust(illustIds)
     {
         if(this.db == null)
             return {};
 
-        return await this.db.db_op(async (db) => {
-            let store = this.db.get_store(db);
+        return await this.db.dbOp(async (db) => {
+            let store = this.db.getStore(db);
             let index = store.index("illust_id");
 
             let promises = {};
-            for(let illust_id of illust_ids)
+            for(let illustId of illustIds)
             {
-                let query = IDBKeyRange.only(illust_id);
+                let query = IDBKeyRange.only(illustId);
                 let cursor = index.openCursor(query);
-                promises[illust_id] = (async() => {
+                promises[illustId] = (async() => {
                     let results = {};
                     for await (let entry of cursor)
                     {
-                        let media_id = entry.primaryKey;
-                        results[media_id] = entry.value;
+                        let mediaId = entry.primaryKey;
+                        results[mediaId] = entry.value;
                     }
                     return results;
                 })();
@@ -129,21 +129,21 @@ export default class ExtraImageData
     //
     // Note that we don't use an async iterator for this, since it might not be closed
     // until it's GC'd and we need to close the database consistently.
-    async get_all_edited_images({sort="time"}={})
+    async getAllEditedImages({sort="time"}={})
     {
         console.assert(sort == "time" || sort == "id");
         if(this.db == null)
             return [];
         
-        return await this.db.db_op(async (db) => {
-            let store = this.db.get_store(db);
+        return await this.db.dbOp(async (db) => {
+            let store = this.db.getStore(db);
             let index = sort == "time"? store.index("edited_at"):store;
             let cursor = index.openKeyCursor(null, sort == "time"? "prev":"next"); // descending for time
             let results = [];
             for await (let entry of cursor)
             {
-                let media_id = entry.primaryKey;
-                results.push(media_id);
+                let mediaId = entry.primaryKey;
+                results.push(mediaId);
             }
     
             return results;
@@ -156,13 +156,13 @@ export default class ExtraImageData
         if(this.db == null)
             throw new Error("ExtraImageData is disabled");
         
-        let data = await this.db.db_op(async (db) => {
-            let store = this.db.get_store(db);
+        let data = await this.db.dbOp(async (db) => {
+            let store = this.db.getStore(db);
             let cursor = store.openCursor();
             let results = [];
             for await (let entry of cursor)
             {
-                // We store pages in the key as a media_id.  Add it to the exported value.
+                // We store pages in the key as a media ID.  Add it to the exported value.
                 results.push({
                     media_id: entry.key,
                     ...entry.value,
@@ -172,20 +172,20 @@ export default class ExtraImageData
             return results;
         }) ?? [];
 
-        let exported_data = {
+        let exportedData = {
             type: "ppixiv-image-data",
             data,
         };
 
-        if(exported_data.data.length == 0)
+        if(exportedData.data.length == 0)
         {
             message_widget.singleton.show("No edited images to export.");
             return;
         }
 
-        let json = JSON.stringify(exported_data, null, 4);
+        let json = JSON.stringify(exportedData, null, 4);
         let blob = new Blob([json], { type: "application/json" });
-        helpers.save_blob(blob, "ppixiv image edits.json");
+        helpers.saveBlob(blob, "ppixiv image edits.json");
     }
 
     // Import data exported by export().  This will overwrite any overlapping entries, but entries
@@ -221,20 +221,20 @@ export default class ExtraImageData
             return;
         }
 
-        let data_by_media_id = {};
+        let dataByMediaId = {};
         for(let entry of data.data)
         {
-            let media_id = entry.media_id;
+            let mediaId = entry.media_id;
             delete entry.media_id;
-            data_by_media_id[media_id] = entry;
+            dataByMediaId[mediaId] = entry;
         }
 
         console.log(`Importing data:`, data);
-        await this.db.multi_set(data_by_media_id);
+        await this.db.multiSet(dataByMediaId);
 
         // Tell image_data that we've replaced extra data, so any loaded images are updated.
-        for(let [media_id, data] of Object.entries(data_by_media_id))
-            ppixiv.mediaCache.replace_extra_data(media_id, data);
+        for(let [mediaId, data] of Object.entries(dataByMediaId))
+            ppixiv.mediaCache.replaceExtraData(mediaId, data);
 
         ppixiv.message.show(`Imported edits for ${data.data.length} ${data.data.length == 1? "image":"images"}.`);
     }

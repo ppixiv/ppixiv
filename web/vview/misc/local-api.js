@@ -5,7 +5,7 @@ import { helpers } from 'vview/misc/helpers.js';
 
 export default class LocalAPI
 {
-    static get local_url()
+    static get localUrl()
     {
         // If we're running natively, the API is on the same URL as we are.
         if(!ppixiv.native)
@@ -24,14 +24,14 @@ export default class LocalAPI
             return "/local/";
     }
 
-    static async local_post_request(pathname, data={}, options={})
+    static async localPostRequest(pathname, data={}, options={})
     {
-        let url = LocalAPI.local_url;
+        let url = LocalAPI.localUrl;
         if(url == null)
             throw Error("Local API isn't enabled");
 
         url.pathname = encodeURI(pathname);
-        var result = await helpers.send_pixiv_request({
+        let result = await helpers.sendPixivRequest({
             method: "POST",
             url: url.toString(),
             responseType: "json",
@@ -47,43 +47,43 @@ export default class LocalAPI
     }   
 
     // Return true if the local API is enabled.
-    static is_enabled()
+    static isEnabled()
     {
-        return LocalAPI.local_url != null;
+        return LocalAPI.localUrl != null;
     }
 
     // Return true if we're running in VVbrowser.
-    static is_vvbrowser()
+    static isVVbrowser()
     {
         return navigator.userAgent.indexOf("VVbrowser/")  != -1;
     }
 
     // Load image info from the local API.
     //
-    // If refresh_from_disk and this is a local file, ask the server to ignore cache and
+    // If refreshFromDisk and this is a local file, ask the server to ignore cache and
     // refresh from disk, even if it thinks it's not necessary.
-    static async load_media_info(media_id, { refresh_from_disk=false }={})
+    static async loadMediaInfo(mediaId, { refreshFromDisk=false }={})
     {
-        let illust_data = await LocalAPI.local_post_request(`/api/illust/${media_id}`, {
-            refresh_from_disk,
+        let illust_data = await LocalAPI.localPostRequest(`/api/illust/${mediaId}`, {
+            refreshFromDisk,
         });
         if(illust_data.success)
-            LocalAPI.adjust_illust_info(illust_data.illust);
+            LocalAPI.adjustIllustInfo(illust_data.illust);
 
         return illust_data;
     }
 
     // Fill in some redundant fields.  The local API doesn't use mangaPages,
     // but we fill it in from urls so we can treat it the same way.
-    static adjust_illust_info(illust)
+    static adjustIllustInfo(illust)
     {
-        let { type } = helpers.parse_media_id(illust.mediaId);
+        let { type } = helpers.parseMediaId(illust.mediaId);
         if(type == "folder")
         {
             illust.mangaPages = [];
             illust.pageCount = 0;
 
-            // These metadata fields don't exist for folders.  Set them to null so media_info._check_illust_data doesn't complain.
+            // These metadata fields don't exist for folders.  Set them to null so MediaCache._check_illust_data doesn't complain.
             illust.width = illust.height = illust.userName = null;
             illust.illustType = 1;
         }
@@ -97,7 +97,7 @@ export default class LocalAPI
             illust.pageCount = 1;
         }
 
-        // illustId is only for Pixiv images.  Set it so media_info._check_illust_data doesn't complain.
+        // illustId is only for Pixiv images.  Set it so MediaCache._check_illust_data doesn't complain.
         illust.illustId = null;
 
         // Local media info is always full.
@@ -109,7 +109,7 @@ export default class LocalAPI
 
     static async loadRecentBookmarkTags()
     {
-        let result = await LocalAPI.local_post_request(`/api/bookmark/tags`);
+        let result = await LocalAPI.localPostRequest(`/api/bookmark/tags`);
         if(!result.success)
         {
             console.log("Error fetching bookmark tag counts");
@@ -129,20 +129,10 @@ export default class LocalAPI
         return tags;
     }
 
-    // Given a local ID, return the separated directory and filename.  id is
-    // the id result of helpers.parse_media_id when type is "file".
-    static split_local_id(id)
-    {
-        let idx = id.lastIndexOf("/");
-        let directory = id.substr(0, idx);
-        let filename = id.substr(idx+1);
-        return { directory: directory, filename: filename };
-    }
-
     // The local data source URL has two parts: the path and the file being viewed (if any).
     // The file be absolute or relative to path.
     //
-    // Path is args.hash_path, and file is args.hash.get("file").
+    // Path is args.hashPath, and file is args.hash.get("file").
     // 
     // Changes to path result in a new data source, but changes to the file don't.
     //
@@ -158,7 +148,7 @@ export default class LocalAPI
     // The user searched inside /images/pictures, and is currently viewing the image
     // vacation/image.jpg.  This case is important: the path hasn't changed, so the data
     // source is still the search, so you can mousewheel within the search.
-    static get_args_for_id(media_id, args)
+    static getArgsForId(mediaId, args)
     {
         // If we're navigating from a special page like /similar, ignore the previous
         // URL and create a new one.  Those pages can have their own URL formats.
@@ -167,19 +157,19 @@ export default class LocalAPI
             args.path = LocalAPI.path;
             args.query = new URLSearchParams();
             args.hash = new URLSearchParams();
-            args.hash_path = "/";
+            args.hashPath = "/";
         }
 
         // The path previously on args:
-        let args_root = args.hash_path || "";
+        let args_root = args.hashPath || "";
         
         // The new path to set:
-        let { type, id: path } = helpers.parse_media_id(media_id);
+        let { type, id: path } = helpers.parseMediaId(mediaId);
 
         if(type == "file")
         {
             // Put the relative path to new_path from root/path in "file".
-            let filename = Path.get_relative_path(args_root, path);
+            let filename = Path.getRelativePath(args_root, path);
             args.hash.set("file", filename);
             return args;
         }
@@ -191,7 +181,7 @@ export default class LocalAPI
         // page should be left in place when viewing an image.
         args.query.delete("p");
 
-        args.hash_path = path;
+        args.hashPath = path;
         return args;
     }
 
@@ -199,10 +189,10 @@ export default class LocalAPI
     //
     // Normally, a URL is a file if a "file" hash arg is present, otherwise it's
     // a folder.  If get_folder is true, return the folder, ignoring any file argument.
-    static get_local_id_from_args(args, { get_folder=false }={})
+    static getLocalIdFromArgs(args, { get_folder=false }={})
     {
         // Combine the hash path and the filename to get the local ID.
-        let root = args.hash_path;
+        let root = args.hashPath;
 
         let file = args.hash.get("file");
         if(file == null || get_folder)
@@ -210,57 +200,57 @@ export default class LocalAPI
 
         // The file can also be relative or absolute.
         if(!file.startsWith("/"))
-            file = Path.get_child(root, file)
+            file = Path.getChild(root, file)
 
         return "file:" + file;
     }
 
     // Return the API search options and title for the given URL.
-    static get_search_options_for_args(args)
+    static getSearchOptionsForArgs(args)
     {
-        let search_options = { };
+        let searchOptions = { };
         let title = null;
-        let search_root = helpers.get_path_suffix(args.hash_path, 2);
+        let search_root = helpers.get_path_suffix(args.hashPath, 2);
 
         if(args.hash.has("search"))
         {
-            search_options.search = args.hash.get("search");
-            title = "Search: " + search_options.search;
+            searchOptions.search = args.hash.get("search");
+            title = "Search: " + searchOptions.search;
         }
 
         if(args.hash.has("bookmark-tag"))
         {
-            search_options.bookmarked = true;
-            search_options.bookmark_tags = args.hash.get("bookmark-tag");
-            if(search_options.bookmark_tags != "")
-                title = `Bookmarks tagged ${search_options.bookmark_tags}`;
+            searchOptions.bookmarked = true;
+            searchOptions.bookmark_tags = args.hash.get("bookmark-tag");
+            if(searchOptions.bookmark_tags != "")
+                title = `Bookmarks tagged ${searchOptions.bookmark_tags}`;
             else
                 title = `Untagged bookmarks`;
         }
         // We always enable bookmark searching if that's all we're allowed to do.
-        else if(args.hash.has("bookmarks") || LocalAPI.local_info.bookmark_tag_searches_only)
+        else if(args.hash.has("bookmarks") || LocalAPI.localInfo.bookmark_tag_searches_only)
         {
-            search_options.bookmarked = true;
+            searchOptions.bookmarked = true;
             title = "Bookmarks";
         }
 
         if(args.hash.has("type"))
         {
-            search_options.media_type = args.hash.get("type");
+            searchOptions.media_type = args.hash.get("type");
             if(!title)
-                title = helpers.title_case(search_options.media_type);
+                title = helpers.title_case(searchOptions.media_type);
         }
 
         if(args.hash.has("aspect-ratio"))
         {
             let range = args.hash.get("aspect-ratio");
-            search_options.aspect_ratio = helpers.parse_range(range);
+            searchOptions.aspect_ratio = helpers.parse_range(range);
         }
 
         if(args.hash.has("pixels"))
         {
             let range = args.hash.get("pixels");
-            search_options.total_pixels = helpers.parse_range(range);
+            searchOptions.total_pixels = helpers.parse_range(range);
         }
 
         if(title == null)
@@ -268,28 +258,28 @@ export default class LocalAPI
 
         title += ` inside ${search_root}`;
 
-        // Clear search_options if it has no keys, to indicate that we're not in a search.
-        if(Object.keys(search_options).length == 0)
+        // Clear searchOptions if it has no keys, to indicate that we're not in a search.
+        if(Object.keys(searchOptions).length == 0)
         {
-            search_options = null;
+            searchOptions = null;
 
             // When there's no search, just show the current path as the title.
-            let folder_id = LocalAPI.get_local_id_from_args(args, { get_folder: true });
-            let { id } = helpers.parse_media_id(folder_id);
+            let folder_id = LocalAPI.getLocalIdFromArgs(args, { get_folder: true });
+            let { id } = helpers.parseMediaId(folder_id);
             title = helpers.get_path_suffix(id);
         }
 
-        return { search_options: search_options, title: title };
+        return { searchOptions, title: title };
     }
 
     // Given a folder ID, return its parent.  If folder_id is the root, return null.
-    static get_parent_folder(media_id)
+    static getParentFolder(mediaId)
     {
-        if(media_id == null || media_id == "folder:/")
+        if(mediaId == null || mediaId == "folder:/")
             return null;
 
-        // media_id can be a file or a folder.  We always return a folder.
-        let { id } = helpers.parse_media_id(media_id);
+        // mediaId can be a file or a folder.  We always return a folder.
+        let { id } = helpers.parseMediaId(mediaId);
 
         let parts = id.split("/");
         if(parts.length == 2)
@@ -299,8 +289,8 @@ export default class LocalAPI
         return "folder:" + parts.join("/");
     }
 
-    // Return true if this is a URL for slideshow staging.  See screen_illust.load_first_image.
-    static is_slideshow_staging(args)
+    // Return true if this is a URL for slideshow staging.  See ScreenIllust.load_first_image.
+    static isSlideshowStaging(args)
     {
         // If file is "*", this is a "first image" placeholder.  Don't treat it as a local ID.
         return args.hash.get("file") == "*";
@@ -308,23 +298,23 @@ export default class LocalAPI
 
     // Load access info.  We always reload when this changes, eg. due to logging in
     // or out, so we cache this at startup.
-    static async load_local_info()
+    static async loadLocalInfo()
     {
-        if(LocalAPI.local_url == null)
+        if(LocalAPI.localUrl == null)
             return;
 
-        this._cached_api_info = await LocalAPI.local_post_request(`/api/info`);
+        this._cachedApiInfo = await LocalAPI.localPostRequest(`/api/info`);
     }
 
-    static get local_info()
+    static get localInfo()
     {
-        let info = this._cached_api_info;
-        if(LocalAPI.local_url == null)
+        let info = this._cachedApiInfo;
+        if(LocalAPI.localUrl == null)
             info = { success: false, code: "disabled" };
             
         return {
             // True if the local API is enabled at all.
-            enabled: LocalAPI.local_url != null,
+            enabled: LocalAPI.localUrl != null,
             
             // True if we're running on localhost.  If we're local, we're always logged
             // in and we won't show the login/logout buttons.
@@ -335,7 +325,7 @@ export default class LocalAPI
 
             // True if we're logged out and guest access is disabled, so we need to log
             // in to continue.
-            login_required: !info.success && info.code == 'access-denied',
+            loginRequired: !info.success && info.code == 'access-denied',
 
             // True if we can only do bookmark tag searches.
             bookmark_tag_searches_only: info.tags != null,
@@ -344,9 +334,9 @@ export default class LocalAPI
 
     // Return true if we're running on localhost.  If we're local, we're always logged
     // in and we won't show the login/logout buttons.
-    static async is_local()
+    static async isLocal()
     {
-        let info = await LocalAPI.local_post_request(`/api/info`);
+        let info = await LocalAPI.localPostRequest(`/api/info`);
         return info.local;
     }
 
@@ -365,12 +355,12 @@ export default class LocalAPI
     // viewable at least in preview as quickly as possible to minimize gaps in the mobile UI,
     // and the PC running the server is probably much faster than a tablet, which may take some
     // time to decode larger images.
-    static should_preload_thumbs(media_id, url)
+    static shouldPreloadThumbs(mediaId, url)
     {
         if(ppixiv.mobile)
             return true;
 
-        if(!helpers.is_media_id_local(media_id))
+        if(!helpers.isMediaIdLocal(mediaId))
             return true;
 
         // If we know the image was viewed in search results recently, it should be cached, so
@@ -378,7 +368,7 @@ export default class LocalAPI
         // cache: only-if-cached argument, but that causes browsers to obnoxiously spam the console
         // with errors every time it fails.  That doesn't make sense (errors are normal with
         // only-if-cached) and the log spam is too annoying to use it here.
-        if(LocalAPI.was_thumbnail_loaded_recently(url))
+        if(LocalAPI._wasThumbnailLoadedRecently(url))
             return true;
 
         // We're on desktop, the image is local, and the thumbnail hasn't been loaded recently.
@@ -387,24 +377,24 @@ export default class LocalAPI
 
     // Return true if we're logged out and guest access is disabled, so we need to log
     // in to continue.
-    static async login_required()
+    static async loginRequired()
     {
         // If we're not logged in and guest access is disabled, all API calls will
         // fail with access-denied.  Call api/info to check this.
-        let info = await LocalAPI.local_post_request(`/api/info`);
+        let info = await LocalAPI.localPostRequest(`/api/info`);
         return !info.success && info.code == 'access-denied';
     }
 
     // Return true if we're logged in as a non-guest user.
-    static async logged_in()
+    static async loggedIn()
     {
-        let info = await LocalAPI.local_post_request(`/api/info`);
+        let info = await LocalAPI.localPostRequest(`/api/info`);
         console.log(info);
         return info.success && info.username != "guest";
     }
 
     // Log out if we're logged in, and redirect to the login page.
-    static redirect_to_login()
+    static redirectToLogin()
     {
         let query = new URLSearchParams();
         query.set("url", document.location.href);
@@ -426,20 +416,20 @@ export default class LocalAPI
 
     // This stores searches like SavedSearchTags.  It's simpler, since this is the
     // only place these searches are added.
-    static add_recent_local_search(tag)
+    static addRecentLocalSearch(tag)
     {
-        var recent_tags = ppixiv.settings.get("local_searches") || [];
-        var idx = recent_tags.indexOf(tag);
+        let recentTags = ppixiv.settings.get("local_searches") || [];
+        let idx = recentTags.indexOf(tag);
         if(idx != -1)
-            recent_tags.splice(idx, 1);
-        recent_tags.unshift(tag);
+            recentTags.splice(idx, 1);
+        recentTags.unshift(tag);
 
-        ppixiv.settings.set("local_searches", recent_tags);
+        ppixiv.settings.set("local_searches", recentTags);
         window.dispatchEvent(new Event("recent-local-searches-changed"));
     }
 
     // Navigate to a search, usually entered into the tag search box.
-    static navigate_to_tag_search(tags, { add_to_history=true}={})
+    static navigateToTagSearch(tags, { addToHistory=true}={})
     {
         tags = tags.trim();
 
@@ -447,8 +437,8 @@ export default class LocalAPI
             tags = null;
 
         // Add this tag to the recent search list.
-        if(add_to_history && tags)
-            LocalAPI.add_recent_local_search(tags);
+        if(addToHistory && tags)
+            LocalAPI.addRecentLocalSearch(tags);
 
         // Run the search.  We expect to be on the local data source when this is called.
         let args = new helpers.args(ppixiv.plocation);
@@ -461,16 +451,16 @@ export default class LocalAPI
         helpers.navigate(args);
     }
 
-    static async index_folder(media_id)
+    static async indexFolderForSimilaritySearch(mediaId)
     {
-        let { type, id } = helpers.parse_media_id(media_id);
+        let { type, id } = helpers.parseMediaId(mediaId);
         if(type != "folder")
         {
-            console.log(`Not a folder: ${media_id}`);
+            console.log(`Not a folder: ${mediaId}`);
             return;
         }
 
-        let result = await LocalAPI.local_post_request(`/api/similar/index`, {
+        let result = await LocalAPI.localPostRequest(`/api/similar/index`, {
             path: id,
         });
         if(!result.success)
@@ -483,16 +473,16 @@ export default class LocalAPI
     }
 
     // Remember that we've loaded a thumbnail this session.
-    static thumbnail_loaded(url)
+    static thumbnailWasLoaded(url)
     {
-        this._thumbnails_loaded_recently ??= new Set();
-        this._thumbnails_loaded_recently.add(url);
+        this._thumbnailsLoadedRecently ??= new Set();
+        this._thumbnailsLoadedRecently.add(url);
     }
 
     // Return true if we've loaded a thumbnail this session.  This is used to optimize image display.
-    static was_thumbnail_loaded_recently(url)
+    static _wasThumbnailLoadedRecently(url)
     {
-        return this._thumbnails_loaded_recently && this._thumbnails_loaded_recently.has(url);
+        return this._thumbnailsLoadedRecently && this._thumbnailsLoadedRecently.has(url);
     }
 }
 
@@ -558,30 +548,30 @@ class LocalBroadcastChannelConnection extends EventTarget
         super();
 
         // This is only used if the local API is enabled.
-        if(!LocalAPI.is_enabled())
+        if(!LocalAPI.isEnabled())
             return;
 
         // If messages are sent while we're still connecting, or if the buffer is full,
         // they'll be buffered until we can send it.  Buffered messages will be discarded
         // if connecting fails.
-        this.send_buffer = [];
-        this.reconnection_attempts = 0;
+        this._sendBuffer = [];
+        this._reconnectionAttempts = 0;
         
         // If we're disconnected, try to reconnect immediately if the window gains focus.
         window.addEventListener("focus", () => {
-            this.queue_reconnect({ reset: true });
+            this._queueReconnect({ reset: true });
         });
 
         // Store a random ID in localStorage to identify this browser.  This is sent to the
         // WebSockets server, so it knows not to send broadcasts to clients running in the
         // same browser, which will receive the messages much faster through a regular
         // BroadcastChannel.
-        this.browser_id = ppixiv.settings.get("browser_id");
-        if(this.browser_id == null)
+        this._browserId = ppixiv.settings.get("_browserId");
+        if(this._browserId == null)
         {
-            this.browser_id = helpers.create_uuid();
-            ppixiv.settings.set("browser_id", this.browser_id);
-            console.log("Assigned broadcast browser ID:", this.browser_id);
+            this._browserId = helpers.create_uuid();
+            ppixiv.settings.set("_browserId", this._browserId);
+            console.log("Assigned broadcast browser ID:", this._browserId);
         }
 
         this.connect();
@@ -592,14 +582,14 @@ class LocalBroadcastChannelConnection extends EventTarget
         // Close the connection if it's still open.
         this.disconnect();
 
-        let url = new URL("/ws", LocalAPI.local_url);
+        let url = new URL("/ws", LocalAPI.localUrl);
         url.protocol = document.location.protocol == "https:"? "wss":"ws";
 
         this.ws = new WebSocket(url);
-        this.ws.onopen = this.ws_opened;
-        this.ws.onclose = this.ws_closed;
-        this.ws.onerror = this.ws_error;
-        this.ws.onmessage = this.ws_message_received;
+        this.ws.onopen = this.wsOpened;
+        this.ws.onclose = this.wsClosed;
+        this.ws.onerror = this.wsError;
+        this.ws.onmessage = this.wsMessageReceived;
     }
 
     disconnect()
@@ -613,78 +603,78 @@ class LocalBroadcastChannelConnection extends EventTarget
 
     // Queue a reconnection after a connection error.  If reset is true, reset reconnection
     // attempts and attempt to reconnect immediately.
-    queue_reconnect({reset=false}={})
+    _queueReconnect({reset=false}={})
     {
         if(this.ws != null)
             return;
 
-        if(!reset && this.reconnect_id != null)
+        if(!reset && this.reconnectId != null)
             return;
 
         if(reset)
         {
             // Cancel any queued reconnection.
-            if(this.reconnect_id != null)
+            if(this.reconnectId != null)
             {
-                realClearTimeout(this.reconnect_id);
-                this.reconnect_id = null;
+                realClearTimeout(this.reconnectId);
+                this.reconnectId = null;
             }
         }
 
         if(reset)
-            this.reconnection_attempts = 0;
+            this._reconnectionAttempts = 0;
         else
-            this.reconnection_attempts++;
+            this._reconnectionAttempts++;
 
-        this.reconnection_attempts = Math.min(this.reconnection_attempts, 5);
-        let reconnect_delay = Math.pow(this.reconnection_attempts, 2);
+        this._reconnectionAttempts = Math.min(this._reconnectionAttempts, 5);
+        let reconnect_delay = Math.pow(this._reconnectionAttempts, 2);
         // console.log("Reconnecting in", reconnect_delay);
         
-        this.reconnect_id = realSetTimeout(() => {
-            this.reconnect_id = null;
+        this.reconnectId = realSetTimeout(() => {
+            this.reconnectId = null;
             this.connect();
         }, reconnect_delay*1000);
     }
 
-    ws_opened = async(e) =>
+    wsOpened = async(e) =>
     {
         console.log("WebSockets connection opened");
 
         // Cancel any queued reconnection.
-        if(this.reconnect_id != null)
+        if(this.reconnectId != null)
         {
-            realClearTimeout(this.reconnect_id);
-            this.reconnect_id = null;
+            realClearTimeout(this.reconnectId);
+            this.reconnectId = null;
         }
 
-        this.reconnection_attempts = 0;
+        this._reconnectionAttempts = 0;
 
         // Tell the server our browser ID.  This is used to prevent sending messages back
         // to the same browser.
-        this.send_raw({
+        this._sendRaw({
             'command': 'init',
-            'browser_id': this.browser_id,
+            '_browserId': this._browserId,
         });
 
         // Send any data that was buffered while we were still connecting.
-        this.send_buffered_data();
+        this._sendBufferedData();
     }
 
-    ws_closed = async(e) =>
+    wsClosed = async(e) =>
     {
         console.log("WebSockets connection closed", e, e.wasClean, e.reason);
         this.disconnect();
-        this.queue_reconnect();
+        this._queueReconnect();
     }
 
-    // We'll also get onclose on connection error, so we don't need to queue_reconnect
+    // We'll also get onclose on connection error, so we don't need to _queueReconnect
     // here.
-    ws_error = (e) =>
+    wsError = (e) =>
     {
         console.log("WebSockets connection error");
     }
 
-    ws_message_received = (e) =>
+    wsMessageReceived = (e) =>
     {
         let message = JSON.parse(e.data);
         if(message.command != "receive-broadcast")
@@ -700,35 +690,35 @@ class LocalBroadcastChannelConnection extends EventTarget
     // Send a WebSockets message on the given channel name.
     send(channel, message)
     {
-        if(!LocalAPI.is_enabled())
+        if(!LocalAPI.isEnabled())
             return;
         
         let data = {
             'command': 'send-broadcast',
-            'browser_id': this.browser_id,
+            '_browserId': this._browserId,
             'message': {
                 'channel': channel,
                 'data': message,
             },
         };
 
-        this.send_buffer.push(data);
-        this.send_buffered_data();
+        this._sendBuffer.push(data);
+        this._sendBufferedData();
     }
 
     // Send a raw message directly, without buffering.
-    send_raw(data)
+    _sendRaw(data)
     {
         this.ws.send(JSON.stringify(data, null, 4));
     }
 
-    // Send data buffered in send_buffer.
-    send_buffered_data()
+    // Send data buffered in _sendBuffer.
+    _sendBufferedData()
     {
         if(this.ws == null)
             return;
 
-        while(this.send_buffer.length > 0)
+        while(this._sendBuffer.length > 0)
         {
             // This API wasn't thought through.  It tells us how much data is buffered, but not
             // what the maximum buffer size is.  If the buffer fills, instead of returning an
@@ -739,8 +729,8 @@ class LocalBroadcastChannelConnection extends EventTarget
                 break;
 
             // Send the next buffered message.
-            let data = this.send_buffer.shift();
-            this.send_raw(data);
+            let data = this._sendBuffer.shift();
+            this._sendRaw(data);
         }
     }
 }

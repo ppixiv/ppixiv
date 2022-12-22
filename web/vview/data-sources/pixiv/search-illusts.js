@@ -67,7 +67,7 @@ export default class DataSource_Search extends DataSource
 
     get _searchTags()
     {
-        return helpers._get_search_tags_from_url(this.url);
+        return helpers.getSearchTagsFromUrl(this.url);
     }
 
     // Return the search type from the URL.  This is one of "artworks", "illustrations"
@@ -77,7 +77,7 @@ export default class DataSource_Search extends DataSource
     get _searchType()
     {
         // ["", "tags", tag list, type]
-        let url = helpers.get_url_without_language(this.url);
+        let url = helpers.getUrlWithoutLanguage(this.url);
         let parts = url.pathname.split("/");
         if(parts.length >= 4)
             return parts[3];
@@ -105,7 +105,7 @@ export default class DataSource_Search extends DataSource
         let tags = this._searchTags;
         if(tags)
         {
-            tags = await ppixiv.tagTranslations.translate_tag_list(tags, "en");
+            tags = await ppixiv.tagTranslations.translateTagList(tags, "en");
             let tagList = document.createElement("span");
             for(let tag of tags)
             {
@@ -127,7 +127,7 @@ export default class DataSource_Search extends DataSource
             }
 
             this.title += tags.join(" ");
-            this.displaying_tags = tagList;
+            this.displayingTags = tagList;
         }
         
         // Update our page title.
@@ -181,7 +181,7 @@ export default class DataSource_Search extends DataSource
 
         let url = "/ajax/search/" + apiSearchType + "/" + encodeURIComponent(tag);
 
-        let result = await helpers.get_request(url, args);
+        let result = await helpers.getRequest(url, args);
         let body = result.body;
 
         // Store related tags.  Only do this the first time and don't change it when we read
@@ -201,7 +201,7 @@ export default class DataSource_Search extends DataSource
                 translation: body.tagTranslation[tag],
             });
         }
-        ppixiv.tagTranslations.add_translations(translations);
+        ppixiv.tagTranslations.addTranslations(translations);
 
         // /tag/TAG/illustrations returns results in body.illust.
         // /tag/TAG/artworks returns results in body.illustManga.
@@ -210,14 +210,14 @@ export default class DataSource_Search extends DataSource
         illusts = illusts.data;
 
         // Populate thumbnail data with this data.
-        await ppixiv.mediaCache.add_media_infos_partial(illusts, "normal");
+        await ppixiv.mediaCache.addMediaInfosPartial(illusts, "normal");
 
-        let media_ids = [];
+        let mediaIds = [];
         for(let illust of illusts)
-            media_ids.push(helpers.illust_id_to_media_id(illust.id));
+            mediaIds.push(helpers.illustIdToMediaId(illust.id));
 
         // Register the new page of data.
-        this.addPage(page, media_ids);
+        this.addPage(page, mediaIds);
     }
 
     get pageTitle()
@@ -227,7 +227,7 @@ export default class DataSource_Search extends DataSource
 
     getDisplayingText()
     {
-        return this.displaying_tags ?? "Search works";
+        return this.displayingTags ?? "Search works";
     };
 
     // Return the search mode, which is selected by the "Type" search option.  This generally
@@ -239,9 +239,9 @@ export default class DataSource_Search extends DataSource
         let searchType = this._searchType;
         if(searchType == "illustrations")
         {
-            let query_search_type = this.url.searchParams.get("type");
-            if(query_search_type == "ugoira") return "ugoira";
-            if(query_search_type == "illust") return "illust";
+            let querySearchType = this.url.searchParams.get("type");
+            if(querySearchType == "ugoira") return "ugoira";
+            if(querySearchType == "illust") return "illust";
 
             // If there's no parameter, show everything.
             return "all";
@@ -260,7 +260,7 @@ export default class DataSource_Search extends DataSource
     setUrlSearchMode(url, mode)
     {
         url = new URL(url);
-        url = helpers.get_url_without_language(url);
+        url = helpers.getUrlWithoutLanguage(url);
 
         // Only "ugoira" searches use type in the query.  It causes an error in other modes, so remove it.
         if(mode == "illust")
@@ -293,19 +293,19 @@ class UI extends Widget
                 <div class=tag-search-with-related-tags>
                     <vv-container class=tag-search-box-container></vv-container>
 
-                    ${ helpers.create_box_link({label: "Related tags",    icon: "bookmark", classes: ["related-tags-button"] }) }
+                    ${ helpers.createBoxLink({label: "Related tags",    icon: "bookmark", classes: ["related-tags-button"] }) }
                 </div>
 
                 <div class="box-button-row search-options-row">
-                    ${ helpers.create_box_link({label: "Ages",    classes: ["ages-button"] }) }
-                    ${ helpers.create_box_link({label: "Sort",    classes: ["sort-button"] }) }
-                    ${ helpers.create_box_link({label: "Type",    classes: [["search-type-button"]] }) }
-                    ${ helpers.create_box_link({label: "Search mode",    classes: ["search-mode-button"] }) }
-                    ${ helpers.create_box_link({label: "Image size",    classes: ["image-size-button"] }) }
-                    ${ helpers.create_box_link({label: "Aspect ratio",    classes: ["aspect-ratio-button"] }) }
-                    ${ helpers.create_box_link({label: "Bookmarks",    classes: ["bookmark-count-button", "premium-only"] }) }
-                    ${ helpers.create_box_link({label: "Time",    classes: ["time-ago-button"] }) }
-                    ${ helpers.create_box_link({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
+                    ${ helpers.createBoxLink({label: "Ages",    classes: ["ages-button"] }) }
+                    ${ helpers.createBoxLink({label: "Sort",    classes: ["sort-button"] }) }
+                    ${ helpers.createBoxLink({label: "Type",    classes: [["search-type-button"]] }) }
+                    ${ helpers.createBoxLink({label: "Search mode",    classes: ["search-mode-button"] }) }
+                    ${ helpers.createBoxLink({label: "Image size",    classes: ["image-size-button"] }) }
+                    ${ helpers.createBoxLink({label: "Aspect ratio",    classes: ["aspect-ratio-button"] }) }
+                    ${ helpers.createBoxLink({label: "Bookmarks",    classes: ["bookmark-count-button", "premium-only"] }) }
+                    ${ helpers.createBoxLink({label: "Time",    classes: ["time-ago-button"] }) }
+                    ${ helpers.createBoxLink({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
                 </div>
             </div>
         `});
@@ -335,7 +335,7 @@ class UI extends Widget
 
         this.tagDropdown = new DropdownMenuOpener({
             button: this.querySelector(".related-tags-button"),
-            create_box: ({...options}) => new RelatedTagDropdown({ dataSource, ...options }),
+            createBox: ({...options}) => new RelatedTagDropdown({ dataSource, ...options }),
         });
 
         dataSource.setupDropdown(this.querySelector(".ages-button"), [{
@@ -436,49 +436,49 @@ class UI extends Widget
         // really useful and the query parameters let us filter differently, so we
         // replace it with a more useful "minimum bookmarks" filter.
         dataSource.setupDropdown(this.querySelector(".bookmark-count-button"), [{
-            createOptions: { label: "All",               data_type: "bookmarks-all",    dataset: { default: true } },
+            createOptions: { label: "All",               dataType: "bookmarks-all",    dataset: { default: true } },
             setupOptions: { fields: {blt: null, bgt: null} },
         }, {
-            createOptions: { label: "100+",              data_type: "bookmarks-100" },
+            createOptions: { label: "100+",              dataType: "bookmarks-100" },
             setupOptions: { fields: {blt: 100, bgt: null} },
         }, {
-            createOptions: { label: "250+",              data_type: "bookmarks-250" },
+            createOptions: { label: "250+",              dataType: "bookmarks-250" },
             setupOptions: { fields: {blt: 250, bgt: null} },
         }, {
-            createOptions: { label: "500+",              data_type: "bookmarks-500" },
+            createOptions: { label: "500+",              dataType: "bookmarks-500" },
             setupOptions: { fields: {blt: 500, bgt: null} },
         }, {
-            createOptions: { label: "1000+",             data_type: "bookmarks-1000" },
+            createOptions: { label: "1000+",             dataType: "bookmarks-1000" },
             setupOptions: { fields: {blt: 1000, bgt: null} },
         }, {
-            createOptions: { label: "2500+",             data_type: "bookmarks-2500" },
+            createOptions: { label: "2500+",             dataType: "bookmarks-2500" },
             setupOptions: { fields: {blt: 2500, bgt: null} },
         }, {
-            createOptions: { label: "5000+",             data_type: "bookmarks-5000" },
+            createOptions: { label: "5000+",             dataType: "bookmarks-5000" },
             setupOptions: { fields: {blt: 5000, bgt: null} },
         }]);
 
         // The time-ago dropdown has a custom layout, so create it manually.
         new DropdownMenuOpener({
             button: this.querySelector(".time-ago-button"),
-            create_box: ({...options}) => {
+            createBox: ({...options}) => {
                 let dropdown = new Widget({
                     ...options,
                     template: `
                         <div class=vertical-list>
-                            ${ helpers.create_box_link({label: "All",               data_type: "time-all",  dataset: { default: true } }) }
-                            ${ helpers.create_box_link({label: "This week",         data_type: "time-week", dataset: { shortLabel: "Weekly" } }) }
-                            ${ helpers.create_box_link({label: "This month",        data_type: "time-month" }) }
-                            ${ helpers.create_box_link({label: "This year",         data_type: "time-year" }) }
+                            ${ helpers.createBoxLink({label: "All",               dataType: "time-all",  dataset: { default: true } }) }
+                            ${ helpers.createBoxLink({label: "This week",         dataType: "time-week", dataset: { shortLabel: "Weekly" } }) }
+                            ${ helpers.createBoxLink({label: "This month",        dataType: "time-month" }) }
+                            ${ helpers.createBoxLink({label: "This year",         dataType: "time-year" }) }
 
                             <div class=years-ago>
-                                ${ helpers.create_box_link({label: "1",             data_type: "time-years-ago-1", dataset: { shortLabel: "1 year" } }) }
-                                ${ helpers.create_box_link({label: "2",             data_type: "time-years-ago-2", dataset: { shortLabel: "2 years" } }) }
-                                ${ helpers.create_box_link({label: "3",             data_type: "time-years-ago-3", dataset: { shortLabel: "3 years" } }) }
-                                ${ helpers.create_box_link({label: "4",             data_type: "time-years-ago-4", dataset: { shortLabel: "4 years" } }) }
-                                ${ helpers.create_box_link({label: "5",             data_type: "time-years-ago-5", dataset: { shortLabel: "5 years" } }) }
-                                ${ helpers.create_box_link({label: "6",             data_type: "time-years-ago-6", dataset: { shortLabel: "6 years" } }) }
-                                ${ helpers.create_box_link({label: "7",             data_type: "time-years-ago-7", dataset: { shortLabel: "7 years" } }) }
+                                ${ helpers.createBoxLink({label: "1",             dataType: "time-years-ago-1", dataset: { shortLabel: "1 year" } }) }
+                                ${ helpers.createBoxLink({label: "2",             dataType: "time-years-ago-2", dataset: { shortLabel: "2 years" } }) }
+                                ${ helpers.createBoxLink({label: "3",             dataType: "time-years-ago-3", dataset: { shortLabel: "3 years" } }) }
+                                ${ helpers.createBoxLink({label: "4",             dataType: "time-years-ago-4", dataset: { shortLabel: "4 years" } }) }
+                                ${ helpers.createBoxLink({label: "5",             dataType: "time-years-ago-5", dataset: { shortLabel: "5 years" } }) }
+                                ${ helpers.createBoxLink({label: "6",             dataType: "time-years-ago-6", dataset: { shortLabel: "6 years" } }) }
+                                ${ helpers.createBoxLink({label: "7",             dataType: "time-years-ago-7", dataset: { shortLabel: "7 years" } }) }
                                 <span>years ago</span>
                             </div>
                         </div>
@@ -503,9 +503,9 @@ class UI extends Widget
 
                 let setDateFilter = (name, start, end) =>
                 {
-                    let start_date = formatDate(start);
-                    let end_date = formatDate(end);
-                    dataSource.setItem(dropdown, { type: name, fields: {scd: start_date, ecd: end_date} });
+                    let startDate = formatDate(start);
+                    let endDate = formatDate(end);
+                    dataSource.setItem(dropdown, { type: name, fields: {scd: startDate, ecd: endDate} });
                 };
 
                 let tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
@@ -515,18 +515,18 @@ class UI extends Widget
                 setDateFilter("time-week", lastWeek, tomorrow);
                 setDateFilter("time-month", lastMonth, tomorrow);
                 setDateFilter("time-year", lastYear, tomorrow);
-                for(let years_ago = 1; years_ago <= 7; ++years_ago)
+                for(let yearsAgo = 1; yearsAgo <= 7; ++yearsAgo)
                 {
-                    let start_year = new Date(); start_year.setFullYear(start_year.getFullYear() - years_ago - 1);
-                    let end_year = new Date(); end_year.setFullYear(end_year.getFullYear() - years_ago);
-                    setDateFilter("time-years-ago-" + years_ago, start_year, end_year);
+                    let startYear = new Date(); startYear.setFullYear(startYear.getFullYear() - yearsAgo - 1);
+                    let endYear = new Date(); endYear.setFullYear(endYear.getFullYear() - yearsAgo);
+                    setDateFilter("time-years-ago-" + yearsAgo, startYear, endYear);
                 }
 
                 // The "reset search" button removes everything in the query except search terms, and resets
                 // the search type.
                 let box = this.querySelector(".reset-search");
                 let url = new URL(this.dataSource.url);
-                let tag = helpers._get_search_tags_from_url(url);
+                let tag = helpers.getSearchTagsFromUrl(url);
                 url.search = "";
                 if(tag == null)
                     url.pathname = "/tags";
@@ -554,6 +554,6 @@ class UI extends Widget
     {
         super.refresh();
 
-        helpers.set_class(this.querySelector(".related-tags-button"), "disabled", this.dataSource.relatedTags == null);
+        helpers.setClass(this.querySelector(".related-tags-button"), "disabled", this.dataSource.relatedTags == null);
     }
 }

@@ -23,7 +23,7 @@ export default class DataSource_NewPostsByFollowing extends DataSource
     {
         let currentTag = this.url.searchParams.get("tag") || "";
         let r18 = this.url.pathname == "/bookmark_new_illust_r18.php";
-        let result = await helpers.get_request("/ajax/follow_latest/illust", {
+        let result = await helpers.getRequest("/ajax/follow_latest/illust", {
             p: page,
             tag: currentTag,
             mode: r18? "r18":"all",
@@ -32,7 +32,7 @@ export default class DataSource_NewPostsByFollowing extends DataSource
         let data = result.body;
 
         // Add translations.
-        ppixiv.tagTranslations.add_translations_dict(data.tagTranslation);
+        ppixiv.tagTranslations.addTranslationsDict(data.tagTranslation);
 
         // Store bookmark tags.
         this.bookmarkTags = data.page.tags;
@@ -40,11 +40,11 @@ export default class DataSource_NewPostsByFollowing extends DataSource
         this.dispatchEvent(new Event("_refresh_ui"));
 
         // Populate thumbnail data with this data.
-        await ppixiv.mediaCache.add_media_infos_partial(data.thumbnails.illust, "normal");
+        await ppixiv.mediaCache.addMediaInfosPartial(data.thumbnails.illust, "normal");
 
         let mediaIds = [];
         for(let illust of data.thumbnails.illust)
-            mediaIds.push(helpers.illust_id_to_media_id(illust.id));
+            mediaIds.push(helpers.illustIdToMediaId(illust.id));
 
         // Register the new page of data.
         this.addPage(page, mediaIds);
@@ -58,8 +58,8 @@ class UI extends Widget
         super({ ...options, template: `
             <div>
                 <div class=box-button-row>
-                    ${ helpers.create_box_link({label: "R18",    popup: "Show only R18 works",   data_type: "bookmarks-new-illust-ages-r18", classes: ["r18"] }) }
-                    ${ helpers.create_box_link({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["follow-tag-button", "premium-only"] }) }
+                    ${ helpers.createBoxLink({label: "R18",    popup: "Show only R18 works",   dataType: "bookmarks-new-illust-ages-r18", classes: ["r18"] }) }
+                    ${ helpers.createBoxLink({label: "All tags",    popup: "Follow tags", icon: "bookmark", classes: ["follow-tag-button", "premium-only"] }) }
                 </div>
             </div>
         `});
@@ -96,12 +96,12 @@ class UI extends Widget
                 if(tag == "All tags")
                     tag = null;
 
-                let a = helpers.create_box_link({
+                let a = helpers.createBoxLink({
                     label,
                     classes: ["tag-entry"],
                     link: "#",
-                    as_element: true,
-                    data_type: "following-tag",
+                    asElement: true,
+                    dataType: "following-tag",
                 });
 
                 if(label == "All tags")
@@ -116,7 +116,7 @@ class UI extends Widget
         // Create the follow tag dropdown.
         new DropdownMenuOpener({
             button: this.querySelector(".follow-tag-button"),
-            create_box: ({...options}) => new FollowTagDropdown({dataSource, ...options}),
+            createBox: ({...options}) => new FollowTagDropdown({dataSource, ...options}),
         });
 
         dataSource.setItem(this.container, {

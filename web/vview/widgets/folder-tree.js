@@ -5,7 +5,7 @@ import { helpers, SentinelGuard } from 'vview/misc/helpers.js';
 class TreeWidget extends Widget
 {
     constructor({
-        add_root=true,
+        addRoot=true,
         ...options})
     {
         super({...options, template: `
@@ -15,13 +15,13 @@ class TreeWidget extends Widget
             </div>
         `});
 
-        this.label_popup = this.create_template({html: `
+        this._labelPopup = this.createTemplate({html: `
             <div class=tree-popup>
                 <div class=label></div>
             </div>
         `});
 
-        this.thumb_popup = this.create_template({html: `
+        this._thumbPopup = this.createTemplate({html: `
             <div class=thumb-popup>
                 <img class=img></div>
             </div>
@@ -30,10 +30,10 @@ class TreeWidget extends Widget
         this.items = this.container.querySelector(".items");
 
         // Listen to illust changes so we can refresh nodes.
-        ppixiv.mediaCache.addEventListener("mediamodified", this.illust_modified, { signal: this.shutdown_signal.signal });
+        ppixiv.mediaCache.addEventListener("mediamodified", this._mediaModified, { signal: this.shutdownSignal.signal });
 
         // Create the root item.  This is TreeWidgetItem or a subclass.
-        if(add_root)
+        if(addRoot)
         {
             let root = new TreeWidgetItem({
                 parent: this,
@@ -41,34 +41,23 @@ class TreeWidget extends Widget
                 root: true,
             });
 
-            this.set_root(root);
+            this.setRoot(root);
         }
     }
 
-    illust_modified = (e) =>
+    _mediaModified = (e) =>
     {
         if(this.root == null)
             return;
 
         for(let node of Object.values(this.root.nodes))
         {
-            if(node.illust_changed)
-                node.illust_changed(e.media_id);
+            if(node.illustChanged)
+                node.illustChanged(e.mediaId);
         }
     }
     
-    // Given an element, return the TreeWidgetItem label it's inside, if any.
-    get_widget_from_element(element)
-    {
-        let label = element.closest(".tree-item > .self > .label");
-        if(label == null)
-            return null;
-
-        let item = label.closest(".tree-item");
-        return item.widget;
-    }
-
-    set_root(root)
+    setRoot(root)
     {
         if(this.root == root)
             return;
@@ -93,12 +82,12 @@ class TreeWidget extends Widget
         root.expanded = "user";
     }
 
-    set_selected_item(item)
+    setSelectedItem(item)
     {
-        if(this.selected_item == item)
+        if(this.selectedItem == item)
             return;
 
-        this.selected_item = item;
+        this.selectedItem = item;
         for(let node of this.container.querySelectorAll(".tree-item.selected"))
         {
             node.classList.remove("selected");
@@ -106,7 +95,7 @@ class TreeWidget extends Widget
             // Collapse any automatically-expanded nodes that we're navigating out of, as
             // long as they're not an ancestor of the parent of the node we're expanding.
             // We don't need to keep the item itself expanded.
-            node.widget._collapse_auto_expanded({until_ancestor_of: item?.parent});
+            node.widget._collapseAutoExpanded({untilAncestorOf: item?.parent});
         }
 
         if(item != null)
@@ -118,87 +107,87 @@ class TreeWidget extends Widget
             // Bizarrely, while there's a full options dict for scrollIntoView and you
             // can control horizontal and vertical scrolling separately, there's no "none"
             // option so you can scroll vertically and not horizontally.
-            let scroll_container = this.container;
+            let scrollContainer = this.container;
             let label = item.container.querySelector(".label");
 
-            let old_scroll_left = scroll_container.scrollLeft;
+            let oldScrollLeft = scrollContainer.scrollLeft;
 
             label.scrollIntoView({ block: "nearest" });
 
-            scroll_container.scrollLeft = old_scroll_left;
+            scrollContainer.scrollLeft = oldScrollLeft;
         }
     }
 
     // Update the hover popup.  This allows seeing the full label without needing
     // a horizontal scroller, and lets us display a quick thumbnail.
-    set_hover(item)
+    setHover(item)
     {
-        let img = this.thumb_popup.querySelector("img");
+        let img = this._thumbPopup.querySelector("img");
 
         if(item == null)
         {
             // Remove the hover, and clear the image so it doesn't flicker the next time
             // we display it.
-            img.src = helpers.blank_image;
-            this.label_popup.remove();
-            this.thumb_popup.remove();
+            img.src = helpers.blankImage;
+            this._labelPopup.remove();
+            this._thumbPopup.remove();
             return;
         }
 
         let label = item.container.querySelector(".label");
         let {top, left, bottom, height} = label.getBoundingClientRect();
 
-        // Set up thumb_popup.
+        // Set up thumbPopup.
         if(item.path)
         {
             let {right} = this.container.getBoundingClientRect();
-            this.thumb_popup.style.left = `${right}px`;
+            this._thumbPopup.style.left = `${right}px`;
 
             // If the label is above halfway down the screen, position the preview image
             // below it.  Otherwise, position it below.  This keeps the image from overlapping
             // the label.  We don't know the dimensions of the image here.
-            let label_center = top + height/2;
-            let below_middle = label_center > window.innerHeight/2;
+            let labelCenter = top + height/2;
+            let belowMiddle = labelCenter > window.innerHeight/2;
 
-            if(below_middle)
+            if(belowMiddle)
             {
                 // Align the bottom of the image to the top of the label.
-                this.thumb_popup.style.top = `${top - 20}px`;
+                this._thumbPopup.style.top = `${top - 20}px`;
                 img.style.objectPosition = "left bottom";
-                this.thumb_popup.style.transform = "translate(0, -100%)";
+                this._thumbPopup.style.transform = "translate(0, -100%)";
             } else {
                 // Align the top of the image to the bottom of the label.
-                this.thumb_popup.style.top = `${bottom+20}px`;
+                this._thumbPopup.style.top = `${bottom+20}px`;
                 img.style.objectPosition = "left top";
-                this.thumb_popup.style.transform = "";
+                this._thumbPopup.style.transform = "";
             }
 
             // Don't show a thumb for roots.  Searches don't have thumbnails, and it's not useful
             // for most others.
-            img.hidden = item.is_root;
+            img.hidden = item.isRoot;
             img.crossOriginMode = "use-credentials";
-            if(!item.is_root)
+            if(!item.isRoot)
             {
                 // Use /tree-thumb for these thumbnails.  They're the same as the regular thumbs,
                 // but it won't give us a folder image if there's no thumb.
-                let url = LocalAPI.local_url;
+                let url = LocalAPI.localUrl;
                 url.pathname = "tree-thumb/" + item.path;
                 img.src = url;
                 img.addEventListener("img", (e) => { console.log("error"); img.hidden = true; });
             }
             
-            document.body.appendChild(this.thumb_popup);
+            document.body.appendChild(this._thumbPopup);
         }
 
-        // Set up label_popup.
+        // Set up labelPopup.
         {
-            this.label_popup.style.left = `${left}px`;
-            this.label_popup.style.top = `${top}px`;
+            this._labelPopup.style.left = `${left}px`;
+            this._labelPopup.style.top = `${top}px`;
 
             // Match the padding of the label.
-            this.label_popup.style.padding = getComputedStyle(label).padding;
-            this.label_popup.querySelector(".label").innerText = item.label;
-            document.body.appendChild(this.label_popup);
+            this._labelPopup.style.padding = getComputedStyle(label).padding;
+            this._labelPopup.querySelector(".label").innerText = item.label;
+            document.body.appendChild(this._labelPopup);
         }
     }
 }
@@ -260,20 +249,19 @@ class TreeWidgetItem extends Widget
         }
 
         // If our parent is the root node, we're a top-level node.
-        helpers.set_class(this.container, "top", !root && parent.root);
-        helpers.set_class(this.container, "child", !root && !parent.root);
+        helpers.setClass(this.container, "top", !root && parent.root);
+        helpers.setClass(this.container, "child", !root && !parent.root);
 
         this.items = this.container.querySelector(".items");
         this.expander = this.container.querySelector(".expander");
-        this.expand_mode = "expandable";
-        this.is_root = root;
+        this.isRoot = root;
         this._expandable = expandable;
         this._expanded = false;
         this._pending = pending;
         this._label = label;
 
         // Our root node:
-        this.root_node = root? this:this.parent.root_node;
+        this.rootNode = root? this:this.parent.rootNode;
 
         // If we're the root node, the tree is our parent.  Otherwise, copy the tree from
         // our parent.
@@ -283,10 +271,10 @@ class TreeWidgetItem extends Widget
             this.expanded = this.expanded? false:"user";
         });
 
-        let label_element = this.container.querySelector(".label");
-        label_element.addEventListener("dblclick", this.ondblclick);
+        let labelElement = this.container.querySelector(".label");
+        labelElement.addEventListener("dblclick", this.ondblclick);
 
-        label_element.addEventListener("mousedown", (e) => {
+        labelElement.addEventListener("mousedown", (e) => {
             if(e.button != 0)
                     return;
 
@@ -297,23 +285,23 @@ class TreeWidgetItem extends Widget
             this.onclick();
         }, { capture: true });
 
-        label_element.addEventListener("mouseover", (e) => {
-            this.tree.set_hover(this);
+        labelElement.addEventListener("mouseover", (e) => {
+            this.tree.setHover(this);
         }, {
             capture: false,
         });
 
-        label_element.addEventListener("mouseout", (e) => {
-            this.tree.set_hover(null);
+        labelElement.addEventListener("mouseout", (e) => {
+            this.tree.setHover(null);
         }, {
             capture: false,
         });
 
-        this.refresh_expand_mode();
+        this._refreshExpandMode();
 
         if(this.parent instanceof TreeWidgetItem)
         {
-            this.parent.refresh_expand_mode();
+            this.parent._refreshExpandMode();
         }
 
         // Refresh the label.
@@ -346,7 +334,7 @@ class TreeWidgetItem extends Widget
             return;
 
         // Don't unexpand the root.
-        if(!value && this.is_root)
+        if(!value && this.isRoot)
             return;
 
         this._expanded = value;
@@ -355,38 +343,38 @@ class TreeWidgetItem extends Widget
         // be populated.  We'll stay pending and showing the hourglass until onexpand
         // completes.
         if(this._expanded)
-            this.load_contents();
+            this._loadContents();
 
-        this.refresh_expand_mode();
+        this._refreshExpandMode();
     }
     
-    async load_contents()
+    async _loadContents()
     {
         // Stop if we're already loaded.
         if(!this._pending)
             return;
 
-        if(this.load_promise != null)
+        if(this._loadPromise != null)
         {
             try {
-                await this.load_promise;
+                await this._loadPromise;
             } catch(e) {
-                // The initial call to load_contents will print the error.
+                // The initial call to _loadContents will print the error.
             }
             return;
         }
 
         // Start a load if one isn't already running.
         // Start the load.
-        this.load_promise = this.onexpand();
+        this._loadPromise = this.onexpand();
 
-        this.load_promise.finally(() => {
+        this._loadPromise.finally(() => {
             this.pending = false;
-            this.load_promise = null;
+            this._loadPromise = null;
         });
 
         try {
-            if(await this.load_promise)
+            if(await this._loadPromise)
                 return;
         } catch(e) {
             console.log("Error expanding", this, e);
@@ -396,7 +384,7 @@ class TreeWidgetItem extends Widget
         // node.  Unexpand it rather than leaving it marked complete, so it can be retried.
         this._pending = true;
         this._expanded = false;
-        this.refresh_expand_mode();
+        this._refreshExpandMode();
     }
 
     set expandable(value)
@@ -404,7 +392,7 @@ class TreeWidgetItem extends Widget
         if(this._expandable == value)
             return;
         this._expandable = value;
-        this.refresh_expand_mode();
+        this._refreshExpandMode();
     }
 
     set pending(value)
@@ -412,15 +400,15 @@ class TreeWidgetItem extends Widget
         if(this._pending == value)
             return;
         this._pending = value;
-        this.refresh_expand_mode();
+        this._refreshExpandMode();
     }
 
     get expanded() { return this._expanded;}
     get expandable() { return this._expandable; }
     get pending() { return this._pending; }
     
-    // Return an array of this node's child tree_widget_items.
-    get child_nodes()
+    // Return an array of this node's child TreeWidgetItems.
+    get childNodes()
     {
         let result = [];
         for(let child = this.items.firstElementChild; child != null; child = child.nextElementSibling)
@@ -429,7 +417,7 @@ class TreeWidgetItem extends Widget
         return result;
     }
 
-    get displayed_expand_mode()
+    get displayedExpandMode()
     {
         // If we're not pending and we have no children, show "none".
         if(!this._pending && this.items.firstElementChild == null)
@@ -443,32 +431,32 @@ class TreeWidgetItem extends Widget
         return "expandable";
     }
 
-    refresh_expand_mode()
+    _refreshExpandMode()
     {
-        this.expander.dataset.mode = this.displayed_expand_mode;
+        this.expander.dataset.mode = this.displayedExpandMode;
         this.expander.dataset.pending = this._pending;
         this.items.hidden = !this._expanded || this._pending;
-        helpers.set_class(this.container, "allow-content-visibility", this.displayed_expand_mode != "expanded");
+        helpers.setClass(this.container, "allow-content-visibility", this.displayedExpandMode != "expanded");
     }
 
     // user is true if the item is being selected by the user, so it shouldn't be automatically
     // collapsed, or false if it's being selected automatically.
     select({user=false}={})
     {
-        this.tree.set_selected_item(this);
+        this.tree.setSelectedItem(this);
 
         // If the user clicks an item, mark it as user-expanded if it was previously automatically
         // expanded.
         if(user)
-            this._commit_user_expanded();
+            this._commitUserExpanded();
     }
 
     // Mark this item and all of its ancestors as expanded by the user.  This will prevent this tree
     // from being collapsed automatically when the user navigates away from it.
-    _commit_user_expanded()
+    _commitUserExpanded()
     {
         let widget = this;
-        while(widget != null && !widget.is_root)
+        while(widget != null && !widget.isRoot)
         {
             if(widget.expanded)
                 widget.expanded = "user";
@@ -478,22 +466,22 @@ class TreeWidgetItem extends Widget
 
     // If this item was automatically expanded, collapse it, and repeat on our parent nodes.
     //
-    // If until_ancestor_of is given, stop collapsing nodes if we reach an ancestor of that
-    // node.  For example, if we're navigating from "a/b/c/d/e" and until_ancestor_of is
+    // If untilAncestorOf is given, stop collapsing nodes if we reach an ancestor of that
+    // node.  For example, if we're navigating from "a/b/c/d/e" and untilAncestorOf is
     // "a/b/f/g/h", we'll stop when we reach the shared ancestor, "a/b".  This prevents us
     // from collapsing nodes that the new selection will want expanded.
-    _collapse_auto_expanded({until_ancestor_of}={})
+    _collapseAutoExpanded({untilAncestorOf}={})
     {
         // Make a set of ancestor nodes we'll stop at.
-        let stop_nodes = new Set();
-        for(let node = until_ancestor_of; node != null; node = node.parent)
-            stop_nodes.add(node);
+        let stopNodes = new Set();
+        for(let node = untilAncestorOf; node != null; node = node.parent)
+            stopNodes.add(node);
 
         let widget = this;
-        while(widget != null && !widget.is_root)
+        while(widget != null && !widget.isRoot)
         {
             // Stop if we've reached a shared ancestor.
-            if(stop_nodes.has(widget))
+            if(stopNodes.has(widget))
                 break;
 
             if(widget.expanded == "auto")
@@ -516,7 +504,7 @@ class TreeWidgetItem extends Widget
         this.parent.items.remove(this.container);
 
         // Refresh the parent in case we're the last child.
-        this.parent.refresh_expand_mode();
+        this.parent._refreshExpandMode();
 
         this.parent = null;
     }
@@ -547,28 +535,27 @@ class TreeWidgetItem extends Widget
         //
         // Wait for contents to be loaded so we can see if there are any children.
         console.log("loading on dblclick");
-        await this.load_contents();
+        await this._loadContents();
 
         // If there are any children that we just expanded, stop.
-        console.log("loaded, length:", this.child_nodes.length);
-        if(this.child_nodes.length != 0)
+        if(this.childNodes.length != 0)
             return;
 
         // The dblclick should have set the data source to this entry.  Grab the
         // data source.
-        let data_source = ppixiv.app.data_source;
-        console.log("data source for double click:", data_source);
+        let dataSource = ppixiv.app.currentDataSource;
+        console.log("data source for double click:", dataSource);
 
         // Load the first page.  This will overlap with the search loading it, and
         // will wait on the same request.
-        if(!data_source.idList.isPageLoaded(1))
-            await data_source.loadPage(1);
+        if(!dataSource.idList.isPageLoaded(1))
+            await dataSource.loadPage(1);
 
         // Navigate to the first image on the first page.
-        let media_ids = data_source.idList.mediaIdsByPage.get(1);
-        console.log("files for double click:", media_ids?.length);
-        if(media_ids != null)
-            ppixiv.app.show_media(media_ids[0], {add_to_history: true, source: "dblclick"});
+        let mediaIds = dataSource.idList.mediaIdsByPage.get(1);
+        console.log("files for double click:", mediaIds?.length);
+        if(mediaIds != null)
+            ppixiv.app.showMediaId(mediaIds[0], {addToHistory: true, source: "dblclick"});
     }
 };
 
@@ -587,9 +574,9 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         // Set the ID on the item to let the popup menu know what it is.  Don't do
         // this for top-level libraries ("folder:/images"), since they can't be
         // bookmarked.
-        let { id } = helpers.parse_media_id(this.path);
-        let is_library = id.indexOf("/", 1) == -1;
-        if(!is_library)
+        let { id } = helpers.parseMediaId(this.path);
+        let isLibrary = id.indexOf("/", 1) == -1;
+        if(!isLibrary)
             this.container.dataset.mediaId = this.path;
 
         if(options.root)
@@ -602,10 +589,10 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
 
     // This is called by the tree when an illust changes to let us refresh, so we don't need
     // to register an illust change callback for every node.
-    illust_changed(media_id)
+    illustChanged(mediaId)
     {
         // Refresh if we're displaying the illust that changed.
-        if(media_id == this.path)
+        if(mediaId == this.path)
             this.refresh();
     }
 
@@ -615,7 +602,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         super.refresh();
 
         // Show or hide the bookmark icon.
-        let info = ppixiv.mediaCache.get_media_info_sync(this.path, { full: false });
+        let info = ppixiv.mediaCache.getMediaInfoSync(this.path, { full: false });
         let bookmarked = info?.bookmarkData != null;
         this.container.querySelector(".button-bookmark").hidden = !bookmarked;
 
@@ -624,7 +611,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         {
             let label = this.container.querySelector(".label");
             let args = helpers.args.location;
-            LocalAPI.get_args_for_id(this.path, args);
+            LocalAPI.getArgsForId(this.path, args);
             // label.href = args.url.toString();
         } */
     }
@@ -636,7 +623,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
 
     onclick()
     {
-        this.tree.show_item(this.path);
+        this.tree.showItem(this.path);
     }
 
     load()
@@ -645,19 +632,19 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
             return Promise.resolve(true);
 
         // If we're already loading this item, just let it complete.
-        if(this.load_promise)
-            return this.load_promise;
+        if(this._loadPromise)
+            return this._loadPromise;
 
-        this.load_promise = this.load_inner();
+        this._loadPromise = this.loadInner();
 
-        this.load_promise.finally(() => {
-            this.load_promise = null;
+        this._loadPromise.finally(() => {
+            this._loadPromise = null;
         });
 
-        return this.load_promise;
+        return this._loadPromise;
     }
 
-    async load_inner(item)
+    async loadInner(item)
     {
         if(this.loaded)
             return true;
@@ -678,25 +665,10 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
             return false;
         }
 
-        // If this is the top-level item, this is a list of archives.  If we have only one
-        // archive, populate the top level with the top leve of the archive instead, so we
-        // don't have an expander with just one item.
-        // Not sure this is worth it.  It adds special cases elsewhere, since it makes the
-        // tree structure different (local_navigation_widget.load_path is broken, etc).
-        /*
-        if(this.path == "folder:/" && result.results.length == 1)
-        {
-            // Top-level items are always folders.
-            console.assert(result.results[0].mediaId.startsWith("folder:/"));
-            this.path = result.results[0].mediaID;
-            return await this.load_inner();
-        }
-        */
-
         for(let dir of result.results)
         {
             // Strip "folder:" off of the name, and use the basename of that as the label.
-            let {type } = helpers.parse_media_id(dir.mediaId);
+            let {type } = helpers.parseMediaId(dir.mediaId);
             if(type != "folder")
                 continue;
     
@@ -707,7 +679,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
             });
 
             // Store ourself on the root node's node list.
-            this.root_node.nodes[child.path] = child;
+            this.rootNode.nodes[child.path] = child;
 
             // If we're the root, expand our children as they load, so the default tree
             // isn't just one unexpanded library.
@@ -725,30 +697,30 @@ export default class LocalNavigationTreeWidget extends TreeWidget
     constructor({...options}={})
     {
         super({...options,
-            add_root: false,
+            addRoot: false,
         });
 
-        this.load_path = new SentinelGuard(this.load_path, this);
+        this._loadPath = new SentinelGuard(this.loadPath, this);
 
-        // Root local_navigation_widget_items will be stored here when
+        // Root LocalNavigationWidgetItems will be stored here when
         // set_data_source_search_options is called.  Until that happens, we have
         // no root.
         this.roots = {};
 
         window.addEventListener("pp:popstate", (e) => {
-            this.set_root_from_url();
-            this.refresh_selection();
+            this.setRootFromUrl();
+            this.refreshSelection();
         });
 
-        this.set_root_from_url();
+        this.setRootFromUrl();
 
         // Display the initial selection.  Mark this as user-expanded, so it won't be automatically
         // collapsed.
-        this.refresh_selection({ user: true });
+        this.refreshSelection({ user: true });
     }
 
     // Choose a tree root for the current URL, creating one if needed.
-    set_root_from_url()
+    setRootFromUrl()
     {
         // Don't load a root if we're not currently on local search.
         let args = helpers.args.location;
@@ -766,19 +738,19 @@ export default class LocalNavigationTreeWidget extends TreeWidget
             });
         }
 
-        this.set_root(this._root);
+        this.setRoot(this._root);
     }
 
-    set_root(root)
+    setRoot(root)
     {
-        super.set_root(root);
+        super.setRoot(root);
         
         // Make sure the new root is loaded.
         root.load();
     }
 
     // If a search is active, select its item.
-    async refresh_selection({user=false}={})
+    async refreshSelection({user=false}={})
     {
         if(this.root == null)
             return;
@@ -787,12 +759,12 @@ export default class LocalNavigationTreeWidget extends TreeWidget
         let args = helpers.args.location;
         if(args.path != LocalAPI.path)
         {
-            this.set_selected_item(null);
+            this.setSelectedItem(null);
             return;
         }
 
         // Load the path if possible and select it.
-        let node = await this.load_path({ args, user });
+        let node = await this._loadPath({ args, user });
         if(node)
         {
            
@@ -806,7 +778,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
     //
     // This call is guarded, so if we're called again from another navigation,
     // we won't keep loading and changing the selection.
-    async load_path(signal, { args, user=false }={})
+    async loadPath(signal, { args, user=false }={})
     {
         // Stop if we don't have a root yet.
         if(this.root == null)
@@ -816,8 +788,8 @@ export default class LocalNavigationTreeWidget extends TreeWidget
         await this.root.load();
         signal.check();
 
-        let media_id = LocalAPI.get_local_id_from_args(args, { get_folder: true });
-        let { id } = helpers.parse_media_id(media_id);
+        let mediaId = LocalAPI.getLocalIdFromArgs(args, { get_folder: true });
+        let { id } = helpers.parseMediaId(mediaId);
 
         // Split apart the path.
         let parts = id.split("/");
@@ -832,22 +804,22 @@ export default class LocalNavigationTreeWidget extends TreeWidget
         // random places further down the filesystem.  We can do the same thing here: if
         // we're trying to load /a/b/c/d/e and the search node points to /a/b/c, we skip
         // /a and /a/b which aren't in the tree and start loading from there.
-        let current_path = "";
+        let currentPath = "";
         let node = null;
         for(let part of parts)
         {
-            // Append this path component to current_path.
-            if(current_path == "")
-                current_path = "folder:/";
-            else if(current_path != "folder:/")
-                current_path += "/";
-            current_path += part;
+            // Append this path component to currentPath.
+            if(currentPath == "")
+                currentPath = "folder:/";
+            else if(currentPath != "folder:/")
+                currentPath += "/";
+            currentPath += part;
 
             // If this directory exists in the tree, it'll be in nodes by now.
-            node = this.root.nodes[current_path];
+            node = this.root.nodes[currentPath];
             if(node == null)
             {
-                // console.log("Path doesn't exist:", current_path);
+                // console.log("Path doesn't exist:", currentPath);
                 continue;
             }
 
@@ -855,38 +827,22 @@ export default class LocalNavigationTreeWidget extends TreeWidget
             node.expanded = user? "user":"auto";
 
             // If the node is loading, wait for the load to finish.
-            if(node.load_promise)
-                await node.load_promise;
+            if(node._loadPromise)
+                await node._loadPromise;
             signal.check();
         }
 
-        return this.root.nodes[media_id];
+        return this.root.nodes[mediaId];
     }
 
-    // Navigate to media_id, which should be an entry in the current tree.
-    show_item(media_id)
+    // Navigate to mediaId, which should be an entry in the current tree.
+    showItem(mediaId)
     {
         let args = new helpers.args(ppixiv.plocation);
-        LocalAPI.get_args_for_id(media_id, args);
+        LocalAPI.getArgsForId(mediaId, args);
         helpers.navigate(args);
 
         // Hide the hover thumbnail on click to get it out of the way.
-        this.set_hover(null);
+        this.setHover(null);
     }
 };
-
-function remove_recent_local_search(search)
-{
-    // Remove tag from the list.  There should normally only be one.
-    var recent_tags = ppixiv.settings.get("local_searches") || [];
-    while(1)
-    {
-        var idx = recent_tags.indexOf(search);
-        if(idx == -1)
-            break;
-        recent_tags.splice(idx, 1);
-    }
-    ppixiv.settings.set("local_searches", recent_tags);
-    window.dispatchEvent(new Event("recent-local-searches-changed"));
-}
-

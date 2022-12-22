@@ -24,11 +24,11 @@ export default class IsolatedTapHandler
     // If any running IsolatedTapHandler saw a pointerdown and is about to run,
     // cancel it.  This can be used to prevent isolated taps in places where it's
     // hard to access a pointer event related to it.
-    static prevent_taps()
+    static preventTaps()
     {
         for(let handler of IsolatedTapHandler.handlers)
         {
-            handler._clear_presses();
+            handler._clearPresses();
         }
     }
 
@@ -37,57 +37,57 @@ export default class IsolatedTapHandler
         signal ??= (new AbortController()).signal;
         this.signal = signal;
 
-        this.node = node;
-        this.callback = callback;
-        this.last_pointer_down_at = -99999;
-        this.delay = delay;
-        this._timeout_id = -1;
+        this._node = node;
+        this._callback = callback;
+        this._lastPointerDownAt = -99999;
+        this._delay = delay;
+        this._timeoutId = -1;
         this._pressed = false;
-        this._all_presses = new Set();
+        this._allPresses = new Set();
 
         IsolatedTapHandler.handlers.add(this);
         this.signal.addEventListener("abort", () => IsolatedTapHandler.handlers.delete(this));
 
-        this._event_names_during_touch = ["pointerup", "pointercancel", "pointermove", "blur", "dblclick"];
-        this.node.addEventListener("pointerdown", this._handle_event, { signal });
+        this._eventNamesDuringTouch = ["pointerup", "pointercancel", "pointermove", "blur", "dblclick"];
+        this._node.addEventListener("pointerdown", this._handleEvent, { signal });
     }
 
     // Start listening to events that we only listen to during a press, since these have to go
     // on window.
-    _register_events()
+    _registerEvents()
     {
-        for(let type of this._event_names_during_touch)
-            window.addEventListener(type, this._handle_event, { capture: true, signal: this.signal });
+        for(let type of this._eventNamesDuringTouch)
+            window.addEventListener(type, this._handleEvent, { capture: true, signal: this.signal });
     }
 
-    _unregister_events()
+    _unregisterEvents()
     {
-        for(let type of this._event_names_during_touch)
-            this.node.removeEventListener(type, this._handle_event, { capture: true });
+        for(let type of this._eventNamesDuringTouch)
+            this._node.removeEventListener(type, this._handleEvent, { capture: true });
     }
 
-    _handle_event = (e) =>
+    _handleEvent = (e) =>
     {
         if(e.type == "blur")
         {
             // iOS sometimes doesn't cancel events properly on gestures, so discard any press on
             // blur and clear our press list.
-            this._clear_presses();
+            this._clearPresses();
             return;
         }
 
         // Keep track of pointer events, since they forgot to include it on pointer events.
         // We won't know if there are multitouch events on other nodes.
         if(e.type == "pointerdown")
-            this._all_presses.add(e.pointerId);
+            this._allPresses.add(e.pointerId);
         else if(e.type == "pointerup" || e.type == "pointercancel")
-            this._all_presses.delete(e.pointerId);
+            this._allPresses.delete(e.pointerId);
 
         // If we see pointer events for a different pointer, unqueue our event.
-        if(this._pressed && e.pointerId != this._press_event.pointerId)
+        if(this._pressed && e.pointerId != this._pressEvent.pointerId)
         {
             // console.log("Cancelling for multitouch");
-            this._unqueue_event();
+            this._unqueueEvent();
             return;
         }
 
@@ -96,33 +96,33 @@ export default class IsolatedTapHandler
         if(e.type == "dblclick")
         {
             // console.log("Cancelling for dblclick");
-            this._unqueue_event();
+            this._unqueueEvent();
         }
 
         if(e.type == "pointercancel")
         {
-            this._clear_presses();
+            this._clearPresses();
             return;
         }
 
         if(e.type == "pointerdown")
         {
             // If this isn't the first touch on the element, ignore it.
-            if(this._all_presses.size > 1)
+            if(this._allPresses.size > 1)
             {
                 // console.log("Ignoring press during multitouch");
                 return;
             }
 
             // Start watching the other events.
-            this._register_events();
+            this._registerEvents();
 
-            this._unqueue_event();
+            this._unqueueEvent();
 
             let now = Date.now();
-            let time_since_last_press = now - this.last_pointer_down_at;
-            this.last_pointer_down_at = Date.now();
-            if(time_since_last_press < this.delay)
+            let timeSinceLastPress = now - this._lastPointerDownAt;
+            this._lastPointerDownAt = Date.now();
+            if(timeSinceLastPress < this._delay)
             {
                 // If we get a pointerdown quickly after another, this is just cancelling any queued
                 // event that we started, since this means it isn't an isolated tap.
@@ -133,52 +133,52 @@ export default class IsolatedTapHandler
             // If this is a pointerdown and we haven't seen another pointerdown in at least
             // our delay, start a new potential press.
             // console.log("Starting pointer monitoring");
-            this._check_events = [];
+            this._checkEvents = [];
             this._pressed = true;
             
             // Keep the initial press event so we can pass it to the callback.
-            this._press_event = e;
+            this._pressEvent = e;
 
-            this._queue_event();
+            this._queueEvent();
         }
 
         // Any pointer movement cancels the tap.  Mobile browsers already threshold pointer movement,
         // so we don't need to do it.
         if(e.type == "pointermove")
         {
-            this._unqueue_event();
+            this._unqueueEvent();
             return;
         }
 
         if(e.type == "pointerup")
         {
-            this._unregister_events();
+            this._unregisterEvents();
             this._pressed = false;
         }
 
         // We need to know if any of these events are handled, even if they're in event handlers
         // that trigger after us.  Just keep a list of all of them and we'll check them when the
         // timer expires.
-        this._check_events.push(e);
+        this._checkEvents.push(e);
     }
 
-    _clear_presses()
+    _clearPresses()
     {
-        this._unqueue_event();
-        this._all_presses.clear();
+        this._unqueueEvent();
+        this._allPresses.clear();
         this._pressed = false;
     }
 
-    _queue_event = () =>
+    _queueEvent = () =>
     {
-        if(this._timeout_id != -1)
+        if(this._timeoutId != -1)
             return;
 
-        this._timeout_id = realSetTimeout(() => {
+        this._timeoutId = realSetTimeout(() => {
             if(this.signal.aborted)
                 return;
 
-            this._timeout_id = -1;
+            this._timeoutId = -1;
 
             // If the press is still held, this isn't an isolated press.
             if(this._pressed)
@@ -189,7 +189,7 @@ export default class IsolatedTapHandler
 
             // If any pointer event for this press was cancelled, that means something handled
             // something about the press, so don't use it.
-            for(let event of this._check_events)
+            for(let event of this._checkEvents)
             {
                 if(event.defaultPrevented || event.cancelBubble)
                 {
@@ -197,27 +197,28 @@ export default class IsolatedTapHandler
                     return;
                 }
 
-                // If partially_handled is set, it means something was done with the event
+                // If partiallyHandled is set, it means something was done with the event
                 // that didn't want to cancel the event, but does want to prevent us from
-                // treating it as an isolated tap.  For example, if click_outside_listener
+                // treating it as an isolated tap.  For example, if ClickOutsideListener
                 // triggers to close the viewer menu it won't prevent the event, but we don't
                 // want it to be an isolated tap.
-                if(event.partially_handled)
+                if(event.partiallyHandled)
                 {
-                    // console.log("Press handled by click_outside_listener");
+                    // console.log("Press handled by ClickOutsideListener");
                     return;
                 }
             }
 
-            this.callback(this._press_event);
-        }, this.delay);
+            this._callback(this._pressEvent);
+        }, this._delay);
     }
 
-    _unqueue_event = () =>
+    _unqueueEvent = () =>
     {
-        if(this._timeout_id == -1)
+        if(this._timeoutId == -1)
             return;
-        realClearTimeout(this._timeout_id);
-        this._timeout_id= -1;
+
+        realClearTimeout(this._timeoutId);
+        this._timeoutId = -1;
     }
 }

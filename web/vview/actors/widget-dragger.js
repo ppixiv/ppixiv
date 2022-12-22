@@ -2,6 +2,7 @@ import PropertyAnimation from 'vview/actors/property-animation.js';
 import Bezier2D from 'vview/util/bezier.js';
 import FlingVelocity from 'vview/util/fling-velocity.js';
 import DragHandler from 'vview/misc/drag-handler.js';
+import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 // A simpler interface for allowing a widget to be dragged open or closed.
@@ -13,29 +14,22 @@ export default class WidgetDragger
         // The node that will be animated by the drag.
         node,
 
-        // An animation for each node.  If this is a function, it will be called each time a
-        // drag starts.
-        //
-        // If this is null, a default empty animation is used, and only animated_property will
-        // be animated.
-        animations=null,
-
         // The node to listen for drags on:
-        drag_node,
+        dragNode,
 
         // The drag distance the drag that corresponds to a full transition from closed to
         // open.  This can be a number, or a function that returns a number.
         size,
 
-        animated_property=null,
-        animated_property_inverted=false,
+        animatedProperty=null,
+        animatedPropertyInverted=false,
 
         // If set, this is an array of nodes inside the dragger, and clicks outside of this
         // list while visible will cause the dragger to hide.
-        close_if_outside=null,
+        closeIfOutside=null,
 
         // This is called before a drag starts.  If false is returned, the drag will be ignored.
-        confirm_drag = () => true,
+        confirmDrag = () => true,
 
         // Callbacks
         //
@@ -64,8 +58,8 @@ export default class WidgetDragger
         // Animation properties.  These are the same for all animated nodes.
         duration=150,
 
-        start_offset=0,
-        end_offset=1,
+        startOffset=0,
+        endOffset=1,
     }={})
     {
         this._visible = visible;
@@ -75,14 +69,13 @@ export default class WidgetDragger
         this.onanimationstart = onanimationstart;      this.onanimationfinished = onanimationfinished;
         this.onbeforeshown = onbeforeshown;            this.onafterhidden = onafterhidden;
         this.onstatechange = onstatechange;
-        this.confirm_drag = confirm_drag;
-        this.animations = animations;
-        this.animated_property = animated_property;
-        this.animated_property_inverted = animated_property_inverted;
-        this.close_if_outside = close_if_outside;
+        this.confirmDrag = confirmDrag;
+        this.animatedProperty = animatedProperty;
+        this.animatedPropertyInverted = animatedPropertyInverted;
+        this.closeIfOutside = closeIfOutside;
         this.duration = duration;
-        this.start_offset = start_offset;
-        this.end_offset = end_offset;
+        this.startOffset = startOffset;
+        this.endOffset = endOffset;
         this._state = "idle";
 
         if(!(this.duration instanceof Function))
@@ -95,76 +88,76 @@ export default class WidgetDragger
         let reversed = direction == "left" || direction == "up";
 
         // Create the velocity tracker used to detect flings.
-        this.recent_pointer_movement = new FlingVelocity({ samplePeriod: 0.150 });
+        this._recentPointerMovement = new FlingVelocity({ samplePeriod: 0.150 });
 
         // Create the velocity tracker for the speed the animated property is changing.
-        this.recent_value_movement = new FlingVelocity({ samplePeriod: 0.150 });
+        this._recentValueMovement = new FlingVelocity({ samplePeriod: 0.150 });
 
-        let property_start = animated_property_inverted? 1:0;
-        let property_end = animated_property_inverted? 0:1;
+        let propertyStart = animatedPropertyInverted? 1:0;
+        let propertyEnd = animatedPropertyInverted? 0:1;
 
         // Create the animation.
-        this.drag_animation = new PropertyAnimation({
+        this._dragAnimation = new PropertyAnimation({
             node: this.nodes,
-            property: this.animated_property,
-            property_start,
-            property_end,
+            property: this.animatedProperty,
+            propertyStart,
+            propertyEnd,
 
-            start_offset: this.start_offset,
-            end_offset: this.end_offset,
+            startOffset: this.startOffset,
+            endOffset: this.endOffset,
     
             onanimationfinished: (anim) => {
                 // Update visibility if the animation we finished put us at 0.
                 if(anim.position < 0.00001)
-                    this._set_visible(false);
+                    this._setVisible(false);
 
                 // If a drag was left active during the animation, cancel it before returning to idle.
-                this.dragger.cancel_drag();
+                this.dragger.cancelDrag();
 
                 // When an animation finishes normally, we're no longer doing anything, so
                 // go back to inactive.
-                this._set_state("idle");
+                this._setState("idle");
             },
 
-            onchange: ({value, old_value}) => {
-                if(old_value == null)
+            onchange: ({value, oldValue}) => {
+                if(oldValue == null)
                     return;
 
-                let delta = Math.abs(value - old_value);
-                this.recent_value_movement.addSample({ x: delta });
+                let delta = Math.abs(value - oldValue);
+                this._recentValueMovement.addSample({ x: delta });
             },
         });
 
-        this.drag_animation.position = visible? 1:0;
+        this._dragAnimation.position = visible? 1:0;
 
         this.dragger = new DragHandler({
             name,
-            element: drag_node,
+            element: dragNode,
             oncancelled,
 
             ondragstart: (args) => {
                 // If this is a horizontal dragger, see if we should ignore this drag because
                 // it might trigger iOS navigation.
-                if(!vertical && helpers.should_ignore_horizontal_drag(args.event))
+                if(!vertical && helpers.shouldIgnoreHorizontalDrag(args.event))
                     return false;
                 
-                if(!this.confirm_drag(args))
+                if(!this.confirmDrag(args))
                     return false;
 
                 // Stop any running animation.
-                this.drag_animation.stop();
+                this._dragAnimation.stop();
 
-                this.recent_pointer_movement.reset();
+                this._recentPointerMovement.reset();
 
-                this._set_state("dragging");
+                this._setState("dragging");
 
                 // A drag is starting.  Send onbeforeshown if we weren't visible, since we
                 // might be about to make the widget visible.
-                this._set_visible(true);
+                this._setVisible(true);
 
                 // Remember the position we started at.  This is only used so we can return to it if
                 // the drag is cancelled.
-                this.drag_started_at = this.position;
+                this._dragStartedAt = this.position;
 
                 return true;
             },
@@ -176,17 +169,17 @@ export default class WidgetDragger
                 if(this._state == "animating")
                 {
                     console.log("animation interrupted by drag");
-                    this.drag_animation.stop();
-                    this._set_state("dragging");
+                    this._dragAnimation.stop();
+                    this._setState("dragging");
                 }
 
                 if(this._state != "dragging")
-                    this._log_state_changes(`Expected dragging, in ${this._state}`);
+                    this._logStateChanges(`Expected dragging, in ${this._state}`);
 
                 // Drags should always be in the dragging state, and won't change state.
                 console.assert(this._state == "dragging", this._state);
 
-                this.recent_pointer_movement.addSample({ x: event.movementX, y: event.movementY });
+                this._recentPointerMovement.addSample({ x: event.movementX, y: event.movementY });
 
                 // The first movement is thresholded by the browser, and counts towards fling velocity
                 // but doesn't actually move the widget.
@@ -195,20 +188,20 @@ export default class WidgetDragger
 
                 // If show() or hide() was called during a fling and the user dragged again, we're interrupting
                 // the animation to continue the drag, so stop the drag.
-                this.drag_animation.stop();
+                this._dragAnimation.stop();
 
-                let pos = this.drag_animation.position;
+                let pos = this._dragAnimation.position;
                 let movement = vertical? event.movementY:event.movementX;
                 if(reversed)
                     movement *= -1;
 
-                let actual_size = size;
-                if(actual_size instanceof Function)
-                    actual_size = actual_size();
+                let actualSize = size;
+                if(actualSize instanceof Function)
+                    actualSize = actualSize();
 
-                pos += movement / actual_size;
-                pos = helpers.clamp(pos, this.start_offset, this.end_offset);
-                this.drag_animation.position = pos;
+                pos += movement / actualSize;
+                pos = helpers.clamp(pos, this.startOffset, this.endOffset);
+                this._dragAnimation.position = pos;
             },
 
             // When a drag ends, we'll always call either show() or hide(), which will either start
@@ -220,7 +213,7 @@ export default class WidgetDragger
                 // of triggering an exit.
                 if(cancel)
                 {
-                    if(this.drag_started_at > 0.5)
+                    if(this._dragStartedAt > 0.5)
                         this.show();
                     else
                         this.hide();
@@ -228,7 +221,7 @@ export default class WidgetDragger
                 }
 
                 // See if there was a fling.
-                let { velocity } = this.recent_pointer_movement.getMovementInDirection(direction);
+                let { velocity } = this._recentPointerMovement.getMovementInDirection(direction);
 
                 let threshold = 150;
                 if(velocity > threshold)
@@ -237,7 +230,7 @@ export default class WidgetDragger
                     return this.hide({ velocity: -velocity });
 
                 // If there hasn't been a fling recently, open or close based on how far open we are.
-                let open = this.drag_animation.position > 0.5;
+                let open = this._dragAnimation.position > 0.5;
                 if(open)
                     this.show({ velocity });
                 else
@@ -257,10 +250,10 @@ export default class WidgetDragger
 
     get position()
     {
-        return this.drag_animation.position;
+        return this._dragAnimation.position;
     }
 
-    _set_visible(value)
+    _setVisible(value)
     {
         if(this._visible == value)
             return;
@@ -271,28 +264,28 @@ export default class WidgetDragger
         else
             this.onafterhidden();
 
-        if(this.close_if_outside)
+        if(this.closeIfOutside)
         {
-            // Create or destroy the click_outside_listener.
-            if(this._visible && this.clicked_outside_ui_listener == null)
+            // Create or destroy the ClickOutsideListener.
+            if(this._visible && this._clickedOutsideListener == null)
             {
-                this.clicked_outside_ui_listener = new click_outside_listener(this.close_if_outside, () => this.hide());
+                this._clickedOutsideListener = new ClickOutsideListener(this.closeIfOutside, () => this.hide());
             }
-            else if(!this._visible && this.clicked_outside_ui_listener != null)
+            else if(!this._visible && this._clickedOutsideListener != null)
             {
-                this.clicked_outside_ui_listener.shutdown();
-                this.clicked_outside_ui_listener = null;
+                this._clickedOutsideListener.shutdown();
+                this._clickedOutsideListener = null;
             }
         }
     }
 
     // Stop any animations, and jump to the given position.
-    set_position_without_transition(position=0)
+    setPositionWithoutTransition(position=0)
     {
-        this.drag_animation.stop();
-        this.drag_animation.position = position;
+        this._dragAnimation.stop();
+        this._dragAnimation.position = position;
 
-        this._set_state("idle");
+        this._setState("idle");
     }
     
     // Animate to the fully shown state.  If given, velocity is the drag speed that caused this.
@@ -301,28 +294,28 @@ export default class WidgetDragger
     // drag will be cancelled if the animation completes.
     show({ easing=null }={})
     {
-        this._animate_to({end_position: 1, easing});
+        this._animateTo({endPosition: 1, easing});
     }
 
     // Animate to the completely hidden state.  If given, velocity is the drag speed that caused this.
     hide({ easing=null }={})
     {
-        this._animate_to({end_position: 0, easing});
+        this._animateTo({endPosition: 0, easing});
     }
 
-    _animate_to({ end_position, easing=null }={})
+    _animateTo({ endPosition, easing=null }={})
     {
         // Stop if we're already in this state.
-        if(this._state == "idle" && this.drag_animation.position == end_position)
+        if(this._state == "idle" && this._dragAnimation.position == endPosition)
             return;
     
         // If we're already animating towards this position, just let it continue.
-        if(this._state == "animating" && this.drag_animation.animating_towards == end_position)
+        if(this._state == "animating" && this._dragAnimation.animatingTowards == endPosition)
             return;
 
         // If we're animating to a visible state, mark ourselves visible.
-        if(end_position > 0)
-            this._set_visible(true);
+        if(endPosition > 0)
+            this._setVisible(true);
 
         let duration = this.duration();
 
@@ -330,54 +323,54 @@ export default class WidgetDragger
         // of the animated property.
         if(easing == null)
         {
-            let property_velocity = this.recent_value_movement.currentVelocity.x;
-            let property_start = this.drag_animation.current_property_value;
-            let property_end = this.drag_animation.property_value_for_position(end_position);
-            // console.log("->", property_start, property_end, property_velocity);
+            let propertyVelocity = this._recentValueMovement.currentVelocity.x;
+            let propertyStart = this._dragAnimation.currentPropertyValue;
+            let propertyEnd = this._dragAnimation.propertyValueForPosition(endPosition);
+            // console.log("->", propertyStart, propertyEnd, propertyVelocity);
 
-            easing = Bezier2D.find_curve_for_velocity({
-                distance: Math.abs(property_end - property_start),
+            easing = Bezier2D.findCurveForVelocity({
+                distance: Math.abs(propertyEnd - propertyStart),
                 duration: duration / 1000, // in seconds
-                target_velocity: Math.abs(property_velocity),
-                return_object: true,
+                targetVelocity: Math.abs(propertyVelocity),
+                returnObject: true,
             });
         }
 
-        let promise = this._animation_promise = this.drag_animation.play({end_position, easing, duration});
-        this._animation_promise.then(() => {
-            if(promise == this._animation_promise)
-                this._animation_promise = null;
+        let promise = this._animationPromise = this._dragAnimation.play({endPosition, easing, duration});
+        this._animationPromise.then(() => {
+            if(promise == this._animationPromise)
+                this._animationPromise = null;
         });
 
-        // Call this after starting the animation, so animation_playing and animating_to_shown
+        // Call this after starting the animation, so isAnimationPlaying and isAnimatingToShown
         // reflect the animation when onanimationstart is called.
-        this._set_state("animating");
+        this._setState("animating");
     }
 
-    _record_state_change(from, to)
+    _recordStateChange(from, to)
     {
-        // if(Actor.debug_shutdown && !this._previous_shutdown_stack)
+        // if(Actor.debugShutdown && !this._previousShutdownStack)
         // XXX
         {
-            this._state_stacks ??= [];
+            this._stateStacks ??= [];
             try {
                 throw new Error();
             } catch(e) {
-                this._state_stacks.push([from, to, e.stack]);
+                this._stateStacks.push([from, to, e.stack]);
                 let max = 10;
-                if(this._state_stacks.length > max)
-                    this._state_stacks.splice(this._state_stacks.length - max);
+                if(this._stateStacks.length > max)
+                    this._stateStacks.splice(this._stateStacks.length - max);
             }
         }
     }
     
-    _log_state_changes(message)
+    _logStateChanges(message)
     {
-        if(!this._state_stacks)
+        if(!this._stateStacks)
             return;
 
         console.error("Error:", message);
-        for(let [from, to, stack] of this._state_stacks)
+        for(let [from, to, stack] of this._stateStacks)
         {
             console.log(`From ${from} to ${to}, stack:`);
             console.log(stack);
@@ -386,35 +379,35 @@ export default class WidgetDragger
 
     // Set the current state: "idle", "dragging" or "animating", running the
     // appropriate callbacks.
-    _set_state(state, ...args)
+    _setState(state, ...args)
     {
         if(state == this._state)
             return;
 
         // Transition back to active, ending whichever state we were in before.
-        if(state != "idle"      && this._change_state("idle", "active")) this.onactive(...args);
-        if(state != "dragging"  && this._change_state("dragging", "active")) this.ondragend(...args);
-        if(state != "animating" && this._change_state("animating", "active")) this.onanimationfinished(...args);
+        if(state != "idle"      && this._changeState("idle", "active")) this.onactive(...args);
+        if(state != "dragging"  && this._changeState("dragging", "active")) this.ondragend(...args);
+        if(state != "animating" && this._changeState("animating", "active")) this.onanimationfinished(...args);
 
         // Transition into the new state, beginning the new state.
-        if(state == "dragging"  && this._change_state("active", "dragging")) this.ondragstart(...args);
-        if(state == "animating" && this._change_state("active", "animating")) this.onanimationstart(...args);
-        if(state == "idle"      && this._change_state("active", "idle")) this.oninactive(...args);
+        if(state == "dragging"  && this._changeState("active", "dragging")) this.ondragstart(...args);
+        if(state == "animating" && this._changeState("active", "animating")) this.onanimationstart(...args);
+        if(state == "idle"      && this._changeState("active", "idle")) this.oninactive(...args);
     }
 
-    _change_state(old_state, new_state)
+    _changeState(oldState, newState)
     {
-        if(this._state != old_state)
+        if(this._state != oldState)
             return false;
 
-        this._record_state_change(this._state, new_state);
+        this._recordStateChange(this._state, newState);
 
-        // console.warn(`state change: ${old_state} -> ${new_state}`);
-        this._state = new_state;
+        // console.warn(`state change: ${oldState} -> ${newState}`);
+        this._state = newState;
 
         // Don't call onstatechange for active, since it's just a transition between
         // other states.
-        if(new_state != "active")
+        if(newState != "active")
             this.onstatechange();
 
         return true;
@@ -429,7 +422,7 @@ export default class WidgetDragger
     }
 
     // Return true if an animation (not a drag) is currently running.
-    get animation_playing()
+    get isAnimationPlaying()
     {
         return this._state == "animating";
     }
@@ -437,24 +430,24 @@ export default class WidgetDragger
     // Return true if the current animation is towards being shown (show() was called),
     // or false if the current animation is towards being hidden (hide() was called).
     // If no animation is running, return false.
-    get animating_to_shown()
+    get isAnimatingToShown()
     {
         if(this._state != "animating")
             return false;
 
-        return this.drag_animation.animating_towards == 1;
+        return this._dragAnimation.animatingTowards == 1;
     }
     
     // Return a promise that resolves when the current animation completes, or null if no animation
     // is running.
     get finished()
     {
-        return this._animation_promise;
+        return this._animationPromise;
     }
 
 
     shutdown()
     {
-        this.drag_animation.shutdown();
+        this._dragAnimation.shutdown();
     }
 }

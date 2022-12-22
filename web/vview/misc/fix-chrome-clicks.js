@@ -98,9 +98,9 @@ export default class FixChromeClicks
 
         var releasedNode = e.target;
         var clickTarget = null;
-        if(helpers.is_above(releasedNode, pressedNode))
+        if(helpers.isAbove(releasedNode, pressedNode))
             clickTarget = releasedNode;
-        else if(helpers.is_above(pressedNode, releasedNode))
+        else if(helpers.isAbove(pressedNode, releasedNode))
             clickTarget = pressedNode;
 
         if(clickTarget == null)
@@ -110,7 +110,7 @@ export default class FixChromeClicks
         }
 
         // If the click target is above our container, stop.
-        if(helpers.is_above(clickTarget, this.container))
+        if(helpers.isAbove(clickTarget, this.container))
             return;
 
         // Why is cancelling the event not preventing mouse events and click events?

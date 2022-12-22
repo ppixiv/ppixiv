@@ -1,7 +1,7 @@
 // This is a custom element that roughly emulates an HTMLImageElement, but contains two
 // overlaid images instead of one to overlay the inpaint, and holds the InpaintEditorOverlay.
 // Load and error events are dispatched, and the image is considered loaded or complete when
-// both of its images are loaded or complete.  This allows on_click_viewer to display inpainting
+// both of its images are loaded or complete.  This allows ViewerImages to display inpainting
 // and the inpaint editor without needing to know much about it, so we can avoid complicating
 // the viewer.
 
@@ -22,26 +22,26 @@ export default class ImageEditingOverlayContainer extends Widget
             </div>
         `});
 
-        this.inpaint_editor_overlay_container = this.container.querySelector(".inpaint-editor-overlay-container");
-        this.crop_editor_overlay_container = this.container.querySelector(".crop-editor-overlay-container");
-        this.pan_editor_overlay_container = this.container.querySelector(".pan-editor-overlay-container");
+        this._inpaintEditorOverlayContainer = this.container.querySelector(".inpaint-editor-overlay-container");
+        this._cropEditorOverlayContainer = this.container.querySelector(".crop-editor-overlay-container");
+        this._panEditorOverlayContainer = this.container.querySelector(".pan-editor-overlay-container");
     }
 
-    set inpaint_editor_overlay(node)
+    set inpaintEditorOverlay(node)
     {
-        helpers.remove_elements(this.inpaint_editor_overlay_container);
-        this.inpaint_editor_overlay_container.appendChild(node);
+        helpers.removeElements(this._inpaintEditorOverlayContainer);
+        this._inpaintEditorOverlayContainer.appendChild(node);
     }
 
-    set crop_editor_overlay(node)
+    set cropEditorOverlay(node)
     {
-        helpers.remove_elements(this.crop_editor_overlay_container);
-        this.crop_editor_overlay_container.appendChild(node);
+        helpers.removeElements(this._cropEditorOverlayContainer);
+        this._cropEditorOverlayContainer.appendChild(node);
     }
 
-    set pan_editor_overlay(node)
+    set panEditorOverlay(node)
     {
-        helpers.remove_elements(this.pan_editor_overlay_container);
-        this.pan_editor_overlay_container.appendChild(node);
+        helpers.removeElements(this._panEditorOverlayContainer);
+        this._panEditorOverlayContainer.appendChild(node);
     }
 }

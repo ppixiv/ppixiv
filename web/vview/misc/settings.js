@@ -10,8 +10,8 @@ export default class Settings extends EventTarget
     {
         super();
 
-        this.sticky_settings = { };
-        this.session_settings = { };
+        this.stickySettings = { };
+        this.sessionSettings = { };
         this.defaults = { };
 
         // We often read settings repeatedly in inner loops, which can become a bottleneck
@@ -23,29 +23,29 @@ export default class Settings extends EventTarget
 
         // If a setting has no saved value, it'll be cached as no_value.  This is different from
         // null, since null is a valid saved value.
-        this.no_value = new Object();
+        this.noValue = new Object();
 
         // Register settings.
         this.configure("zoom-mode", { sticky: true });
         this.configure("zoom-level", { sticky: true });
         this.configure("linked_tabs", { session: true });
-        this.configure("linked_tabs_enabled", { session: true, default_value: true });
-        this.configure("volume", { default_value: 1 });
-        this.configure("view_mode", { default_value: "illust" });
+        this.configure("linked_tabs_enabled", { session: true, defaultValue: true });
+        this.configure("volume", { defaultValue: 1 });
+        this.configure("view_mode", { defaultValue: "illust" });
         this.configure("image_editing", { session: true });
         this.configure("image_editing_mode", { session: true });
         this.configure("inpaint_create_lines", { session: true });
-        this.configure("slideshow_duration", { default_value: 15 });
-        this.configure("auto_pan", { default_value: ppixiv.mobile });
-        this.configure("auto_pan_duration", { default_value: 3 });
-        this.configure("extra_mutes", { default_value: [] });
-        this.configure("slideshow_skips_manga", { default_value: false });
-        this.configure("expand_manga_thumbnails", { default_value: false });
-        this.configure("slideshow_framerate", { default_value: 60 });
-        this.configure("animations_enabled", { default_value: ppixiv.mobile });
+        this.configure("slideshow_duration", { defaultValue: 15 });
+        this.configure("auto_pan", { defaultValue: ppixiv.mobile });
+        this.configure("auto_pan_duration", { defaultValue: 3 });
+        this.configure("extraMutes", { defaultValue: [] });
+        this.configure("slideshow_skips_manga", { defaultValue: false });
+        this.configure("expand_manga_thumbnails", { defaultValue: false });
+        this.configure("slideshow_framerate", { defaultValue: 60 });
+        this.configure("animations_enabled", { defaultValue: ppixiv.mobile });
 
         // If not null, this limits the size of loaded images.
-        this.configure("image_size_limit", { default_value: ppixiv.mobile? 4000*4000:null });
+        this.configure("image_size_limit", { defaultValue: ppixiv.mobile? 4000*4000:null });
     }
 
     // Configure settings.  This is used for properties of settings that we need to
@@ -59,101 +59,101 @@ export default class Settings extends EventTarget
     // Session settings are stored in sessionStorage instead of localStorage.  These are
     // local to the tab.  They'll be copied into new tabs if a tab is duplicated, but they're
     // otherwise isolated, and lost when the tab is closed.
-    configure(key, {sticky=false, session=false, default_value=null})
+    configure(key, {sticky=false, session=false, defaultValue=null})
     {
         if(sticky)
         {
             // Create the key if it doesn't exist.
-            if(this.sticky_settings[key] === undefined)
-                this.sticky_settings[key] = null;
+            if(this.stickySettings[key] === undefined)
+                this.stickySettings[key] = null;
         }
 
         if(session)
-            this.session_settings[key] = true;
+            this.sessionSettings[key] = true;
 
-        if(default_value != null)
-            this.defaults[key] = default_value;
+        if(defaultValue != null)
+            this.defaults[key] = defaultValue;
     }
 
-    _get_storage_for_key(key)
+    _getStorageForKey(key)
     {
-        if(this.session_settings[key])
+        if(this.sessionSettings[key])
             return sessionStorage;
         else
             return localStorage;
     }
 
     // Wait until we return to the event loop, then clear any cached settings.
-    async _queue_clear_cache()
+    async _queueClearCache()
     {
-        if(this._clear_cache_queued || Object.keys(this.cache).length == 0)
+        if(this._clearCacheQueued || Object.keys(this.cache).length == 0)
             return;
 
-        this._clear_cache_queued = true;
+        this._clearCacheQueued = true;
         try {
             await helpers.sleep(0);
             this.cache = {};
         } finally {
-            this._clear_cache_queued = false;
+            this._clearCacheQueued = false;
         }
     }
 
-    _cache_value(key, value)
+    _cacheValue(key, value)
     {
         this.cache[key] = value;
-        this._queue_clear_cache();
+        this._queueClearCache();
     }
 
-    _get_from_storage(key, default_value)
+    _getFromStorage(key, defaultValue)
     {
         // See if we have a cached value.
         if(key in this.cache)
         {
             let value = this.cache[key];
-            if(value === this.no_value)
-                return default_value;
+            if(value === this.noValue)
+                return defaultValue;
             else
                 return value;
         }
 
-        let storage = this._get_storage_for_key(key);
+        let storage = this._getStorageForKey(key);
 
-        let setting_key = "_ppixiv_" + key;
-        if(!(setting_key in storage))
+        let settingKey = "_ppixiv_" + key;
+        if(!(settingKey in storage))
         {
-            this._cache_value(key, this.no_value);
-            return default_value;
+            this._cacheValue(key, this.noValue);
+            return defaultValue;
         }
 
-        let result = storage[setting_key];
+        let result = storage[settingKey];
         try {
             let value = JSON.parse(result);
-            this._cache_value(key, value);
+            this._cacheValue(key, value);
             return value;
         } catch(e) {
             // Recover from invalid values in storage.
             console.warn(e);
             console.log("Removing invalid setting:", result);
             delete storage.storage_key;
-            return default_value;
+            return defaultValue;
         }
     }
 
-    get(key, default_value)
+    get(key, defaultValue)
     {
         if(key in this.defaults)
-            default_value = this.defaults[key];
+            defaultValue = this.defaults[key];
 
         // If this is a sticky setting and we've already read it, use our loaded value.
-        if(this.sticky_settings[key])
-            return this.sticky_settings[key];
+        if(this.stickySettings[key])
+            return this.stickySettings[key];
 
-        let result = this._get_from_storage(key, default_value);
+        let result = this._getFromStorage(key, defaultValue);
 
         // If this is a sticky setting, remember it for reuse.  This will store the default value
         // if there's no stored setting.
-        if(this.sticky_settings[key] !== undefined)
-            this.sticky_settings[key] = result;
+        if(this.stickySettings[key] !== undefined)
+            this.stickySettings[key] = result;
 
         return result;
     }
@@ -165,7 +165,7 @@ export default class Settings extends EventTarget
 
     set(key, value)
     {
-        let storage = this._get_storage_for_key(key);
+        let storage = this._getStorageForKey(key);
 
         // JSON.stringify incorrectly serializes undefined as "undefined", which isn't
         // valid JSON.  We shouldn't be doing this anyway.
@@ -173,21 +173,21 @@ export default class Settings extends EventTarget
             throw "Key can't be set to undefined: " + key;
 
         // If this is a sticky setting, replace its value.
-        if(this.sticky_settings[key] !== undefined)
-            this.sticky_settings[key] = value;
+        if(this.stickySettings[key] !== undefined)
+            this.stickySettings[key] = value;
 
-        var setting_key = "_ppixiv_" + key;
-        storage[setting_key] = JSON.stringify(value);
+        let settingKey = "_ppixiv_" + key;
+        storage[settingKey] = JSON.stringify(value);
 
         // Update the cached value.
-        this._cache_value(key, value);
+        this._cacheValue(key, value);
 
         let event = new Event(key);
         this.dispatchEvent(event);
     }
 
     // Adjust a zoom setting up or down.
-    adjust_zoom(setting, down)
+    adjustZoom(setting, down)
     {
         let value = this.get(setting);
         if(typeof(value) != "number" || isNaN(value))
@@ -195,8 +195,8 @@ export default class Settings extends EventTarget
 
         value += down?-1:+1;
         value = helpers.clamp(value, 0, 7);
-        this._slider_value = value;
-        this.value = this._slider_value;
+        this.sliderValue = value;
+        this.value = this.sliderValue;
 
         this.set(setting, value);
     }

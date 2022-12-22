@@ -8,7 +8,7 @@ import { helpers } from 'vview/misc/helpers.js';
 // Widget for editing bookmark tags.
 export class BookmarkTagListWidget extends IllustWidget
 {
-    get needed_data() { return "media_id"; }
+    get neededData() { return "mediaId"; }
 
     constructor({...options})
     {
@@ -19,8 +19,8 @@ export class BookmarkTagListWidget extends IllustWidget
             </div>
         `});
 
-        this.displaying_media_id = null;
-        this.container.addEventListener("click", this.clicked_bookmark_tag, true);
+        this.displayingMediaId = null;
+        this.container.addEventListener("click", this._clickedBookmarkTag, true);
         this.deactivated = false;
 
         ppixiv.settings.addEventListener("recent-bookmark-tags", this.refresh.bind(this));
@@ -44,33 +44,33 @@ export class BookmarkTagListWidget extends IllustWidget
     }
 
     // Return an array of tags selected in the tag dropdown.
-    get selected_tags()
+    get selectedTags()
     {
-        var tag_list = [];
-        var bookmark_tags = this.container;
-        for(var entry of bookmark_tags.querySelectorAll(".popup-bookmark-tag-entry"))
+        let tagList = [];
+        let bookmarkTags = this.container;
+        for(let entry of bookmarkTags.querySelectorAll(".popup-bookmark-tag-entry"))
         {
             if(!entry.classList.contains("selected"))
                 continue;
-            tag_list.push(entry.dataset.tag);
+            tagList.push(entry.dataset.tag);
         }
-        return tag_list;
+        return tagList;
     }
 
-    // Override setting media_id to save tags when we're closed.  Otherwise, media_id will already
+    // Override setting mediaId to save tags when we're closed.  Otherwise, mediaId will already
     // be cleared when we close and we won't be able to save.
-    set_media_id(media_id)
+    setMediaId(mediaId)
     {
         // If we're hiding and were previously visible, save changes.
-        if(media_id == null)
-            this.save_current_tags();
+        if(mediaId == null)
+            this.saveCurrentTags();
 
-        super.set_media_id(media_id);
+        super.setMediaId(mediaId);
     }
     
-    async visibility_changed()
+    async visibilityChanged()
     {
-        super.visibility_changed();
+        super.visibilityChanged();
 
         if(this.visible)
         {
@@ -86,87 +86,87 @@ export class BookmarkTagListWidget extends IllustWidget
         else
         {
             // Save any selected tags when the dropdown is closed.
-            this.save_current_tags();
+            this.saveCurrentTags();
 
             // Clear the tag list when the menu closes, so it's clean on the next refresh.
-            this.clear_tag_list();
+            this._clearTagList();
 
-            this.displaying_media_id = null;
+            this.displayingMediaId = null;
         }
     }
 
-    clear_tag_list()
+    _clearTagList()
     {
         // Make a copy of children when iterating, since it doesn't handle items being deleted
         // while iterating cleanly.
-        let bookmark_tags = this.container.querySelector(".tag-list");
-        for(let element of [...bookmark_tags.children])
+        let bookmarkTags = this.container.querySelector(".tag-list");
+        for(let element of [...bookmarkTags.children])
         {
             if(element.classList.contains("dynamic") || element.classList.contains("loading"))
                 element.remove();
         }
     }
 
-    async refresh_internal({ media_id })
+    async refreshInternal({ mediaId })
     {
         if(this.deactivated)
             return;
 
         // If we're refreshing the same illust that's already refreshed, store which tags were selected
         // before we clear the list.
-        let old_selected_tags = this.displaying_media_id == media_id? this.selected_tags:[];
+        let oldSelectedTags = this.displayingMediaId == mediaId? this.selectedTags:[];
 
-        this.displaying_media_id = null;
+        this.displayingMediaId = null;
 
-        let bookmark_tags = this.container.querySelector(".tag-list");
-        this.clear_tag_list();
+        let bookmarkTags = this.container.querySelector(".tag-list");
+        this._clearTagList();
 
-        if(media_id == null || !this.visible)
+        if(mediaId == null || !this.visible)
             return;
 
         // Create a temporary entry to show loading while we load bookmark details.
         let entry = document.createElement("span");
         entry.classList.add("loading");
-        bookmark_tags.appendChild(entry);
+        bookmarkTags.appendChild(entry);
         entry.innerText = "Loading...";
 
         // If the tag list is open, populate bookmark details to get bookmark tags.
         // If the image isn't bookmarked this won't do anything.
-        let active_tags = await ppixiv.extraCache.load_bookmark_details(media_id);
+        let activeTags = await ppixiv.extraCache.loadBookmarkDetails(mediaId);
 
         // Remember which illustration's bookmark tags are actually loaded.
-        this.displaying_media_id = media_id;
+        this.displayingMediaId = mediaId;
 
         // Remove elements again, in case another refresh happened while we were async
         // and to remove the loading entry.
-        this.clear_tag_list();
+        this._clearTagList();
         
         // If we're refreshing the list while it's open, make sure that any tags the user
         // selected are still in the list, even if they were removed by the refresh.  Put
-        // them in active_tags, so they'll be marked as active.
-        for(let tag of old_selected_tags)
+        // them in activeTags, so they'll be marked as active.
+        for(let tag of oldSelectedTags)
         {
-            if(active_tags.indexOf(tag) == -1)
-                active_tags.push(tag);
+            if(activeTags.indexOf(tag) == -1)
+                activeTags.push(tag);
         }
 
-        let shown_tags = [];
+        let shownTags = [];
 
-        let recent_bookmark_tags = [...RecentBookmarkTags.getRecentBookmarkTags()]; // copy
-        for(let tag of recent_bookmark_tags)
-            if(shown_tags.indexOf(tag) == -1)
-                shown_tags.push(tag);
+        let recentBookmarkTags = [...RecentBookmarkTags.getRecentBookmarkTags()]; // copy
+        for(let tag of recentBookmarkTags)
+            if(shownTags.indexOf(tag) == -1)
+                shownTags.push(tag);
 
         // Add any tags that are on the bookmark but not in recent tags.
-        for(let tag of active_tags)
-            if(shown_tags.indexOf(tag) == -1)
-                shown_tags.push(tag);
+        for(let tag of activeTags)
+            if(shownTags.indexOf(tag) == -1)
+                shownTags.push(tag);
 
-        shown_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+        shownTags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
 
-        let create_entry = (tag, { classes=[], icon }={}) =>
+        let createEntry = (tag, { classes=[], icon }={}) =>
         {
-            let entry = this.create_template({name: "tag-entry", html: `
+            let entry = this.createTemplate({name: "tag-entry", html: `
                 <div class="popup-bookmark-tag-entry dynamic">
                     <span class=tag-name></span>
                 </div>
@@ -178,65 +178,65 @@ export class BookmarkTagListWidget extends IllustWidget
 
             if(icon)
                 entry.querySelector(".tag-name").insertAdjacentElement("afterbegin", icon);
-            bookmark_tags.appendChild(entry);
+            bookmarkTags.appendChild(entry);
 
             return entry;
         }
 
-        let add_button = create_entry("Add", {
-            icon: helpers.create_icon("add", { as_element: true }),
+        let addButton = createEntry("Add", {
+            icon: helpers.createIcon("add", { asElement: true }),
             classes: ["add-button"],
         });
-        add_button.addEventListener("click", () => Actions.addNewBookmarkTag(this._media_id));
+        addButton.addEventListener("click", () => Actions.addNewBookmarkTag(this._mediaId));
 
-        for(let tag of shown_tags)
+        for(let tag of shownTags)
         {
-            let entry = create_entry(tag, {
+            let entry = createEntry(tag, {
                 classes: ["tag-toggle"],
-//                icon: helpers.create_icon("ppixiv:tag", { as_element: true }),
+//                icon: helpers.createIcon("ppixiv:tag", { asElement: true }),
             });
 
             entry.dataset.tag = tag;
 
-            let active = active_tags.indexOf(tag) != -1;
-            helpers.set_class(entry, "selected", active);
+            let active = activeTags.indexOf(tag) != -1;
+            helpers.setClass(entry, "selected", active);
         }
 
-        let sync_button = create_entry("Refresh", {
-            icon: helpers.create_icon("refresh", { as_element: true }),
+        let syncButton = createEntry("Refresh", {
+            icon: helpers.createIcon("refresh", { asElement: true }),
             classes: ["refresh-button"],
         });
 
-        sync_button.addEventListener("click", async (e) => {
-            let bookmark_tags = await Actions.loadRecentBookmarkTags();
-            RecentBookmarkTags.setRecentBookmarkTags(bookmark_tags);
+        syncButton.addEventListener("click", async (e) => {
+            let bookmarkTags = await Actions.loadRecentBookmarkTags();
+            RecentBookmarkTags.setRecentBookmarkTags(bookmarkTags);
         });
     }
 
     // Save the selected bookmark tags to the current illust.
-    async save_current_tags()
+    async saveCurrentTags()
     {
         if(this.deactivated)
             return;
 
         // Store the ID and tag list we're saving, since they can change when we await.
-        let media_id = this._media_id;
-        let new_tags = this.selected_tags;
-        if(media_id == null)
+        let mediaId = this._mediaId;
+        let newTags = this.selectedTags;
+        if(mediaId == null)
             return;
 
         // Only save tags if we're refreshed to the current illust ID, to make sure we don't save
         // incorrectly if we're currently waiting for the async refresh.
-        if(media_id != this.displaying_media_id)
+        if(mediaId != this.displayingMediaId)
             return;
 
         // Get the tags currently on the bookmark to compare.
-        let old_tags = await ppixiv.extraCache.load_bookmark_details(media_id);
+        let oldTags = await ppixiv.extraCache.loadBookmarkDetails(mediaId);
 
-        var equal = new_tags.length == old_tags.length;
-        for(let tag of new_tags)
+        let equal = newTags.length == oldTags.length;
+        for(let tag of newTags)
         {
-            if(old_tags.indexOf(tag) == -1)
+            if(oldTags.indexOf(tag) == -1)
                 equal = false;
         }
         // If the selected tags haven't changed, we're done.
@@ -244,14 +244,14 @@ export class BookmarkTagListWidget extends IllustWidget
             return;
         
         // Save the tags.  If the image wasn't bookmarked, this will create a public bookmark.
-        console.log(`Tag list closing and tags have changed: ${old_tags.join(",")} -> ${new_tags.join(",")}`);
-        await Actions.bookmarkAdd(this._media_id, {
-            tags: new_tags,
+        console.log(`Tag list closing and tags have changed: ${oldTags.join(",")} -> ${newTags.join(",")}`);
+        await Actions.bookmarkAdd(this._mediaId, {
+            tags: newTags,
         });
     }
 
     // Toggle tags on click.  We don't save changes until we're closed.
-    clicked_bookmark_tag = async(e) =>
+    _clickedBookmarkTag = async(e) =>
     {
         if(this.deactivated)
             return;
@@ -265,8 +265,7 @@ export class BookmarkTagListWidget extends IllustWidget
 
         // Toggle this tag.  Don't actually save it immediately, so if we make multiple
         // changes we don't spam requests.
-        let tag = a.dataset.tag;
-        helpers.set_class(a, "selected", !a.classList.contains("selected"));
+        helpers.setClass(a, "selected", !a.classList.contains("selected"));
     }
 }
 
@@ -275,11 +274,11 @@ export class BookmarkTagListWidget extends IllustWidget
 // The base class is a simple widget.  This subclass handles some of the trickier
 // bits around closing the dropdown correctly, and tells any bookmark buttons about
 // itself.
-export class BookmarkTagListDropdownWidget extends BookmarkTagListWidget
+class BookmarkTagListDropdownWidget extends BookmarkTagListWidget
 {
     constructor({
-        media_id,
-        bookmark_buttons,
+        mediaId,
+        bookmarkButtons,
         ...options
     })
     {
@@ -290,31 +289,31 @@ export class BookmarkTagListDropdownWidget extends BookmarkTagListWidget
 
         this.container.classList.add("popup-bookmark-tag-dropdown");
 
-        this.bookmark_buttons = bookmark_buttons;
+        this.bookmarkButtons = bookmarkButtons;
 
-        this.set_media_id(media_id);
+        this.setMediaId(mediaId);
 
         // Let the bookmark buttons know about this bookmark tag dropdown, and remove it when
         // it's closed.
-        for(let bookmarkButton of this.bookmark_buttons)
+        for(let bookmarkButton of this.bookmarkButtons)
             bookmarkButton.bookmarkTagListWidget = this;
     }
 
-    async refresh_internal({ media_id })
+    async refreshInternal({ mediaId })
     {
         // Make sure the dropdown is hidden if we have no image.
-        if(media_id == null)
+        if(mediaId == null)
             this.visible = false;
 
-        await super.refresh_internal({ media_id });
+        await super.refreshInternal({ mediaId });
     }
 
     // Hide if our tree becomes hidden.
-    on_visible_recursively_changed()
+    visibleRecursivelyChanged()
     {
-        super.on_visible_recursively_changed();
+        super.visibleRecursivelyChanged();
 
-        if(!this.visible_recursively)
+        if(!this.visibleRecursively)
             this.visible = false;
     }
 
@@ -322,7 +321,7 @@ export class BookmarkTagListDropdownWidget extends BookmarkTagListWidget
     {
         super.shutdown();
 
-        for(let bookmarkButton of this.bookmark_buttons)
+        for(let bookmarkButton of this.bookmarkButtons)
         {
             if(bookmarkButton.bookmarkTagListWidget == this)
                 bookmarkButton.bookmarkTagListWidget = null;
@@ -335,10 +334,10 @@ export class BookmarkTagDropdownOpener extends Actor
 {
     constructor({
         // The bookmark tag button which opens the dropdown.
-        bookmark_tags_button,
+        bookmarkTagsButton,
 
         // The associated bookmark button widgets, if any.
-        bookmark_buttons,
+        bookmarkButtons,
         
         onvisibilitychanged,
         ...options
@@ -346,23 +345,23 @@ export class BookmarkTagDropdownOpener extends Actor
     {
         super({...options});
 
-        this.bookmark_tags_button = bookmark_tags_button;
-        this.bookmark_buttons = bookmark_buttons;
-        this._media_id = null;
+        this.bookmarkTagsButton = bookmarkTagsButton;
+        this.bookmarkButtons = bookmarkButtons;
+        this._mediaId = null;
 
         // Create an opener to actually create the dropdown.
         this._opener = new DropdownBoxOpener({
-            button: bookmark_tags_button,
+            button: bookmarkTagsButton,
             onvisibilitychanged,
-            create_box: this._create_box,
+            createBox: this._createBox,
 
             // If we have bookmark buttons, don't close for clicks inside them.  We need the
             // bookmark button to handle the click first, then it'll close us.
-            close_for_click: (e) =>
+            shouldCloseForClick: (e) =>
             {
-                for(let button of this.bookmark_buttons)
+                for(let button of this.bookmarkButtons)
                 {
-                    if(helpers.is_above(button.container, e.target))
+                    if(helpers.isAbove(button.container, e.target))
                         return false;
                 }
 
@@ -370,11 +369,11 @@ export class BookmarkTagDropdownOpener extends Actor
             },
         });
 
-        bookmark_tags_button.addEventListener("click", (e) => {
+        bookmarkTagsButton.addEventListener("click", (e) => {
             this._opener.visible = !this._opener.visible;
         });
 
-        for(let button of this.bookmark_buttons)
+        for(let button of this.bookmarkButtons)
         {
             button.addEventListener("bookmarkedited", () => {
                 this._opener.visible = false;
@@ -382,27 +381,27 @@ export class BookmarkTagDropdownOpener extends Actor
         }
     }
 
-    set_media_id(media_id)
+    setMediaId(mediaId)
     {
-        if(this._media_id == media_id)
+        if(this._mediaId == mediaId)
             return;
 
-        this._media_id = media_id;
-        helpers.set_class(this.bookmark_tags_button, "enabled", media_id != null);
+        this._mediaId = mediaId;
+        helpers.setClass(this.bookmarkTagsButton, "enabled", mediaId != null);
 
         // Hide the dropdown if the image changes while it's open.
         this._opener.visible = false;
     }
 
-    _create_box = ({...options}) => {
-        if(this._media_id == null)
+    _createBox = ({...options}) => {
+        if(this._mediaId == null)
             return;
 
         return new BookmarkTagListDropdownWidget({
             ...options,
             parent: this,
-            media_id: this._media_id,
-            bookmark_buttons: this.bookmark_buttons,
+            mediaId: this._mediaId,
+            bookmarkButtons: this.bookmarkButtons,
         });
     }
 

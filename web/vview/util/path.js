@@ -3,7 +3,7 @@
 export default class Path
 {
     // Return true if array begins with prefix.
-    static array_starts_with(array, prefix)
+    static _arrayStartsWith(array, prefix)
     {
         if(array.length < prefix.length)
             return false;
@@ -14,14 +14,14 @@ export default class Path
         return true;
     }
 
-    static is_relative_to(path, root)
+    static isRelativeTo(path, root)
     {
-        let path_parts = path.split("/");
-        let root_parts = root.split("/");
-        return Path.array_starts_with(path_parts, root_parts);
+        let pathParts = path.split("/");
+        let rootParts = root.split("/");
+        return Path._arrayStartsWith(pathParts, rootParts);
     }
 
-    static split_path(path)
+    static splitPath(path)
     {
         // If the path ends with a slash, remove it.
         if(path.endsWith("/"))
@@ -31,33 +31,33 @@ export default class Path
         return parts;
     }
 
-    // Return absolute_path relative to relative_to.
-    static get_relative_path(relative_to, absolute_path)
+    // Return absolutePath relative to relativeTo.
+    static getRelativePath(relativeTo, absolutePath)
     {
-        console.assert(absolute_path.startsWith("/"));
-        console.assert(relative_to.startsWith("/"));
+        console.assert(absolutePath.startsWith("/"));
+        console.assert(relativeTo.startsWith("/"));
 
-        let path_parts = Path.split_path(absolute_path);
-        let root_parts = Path.split_path(relative_to);
+        let pathParts = Path.splitPath(absolutePath);
+        let rootParts = Path.splitPath(relativeTo);
 
-        // If absolute_path isn"t underneath relative_to, leave it alone.
-        if(!Path.array_starts_with(path_parts, root_parts))
-            return absolute_path;
+        // If absolutePath isn"t underneath relativeTo, leave it alone.
+        if(!Path._arrayStartsWith(pathParts, rootParts))
+            return absolutePath;
 
-        let relative_parts = path_parts.splice(root_parts.length);
-        return relative_parts.join("/");
+        let relativeParts = pathParts.splice(rootParts.length);
+        return relativeParts.join("/");
     }
 
     // Append child to path.
-    static get_child(path, child)
+    static getChild(path, child)
     {
         // If child is absolute, leave it alone.
         if(child.startsWith("/"))
             return child;
 
-        let path_parts = Path.split_path(path);
-        let child_parts = Path.split_path(child);
-        let combined = path_parts.concat(child_parts);
+        let pathParts = Path.splitPath(path);
+        let childParts = Path.splitPath(child);
+        let combined = pathParts.concat(childParts);
         return combined.join('/');
     }
 }

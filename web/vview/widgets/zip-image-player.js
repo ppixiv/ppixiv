@@ -202,7 +202,7 @@ export default class ZipImagePlayer
             let image = document.createElement("img");
             image.src = url;
 
-            await helpers.wait_for_image_load(image);
+            await helpers.waitForImageLoad(image);
 
             URL.revokeObjectURL(url);
 
@@ -252,7 +252,7 @@ export default class ZipImagePlayer
                 this.context.canvas.height = image.height;
             }
         };
-        this.drawn_frame = this.frame;
+        this.drawnFrame = this.frame;
         this.context.clearRect(0, 0, this.op.canvas.width, this.op.canvas.height);
         this.context.drawImage(image, 0, 0);
 
@@ -422,8 +422,8 @@ export default class ZipImagePlayer
     setCurrentFrameTime(seconds)
     {
         // We don't actually need to check all frames, but there's no need to optimize this.
-        let closest_frame = null;
-        let closest_error = null;
+        let closestFrame = null;
+        let closestError = null;
         for(let frame = 0; frame < this.frameMetadata.length; ++frame)
         {
             // Only seek to images that we've downloaded.  If we reach a frame we don't have
@@ -432,14 +432,14 @@ export default class ZipImagePlayer
                 break;
 
             let error = Math.abs(seconds - this.frameTimestamps[frame]/1000);
-            if(closest_frame == null || error < closest_error)
+            if(closestFrame == null || error < closestError)
             {
-                closest_frame = frame;
-                closest_error = error;
+                closestFrame = frame;
+                closestError = error;
             }
         }
 
-        this.frame = closest_frame;
+        this.frame = closestFrame;
         this._displayFrame();
     }
 

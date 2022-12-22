@@ -55,12 +55,12 @@ export default class DesktopImageInfo extends Widget
 
         <div class=button-row style="margin: 0.5em 0">
             <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
-                ${ helpers.create_icon("ppixiv:pixiv") }
+                ${ helpers.createIcon("ppixiv:pixiv") }
             </a>
 
             <div class="view-manga-button popup" data-popup="View manga pages">
                 <div class="icon-button">
-                    ${ helpers.create_icon("ppixiv:thumbnails") }
+                    ${ helpers.createIcon("ppixiv:thumbnails") }
                 </div>
             </div>
 
@@ -96,7 +96,7 @@ export default class DesktopImageInfo extends Widget
             
             <div style="position: relative;">
                 <div class="button icon-button button-bookmark-tags popup" data-popup="Bookmark tags">
-                    ${ helpers.create_icon("ppixiv:tag") }
+                    ${ helpers.createIcon("ppixiv:tag") }
                     <div style="position: absolute; bottom: 2px; left: 4px;">
                         <div class=tag-dropdown-arrow hidden></div>
                     </div>
@@ -111,25 +111,25 @@ export default class DesktopImageInfo extends Widget
 
             <a class="similar-illusts-button popup pixiv-only" data-popup="Similar illustrations" href=#>
                 <div class=icon-button>
-                    ${ helpers.create_icon("ppixiv:suggestions") }
+                    ${ helpers.createIcon("ppixiv:suggestions") }
                 </div>
             </a>
 
             <a class="similar-artists-button popup pixiv-only" data-popup="Similar artists" href=#>
                 <div class=icon-button>
-                    ${ helpers.create_icon("ppixiv:suggestions") }
+                    ${ helpers.createIcon("ppixiv:suggestions") }
                 </div>
             </a>
 
             <a class="similar-bookmarks-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
                 <div class=icon-button>
-                    ${ helpers.create_icon("ppixiv:suggestions") }
+                    ${ helpers.createIcon("ppixiv:suggestions") }
                 </div>
             </a>
 
             <div class="image-settings-menu-box popup" data-popup="Preferences">
                 <div class="icon-button preferences-button">
-                    ${ helpers.create_icon("settings") }
+                    ${ helpers.createIcon("settings") }
                 </div>
             </div>
         </div>
@@ -165,7 +165,7 @@ export default class DesktopImageInfo extends Widget
             contents: this.container.querySelector(".tag-list"),
         });
 
-        ppixiv.mediaCache.addEventListener("mediamodified", this.refresh, { signal: this.shutdown_signal.signal });
+        ppixiv.mediaCache.addEventListener("mediamodified", this.refresh, { signal: this.shutdownSignal.signal });
         
         this.likeButton = new LikeButtonWidget({
             contents: this.container.querySelector(".button-like"),
@@ -183,14 +183,14 @@ export default class DesktopImageInfo extends Widget
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
             this.bookmarkButtons.push(new BookmarkButtonWidget({
                 contents: a,
-                bookmark_type: a.dataset.bookmarkType,
+                bookmarkType: a.dataset.bookmarkType,
             }));
 
-        let bookmark_tags_button = this.container.querySelector(".button-bookmark-tags");
+        let bookmarkTagsButton = this.container.querySelector(".button-bookmark-tags");
         this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({
             parent: this,
-            bookmark_tags_button,
-            bookmark_buttons: this.bookmarkButtons,
+            bookmarkTagsButton,
+            bookmarkButtons: this.bookmarkButtons,
 
             // The dropdown affects visibility, so refresh when it closes.
             onvisibilitychanged: () => {
@@ -201,7 +201,7 @@ export default class DesktopImageInfo extends Widget
         for(let button of this.container.querySelectorAll(".download-button"))
             button.addEventListener("click", this.clickedDownload);
         this.container.querySelector(".download-manga-button").addEventListener("click", this.clickedDownload);
-        this.container.querySelector(".view-manga-button").addEventListener("click", (e) => ppixiv.app.navigate_out());
+        this.container.querySelector(".view-manga-button").addEventListener("click", (e) => ppixiv.app.navigateOut());
 
         // Don't propagate wheel events if the contents can scroll, so moving the scroller doesn't change the
         // image.  Most of the time the contents will fit, so allow changing the page if there's no need to
@@ -241,7 +241,7 @@ export default class DesktopImageInfo extends Widget
             visible = false;
 
         // Stay visible if the bookmark tag dropdown or the follow dropdown are visible.
-        if(this.bookmarkTagsDropdownOpener?.visible || this.avatarWidget.follow_dropdown_opener.visible)
+        if(this.bookmarkTagsDropdownOpener?.visible || this.avatarWidget.followDropdownOpener.visible)
             visible = true;
 
         if(ClassFlags.get.get("hide-ui"))
@@ -255,24 +255,24 @@ export default class DesktopImageInfo extends Widget
         this.container.hidden = editing || ppixiv.mobile;
     }
 
-    apply_visibility()
+    applyVisibility()
     {
-        helpers.set_class(this.container.querySelector(".ui-box"), "ui-hidden", this._visible);
+        helpers.setClass(this.container.querySelector(".ui-box"), "ui-hidden", this._visible);
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
+        super.visibilityChanged();
 
         this.refresh();
     }
 
-    set data_source(data_source)
+    set dataSource(dataSource)
     {
-        if(this._data_source == data_source)
+        if(this._dataSource == dataSource)
             return;
 
-        this._data_source = data_source;
+        this._dataSource = dataSource;
         this.refresh();
     }
     
@@ -293,7 +293,7 @@ export default class DesktopImageInfo extends Widget
 
     get displayedPage()
     {
-        return helpers.parse_media_id(this._mediaId).page;
+        return helpers.parseMediaId(this._mediaId).page;
     }
 
     handleKeydown(e)
@@ -302,19 +302,19 @@ export default class DesktopImageInfo extends Widget
 
     refresh = async() =>
     {
-        helpers.set_class(this.container, "disabled", !this.visible);
+        helpers.setClass(this.container, "disabled", !this.visible);
 
         // Don't do anything if we're not visible.
         if(!this.visible)
             return;
 
         // Update widget illust IDs.
-        this.likeButton.set_media_id(this._mediaId);
-        this.likeCountWidget.set_media_id(this._mediaId);
-        this.bookmarkCountWidget.set_media_id(this._mediaId);
+        this.likeButton.setMediaId(this._mediaId);
+        this.likeCountWidget.setMediaId(this._mediaId);
+        this.bookmarkCountWidget.setMediaId(this._mediaId);
         for(let button of this.bookmarkButtons)
-            button.set_media_id(this._mediaId);
-        this.bookmarkTagsDropdownOpener.set_media_id(this._mediaId);
+            button.setMediaId(this._mediaId);
+        this.bookmarkTagsDropdownOpener.setMediaId(this._mediaId);
 
         this.mediaInfo = null;
         if(this._mediaId == null)
@@ -322,7 +322,7 @@ export default class DesktopImageInfo extends Widget
 
         // We need image info to update.
         let mediaId = this._mediaId;
-        let mediaInfo = await ppixiv.mediaCache.get_media_info(this._mediaId);
+        let mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId);
 
         // Check if anything changed while we were loading.
         if(mediaInfo == null || mediaId != this._mediaId || !this.visible)
@@ -337,11 +337,11 @@ export default class DesktopImageInfo extends Widget
             this.mangaPageBar.style.width = (fill * 100) + "%";
         }
 
-        let [illustId] = helpers.media_id_to_illust_id_and_page(this._mediaId);
+        let [illustId] = helpers.mediaIdToIllustIdAndPage(this._mediaId);
         let userId = mediaInfo.userId;
 
         // Show the author if it's someone else's post, or the edit link if it's ours.
-        let ourPost = global_data.user_id == userId;
+        let ourPost = ppixiv.pixivInfo.userId == userId;
         this.querySelector(".author-block").hidden = ourPost;
         this.querySelector(".edit-post").hidden = !ourPost;
         this.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illustId;
@@ -353,21 +353,21 @@ export default class DesktopImageInfo extends Widget
         this.avatarWidget.setUserId(userId);
         this.tagListWidget.set(mediaInfo.tagList);
 
-        let element_title = this.container.querySelector(".title");
-        element_title.textContent = mediaInfo.illustTitle;
-        element_title.href = getUrlForMediaId(this._mediaId).url;
+        let elementTitle = this.container.querySelector(".title");
+        elementTitle.textContent = mediaInfo.illustTitle;
+        elementTitle.href = getUrlForMediaId(this._mediaId).url;
 
         // Show the folder if we're viewing a local image.
         let folderTextElement = this.container.querySelector(".folder-text");
-        let showFolder = helpers.is_media_id_local(this._mediaId);
+        let showFolder = helpers.isMediaIdLocal(this._mediaId);
         if(showFolder)
         {
-            let {id} = helpers.parse_media_id(this.mediaId);
+            let {id} = helpers.parseMediaId(this.mediaId);
             folderTextElement.innerText = helpers.get_path_suffix(id, 2, 1); // last two parent directories
 
-            let parentFolderId = LocalAPI.get_parent_folder(id);
+            let parentFolderId = LocalAPI.getParentFolder(id);
             let args = new helpers.args("/", ppixiv.plocation);
-            LocalAPI.get_args_for_id(parentFolderId, args);
+            LocalAPI.getArgsForId(parentFolderId, args);
             folderTextElement.href = args.url;
         }
 
@@ -391,8 +391,8 @@ export default class DesktopImageInfo extends Widget
         let elementComment = this.container.querySelector(".description");
         elementComment.hidden = mediaInfo.illustComment == "";
         elementComment.innerHTML = mediaInfo.illustComment;
-        helpers.fix_pixiv_links(elementComment);
-        helpers.make_pixiv_links_internal(elementComment);
+        helpers.fixPixivLinks(elementComment);
+        helpers.makePixivLinksInternal(elementComment);
 
         // Set the download button popup text.
         let downloadImageButton = this.container.querySelector(".download-image-button");
@@ -409,7 +409,7 @@ export default class DesktopImageInfo extends Widget
     {
         let mediaInfo = this.mediaInfo;
 
-        let set_info = (query, text) =>
+        let setInfo = (query, text) =>
         {
             let node = post_info_container.querySelector(query);
             node.innerText = text;
@@ -417,7 +417,7 @@ export default class DesktopImageInfo extends Widget
         };
 
         let seconds_old = (new Date() - new Date(mediaInfo.createDate)) / 1000;
-        set_info(".post-age", helpers.age_to_string(seconds_old));
+        setInfo(".post-age", helpers.age_to_string(seconds_old));
         post_info_container.querySelector(".post-age").dataset.popup = helpers.date_to_string(mediaInfo.createDate);
 
         let info = "";
@@ -425,20 +425,20 @@ export default class DesktopImageInfo extends Widget
         // Add the resolution and file type if available.
         if(this.displayedPage != null && this.mediaInfo != null)
         {
-            let page_info = this.mediaInfo.mangaPages[this.displayedPage];
-            info += page_info.width + "x" + page_info.height;
+            let pageInfo = this.mediaInfo.mangaPages[this.displayedPage];
+            info += pageInfo.width + "x" + pageInfo.height;
 
             // For illusts, add the image type.  Don't do this for animations.
             if(this.mediaInfo.illustType != 2)
             {
-                let url = new URL(page_info.urls?.original);
-                let ext = helpers.get_extension(url.pathname).toUpperCase();
+                let url = new URL(pageInfo.urls?.original);
+                let ext = helpers.getExtension(url.pathname).toUpperCase();
                 if(ext)
                     info += " " + ext;
             }
         }
 
-        set_info(".image-info", info);
+        setInfo(".image-info", info);
 
         let duration = "";
         if(mediaInfo.ugoiraMetadata)
@@ -450,14 +450,14 @@ export default class DesktopImageInfo extends Widget
             duration = seconds.toFixed(duration >= 10? 0:1);
             duration += seconds == 1? " second":" seconds";
         }
-        set_info(".ugoira-duration", duration);
-        set_info(".ugoira-frames", mediaInfo.ugoiraMetadata? (mediaInfo.ugoiraMetadata.frames.length + " frames"):"");
+        setInfo(".ugoira-duration", duration);
+        setInfo(".ugoira-frames", mediaInfo.ugoiraMetadata? (mediaInfo.ugoiraMetadata.frames.length + " frames"):"");
 
         // Add the page count for manga.
         let page_text = "";
         if(mediaInfo.pageCount > 1 && this.displayedPage != null)
             page_text = "Page " + (this.displayedPage+1) + "/" + mediaInfo.pageCount;
-        set_info(".page-count", page_text);
+        setInfo(".page-count", page_text);
     }
 
     clickedDownload = (e) =>

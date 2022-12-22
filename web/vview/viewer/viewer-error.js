@@ -21,12 +21,13 @@ export default class ViewerError extends Viewer
         `});
 
         this.container.querySelector(".view-muted-image").addEventListener("click", (e) => {
+            // Add view-muted to the URL to override the mute for this image.
             let args = helpers.args.location;
             args.hash.set("view-muted", "1");
-            helpers.navigate(args, { add_to_history: false, cause: "override-mute" });
+            helpers.navigate(args, { addToHistory: false, cause: "override-mute" });
         });
 
-        this.error_text = this.container.querySelector(".error-text");
+        this.errorText = this.container.querySelector(".error-text");
 
         // Just fire onready immediately for this viewer.
         this.ready.accept(true);
@@ -42,9 +43,9 @@ export default class ViewerError extends Viewer
         // seconds and call onnextimage.
         if(slideshow && onnextimage)
         {
-            let slideshow_timer = this.slideshow_timer = (async() => {
+            let slideshowTimer = this._slideshowTimer = (async() => {
                 await helpers.sleep(2000);
-                if(slideshow_timer != this.slideshow_timer)
+                if(slideshowTimer != this._slideshowTimer)
                     return;
 
                 onnextimage(this);
@@ -55,41 +56,39 @@ export default class ViewerError extends Viewer
         if(error)
         {
             console.log("Showing error view:", error);
-            this.error_text.innerText = error;
+            this.errorText.innerText = error;
             return;
         }
 
-        let illust_data = await ppixiv.mediaCache.get_media_info(this.mediaId);
-
         // Show the user's avatar instead of the muted image.
-        let user_info = await ppixiv.userCache.get_user_info(illust_data.userId);
-        if(user_info)
+        let mediaInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId);
+        let userInfo = await ppixiv.userCache.getUserInfo(mediaInfo.userId);
+        if(userInfo)
         {
             let img = this.container.querySelector(".muted-image");
-            img.src = user_info.imageBig;
+            img.src = userInfo.imageBig;
         }
 
-        let muted_tag = ppixiv.muting.any_tag_muted(illust_data.tagList);
-        let muted_user = ppixiv.muting.is_muted_user_id(illust_data.userId);
-        console.log("x", muted_tag, muted_user);
+        let mutedTag = ppixiv.muting.anyTagMuted(mediaInfo.tagList);
+        let mutedUser = ppixiv.muting.isUserIdMuted(mediaInfo.userId);
 
         this.container.querySelector(".muted-label").hidden = false;
         this.container.querySelector(".view-muted-image").hidden = false;
 
-        if(muted_tag)
+        if(mutedTag)
         {
-            let translated_tag = await ppixiv.tagTranslations.get_translation(muted_tag);
-            this.error_text.innerText = translated_tag;
+            let translated_tag = await ppixiv.tagTranslations.getTranslation(mutedTag);
+            this.errorText.innerText = translated_tag;
         }
-        else if(muted_user)
-            this.error_text.innerText = illust_data.userName;
+        else if(mutedUser)
+            this.errorText.innerText = mediaInfo.userName;
     }
 
     shutdown()
     {
         super.shutdown();
 
-        this.slideshow_timer = null;
+        this._slideshowTimer = null;
     }
 }
 

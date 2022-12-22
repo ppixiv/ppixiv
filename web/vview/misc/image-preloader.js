@@ -7,7 +7,7 @@
 // view something else, the browser won't load anything else until those images that we no
 // longer need finish loading.
 //
-// ImagePreloader is told the media_id that we're currently showing, and the ID that we want
+// ImagePreloader is told the media ID that we're currently showing, and the ID that we want
 // to speculatively load.  We'll run loads in parallel, giving the current image's resources
 // priority and cancelling loads when they're no longer needed.
 
@@ -35,57 +35,57 @@ export default class ImagePreloader
         this.recentlyPreloadedUrls = [];
     }
 
-    // Set the media_id the user is currently viewing.  If media_id is null, the user isn't
+    // Set the media ID the user is currently viewing.  If mediaId is null, the user isn't
     // viewing an image (eg. currently viewing thumbnails).
-    async setCurrentImage(media_id)
+    async setCurrentImage(mediaId)
     {
-        if(this.currentMediaId == media_id)
+        if(this.currentMediaId == mediaId)
             return;
 
-        this.currentMediaId = media_id;
+        this.currentMediaId = mediaId;
         this.currentMediaInfo = null;
 
-        await this.guessPreload(media_id);
+        await this.guessPreload(mediaId);
 
         if(this.currentMediaId == null)
             return;
 
         // Get the image data.  This will often already be available.
-        let illust_info = await ppixiv.mediaCache.get_media_info(this.currentMediaId);
+        let illustInfo = await ppixiv.mediaCache.getMediaInfo(this.currentMediaId);
 
         // Stop if the illust was changed while we were loading.
-        if(this.currentMediaId != media_id)
+        if(this.currentMediaId != mediaId)
             return;
 
-        // Store the illust_info for current_media_id.
-        this.currentMediaInfo = illust_info;
+        // Store the illustInfo for current_media_id.
+        this.currentMediaInfo = illustInfo;
 
         this.checkFetchQueue();
     }
 
-    // Set the media_id we want to speculatively load, which is the next or previous image in
-    // the current search.  If media_id is null, we don't want to speculatively load anything.
-    async set_speculative_image(media_id)
+    // Set the media ID we want to speculatively load, which is the next or previous image in
+    // the current search.  If mediaId is null, we don't want to speculatively load anything.
+    async setSpeculativeImage(mediaId)
     {
-        if(this._speculativeMediaId == media_id)
+        if(this._speculativeMediaId == mediaId)
             return;
 
-        this._speculativeMediaId = media_id;
+        this._speculativeMediaId = mediaId;
         this._speculativeMediaInfo = null;
         if(this._speculativeMediaId == null)
             return;
 
         // Get the image data.  This will often already be available.
-        let illust_info = await ppixiv.mediaCache.get_media_info(this._speculativeMediaId);
-        if(this._speculativeMediaId != media_id)
+        let illustInfo = await ppixiv.mediaCache.getMediaInfo(this._speculativeMediaId);
+        if(this._speculativeMediaId != mediaId)
             return;
 
         // Stop if the illust was changed while we were loading.
-        if(this._speculativeMediaId != media_id)
+        if(this._speculativeMediaId != mediaId)
             return;
 
-        // Store the illust_info for current_media_id.
-        this._speculativeMediaInfo = illust_info;
+        // Store the illustInfo for current_media_id.
+        this._speculativeMediaInfo = illustInfo;
 
         this.checkFetchQueue();
     }
@@ -207,16 +207,16 @@ export default class ImagePreloader
     }
 
     // Return an array of preloaders to load resources for the given illustration.
-    createPreloadersForIllust(mediaInfo, media_id)
+    createPreloadersForIllust(mediaInfo, mediaId)
     {
         // Don't precache muted images.
-        if(ppixiv.muting.any_tag_muted(mediaInfo.tagList))
+        if(ppixiv.muting.anyTagMuted(mediaInfo.tagList))
             return [];
-        if(ppixiv.muting.is_muted_user_id(mediaInfo.userId))
+        if(ppixiv.muting.isUserIdMuted(mediaInfo.userId))
             return [];
 
         // If this is an animation, preload the ZIP.
-        if(mediaInfo.illustType == 2 && !helpers.is_media_id_local(media_id))
+        if(mediaInfo.illustType == 2 && !helpers.isMediaIdLocal(mediaId))
         {
             let results = [];
 
@@ -247,17 +247,17 @@ export default class ImagePreloader
 
         for(let url of mediaInfo.previewUrls)
         {
-            if(!LocalAPI.should_preload_thumbs(media_id, url))
+            if(!LocalAPI.shouldPreloadThumbs(mediaId, url))
                 continue;
 
             results.push(new ImgResourceLoader(url));
         }
 
         // Preload the requested page.
-        let page = helpers.parse_media_id(media_id).page;
+        let page = helpers.parseMediaId(mediaId).page;
         if(page < mediaInfo.mangaPages.length)
         {
-            let { url } = ppixiv.mediaCache.get_main_image_url(mediaInfo, page);
+            let { url } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
             results.push(new ImgResourceLoader(url));
         }
 
@@ -269,7 +269,7 @@ export default class ImagePreloader
                 if(p == page)
                     continue;
 
-                let { url } = ppixiv.mediaCache.get_main_image_url(mediaInfo, page);
+                let { url } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
                 results.push(new ImgResourceLoader(url));
             }
         }
@@ -284,8 +284,8 @@ export default class ImagePreloader
     // to start loading, but if we can guess the URL correctly then we can start loading
     // it immediately.
     //
-    // If media_id is null, stop any running guessed preload.
-    async guessPreload(media_id)
+    // If mediaId is null, stop any running guessed preload.
+    async guessPreload(mediaId)
     {
         if(ppixiv.mobile)
             return;
@@ -293,9 +293,9 @@ export default class ImagePreloader
         // See if we can guess the image's URL from previous info, or if we can figure it
         // out from another source.
         let guessedUrl = null;
-        if(media_id != null)
+        if(mediaId != null)
         {
-            guessedUrl = await ppixiv.guessImageUrl.guess_url(media_id);
+            guessedUrl = await ppixiv.guessImageUrl.guessUrl(mediaId);
             if(this.guessedPreload && this.guessedPreload.url == guessedUrl)
                 return;
         }
@@ -313,7 +313,7 @@ export default class ImagePreloader
             this.guessedPreload = new ImgResourceLoader(guessedUrl, () => {
                 // The image load failed.  Let guessed_preload know.
                 // console.info("Guessed image load failed");
-                ppixiv.guessImageUrl.guessed_url_incorrect(media_id);
+                ppixiv.guessImageUrl.guessedUrlIncorrect(mediaId);
             });
             this.guessedPreload.start();
         }
@@ -359,7 +359,7 @@ class ImgResourceLoader extends ResourceLoader
         let img = document.createElement("img");
         img.src = this.url;
 
-        let result = await helpers.wait_for_image_load(img, this.abortController.signal);
+        let result = await helpers.waitForImageLoad(img, this.abortController.signal);
         if(result == "failed" && this.onerror)
             this.onerror();
     }
@@ -380,7 +380,7 @@ class FetchResourceLoader extends ResourceLoader
         if(this.url == null)
             return;
 
-        let request = helpers.send_pixiv_request({
+        let request = helpers.sendPixivRequest({
             url: this.url,
             method: "GET",
             signal: this.abortController.signal,

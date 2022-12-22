@@ -3,13 +3,16 @@ export class Args
 {
     constructor(url)
     {
+        if(url == null)
+            throw ValueError("url must not be null");
+
         url = new URL(url, ppixiv.plocation);
 
         this.path = url.pathname;
         this.query = url.searchParams;
-        let { path: hash_path, query: hash_query } = helpers.get_hash_args(url);
+        let { path: hashPath, query: hash_query } = helpers.get_hash_args(url);
         this.hash = hash_query;
-        this.hash_path = hash_path;
+        this.hashPath = hashPath;
 
         // History state is only available when we come from the current history state,
         // since URLs don't have state.
@@ -36,14 +39,14 @@ export class Args
 
         // Set the hash portion of url to args, as a ppixiv url.
         //
-        // For example, if this.hash_path is "a/b/c" and this.hash is { a: "1", b: "2" },
+        // For example, if this.hashPath is "a/b/c" and this.hash is { a: "1", b: "2" },
         // set the hash to #ppixiv/a/b/c?a=1&b=2.
         url.hash = ppixiv.native? "#":"#ppixiv";
-        if(this.hash_path != "")
+        if(this.hashPath != "")
         {
-            if(!this.hash_path.startsWith("/"))
+            if(!this.hashPath.startsWith("/"))
                 url.hash += "/";
-            url.hash += helpers.encodeURLHash(this.hash_path);
+            url.hash += helpers.encodeURLHash(this.hashPath);
         }
 
         let hash_string = helpers.encodeHashParams(this.hash);
@@ -148,7 +151,7 @@ export class helpers
     // XXX: compat
     static args = Args;
 
-    static blank_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+    static blankImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     static xmlns = "http://www.w3.org/2000/svg";
     
     static remove_array_element(array, element)
@@ -159,7 +162,7 @@ export class helpers
     }
 
     // Preload an array of images.
-    static preload_images(images)
+    static preloadImages(images)
     {
         // We don't need to add the element to the document for the images to load, which means
         // we don't need to do a bunch of extra work to figure out when we can remove them.
@@ -172,7 +175,7 @@ export class helpers
         }
     }
 
-    static move_children(parent, new_parent)
+    static moveChildren(parent, new_parent)
     {
         for(let child = parent.firstChild; child; )
         {
@@ -182,21 +185,21 @@ export class helpers
         }
     }
     
-    static remove_elements(parent)
+    static removeElements(parent)
     {
         while(parent.firstChild !== null)
             parent.firstChild.remove();
     }
 
     // Return true if ancestor is one of descendant's parents, or if descendant is ancestor.
-    static is_above(ancestor, descendant)
+    static isAbove(ancestor, descendant)
     {
         while(descendant != null && descendant != ancestor)
             descendant = descendant.parentNode;
         return descendant == ancestor;
     }
 
-    static create_style(css, { id }={})
+    static createStyle(css, { id }={})
     {
         let style = document.realCreateElement("style");
         style.type = "text/css";
@@ -227,8 +230,8 @@ export class helpers
     // Create a font icon.  icon_name is an icon set and name, eg. "mat:lightbulb"
     // for material icons or "ppixiv:icon" for our icon set.  If no icon set is
     // specified, material icons is used.
-    static create_icon(icon_name, {
-        as_element=false,
+    static createIcon(icon_name, {
+        asElement=false,
         classes=[],
         align=null,
         dataset={},
@@ -249,7 +252,7 @@ export class helpers
         for(let [key, value] of Object.entries(dataset))
             icon.dataset[key] = value;
 
-        if(as_element)
+        if(asElement)
             return icon;
         else
             return icon.outerHTML;
@@ -266,15 +269,15 @@ export class helpers
         if(!template.dataset.replacedInlines)
         {
             template.dataset.replacedInlines = true;
-            this.replace_inlines(template.content);
+            this.replaceInlines(template.content);
         }
 
         return template;
     }
 
-    // If make_svg_unique is false, skip making SVG IDs unique.  This is a small optimization
+    // If makeSVGUnique is false, skip making SVG IDs unique.  This is a small optimization
     // for creating thumbs, which don't need this.
-    static create_from_template(type, {make_svg_unique=true}={})
+    static createFromTemplate(type, {makeSVGUnique=true}={})
     {
         let template;
         if(typeof(type) == "string")
@@ -284,7 +287,7 @@ export class helpers
 
         let node = document.importNode(template.content, true).firstElementChild;
         
-        if(make_svg_unique)
+        if(makeSVGUnique)
         {
             // Make all IDs in the template we just cloned unique.
             for(let svg of node.querySelectorAll("svg"))
@@ -301,7 +304,7 @@ export class helpers
     //
     // Also replace <img src="ppixiv:name"> with resource text.  This is used for images.
     static _resource_cache = {};
-    static replace_inlines(root)
+    static replaceInlines(root)
     {
         for(let element of root.querySelectorAll("img"))
         {
@@ -328,7 +331,7 @@ export class helpers
 
             // Import the cached node to make a copy, then replace the <ppixiv-inline> element
             // with it.
-            let node = this.create_ppixiv_inline(src);
+            let node = this.createInlineIcon(src);
             element.replaceWith(node);
 
             // Copy attributes from the <ppixiv-inline> node to the newly created node which
@@ -350,7 +353,7 @@ export class helpers
     }
 
     // Create a general-purpose box link.
-    static create_box_link({
+    static createBoxLink({
         label,
         link=null,
         classes="",
@@ -361,12 +364,12 @@ export class helpers
         explanation=null,
 
         // By default, return HTML as text, which is used to add these into templates, which
-        // is the more common usage.  If as_element is true, an element will be returned instead.
-        as_element=false,
+        // is the more common usage.  If asElement is true, an element will be returned instead.
+        asElement=false,
 
-        // Helpers for screen_search:
+        // Helpers for ScreenSearch:
         dataset={},
-        data_type=null,
+        dataType=null,
     })
     {
         if(!this._cached_box_link_template)
@@ -390,7 +393,7 @@ export class helpers
             this._cached_box_link_template = document.createElement("template");
             this._cached_box_link_template.innerHTML = html;
         }
-        let node = this.create_from_template(this._cached_box_link_template);
+        let node = this.createFromTemplate(this._cached_box_link_template);
 
         if(label != null)
         {
@@ -432,18 +435,18 @@ export class helpers
             explanation_node.innerText = explanation;
         }
 
-        if(data_type != null)
-            node.dataset.type = data_type;
+        if(dataType != null)
+            node.dataset.type = dataType;
         for(let [key, value] of Object.entries(dataset))
             node.dataset[key] = value;
 
-        if(as_element)
+        if(asElement)
             return node;
         else
             return node.outerHTML;
     }
 
-    static create_ppixiv_inline(src)
+    static createInlineIcon(src)
     {
         // Parse this element if we haven't done so yet.
         if(!this._resource_cache[src])
@@ -550,7 +553,7 @@ export class helpers
 
     // Prompt to save a blob to disk.  For some reason, the really basic FileSaver API disappeared from
     // the web.
-    static save_blob(blob, filename)
+    static saveBlob(blob, filename)
     {
         let blobUrl = URL.createObjectURL(blob);
 
@@ -661,7 +664,7 @@ export class helpers
     //
     // This removes encapsulation, but is useful when using a promise like a one-shot
     // event where that isn't important.
-    static make_promise()
+    static makePromise()
     {
         let accept, reject;
         let promise = new Promise((a, r) => {
@@ -733,7 +736,7 @@ export class helpers
     }
 
     // Block until DOMContentLoaded.
-    static wait_for_content_loaded()
+    static waitForContentLoaded()
     {
         return new Promise((accept, reject) => {
             if(document.readyState != "loading")
@@ -760,9 +763,9 @@ export class helpers
         });
     }
 
-    static add_style(name, css)
+    static addStyle(name, css)
     {
-        let style = this.create_style(css);
+        let style = this.createStyle(css);
         style.id = name;
         document.querySelector("head").appendChild(style);
         return style;
@@ -777,7 +780,7 @@ export class helpers
     }
 
     // Set or unset a class.
-    static set_class(element, className, enable)
+    static setClass(element, className, enable)
     {
         if(element.classList.contains(className) == enable)
             return;
@@ -790,7 +793,7 @@ export class helpers
 
     // dataset is another web API with nasty traps: if you assign false or null to
     // it, it assigns "false" or "null", which are true values.
-    static set_dataset(dataset, name, value)
+    static setDataSet(dataset, name, value)
     {
         if(value)
             dataset[name] = value;
@@ -866,7 +869,7 @@ export class helpers
     // Set node's height as a CSS variable.
     //
     // If target is null, the variable is set on the node itself.
-    static set_height_as_property(node, name, { target, signal }={})
+    static setHeightAsProperty(node, name, { target, signal }={})
     {
         if(target == null)
             target = node;
@@ -895,7 +898,7 @@ export class helpers
     //
     // We currently only look at links when they're first added to the document and don't listen for
     // changes to href.
-    static force_target_blank()
+    static forceTargetBlank()
     {
         if(!ppixiv.ios)
             return;
@@ -934,7 +937,7 @@ export class helpers
     // causes us to see pointer movement that didn't actually happen.  If this happens
     // during a drag, it causes the drag to move horizontally by roughly the screen
     // width.
-    static should_ignore_horizontal_drag(event)
+    static shouldIgnoreHorizontalDrag(event)
     {
         // If there are no other history entries, we don't need to do this, since browser back
         // can't trigger.
@@ -970,7 +973,7 @@ export class helpers
     }
 
     // Get the current safe area insets.
-    static get_safe_area_insets()
+    static getSafeAreaInsets()
     {
         let { left, top, right, bottom } = this.get_css_values({
             left: 'env(safe-area-inset-left)',
@@ -1030,7 +1033,7 @@ export class helpers
         return to_plural("year", 1, years);
     }
 
-    static format_seconds(total_seconds)
+    static formatSeconds(total_seconds)
     {
         total_seconds = Math.floor(total_seconds);
 
@@ -1058,7 +1061,7 @@ export class helpers
         return Math.floor((i+interval-1)/interval) * interval;
     }    
 
-    static get_extension(fn)
+    static getExtension(fn)
     {
         let parts = fn.split(".");
         return parts[parts.length-1];
@@ -1138,7 +1141,7 @@ export class helpers
     }
 
     // Send a request with the referer, cookie and CSRF token filled in.
-    static async send_pixiv_request({...options})
+    static async sendPixivRequest({...options})
     {
         options.headers ??= {};
 
@@ -1146,10 +1149,10 @@ export class helpers
         // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
         // mode and set headers, since it'll trigger CORS.
         let hostname = new URL(options.url, ppixiv.plocation).hostname;
-        if(hostname == "www.pixiv.net" && "global_data" in window)
+        if(hostname == "www.pixiv.net" && ppixiv.pixivInfo)
         {
-            options.headers["x-csrf-token"] = global_data.csrf_token;
-            options.headers["x-user-id"] = global_data.user_id;
+            options.headers["x-csrf-token"] = ppixiv.pixivInfo.csrfToken;
+            options.headers["x-user-id"] = ppixiv.pixivInfo.user_id;
         }
 
         let result = await this.send_request(options);
@@ -1171,9 +1174,9 @@ export class helpers
     }
 
     // Why does Pixiv have 300 APIs?
-    static async rpc_post_request(url, data)
+    static async rpcPostRequest(url, data)
     {
-        let result = await this.send_pixiv_request({
+        let result = await this.sendPixivRequest({
             "method": "POST",
             "url": url,
 
@@ -1189,7 +1192,7 @@ export class helpers
         return result;
     }
 
-    static async rpc_get_request(url, data, options)
+    static async rpcGetRequest(url, data, options)
     {
         if(options == null)
             options = {};
@@ -1201,7 +1204,7 @@ export class helpers
         if(query != "")
             url += "?" + query;
         
-        let result = await this.send_pixiv_request({
+        let result = await this.sendPixivRequest({
             "method": "GET",
             "url": url,
             "responseType": "json",
@@ -1215,9 +1218,9 @@ export class helpers
         return result;
     }
 
-    static async post_request(url, data)
+    static async postRequest(url, data)
     {
-        let result = await this.send_pixiv_request({
+        let result = await this.sendPixivRequest({
             "method": "POST",
             "url": url,
             "responseType": "json",
@@ -1252,7 +1255,7 @@ export class helpers
         return params;
     }
 
-    static async get_request(url, data, options)
+    static async getRequest(url, data, options)
     {
         let params = this.create_search_params(data);
 
@@ -1260,7 +1263,7 @@ export class helpers
         if(query != "")
             url += "?" + query;
 
-        let result = await this.send_pixiv_request({
+        let result = await this.sendPixivRequest({
             method: "GET",
             url: url,
             responseType: "json",
@@ -1374,7 +1377,7 @@ export class helpers
         return await this._download_using_xhr_server(server, url);
     }
 
-    static async download_urls(urls)
+    static async downloadUrls(urls)
     {
         let results = [];
         for(let url of urls)
@@ -1387,9 +1390,9 @@ export class helpers
     }
 
     // Load a URL as a document.
-    static async fetch_document(url, headers={}, options={})
+    static async fetchDocument(url, headers={}, options={})
     {
-        return await this.send_pixiv_request({
+        return await this.sendPixivRequest({
             method: "GET",
             url: url,
             responseType: "document",
@@ -1487,7 +1490,7 @@ export class helpers
             return window.chrome?.webview?.hostObjects?.vvbrowser;
     }
 
-    static async toggle_fullscreen()
+    static async toggleFullscreen()
     {
         await this.hide_body_during_request(async() => {
             // If we're in VVbrowser:
@@ -1507,7 +1510,7 @@ export class helpers
     }
 
     // Split a tag search into individual tags.
-    static split_search_tags(search)
+    static splitSearchTags(search)
     {
         // Replace full-width spaces with regular spaces.  Pixiv treats this as a delimiter.
         search = search.replace("　", " ");
@@ -1524,7 +1527,7 @@ export class helpers
     
     // If a tag has a modifier, return [modifier, tag].  -tag seems to be the only one, so
     // we return ["-", "tag"].
-    static split_tag_prefixes(tag)
+    static splitTagPrefixes(tag)
     {
         if(tag[0] == "-")
             return ["-", tag.substr(1)];
@@ -1535,7 +1538,7 @@ export class helpers
     // If this is an older page (currently everything except illustrations), the CSRF token,
     // etc. are stored on an object called "pixiv".  We aren't actually executing scripts, so
     // find the script block.
-    static get_pixiv_data(doc)
+    static getPixivData(doc)
     {
         // Find all script elements that set pixiv.xxx.  There are two of these, and we need
         // both of them.
@@ -1582,7 +1585,7 @@ export class helpers
     //
     // This allows links to images in things like image descriptions to be loaded
     // internally without a page navigation.
-    static make_pixiv_links_internal(root)
+    static makePixivLinksInternal(root)
     {
         if(ppixiv.native)
             return;
@@ -1615,7 +1618,7 @@ export class helpers
         }
     }
 
-    static fix_pixiv_links(root)
+    static fixPixivLinks(root)
     {
         for(let a of root.querySelectorAll("A[target='_blank']"))
             a.target = "";
@@ -1637,7 +1640,7 @@ export class helpers
 
     // Some of Pixiv's URLs have languages prefixed and some don't.  Ignore these and remove
     // them to make them simpler to parse.
-    static get_path_without_language(path)
+    static getPathWithoutLanguage(path)
     {
         if(/^\/..\//.exec(path))
             return path.substr(3);
@@ -1645,33 +1648,33 @@ export class helpers
             return path;
     }
 
-    static get_url_without_language(url)
+    static getUrlWithoutLanguage(url)
     {
-        url.pathname = this.get_path_without_language(url.pathname);
+        url.pathname = this.getPathWithoutLanguage(url.pathname);
         return url;
     }
 
     // Return true if url1 and url2 are the same, ignoring any language prefix on the URLs.
-    static are_urls_equivalent(url1, url2)
+    static areUrlsEquivalent(url1, url2)
     {
         if(url1 == null || url2 == null)
             return false;
 
-        url1 = this.get_url_without_language(url1);
-        url2 = this.get_url_without_language(url2);
+        url1 = this.getUrlWithoutLanguage(url1);
+        url2 = this.getUrlWithoutLanguage(url2);
         return url1.toString() == url2.toString();
     }
 
     // From a URL like "/en/tags/abcd", return "tags".
-    static get_page_type_from_url(url)
+    static getPageTypeFromUrl(url)
     {
         url = new URL(url);
-        url = this.get_url_without_language(url);
+        url = this.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
         return parts[1];
     }
     
-    static set_page_title(title)
+    static setPageTitle(title)
     {
         let title_element = document.querySelector("title");
         if(title_element.textContent == title)
@@ -1697,9 +1700,9 @@ export class helpers
     }
 
     // Get the search tags from an "/en/tags/TAG" search URL.
-    static _get_search_tags_from_url(url)
+    static getSearchTagsFromUrl(url)
     {
-        url = this.get_url_without_language(url);
+        url = this.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
 
         // ["", "tags", tag string, "search type"]
@@ -1709,11 +1712,11 @@ export class helpers
     
     // Given a list of tags, return the URL to use to search for them.  This differs
     // depending on the current page.
-    static get_args_for_tag_search(tags, url)
+    static getArgsForTagSearch(tags, url)
     {
-        url = this.get_url_without_language(url);
+        url = this.getUrlWithoutLanguage(url);
 
-        let type = helpers.get_page_type_from_url(url);
+        let type = helpers.getPageTypeFromUrl(url);
         if(type == "tags")
         {
             // If we're on search already, just change the search tag, so we preserve other settings.
@@ -1727,15 +1730,15 @@ export class helpers
         }
         
         // Don't include things like the current page in the URL.
-        let args = helpers.get_canonical_url(url);
+        let args = helpers.getCanonicalUrl(url);
         return args;
     }
     
-    // The inverse of get_args_for_tag_search:
+    // The inverse of getArgsForTagSearch:
     static get_tag_search_from_args(url)
     {
-        url = helpers.get_url_without_language(url);
-        let type = helpers.get_page_type_from_url(url);
+        url = helpers.getUrlWithoutLanguage(url);
+        let type = helpers.getPageTypeFromUrl(url);
         if(type != "tags")
             return null;
 
@@ -1751,24 +1754,24 @@ export class helpers
     // However, some parts of the URL don't cause a new data source to be used.  Return
     // a URL with all unrelated parts removed, and with query and hash parameters sorted
     // alphabetically.
-    static get_canonical_url(url, {
+    static getCanonicalUrl(url, {
         // The search page doesn't affect the data source.  Set this to false to leave it
         // in the URL anyway.
-        remove_search_page=true
+        removeSearchPage=true
     }={})
     {
         // Make a copy of the URL.
         url = new URL(url);
 
         // Remove /en from the URL if it's present.
-        url = helpers.get_url_without_language(url);
+        url = helpers.getUrlWithoutLanguage(url);
 
         let args = new helpers.args(url);
 
         // Remove parts of the URL that don't affect which data source instance is used.
         //
         // If p=1 is in the query, it's the page number, which doesn't affect the data source.
-        if(remove_search_page)
+        if(removeSearchPage)
             args.query.delete("p");
 
         // The manga page doesn't affect the data source.
@@ -1808,7 +1811,7 @@ export class helpers
     // - Event propagation will be stopped, so global hotkeys don't trigger.
     //
     // Note that other event handlers on the input will still be called.
-    static input_handler(input, submit)
+    static inputHandler(input, submit)
     {
         input.addEventListener("keydown", function(e) {
             // Always stopPropagation, so inputs aren't handled by main input handling.
@@ -1823,7 +1826,7 @@ export class helpers
     }
 
     // Return true if url is one of ours.
-    static is_ppixiv_url(url)
+    static isPPixivUrl(url)
     {
         // If we're native, all URLs on this origin are ours.
         if(ppixiv.native)
@@ -1834,7 +1837,7 @@ export class helpers
 
     static get_hash_args(url)
     {
-        if(!helpers.is_ppixiv_url(url))
+        if(!helpers.isPPixivUrl(url))
             return { path: "", query: new URLSearchParams() };
 
         // The hash looks like:
@@ -1849,36 +1852,36 @@ export class helpers
         //
         // If the hash is #ppixiv/abcd, the hash path is "/abcd".
         // Remove #ppixiv:
-        let hash_path = url.hash;
-        if(hash_path.startsWith("#ppixiv"))
-            hash_path = hash_path.substr(7);
-        else if(hash_path.startsWith("#"))
-            hash_path = hash_path.substr(1);
+        let hashPath = url.hash;
+        if(hashPath.startsWith("#ppixiv"))
+            hashPath = hashPath.substr(7);
+        else if(hashPath.startsWith("#"))
+            hashPath = hashPath.substr(1);
 
         // See if we have hash args.
-        let idx = hash_path.indexOf('?');
+        let idx = hashPath.indexOf('?');
         let query = null;
         if(idx != -1)
         {
-            query = hash_path.substr(idx+1);
-            hash_path = hash_path.substr(0, idx);
+            query = hashPath.substr(idx+1);
+            hashPath = hashPath.substr(0, idx);
         }
 
         // We encode spaces as + in the URL, but decodeURIComponent doesn't, so decode
         // that first.  Actual '+' is always escaped as %2B.
-        hash_path = hash_path.replace(/\+/g, " ");
-        hash_path = decodeURIComponent(hash_path);
+        hashPath = hashPath.replace(/\+/g, " ");
+        hashPath = decodeURIComponent(hashPath);
 
         if(query == null)
-            return { path: hash_path, query: new URLSearchParams() };
+            return { path: hashPath, query: new URLSearchParams() };
         else
-            return { path: hash_path, query: new URLSearchParams(query) };
+            return { path: hashPath, query: new URLSearchParams(query) };
     }
     
     // Replace the given field in the URL path.
     //
     // If the path is "/a/b/c/d", "a" is 0 and "d" is 4.
-    static set_path_part(url, index, value)
+    static setPathPart(url, index, value)
     {
         url = new URL(url);
 
@@ -1909,7 +1912,7 @@ export class helpers
         return url;
     }
 
-    static get_path_part(url, index, value)
+    static getPathPart(url, index, value)
     {
         // The path always begins with a slash, so the first entry in parts is always empty.
         // Skip it.
@@ -1938,7 +1941,7 @@ export class helpers
     static navigate(args, {
         // If true, push the navigation onto browser history.  If false, replace the current
         // state.
-        add_to_history=true,
+        addToHistory=true,
 
         // popstate.navigationCause is set to this.  This allows event listeners to determine
         // what caused a navigation.  For browser forwards/back, this won't be present.
@@ -1946,7 +1949,7 @@ export class helpers
 
         // We normally synthesize window.onpopstate, so listeners for navigation will see this
         // as a normal navigation.  If this is false, don't do this.
-        send_popstate=true,
+        sendPopstate=true,
     }={})
     {
         if(args instanceof URL)
@@ -1969,7 +1972,7 @@ export class helpers
             return;
 
         // console.log("Changing state to", args.url.toString());
-        if(add_to_history)
+        if(addToHistory)
             ppixiv.phistory.pushState(history_data, "", args.url.toString());
         else
             ppixiv.phistory.replaceState(history_data, "", args.url.toString());
@@ -1983,11 +1986,11 @@ export class helpers
         // and not just pushState (which you should be able to call as fast as you want).
         //
         // People don't think things through.
-        // console.log("Set URL to", ppixiv.plocation.toString(), add_to_history);
+        // console.log("Set URL to", ppixiv.plocation.toString(), addToHistory);
 
         if(ppixiv.plocation.toString() != old_url)
         {
-            if(send_popstate)
+            if(sendPopstate)
             {
                 // Browsers don't send onpopstate for history changes, but we want them, so
                 // send a synthetic one.
@@ -2013,8 +2016,8 @@ export class helpers
     {
         function setup_popup(box)
         {
-            box.addEventListener("mouseover", function(e) { helpers.set_class(box, "popup-visible", true); });
-            box.addEventListener("mouseout", function(e) { helpers.set_class(box, "popup-visible", false); });
+            box.addEventListener("mouseover", function(e) { helpers.setClass(box, "popup-visible", true); });
+            box.addEventListener("mouseout", function(e) { helpers.setClass(box, "popup-visible", false); });
         }
 
         for(let selector of selectors)
@@ -2030,7 +2033,7 @@ export class helpers
     }
 
     // Return the offset of element relative to an ancestor.
-    static get_relative_pos(element, ancestor)
+    static getRelativePosition(element, ancestor)
     {
         let x = 0, y = 0;
         while(element != null && element != ancestor)
@@ -2068,13 +2071,13 @@ export class helpers
     }
 
     // Scale x from [l1,h2] to [l2,h2], clamping to l2,h2.
-    static scale_clamp(x, l1, h1, l2, h2)
+    static scaleClamp(x, l1, h1, l2, h2)
     {
         return helpers.clamp(helpers.scale(x, l1, h1, l2, h2), l2, h2);
     }
 
     // Return the index (in B) of the first value in A that exists in B.
-    static find_first_idx(A, B)
+    static findFirstIdx(A, B)
     {
         for(let idx = 0; idx < A.length; ++idx)
         {
@@ -2086,7 +2089,7 @@ export class helpers
     }
     
     // Return the index (in B) of the last value in A that exists in B.
-    static find_last_idx(A, B)
+    static findLastIdx(A, B)
     {
         for(let idx = A.length-1; idx >= 0; --idx)
         {
@@ -2098,7 +2101,7 @@ export class helpers
     }
 
     // Return a promise that waits for the given event on node.
-    static wait_for_event(node, name, { abort_signal=null }={})
+    static waitForEvent(node, name, { abort_signal=null }={})
     {
         return new Promise((resolve, reject) => {
             if(abort_signal && abort_signal.aborted)
@@ -2117,7 +2120,7 @@ export class helpers
             if(abort_signal)
             {
                 abort_signal.addEventListener("abort",(e) => {
-                    img.src = helpers.blank_image;
+                    img.src = helpers.blankImage;
                     remove_listeners_signal.abort();
                     resolve("aborted");
                 }, { signal: remove_listeners_signal.signal });
@@ -2131,11 +2134,11 @@ export class helpers
     // resolve with "aborted".  Otherwise, reject with "failed".  This never
     // rejects.
     //
-    // If we're aborted, img.src will be set to helpers.blank_image.  Otherwise,
+    // If we're aborted, img.src will be set to helpers.blankImage.  Otherwise,
     // the image will load anyway.  This is a little invasive, but it's what we
     // need to do any time we have a cancellable image load, so we might as well
     // do it in one place.
-    static wait_for_image_load(img, abort_signal)
+    static waitForImageLoad(img, abort_signal)
     {
         return new Promise((resolve, reject) => {
             let src = img.src;
@@ -2149,7 +2152,7 @@ export class helpers
 
             if(abort_signal && abort_signal.aborted)
             {
-                img.src = helpers.blank_image;
+                img.src = helpers.blankImage;
                 resolve("aborted");
                 return;
             }
@@ -2173,7 +2176,7 @@ export class helpers
             if(abort_signal)
             {
                 abort_signal.addEventListener("abort",(e) => {
-                    img.src = helpers.blank_image;
+                    img.src = helpers.blankImage;
                     remove_listeners_signal.abort();
                     resolve("aborted");
                 }, { signal: remove_listeners_signal.signal });
@@ -2183,14 +2186,14 @@ export class helpers
 
     // Wait for any image in images to finish loading.  If images is empty, return
     // immediately.
-    static async wait_for_any_image_load(images, abort_signal)
+    static async waitForAnyImageLoad(images, abort_signal)
     {
         let promises = [];
         for(let image of images)
         {
             if(image == null)
                 continue;
-            promises.push(helpers.wait_for_image_load(image, abort_signal));
+            promises.push(helpers.waitForImageLoad(image, abort_signal));
         }
 
         if(promises.length == 0)
@@ -2242,7 +2245,7 @@ export class helpers
 
     // Wait up to ms for promise to complete.  If the promise completes, return its
     // result, otherwise return "timed-out".
-    static async await_with_timeout(promise, ms)
+    static async awaitWithTimeout(promise, ms)
     {
         let sleep = new Promise((accept, reject) => {
             realSetTimeout(() => {
@@ -2296,7 +2299,7 @@ export class helpers
     // desired size.  Return the corresponding CSS style attributes.
     //
     // container is the containing block (eg. ul.thumbnails).
-    static make_thumbnail_sizing_style({
+    static makeThumbnailSizingStyle({
         container,
         minPadding,
         desiredSize=300,
@@ -2307,16 +2310,16 @@ export class helpers
         // The total pixel size we want each thumbnail to have:
         ratio ??= 1;
 
-        let desired_pixels = desiredSize*desiredSize;
+        let desiredPixels = desiredSize*desiredSize;
 
         // The container might have a fractional size, and clientWidth will round it, which is
         // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
         // won't actually fit.  Get the bounding box instead, which isn't rounded.
-        // let container_width = container.parentNode.clientWidth;
-        let container_width = Math.floor(container.parentNode.getBoundingClientRect().width);
+        // let containerWidth = container.parentNode.clientWidth;
+        let containerWidth = Math.floor(container.parentNode.getBoundingClientRect().width);
         let padding = minPadding;
         
-        let closest_error_to_desired_pixels = -1;
+        let closestErrorToDesiredPixels = -1;
         let best_size = [0,0];
         let best_columns = 0;
 
@@ -2326,50 +2329,50 @@ export class helpers
             // The amount of space in the container remaining for images, after subtracting
             // the padding around each image.  Padding is the flex gap, so this doesn't include
             // padding at the left and right edge.
-            let remaining_width = container_width - padding*(columns-1);
-            let max_width = remaining_width / columns;
+            let remainingWidth = containerWidth - padding*(columns-1);
+            let maxWidth = remainingWidth / columns;
 
-            let max_height = max_width;
+            let maxHeight = maxWidth;
             if(ratio < 1)
-                max_width *= ratio;
+                maxWidth *= ratio;
             else if(ratio > 1)
-                max_height /= ratio;
+                maxHeight /= ratio;
 
-            max_width = Math.floor(max_width);
-            max_height = Math.floor(max_height);
+            maxWidth = Math.floor(maxWidth);
+            maxHeight = Math.floor(maxHeight);
 
-            let pixels = max_width * max_height;
-            let error = Math.abs(pixels - desired_pixels);
-            if(closest_error_to_desired_pixels == -1 || error < closest_error_to_desired_pixels)
+            let pixels = maxWidth * maxHeight;
+            let error = Math.abs(pixels - desiredPixels);
+            if(closestErrorToDesiredPixels == -1 || error < closestErrorToDesiredPixels)
             {
-                closest_error_to_desired_pixels = error;
-                best_size = [max_width, max_height];
+                closestErrorToDesiredPixels = error;
+                best_size = [maxWidth, maxHeight];
                 best_columns = columns;
             }
         }
 
-        let [thumb_width, thumb_height] = best_size;
+        let [thumbWidth, thumbHeight] = best_size;
 
         // If we want a smaller thumbnail size than we can reach within the max column
-        // count, we won't have reached desired_pixels.  In this case, just clamp to it.
+        // count, we won't have reached desiredPixels.  In this case, just clamp to it.
         // This will cause us to use too many columns, which we'll correct below with
-        // container_width.
+        // containerWidth.
         //
         // On mobile, just allow the thumbnails to be bigger, so we prefer to fill the
         // screen and not waste screen space.
-        if(!ppixiv.mobile && thumb_width * thumb_height > desired_pixels)
+        if(!ppixiv.mobile && thumbWidth * thumbHeight > desiredPixels)
         {
-            thumb_height = thumb_width = Math.round(Math.sqrt(desired_pixels));
+            thumbHeight = thumbWidth = Math.round(Math.sqrt(desiredPixels));
 
             if(ratio < 1)
-                thumb_width *= ratio;
+                thumbWidth *= ratio;
             else if(ratio > 1)
-                thumb_height /= ratio;
+                thumbHeight /= ratio;
         }
 
         // Clamp the width of the container to the number of columns we expect.
-        container_width = best_columns*thumb_width + (best_columns-1)*padding;
-        return {columns: best_columns, padding, thumb_width, thumb_height, container_width};
+        containerWidth = best_columns*thumbWidth + (best_columns-1)*padding;
+        return {columns: best_columns, padding, thumbWidth, thumbHeight, containerWidth};
     }
     
     // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
@@ -2389,8 +2392,8 @@ export class helpers
         // don't tell us the dimensions in advance.
         if(width == null || height == null)
         {
-            helpers.set_class(thumb, "vertical-panning", false);
-            helpers.set_class(thumb, "horizontal-panning", false);
+            helpers.setClass(thumb, "vertical-panning", false);
+            helpers.setClass(thumb, "horizontal-panning", false);
             return null;
         }
 
@@ -2406,7 +2409,7 @@ export class helpers
             return null;
     }
 
-    static create_thumbnail_animation(thumb, width, height, container_aspect_ratio)
+    static createThumbnailAnimation(thumb, width, height, container_aspect_ratio)
     {
         if(ppixiv.mobile)
             return null;
@@ -2460,7 +2463,7 @@ export class helpers
 
         let page_title = "";
     
-        if(!helpers.is_media_id_local(illust_data.mediaId))
+        if(!helpers.isMediaIdLocal(illust_data.mediaId))
         {
             // For Pixiv images, use the username and title, and indicate if the image is bookmarked.
             // We don't show bookmarks in the title for local images, since it's less useful.
@@ -2475,7 +2478,7 @@ export class helpers
             // For local images, put the filename at the front, and the two parent directories after
             // it.  For example, "books/Book Name/001" will be displayed a "001 - books/Book Name".
             // This is consistent with the title we use in the search view.
-            let {id} = helpers.parse_media_id(illust_data.mediaId);
+            let {id} = helpers.parseMediaId(illust_data.mediaId);
             let name = helpers.get_path_suffix(id, 1, 0); // filename
             let parent = helpers.get_path_suffix(id, 2, 1); // parent directories
             page_title += `${name} - ${parent}`;
@@ -2487,10 +2490,10 @@ export class helpers
     static set_title(illust_data)
     {
         let page_title = helpers.get_title_for_illust(illust_data) ?? "Loading...";
-        helpers.set_page_title(page_title);
+        helpers.setPageTitle(page_title);
     }
 
-    static set_icon({vview=false}={})
+    static setIcon({vview=false}={})
     {
         if(ppixiv.native || vview)
             helpers.setPageIcon(ppixiv.resources['resources/vview-icon.png']);
@@ -2501,12 +2504,12 @@ export class helpers
     static setTitleAndIcon(illust_data)
     {
         helpers.set_title(illust_data)
-        helpers.set_icon()
+        helpers.setIcon()
     }
 
     // Return 1 if the given keydown event should zoom in, -1 if it should zoom
     // out, or null if it's not a zoom keypress.
-    static is_zoom_hotkey(e)
+    static isZoomHotkey(e)
     {
         if(!e.ctrlKey)
             return null;
@@ -2578,7 +2581,7 @@ export class helpers
     //
     // IDs with the local API are already in this format, and Pixiv illust IDs and pages are
     // converted to it.
-    static encode_media_id({type, id, page=null}={})
+    static encodeMediaId({type, id, page=null}={})
     {
         if(type == "illust")
         {
@@ -2592,14 +2595,14 @@ export class helpers
 
     // Media IDs are parsed by the thousands, and this can have a small performance
     // impact.  Cache the results, so we only parse any given media ID once.
-    static _media_id_cache = new Map();
-    static parse_media_id(media_id)
+    static _mediaIdCache = new Map();
+    static parseMediaId(mediaId)
     {
-        let cache = this._media_id_cache.get(media_id);
+        let cache = this._mediaIdCache.get(mediaId);
         if(cache == null)
         {
-            cache = this._parse_media_id_inner(media_id);
-            this._media_id_cache.set(media_id, cache);
+            cache = this._parse_media_id_inner(mediaId);
+            this._mediaIdCache.set(mediaId, cache);
         }
 
         // Return a new object and not the cache, since the returned value might be
@@ -2607,15 +2610,15 @@ export class helpers
         return { type: cache.type, id: cache.id, page: cache.page };
     }
 
-    static _parse_media_id_inner(media_id)
+    static _parse_media_id_inner(mediaId)
     {
         // If this isn't an illust, a media ID is the same as an illust ID.
-        let { type, id } = this._split_id(media_id);
+        let { type, id } = this._split_id(mediaId);
         if(type != "illust")
             return { type: type, id: id, page: 0 };
 
         // If there's no hyphen in the ID, it's also the same.
-        if(media_id.indexOf("-") == -1)
+        if(mediaId.indexOf("-") == -1)
             return { type: type, id: id, page: 0 };
 
         // Split out the page.
@@ -2631,23 +2634,23 @@ export class helpers
     //
     // Some things don't interact with pages, such as illust info loads, and
     // only store data with the ID of the first page.
-    static get_media_id_first_page(media_id)
+    static getMediaIdFirstPage(mediaId)
     {
-        return this.get_media_id_for_page(media_id, 0);
+        return this.getMediaIdForPage(mediaId, 0);
     }
 
-    static get_media_id_for_page(media_id, page=0)
+    static getMediaIdForPage(mediaId, page=0)
     {
-        if(media_id == null)
+        if(mediaId == null)
             return null;
             
-        let id = helpers.parse_media_id(media_id);
+        let id = helpers.parseMediaId(mediaId);
         id.page = page;
-        return helpers.encode_media_id(id);
+        return helpers.encodeMediaId(id);
     }
 
     // Convert a Pixiv illustration ID and page number to a media ID.
-    static illust_id_to_media_id(illust_id, page)
+    static illustIdToMediaId(illust_id, page)
     {
         if(illust_id == null)
             return null;
@@ -2670,19 +2673,19 @@ export class helpers
         return type + ":" + id;
     }
 
-    static media_id_to_illust_id_and_page(media_id)
+    static mediaIdToIllustIdAndPage(mediaId)
     {
-        let { type, id, page } = helpers.parse_media_id(media_id);
+        let { type, id, page } = helpers.parseMediaId(mediaId);
         if(type != "illust")
-            return [media_id, 0];
+            return [mediaId, 0];
         
         return [id, page];
     }
 
-    // Return true if media_id is an ID for the local API.
-    static is_media_id_local(media_id)
+    // Return true if mediaId is an ID for the local API.
+    static isMediaIdLocal(mediaId)
     {
-        let { type } = helpers.parse_media_id(media_id);
+        let { type } = helpers.parseMediaId(mediaId);
         return type == "file" || type == "folder";
     }
 
@@ -2845,7 +2848,7 @@ export class helpers
         return result;
     }
 
-    static shuffle_array(array)
+    static shuffleArray(array)
     {
         for(let idx = 0; idx < array.length; ++idx)
         {
@@ -2854,7 +2857,7 @@ export class helpers
         }
     }
 
-    static adjust_image_url_hostname(url)
+    static adjustImageUrlHostname(url)
     {
         if(url.hostname == "i.pximg.net")
             url.hostname = "i-cf.pximg.net";
@@ -2904,7 +2907,7 @@ export class helpers
             url.pathname = url.pathname.replace("_p0_master1200", "_p" + page + "_master1200");
         }
 
-        this.adjust_image_url_hostname(url);
+        this.adjustImageUrlHostname(url);
 
         return url.toString();
     }
@@ -3059,7 +3062,7 @@ export class HoverWithDelay
         this.hover_timeout = realSetTimeout(() => {
             this.pending_hover = null;
             this.hover_timeout = null;
-            helpers.set_class(this.element, "hover", this.real_hover_state);
+            helpers.setClass(this.element, "hover", this.real_hover_state);
         }, delay);
     }
 }
@@ -3228,7 +3231,7 @@ export class VirtualHistory
     }
 
     // Return the URL we'll go to if we go back.
-    get previous_state_url()
+    get previousStateUrl()
     {
         if(this.history.length < 2)
             return null;
@@ -3238,7 +3241,7 @@ export class VirtualHistory
 
     get previous_state_args()
     {
-        let url = this.previous_state_url;
+        let url = this.previousStateUrl;
         if(url == null)
             return null;
 
@@ -3784,7 +3787,7 @@ export class ClassFlags extends EventTarget
     set(name, value)
     {
         // Update the class.  The mutation observer will handle broadcasting the change.
-        helpers.set_class(this.element, name, value);
+        helpers.setClass(this.element, name, value);
 
         return true;
     }

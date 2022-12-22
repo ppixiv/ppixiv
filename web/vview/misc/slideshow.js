@@ -1,4 +1,4 @@
-// This handles the nitty slideshow logic for on_click_viewer.
+// This handles the nitty slideshow logic for ViewerImages.
 //
 // Slideshows can be represented as pans, which is the data editing_pan edits
 // and that we save to images.  This data is resolution and aspect-ratio independant,
@@ -16,26 +16,26 @@ export default class Slideshow
         width, height,
 
         // The size of the window:
-        container_width, container_height,
+        containerWidth, containerHeight,
 
         // The minimum zoom level to allow:
-        minimum_zoom,
+        minimumZoom,
 
         // One of "slideshow", "loop" or "auto-pan".
         mode,
 
         // The slideshow is normally clamped to the window.  This can be disabled by the
         // editor.
-        clamp_to_window=true,
+        clampToWindow=true,
     })
     {
         this.width = width;
         this.height = height;
-        this.container_width = container_width;
-        this.container_height = container_height;
-        this.minimum_zoom = minimum_zoom;
+        this.containerWidth = containerWidth;
+        this.containerHeight = containerHeight;
+        this.minimumZoom = minimumZoom;
         this.mode = mode;
-        this.clampToWindow = clamp_to_window;
+        this.clampToWindow = clampToWindow;
     }
 
     // Create the default animation.
@@ -53,7 +53,7 @@ export default class Slideshow
         // Choose whether to use the horizontal or vertical depending on how the image fits the screen.
         // panRatio is < 1 if the image can pan vertically and > 1 if it can pan horizontally.
         let imageAspectRatio = this.width / this.height;
-        let containerAspectRatio = this.container_width / this.container_height;
+        let containerAspectRatio = this.containerWidth / this.containerHeight;
         let panRatio = imageAspectRatio / containerAspectRatio;
 
         // If the image can move horizontally in the display, use the horizontal pan.  Don't use it
@@ -143,7 +143,7 @@ export default class Slideshow
         // This usually only has an effect for exceptionally wide images.  Most of the time the
         // maximum speed ends up being much lower than the actual speed, and we use the duration
         // as-is.
-        let maxSpeed = helpers.scale_clamp(duration, 5, 15, 0.5, 0.25);
+        let maxSpeed = helpers.scaleClamp(duration, 5, 15, 0.5, 0.25);
 
         let animationData = {
             duration, maxSpeed,
@@ -178,14 +178,14 @@ export default class Slideshow
             // by changing the third value, becoming completely linear when it reaches 1.  Reduce
             // the ease-out effect as the duration gets longer, since longer animations don't need
             // the ease-out as much (they're already slow), so we have more even motion.
-            let factor = helpers.scale_clamp(animation.duration, 5, 15, 0.58, 1);
+            let factor = helpers.scaleClamp(animation.duration, 5, 15, 0.58, 1);
             animation.ease = `cubic-bezier(0.0, 0.0, ${factor}, 1.0)`;
         }
         else if(this.mode == "loop")
         {
             // Similar to auto-pan, but using an ease-in-out transition instead, and we always keep
             // some easing around even for very long animations.
-            let factor = helpers.scale_clamp(animation.duration, 5, 15, 0.58, 0.90);
+            let factor = helpers.scaleClamp(animation.duration, 5, 15, 0.58, 0.90);
             animation.ease = `cubic-bezier(${1-factor}, 0.0, ${factor}, 1.0)`;
         }        
 
@@ -223,10 +223,10 @@ export default class Slideshow
         let pan = [];
         for(let point of animation.pan)
         {
-            // Don't let the zoom level go below this.minimum_zoom.  This is usually the zoom
+            // Don't let the zoom level go below this.minimumZoom.  This is usually the zoom
             // level where the image covers the screen, and going lower would leave part of
             // the screen blank.
-            let scale = Math.max(point.zoom, this.minimum_zoom);
+            let scale = Math.max(point.zoom, this.minimumZoom);
 
             // The screen size the image will have:
             let zoomedWidth = this.width * scale;
@@ -235,8 +235,8 @@ export default class Slideshow
             // Initially, the image will be aligned to the top-left of the screen.  Shift right and
             // down to align the anchor the origin.  This is usually the center of the image.
             let { anchor_x=0.5, anchor_y=0.5 } = point;
-            let tx = this.container_width * anchor_x;
-            let ty = this.container_height * anchor_y;
+            let tx = this.containerWidth * anchor_x;
+            let ty = this.containerHeight * anchor_y;
 
             // Then shift up and left to center the point:
             tx -= point.x*zoomedWidth;
@@ -246,17 +246,17 @@ export default class Slideshow
             {
                 // Clamp the translation to keep the image in the window.  This is inverted, since
                 // tx and ty are transitions and not the image position.
-                let maxX = zoomedWidth - this.container_width,
-                    maxY = zoomedHeight - this.container_height;
+                let maxX = zoomedWidth - this.containerWidth,
+                    maxY = zoomedHeight - this.containerHeight;
                 tx = helpers.clamp(tx, 0, -maxX);
                 ty = helpers.clamp(ty, 0, -maxY);
 
                 // If the image isn't filling the screen on either axis, center it.  This only applies at
                 // keyframes (we won't always be centered while animating).
-                if(zoomedWidth < this.container_width)
-                    tx = (this.container_width - zoomedWidth) / 2;
-                if(zoomedHeight < this.container_height)
-                    ty = (this.container_height - zoomedHeight) / 2;
+                if(zoomedWidth < this.containerWidth)
+                    tx = (this.containerWidth - zoomedWidth) / 2;
+                if(zoomedHeight < this.containerHeight)
+                    ty = (this.containerHeight - zoomedHeight) / 2;
             }
 
             pan.push({ tx, ty, zoomedWidth, zoomedHeight, scale });
@@ -289,7 +289,7 @@ export default class Slideshow
         }
 
         // The diagonal size of the screen is what our speed is relative to.
-        let screenSize = helpers.distance({x: 0, y: 0}, { x: this.container_height, y: this.container_width });
+        let screenSize = helpers.distance({x: 0, y: 0}, { x: this.containerHeight, y: this.containerWidth });
 
         // Calculate the duration for keyframes that specify a speed.
         let duration = animation.duration;

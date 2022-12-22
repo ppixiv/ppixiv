@@ -1,5 +1,6 @@
 import Widget from 'vview/widgets/widget.js';
 import Actions from 'vview/misc/actions.js';
+import { ConfirmPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 // A widget that shows info for a particular media ID, and refreshes if the image changes.
@@ -11,64 +12,64 @@ export class IllustWidget extends Widget
 
         // Refresh when the image data changes.
         ppixiv.mediaCache.addEventListener("mediamodified", (e) => {
-            if(e.media_id == this._media_id)
+            if(e.mediaId == this._mediaId)
                 this.refresh();
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
     }
 
-    // The data this widget needs.  This can be media_id (nothing but the ID), full or partial.
+    // The data this widget needs.  This can be mediaId (nothing but the ID), full or partial.
     //
-    // This can change dynamically.  Some widgets need illust_info only when viewing a manga
+    // This can change dynamically.  Some widgets need media info only when viewing a manga
     // page.
-    get needed_data() { return "full"; }
+    get neededData() { return "full"; }
 
-    set_media_id(media_id)
+    setMediaId(mediaId)
     {
-        if(this._media_id == media_id)
+        if(this._mediaId == mediaId)
             return;
 
-        this._media_id = media_id;
+        this._mediaId = mediaId;
 
-        let [illust_id, page] = helpers.media_id_to_illust_id_and_page(media_id);
+        let [illustId, page] = helpers.mediaIdToIllustIdAndPage(mediaId);
         this._page = page;
         this.refresh();
     }
     
-    get media_id() { return this._media_id; }
+    get mediaId() { return this._mediaId; }
 
     async refresh()
     {
         // Grab the illust info.
-        let media_id = this._media_id;
-        let info = { media_id: this._media_id };
+        let mediaId = this._mediaId;
+        let info = { mediaId: this._mediaId };
         
         // If we have a media ID and we want media info (not just the media ID itself), load
         // the info.
-        if(this._media_id != null && this.needed_data != "media_id")
+        if(this._mediaId != null && this.neededData != "mediaId")
         {
-            let full = this.needed_data == "full";
+            let full = this.neededData == "full";
 
             // See if we have the data the widget wants already.
-            info.media_info = ppixiv.mediaCache.get_media_info_sync(this._media_id, { full });
+            info.mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._mediaId, { full });
 
             // If we need to load data, clear the widget while we load, so we don't show the old
             // data while we wait for data.  Skip this if we don't need to load, so we don't clear
             // and reset the widget.  This can give the widget an illust ID without data, which is
             // OK.
-            if(info.media_info == null)
-                await this.refresh_internal(info);
+            if(info.mediaInfo == null)
+                await this.refreshInternal(info);
 
-            info.media_info = await ppixiv.mediaCache.get_media_info(this._media_id, { full });
+            info.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId, { full });
         }
 
         // Stop if the media ID changed while we were async.
-        if(this._media_id != media_id)
+        if(this._mediaId != mediaId)
             return;
 
-        await this.refresh_internal(info);
+        await this.refreshInternal(info);
     }
 
-    async refresh_internal({ media_id, media_info })
+    async refreshInternal({ mediaId, mediaInfo })
     {
         throw "Not implemented";
     }
@@ -76,15 +77,15 @@ export class IllustWidget extends Widget
 
 export class BookmarkButtonWidget extends IllustWidget
 {
-    get needed_data() { return "partial"; }
+    get neededData() { return "partial"; }
 
     constructor({
         // "public", "private" or "delete"
-        bookmark_type,
+        bookmarkType,
 
         // If true, clicking a bookmark button that's already bookmarked will remove the
         // bookmark.  If false, the bookmark tags will just be updated.
-        toggle_bookmark=true,
+        toggleBookmark=true,
 
         // An associated BookmarkTagListWidget.
         //
@@ -96,16 +97,16 @@ export class BookmarkButtonWidget extends IllustWidget
     {
         super({...options});
 
-        this.bookmark_type = bookmark_type;
-        this.toggle_bookmark = toggle_bookmark;
+        this.bookmarkType = bookmarkType;
+        this.toggleBookmark = toggleBookmark;
         this._bookmarkTagListWidget = bookmarkTagListWidget;
 
-        this.container.addEventListener("click", this.clicked_bookmark);
+        this.container.addEventListener("click", this.clickedBookmark);
     }
 
     // Dispatch bookmarkedited when we're editing a bookmark.  This lets any bookmark tag
     // dropdowns know they should close.
-    _fire_onedited()
+    _fireOnEdited()
     {
         this.dispatchEvent(new Event("bookmarkedited"));
     }
@@ -124,44 +125,44 @@ export class BookmarkButtonWidget extends IllustWidget
         return this._bookmarkTagListWidget;
     }
 
-    refresh_internal({ media_id, media_info })
+    refreshInternal({ mediaId, mediaInfo })
     {
         // If this is a local image, we won't have a bookmark count, so set local-image
-        // to remove our padding for it.  We can get media_id before media_info.
-        let is_local =  helpers.is_media_id_local(media_id);
-        helpers.set_class(this.container,  "has-like-count", !is_local);
+        // to remove our padding for it.  We can get mediaId before mediaInfo.
+        let is_local =  helpers.isMediaIdLocal(mediaId);
+        helpers.setClass(this.container,  "has-like-count", !is_local);
 
-        let { type } = helpers.parse_media_id(media_id);
+        let { type } = helpers.parseMediaId(mediaId);
 
         // Hide the private bookmark button for local IDs.
-        if(this.bookmark_type == "private")
+        if(this.bookmarkType == "private")
             this.container.closest(".button-container").hidden = is_local;
 
-        let bookmarked = media_info?.bookmarkData != null;
-        let private_bookmark = this.bookmark_type == "private";
-        let is_our_bookmark_type = media_info?.bookmarkData?.private == private_bookmark;
-        let will_delete = this.toggle_bookmark && is_our_bookmark_type;
-        if(this.bookmark_type == "delete")
-            is_our_bookmark_type = will_delete = bookmarked;
+        let bookmarked = mediaInfo?.bookmarkData != null;
+        let privateBookmark = this.bookmarkType == "private";
+        let isOurBookmarkType = mediaInfo?.bookmarkData?.private == privateBookmark;
+        let willDelete = this.toggleBookmark && isOurBookmarkType;
+        if(this.bookmarkType == "delete")
+            isOurBookmarkType = willDelete = bookmarked;
 
         // Set up the bookmark buttons.
-        helpers.set_class(this.container,  "enabled",     media_info != null);
-        helpers.set_class(this.container,  "bookmarked",  is_our_bookmark_type);
-        helpers.set_class(this.container,  "will-delete", will_delete);
+        helpers.setClass(this.container,  "enabled",     mediaInfo != null);
+        helpers.setClass(this.container,  "bookmarked",  isOurBookmarkType);
+        helpers.setClass(this.container,  "will-delete", willDelete);
         
         // Set the tooltip.
         this.container.dataset.popup =
-            media_info == null? "":
-            !bookmarked && this.bookmark_type == "folder"? "Bookmark folder":
-            !bookmarked && this.bookmark_type == "private"? "Bookmark privately":
-            !bookmarked && this.bookmark_type == "public" && type == "folder"? "Bookmark folder":
-            !bookmarked && this.bookmark_type == "public"? "Bookmark image":
-            will_delete? "Remove bookmark":
-            "Change bookmark to " + this.bookmark_type;
+            mediaInfo == null? "":
+            !bookmarked && this.bookmarkType == "folder"? "Bookmark folder":
+            !bookmarked && this.bookmarkType == "private"? "Bookmark privately":
+            !bookmarked && this.bookmarkType == "public" && type == "folder"? "Bookmark folder":
+            !bookmarked && this.bookmarkType == "public"? "Bookmark image":
+            willDelete? "Remove bookmark":
+            "Change bookmark to " + this.bookmarkType;
     }
     
     // Clicked one of the top-level bookmark buttons or the tag list.
-    clicked_bookmark = async(e) =>
+    clickedBookmark = async(e) =>
     {
         // See if this is a click on a bookmark button.
         let a = e.target.closest(".button-bookmark");
@@ -172,10 +173,10 @@ export class BookmarkButtonWidget extends IllustWidget
         e.stopPropagation();
 
         // If the tag list dropdown is open, make a list of tags selected in the tag list dropdown.
-        // If it's closed, leave tag_list null so we don't modify the tag list.
-        let tag_list = null;
-        if(this._bookmarkTagListWidget && this._bookmarkTagListWidget.visible_recursively)
-            tag_list = this._bookmarkTagListWidget.selected_tags;
+        // If it's closed, leave tagList null so we don't modify the tag list.
+        let tagList = null;
+        if(this._bookmarkTagListWidget && this._bookmarkTagListWidget.visibleRecursively)
+            tagList = this._bookmarkTagListWidget.selectedTags;
 
         // If we have a tag list dropdown, tell it to become inactive.  It'll continue to
         // display its contents, so they don't change during transitions, but it won't make
@@ -184,34 +185,34 @@ export class BookmarkButtonWidget extends IllustWidget
         if(this._bookmarkTagListWidget)
             this._bookmarkTagListWidget.deactivate();
 
-        this._fire_onedited();
+        this._fireOnEdited();
 
-        let illust_data = await ppixiv.mediaCache.get_media_info(this._media_id, { full: false });
-        let private_bookmark = this.bookmark_type == "private";
+        let mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId, { full: false });
+        let privateBookmark = this.bookmarkType == "private";
 
         // If the image is bookmarked and a delete bookmark button or the same privacy button was clicked, remove the bookmark.
-        let delete_bookmark = this.toggle_bookmark && illust_data.bookmarkData?.private == private_bookmark;
-        if(this.bookmark_type == "delete")
-            delete_bookmark = true;
+        let deleteBookmark = this.toggleBookmark && mediaInfo.bookmarkData?.private == privateBookmark;
+        if(this.bookmarkType == "delete")
+            deleteBookmark = true;
 
-        if(delete_bookmark)
+        if(deleteBookmark)
         {
-            if(!illust_data.bookmarkData)
+            if(!mediaInfo.bookmarkData)
                 return;
 
             // Confirm removing bookmarks when on mobile.
             if(ppixiv.mobile)
             {
-                let result = await (new ppixiv.confirm_prompt({ header: "Remove bookmark?" })).result;
+                let result = await (new ConfirmPrompt({ header: "Remove bookmark?" })).result;
                 if(!result)
                     return;
             }
 
-            let media_id = this._media_id;
-            await Actions.bookmarkRemove(this._media_id);
+            let mediaId = this._mediaId;
+            await Actions.bookmarkRemove(this._mediaId);
 
             // If the current image changed while we were async, stop.
-            if(media_id != this._media_id)
+            if(mediaId != this._mediaId)
                 return;
             
             // Hide the tag dropdown after unbookmarking, without saving any tags in the
@@ -219,15 +220,15 @@ export class BookmarkButtonWidget extends IllustWidget
             if(this._bookmarkTagListWidget)
                 this._bookmarkTagListWidget.deactivate();
 
-            this._fire_onedited();
+            this._fireOnEdited();
 
             return;
         }
 
         // Add or edit the bookmark.
-        await Actions.bookmarkAdd(this._media_id, {
-            private: private_bookmark,
-            tags: tag_list,
+        await Actions.bookmarkAdd(this._mediaId, {
+            private: privateBookmark,
+            tags: tagList,
         });
     }
 }
@@ -235,65 +236,65 @@ export class BookmarkButtonWidget extends IllustWidget
 // A trivial version of BookmarkButtonWidget that just displays if the image is bookmarked.
 export class ImageBookmarkedWidget extends IllustWidget
 {
-    get needed_data() { return "partial"; }
+    get neededData() { return "partial"; }
 
-    refresh_internal({ media_info })
+    refreshInternal({ mediaInfo })
     {
-        let bookmarked = media_info?.bookmarkData != null;
-        let private_bookmark = media_info?.bookmarkData?.private;
+        let bookmarked = mediaInfo?.bookmarkData != null;
+        let privateBookmark = mediaInfo?.bookmarkData?.private;
 
-        helpers.set_class(this.container,  "enabled",     media_info != null);
-        helpers.set_class(this.container,  "bookmarked",  bookmarked);
-        helpers.set_class(this.container,  "public",      !private_bookmark);
+        helpers.setClass(this.container,  "enabled",     mediaInfo != null);
+        helpers.setClass(this.container,  "bookmarked",  bookmarked);
+        helpers.setClass(this.container,  "public",      !privateBookmark);
     }
 }
 
 export class BookmarkCountWidget extends IllustWidget
 {
-    refresh_internal({ media_info })
+    refreshInternal({ mediaInfo })
     {
-        this.container.textContent = media_info? media_info.bookmarkCount:"---";
+        this.container.textContent = mediaInfo?.bookmarkCount ?? "---";
     }
 }
 
 export class LikeButtonWidget extends IllustWidget
 {
-    get needed_data() { return "media_id"; }
+    get neededData() { return "mediaId"; }
 
     constructor(options)
     {
         super(options);
 
-        this.container.addEventListener("click", this.clicked_like);
+        this.container.addEventListener("click", this.clickedLike);
     }
 
-    async refresh_internal({ media_id })
+    async refreshInternal({ mediaId })
     {
         // Hide the like button for local IDs.
-        this.container.closest(".button-container").hidden = helpers.is_media_id_local(media_id);
+        this.container.closest(".button-container").hidden = helpers.isMediaIdLocal(mediaId);
 
-        let liked_recently = media_id != null? ppixiv.extraCache.get_liked_recently(media_id):false;
-        helpers.set_class(this.container, "liked", liked_recently);
-        helpers.set_class(this.container, "enabled", !liked_recently);
+        let likedRecently = mediaId != null? ppixiv.extraCache.getLikedRecently(mediaId):false;
+        helpers.setClass(this.container, "liked", likedRecently);
+        helpers.setClass(this.container, "enabled", !likedRecently);
 
-        this.container.dataset.popup = this._media_id == null? "":
-            liked_recently? "Already liked image":"Like image";
+        this.container.dataset.popup = this._mediaId == null? "":
+            likedRecently? "Already liked image":"Like image";
     }
     
-    clicked_like = (e) =>
+    clickedLike = (e) =>
     {
         e.preventDefault();
         e.stopPropagation();
 
-        if(this._media_id != null)
-            Actions.likeImage(this._media_id);
+        if(this._mediaId != null)
+            Actions.likeImage(this._mediaId);
     }
 }
 
 export class LikeCountWidget extends IllustWidget
 {
-    async refresh_internal({ media_info })
+    async refreshInternal({ mediaInfo })
     {
-        this.container.textContent = media_info? media_info.likeCount:"---";
+        this.container.textContent = mediaInfo?.likeCount ?? "---";
     }
 }

@@ -23,37 +23,37 @@ export default class PanEditor extends Widget
                     <div class="image-editor-button-row box-button-row left"></div>
 
                     <div class="image-editor-button-row editor-buttons box-button-row">
-                        ${ helpers.create_box_link({popup: "Edit start", icon: "first_page", classes: ["edit-start-button"] }) }
-                        ${ helpers.create_box_link({popup: "Swap start and end", icon: "swap_horiz", classes: ["swap-button"] }) }
-                        ${ helpers.create_box_link({popup: "Edit end", icon: "last_page", classes: ["edit-end-button"] }) }
-                        ${ helpers.create_box_link({popup: "Edit anchor", icon: "anchor", classes: ["edit-anchor"] }) }
+                        ${ helpers.createBoxLink({popup: "Edit start", icon: "first_page", classes: ["edit-start-button"] }) }
+                        ${ helpers.createBoxLink({popup: "Swap start and end", icon: "swap_horiz", classes: ["swap-button"] }) }
+                        ${ helpers.createBoxLink({popup: "Edit end", icon: "last_page", classes: ["edit-end-button"] }) }
+                        ${ helpers.createBoxLink({popup: "Edit anchor", icon: "anchor", classes: ["edit-anchor"] }) }
 
                         <div class="box-link popup" data-popup="Zoom">
-                            ${ helpers.create_icon("zoom_in") }
+                            ${ helpers.createIcon("zoom_in") }
                             <input class=zoom-slider type=range min=5 max=200>
                         </div>
 
-                        ${ helpers.create_box_link({popup: "Portrait/landscape", icon: "panorama", classes: ["rotate-aspect-ratio"] }) }
+                        ${ helpers.createBoxLink({popup: "Portrait/landscape", icon: "panorama", classes: ["rotate-aspect-ratio"] }) }
 
                         <div class="box-link popup aspect-ratio-slider" data-popup="Aspect ratio">
                             <input class=zoom-slider type=range min=0 max=3 style="width: 70px;">
                         </div>
 
-                        ${ helpers.create_box_link({popup: "Clear animation", icon: "delete", classes: ["reset-button"] }) }
+                        ${ helpers.createBoxLink({popup: "Clear animation", icon: "delete", classes: ["reset-button"] }) }
                     </div>
                     <div class="image-editor-button-row box-button-row right"></div>
                 </div>
             </div>
         `});
 
-        this.shutdown_signal = new AbortController();
+        this.shutdownSignal = new AbortController();
 
         this.width = this.height = 100;
         this.dragging = false;
-        this.drag_start = null;
+        this._dragStart = null;
         this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
 
-        this.aspect_ratios = [
+        this._aspectRatios = [
             [21, 9],
             [16, 9],
             [16, 10],
@@ -62,118 +62,118 @@ export default class PanEditor extends Widget
 
         // is_set is false if we've had no edits and we're displaying the defaults, or true if we
         // have data that can be saved.
-        this.is_set = false;
-        this.zoom_level = [1,1]; // start, end
-        this.displayed_aspect_ratio = 1;
-        this.displayed_aspect_ratio_portrait = false;
+        this._isSet = false;
+        this._zoomLevel = [1,1]; // start, end
+        this._displayedAspectRatio = 1;
+        this._displayedAspectRatioPortrait = false;
 
         this.editing = "start"; // "start" or "end"
-        this.editing_anchor = false;
+        this._editingAnchor = false;
 
         this.ui = this.container.querySelector(".editor-buttons");
-        this.monitor_preview_box = this.container.querySelector(".monitor-preview-box");
+        this._monitorPreviewBox = this.container.querySelector(".monitor-preview-box");
 
         // Remove .pan-editor-overlay.  It's inserted into the image overlay when we
         // have one, so it pans and zooms with the image.
-        this.editor_overlay = this.container.querySelector(".pan-editor-overlay");
-        this.editor_crop_region = this.container.querySelector(".pan-editor-crop-region");
-        this.editor_overlay.remove();
-        this.handle = this.editor_overlay.querySelector(".handle");
+        this._editorOverlay = this.container.querySelector(".pan-editor-overlay");
+        this._editorCropRegion = this.container.querySelector(".pan-editor-crop-region");
+        this._editorOverlay.remove();
+        this._handle = this._editorOverlay.querySelector(".handle");
 
         // The real zoom value is the amount the image will be zoomed onscreen: if it's set
         // to 2, the image is twice as big.  The zoom slider is inverted: a slider value of
         // 1/2 gives a zoom of 2.  This makes the zoom slider scale the size of the monitor
         // box linearly and feels more natural.
-        this.zoom_slider = this.ui.querySelector(".zoom-slider");
+        this._zoomSlider = this.ui.querySelector(".zoom-slider");
 
         // Use watch_edits to save undo at the start of inputs being dragged.
-        helpers.watch_edits(this.zoom_slider, { signal: this.shutdown_signal.signal });
-        this.zoom_slider.addEventListener("editbegin", (e) => { this.parent.save_undo(); this.is_set = true; });
-        this.zoom_slider.addEventListener("edit", (e) => {
+        helpers.watch_edits(this._zoomSlider, { signal: this.shutdownSignal.signal });
+        this._zoomSlider.addEventListener("editbegin", (e) => { this.parent.saveUndo(); this._isSet = true; });
+        this._zoomSlider.addEventListener("edit", (e) => {
             // console.log(e);
-            let value = parseInt(this.zoom_slider.value) / 100;
+            let value = parseInt(this._zoomSlider.value) / 100;
             value = 1 / value;
-            this.zoom_level[this.editing_index] = value;
+            this._zoomLevel[this.editingIndex] = value;
             this.refresh();
         });
 
         // The preview size slider changes the monitor aspect ratio that we're previewing.
-        this.aspect_ratio_slider = this.ui.querySelector(".aspect-ratio-slider input");
-        this.aspect_ratio_slider.addEventListener("input", (e) => {
-            this.displayed_aspect_ratio = parseInt(this.aspect_ratio_slider.value);
+        this._aspectRatioSlider = this.ui.querySelector(".aspect-ratio-slider input");
+        this._aspectRatioSlider.addEventListener("input", (e) => {
+            this._displayedAspectRatio = parseInt(this._aspectRatioSlider.value);
             this.refresh();
         });
 
-        this.aspect_ratio_switch_button = this.container.querySelector(".rotate-aspect-ratio");
-        this.aspect_ratio_switch_button.addEventListener("click", (e) => {
+        this._aspectRatioSwitchButton = this.container.querySelector(".rotate-aspect-ratio");
+        this._aspectRatioSwitchButton.addEventListener("click", (e) => {
             e.stopPropagation();
 
-            this.displayed_aspect_ratio_portrait = !this.displayed_aspect_ratio_portrait;
+            this._displayedAspectRatioPortrait = !this._displayedAspectRatioPortrait;
             this.refresh();
         });
 
         this.ui.querySelector(".edit-start-button").addEventListener("click", (e) => { e.stopPropagation(); this.editing = "start"; this.refresh(); });
         this.ui.querySelector(".edit-end-button").addEventListener("click", (e) => { e.stopPropagation(); this.editing = "end"; this.refresh(); });
-        this.ui.querySelector(".edit-anchor").addEventListener("click", (e) => { e.stopPropagation(); this.editing_anchor = !this.editing_anchor; this.refresh(); });
+        this.ui.querySelector(".edit-anchor").addEventListener("click", (e) => { e.stopPropagation(); this._editingAnchor = !this._editingAnchor; this.refresh(); });
         this.ui.querySelector(".reset-button").addEventListener("click", (e) => { e.stopPropagation(); this.clear(); });
         this.ui.querySelector(".swap-button").addEventListener("click", (e) => { e.stopPropagation(); this.swap(); });
 
         this.pointerListener = new PointerListener({
-            element: this.editor_overlay,
+            element: this._editorOverlay,
             callback: this.pointerevent,
-            signal: this.shutdown_signal.signal,
+            signal: this.shutdownSignal.signal,
         });
 
         // Prevent fullscreening if a UI element is double-clicked.
-        this.editor_overlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdown_signal.signal });
+        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal.signal });
     }
 
     // Return 0 if we're editing the start point, or 1 if we're editing the end point.
-    get editing_index()
+    get editingIndex()
     {
         return this.editing == "start"? 0:1;
     }
 
-    get actually_editing_anchor()
+    get actuallyEditingAnchor()
     {
-        return this.editing_anchor ^ this.shift_held;
+        return this._editingAnchor ^ this._shiftHeld;
     }
 
     // This is called when the ImageEditingOverlayContainer changes.
-    set overlay_container(overlay_container)
+    set overlayContainer(overlayContainer)
     {
-        console.assert(overlay_container instanceof ImageEditingOverlayContainer);
-        if(this.editor_overlay.parentNode)
-            this.editor_overlay.remove();
+        console.assert(overlayContainer instanceof ImageEditingOverlayContainer);
+        if(this._editorOverlay.parentNode)
+            this._editorOverlay.remove();
             
-        overlay_container.pan_editor_overlay = this.editor_overlay;
-        this._overlay_container = overlay_container;
+        overlayContainer.panEditorOverlay = this._editorOverlay;
+        this._overlayContainer = overlayContainer;
     }
 
     clear()
     {
-        if(!this.is_set)
+        if(!this._isSet)
             return;
 
-        this.parent.save_undo();
-        this.set_state(null);
+        this.parent.saveUndo();
+        this.setState(null);
     }
 
     // Swap the start and end points.
     swap()
     {
-        this.parent.save_undo();
-        this.is_set = true;
+        this.parent.saveUndo();
+        this._isSet = true;
         this.rect = new FixedDOMRect(this.rect.x2, this.rect.y2, this.rect.x1,this.rect.y1);
         this.anchor = new FixedDOMRect(this.anchor.x2, this.anchor.y2, this.anchor.x1, this.anchor.y1);
-        this.zoom_level = [this.zoom_level[1], this.zoom_level[0]];
+        this._zoomLevel = [this._zoomLevel[1], this._zoomLevel[0]];
         this.refresh();
     }
 
-    get preview_size()
+    get previewSize()
     {
-        let result = this.aspect_ratios[this.displayed_aspect_ratio];
-        if(this.displayed_aspect_ratio_portrait)
+        let result = this._aspectRatios[this._displayedAspectRatio];
+        if(this._displayedAspectRatioPortrait)
             return [result[1], result[0]];
         else
             return result;
@@ -185,56 +185,56 @@ export default class PanEditor extends Widget
         if(!this.visible)
             return;
 
-        let zoom = this.zoom_level[this.editing_index];
-        this.zoom_slider.value = 1 / zoom * 100;
+        let zoom = this._zoomLevel[this.editingIndex];
+        this._zoomSlider.value = 1 / zoom * 100;
         
-        helpers.set_class(this.ui.querySelector(".edit-start-button"), "selected", this.editing == "start");
-        helpers.set_class(this.ui.querySelector(".edit-end-button"), "selected", this.editing == "end");
-        helpers.set_class(this.ui.querySelector(".edit-anchor"), "selected", this.actually_editing_anchor);
+        helpers.setClass(this.ui.querySelector(".edit-start-button"), "selected", this.editing == "start");
+        helpers.setClass(this.ui.querySelector(".edit-end-button"), "selected", this.editing == "end");
+        helpers.setClass(this.ui.querySelector(".edit-anchor"), "selected", this.actuallyEditingAnchor);
 
-        this.aspect_ratio_switch_button.dataset.popup = 
-            this.displayed_aspect_ratio_portrait? "Previewing portrait":"Previewing landscape";
-        this.aspect_ratio_switch_button.querySelector(".font-icon").innerText =
-            this.displayed_aspect_ratio_portrait? "portrait":"panorama";
-        this.aspect_ratio_slider.value = this.displayed_aspect_ratio;
-        this.ui.querySelector(".aspect-ratio-slider").dataset.popup = `Previewing ${this.preview_size[0]}:${this.preview_size[1]}`;
+        this._aspectRatioSwitchButton.dataset.popup = 
+            this._displayedAspectRatioPortrait? "Previewing portrait":"Previewing landscape";
+        this._aspectRatioSwitchButton.querySelector(".font-icon").innerText =
+            this._displayedAspectRatioPortrait? "portrait":"panorama";
+        this._aspectRatioSlider.value = this._displayedAspectRatio;
+        this.ui.querySelector(".aspect-ratio-slider").dataset.popup = `Previewing ${this.previewSize[0]}:${this.previewSize[1]}`;
 
-        this.refresh_zoom_preview();
-        this.refresh_center();
+        this.refreshZoomPreview();
+        this.refreshCenter();
     }
 
     // Refresh the position of the center handle.
-    refresh_center()
+    refreshCenter()
     {
         let { x, y } = this.editing == "start"? { x: this.rect.x1, y: this.rect.y1 }: { x: this.rect.x2, y: this.rect.y2 };
         x *= this.width;
         y *= this.height;
-        this.handle.querySelector(".crosshair").setAttribute("transform", `translate(${x} ${y})`);
+        this._handle.querySelector(".crosshair").setAttribute("transform", `translate(${x} ${y})`);
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
-        this.editor_overlay.hidden = !this.visible;
+        super.visibilityChanged();
+        this._editorOverlay.hidden = !this.visible;
         this.ui.hidden = !this.visible;
 
         if(this.visible)
         {
             // Listen for shift presses while we're visible.
             new KeyListener("Shift", (pressed) => {
-                this.shift_held = pressed;
+                this._shiftHeld = pressed;
                 this.refresh();
-            }, { signal: this.visibility_abort.signal });
+            }, { signal: this.visibilityAbort.signal });
 
             this.refresh();
         }
         else
         {
-            this.shift_held = false;
+            this._shiftHeld = false;
         }
     }
 
-    set_illust_data({replace_editor_data, extra_data, width, height})
+    setIllustData({replaceEditorData, extraData, width, height})
     {
         // Match the size of the image.
         this.width = width;
@@ -245,40 +245,40 @@ export default class PanEditor extends Widget
         // image.  But, these editors are all positioned and scaled relative to the original image.
         // This editor wants to be relative to the crop, so we scale and shift our own area relative
         // to the crop if there is one.
-        if(extra_data?.crop)
+        if(extraData?.crop)
         {
-            let crop = new FixedDOMRect(extra_data.crop[0], extra_data.crop[1], extra_data.crop[2], extra_data.crop[3]);
+            let crop = new FixedDOMRect(extraData.crop[0], extraData.crop[1], extraData.crop[2], extraData.crop[3]);
             this.width = crop.width;
             this.height = crop.height;
 
-            this.editor_crop_region.style.width = `${100 * crop.width / width}%`;
-            this.editor_crop_region.style.height = `${100 * crop.height / height}%`;
-            this.editor_crop_region.style.top = `${100 * crop.top / height}%`;
-            this.editor_crop_region.style.left = `${100 * crop.left / width}%`;
+            this._editorCropRegion.style.width = `${100 * crop.width / width}%`;
+            this._editorCropRegion.style.height = `${100 * crop.height / height}%`;
+            this._editorCropRegion.style.top = `${100 * crop.top / height}%`;
+            this._editorCropRegion.style.left = `${100 * crop.left / width}%`;
         }
         else
         {
-            this.editor_crop_region.style.width = this.editor_crop_region.style.height = ``;
-            this.editor_crop_region.style.top = this.editor_crop_region.style.left = ``;
+            this._editorCropRegion.style.width = this._editorCropRegion.style.height = ``;
+            this._editorCropRegion.style.top = this._editorCropRegion.style.left = ``;
         }
 
-        this.handle.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
+        this._handle.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
 
-        if(replace_editor_data)
-            this.set_state(extra_data?.pan);
+        if(replaceEditorData)
+            this.setState(extraData?.pan);
 
         this.refresh();
     }
 
-    get_data_to_save()
+    getDataToSave()
     {
-        return { pan: this.get_state() };
+        return { pan: this.getState() };
     }
 
     // Return data for saving.
-    get_state({force=false}={})
+    getState({force=false}={})
     {
-        if(!force && !this.is_set)
+        if(!force && !this._isSet)
             return null;
 
         // These are stored as unit values, so we don't need to know the image dimensions to
@@ -288,8 +288,8 @@ export default class PanEditor extends Widget
             y1: this.rect.y1,
             x2: this.rect.x2,
             y2: this.rect.y2,
-            start_zoom: this.zoom_level[0],
-            end_zoom: this.zoom_level[1],
+            start_zoom: this._zoomLevel[0],
+            end_zoom: this._zoomLevel[1],
         };
 
         // Only include the anchor if it's been changed from the default.
@@ -309,9 +309,9 @@ export default class PanEditor extends Widget
         return result;
     }
 
-    set_state(data)
+    setState(data)
     {
-        this.is_set = data != null;
+        this._isSet = data != null;
         if(data == null)
             data = Slideshow.pans.default_slideshow;
 
@@ -320,69 +320,66 @@ export default class PanEditor extends Widget
         this.anchor = new FixedDOMRect(0.5, 0.5, 0.5, 0.5);
         if(data.anchor)
             this.anchor = new FixedDOMRect(data.anchor.left, data.anchor.top, data.anchor.right, data.anchor.bottom);
-        this.zoom_level = [data.start_zoom, data.end_zoom];
+        this._zoomLevel = [data.start_zoom, data.end_zoom];
 
         this.refresh();
     }
 
-    get_current_slideshow({...options}={})
+    getCurrentSlideshow({...options}={})
     {
-        // this.height/this.width is the size of the image.  Scale it to cover preview_width/preview_height,
-        // as if we're on_click_viewer displaying it.  If the animation tells us to scale to 1x, it wants
+        // this.height/this.width is the size of the image.  Scale it to cover previewWidth/previewHeight,
+        // as if we're ViewerImages displaying it.  If the animation tells us to scale to 1x, it wants
         // to cover the screen.
-        let [preview_width, preview_height] = this.preview_size;
-        let scale_ratio = Math.max(preview_width/this.width, preview_height/this.height);
-        let scaled_width = this.width * scale_ratio, scaled_height = this.height * scale_ratio;
+        let [previewWidth, previewHeight] = this.previewSize;
+        let scaleRatio = Math.max(previewWidth/this.width, previewHeight/this.height);
+        let scaledWidth = this.width * scaleRatio, scaledHeight = this.height * scaleRatio;
 
-        // The minimum zoom is the zoom that will fit the image onscreen.  This also matches on_click_viewer.
-        let cover_ratio = Math.min(preview_width/scaled_width, preview_height/scaled_height);
+        // The minimum zoom is the zoom that will fit the image onscreen.  This also matches ViewerImages.
+        let coverRatio = Math.min(previewWidth/scaledWidth, previewHeight/scaledHeight);
 
         let slideshow = new Slideshow({
-            width: scaled_width,
-            height: scaled_height,
-            container_width: preview_width,
-            container_height: preview_height,
+            width: scaledWidth,
+            height: scaledHeight,
+            containerWidth: previewWidth,
+            containerHeight: previewHeight,
 
             // The minimum zoom level to allow:
-            minimum_zoom: cover_ratio,
+            minimumZoom: coverRatio,
     
-            // If true, we're being used for slideshow mode, otherwise auto-pan mode.
-            slideshow_enabled: false,
-
             // The position is normally clamped to the screen.  If we're editing the anchor, disable this to
             // display the position of the box before it's clamped.
-            clamp_to_window: !this.actually_editing_anchor,
+            clampToWindow: !this.actuallyEditingAnchor,
 
             ...options
         });
 
         // Get the animation that we'd currently save, and load it as a slideshow.
-        let pan_animation = this.get_state({force: true});
-        let animation = slideshow.getAnimation(pan_animation);
-        return { animation, scaled_width, scaled_height, preview_width, preview_height };
+        let panAnimation = this.getState({force: true});
+        let animation = slideshow.getAnimation(panAnimation);
+        return { animation, scaledWidth, scaledHeight, previewWidth, previewHeight };
     }
 
     // Refresh the position and size of the monitor preview box.
-    refresh_zoom_preview()
+    refreshZoomPreview()
     {
         // Instead of moving the image around inside the monitor, scale the box to the size
         // of the preview "monitor", and scale/translate it around to show how the image would
         // fit inside it.
-        let { animation, scaled_width, scaled_height, preview_width, preview_height } = this.get_current_slideshow();
-        let pan = animation.pan[this.editing_index];
+        let { animation, scaledWidth, scaledHeight, previewWidth, previewHeight } = this.getCurrentSlideshow();
+        let pan = animation.pan[this.editingIndex];
     
-        let box = this.monitor_preview_box.querySelector(".box");
-        box.style.width = `${100 * preview_width / scaled_width}%`;
-        box.style.height = `${100 * preview_height / scaled_height}%`;
+        let box = this._monitorPreviewBox.querySelector(".box");
+        box.style.width = `${100 * previewWidth / scaledWidth}%`;
+        box.style.height = `${100 * previewHeight / scaledHeight}%`;
 
-        let tx = 100 * -pan.tx / scaled_width;
-        let ty = 100 * -pan.ty / scaled_height;
+        let tx = 100 * -pan.tx / scaledWidth;
+        let ty = 100 * -pan.ty / scaledHeight;
 
         // Apply the zoom by scaling the box's parent.  Scaling inside style.transform makes this simpler,
         // but makes things like outlines ugly.
-        this.monitor_preview_box.style.width = `${100 / pan.scale}%`;
-        this.monitor_preview_box.style.height = `${100 / pan.scale}%`;
-        this.monitor_preview_box.style.transform = `
+        this._monitorPreviewBox.style.width = `${100 / pan.scale}%`;
+        this._monitorPreviewBox.style.height = `${100 / pan.scale}%`;
+        this._monitorPreviewBox.style.transform = `
             translateX(${tx}%)
             translateY(${ty}%)
         `;
@@ -396,9 +393,9 @@ export default class PanEditor extends Widget
             e.stopPropagation();
 
             this.dragging = true;
-            this.drag_saved_undo = false;
-            this.drag_pos = [e.clientX, e.clientY];
-            window.addEventListener("pointermove", this.pointermove_drag_point);
+            this._dragSavedUndo = false;
+            this._dragPos = [e.clientX, e.clientY];
+            window.addEventListener("pointermove", this._pointermoveDragPoint);
     
             return;
         }
@@ -406,46 +403,45 @@ export default class PanEditor extends Widget
         {
             // We stopped dragging.
             this.dragging = false;
-            window.removeEventListener("pointermove", this.pointermove_drag_point);
+            window.removeEventListener("pointermove", this._pointermoveDragPoint);
         }
     }
 
     // Convert a click from client coordinates to image coordinates.
-    get_point_from_click({clientX, clientY})
+    getPointFromClick({clientX, clientY})
     {
-        let {width, height, top, left} = this.editor_overlay.getBoundingClientRect();
+        let {width, height, top, left} = this._editorOverlay.getBoundingClientRect();
         let x = (clientX - left) / width * this.width;
         let y = (clientY - top) / height * this.height;
         return { x: x, y: y };
     }
 
-    pointermove_drag_point = (e) =>
+    _pointermoveDragPoint = (e) =>
     {
         // Save undo for this drag if we haven't yet.
-        if(!this.drag_saved_undo)
+        if(!this._dragSavedUndo)
         {
-            this.parent.save_undo();
-            this.drag_saved_undo = true;
+            this.parent.saveUndo();
+            this._dragSavedUndo = true;
         }
 
         // Get the delta in client coordinates.  Don't use movementX/movementY, since it's
         // in screen pixels and will be wrong if the browser is scaled.
-        let delta_x = e.clientX - this.drag_pos[0];
-        let delta_y = e.clientY - this.drag_pos[1];
-        this.drag_pos = [e.clientX, e.clientY];
+        let deltaX = e.clientX - this._dragPos[0];
+        let deltaY = e.clientY - this._dragPos[1];
+        this._dragPos = [e.clientX, e.clientY];
 
         // Scale movement from client coordinates to the size of the container.
-        let {width, height} = this.editor_crop_region.getBoundingClientRect();
-        delta_x /= width;
-        delta_y /= height;
+        let {width, height} = this._editorCropRegion.getBoundingClientRect();
+        deltaX /= width;
+        deltaY /= height;
 
         // Check if we're editing the pan position or the anchor.
-        let editing_anchor = this.actually_editing_anchor;
-
-        if(editing_anchor)
+        let editingAnchor = this.actuallyEditingAnchor;
+        if(editingAnchor)
         {
-            let { animation, scaled_width, scaled_height, preview_width, preview_height } = this.get_current_slideshow();
-            let pan = animation.pan[this.editing_index];
+            let { animation, scaledWidth, scaledHeight, previewWidth, previewHeight } = this.getCurrentSlideshow();
+            let pan = animation.pan[this.editingIndex];
 
             // If we add 1 to anchor.x1, we'll move the anchor one screen width to the right.
             // Scale this to the monitor preview that's currently visible.  This makes the speed
@@ -454,15 +450,15 @@ export default class PanEditor extends Widget
             // Moving the anchor will also move the view, so we also adjust the view position by
             // the same amount below.  This cancels out the movement of the anchor, so the display
             // position is stationary as we move the anchor.
-            let monitor_width = (preview_width / scaled_width) / pan.scale;
-            let monitor_height = (preview_height / scaled_height) / pan.scale;
+            let monitorWidth = (previewWidth / scaledWidth) / pan.scale;
+            let monitorHeight = (previewHeight / scaledHeight) / pan.scale;
             if(this.editing == "start")
             {
-                this.anchor.x1 += delta_x / monitor_width;
-                this.anchor.y1 += delta_y / monitor_height;
+                this.anchor.x1 += deltaX / monitorWidth;
+                this.anchor.y1 += deltaY / monitorHeight;
             } else {
-                this.anchor.x2 += delta_x / monitor_width;
-                this.anchor.y2 += delta_y / monitor_height;
+                this.anchor.x2 += deltaX / monitorWidth;
+                this.anchor.y2 += deltaY / monitorHeight;
             }
         }
 
@@ -470,16 +466,16 @@ export default class PanEditor extends Widget
         let rect = new FixedDOMRect(this.rect.x1, this.rect.y1, this.rect.x2, this.rect.y2);
         if(this.editing == "start")
         {
-            rect.x1 += delta_x;
-            rect.y1 += delta_y;
+            rect.x1 += deltaX;
+            rect.y1 += deltaY;
         } else {
-            rect.x2 += delta_x;
-            rect.y2 += delta_y;
+            rect.x2 += deltaX;
+            rect.y2 += deltaY;
         }
 
         this.rect = rect;
 
-        this.is_set = true;
+        this._isSet = true;
         this.refresh();
     }
 }

@@ -34,20 +34,20 @@ export default class DirectAnimation
 {
     constructor(effect, {
         // If false, framerate limiting is disabled.
-        limit_framerate=true,
+        limitFramerate=true,
     }={})
     {
-        this.limit_framerate = limit_framerate;
+        this._limitFramerate = limitFramerate;
 
         // We should be able to just subclass Animation, and this works in Chrome, but iOS Safari
         // is broken and doesn't call overridden functions.
         this.animation = new Animation(effect);
-        this._update_playstate("idle");
+        this._updatePlayState("idle");
     }
 
     get effect() { return this.animation.effect; }
 
-    _update_playstate(state)
+    _updatePlayState(state)
     {
         if(state == this._playState)
             return;
@@ -55,7 +55,7 @@ export default class DirectAnimation
         // If we're exiting finished, create a new finished promise.
         if(this.finished == null || this._playState == "finished")
         {
-            this.finished = helpers.make_promise();
+            this.finished = helpers.makePromise();
 
             // Catch this promise by default, so errors aren't logged to the console every time
             // an animation is cancelled.
@@ -70,9 +70,9 @@ export default class DirectAnimation
         if(this._playState == "running")
             return;
 
-        this._update_playstate("running");
+        this._updatePlayState("running");
         this._playToken = new Object();
-        this._runner = this._run_animation();
+        this._runner = this._runAnimation();
     }
 
     pause()
@@ -80,7 +80,7 @@ export default class DirectAnimation
         if(this._playState == "paused")
             return;
 
-        this._update_playstate("paused");
+        this._updatePlayState("paused");
         this._playToken = null;
         this._runner = null;
     }
@@ -119,12 +119,12 @@ export default class DirectAnimation
 
     get currentTime() { return this.animation.currentTime; }
 
-    async _run_animation()
+    async _runAnimation()
     {
         this.animation.currentTime = this.animation.currentTime;
 
         let token = this._playToken;
-        let last_update = Date.now();
+        let lastUpdate = Date.now();
 
         // If no time has been set yet, the animation hasn't applied any styles.  Set the default
         // start time before going async, so we don't flash whatever the previous style was for a
@@ -147,47 +147,47 @@ export default class DirectAnimation
                 }
 
                 let now = Date.now();
-                delta = now - last_update;
+                delta = now - lastUpdate;
 
                 // If we're running faster than we want, wait another frame, giving a small error margin.
                 // If targetFramerate is null, just run every frame.
                 //
                 // This is a workaround for Chrome.  Don't do this on mobile, since there's much more
                 // rendering time jitter on mobile and this causes skips.
-                if(this.limit_framerate && !ppixiv.mobile)
+                if(this._limitFramerate && !ppixiv.mobile)
                 {
-                    let target_framerate = ppixiv.settings.get("slideshow_framerate");
-                    if(target_framerate != null)
+                    let targetFramerate = ppixiv.settings.get("slideshow_framerate");
+                    if(targetFramerate != null)
                     {
-                        let target_delay = 1000/target_framerate;
-                        if(delta*1.05 < target_delay)
+                        let targetDelay = 1000/targetFramerate;
+                        if(delta*1.05 < targetDelay)
                             continue;
                     }
                 }
                 
-                last_update = now;
+                lastUpdate = now;
                 break;
             }
 
             delta *= this.animation.playbackRate;
 
-            let new_current_time = this.animation.currentTime + delta;
+            let newCurrentTime = this.animation.currentTime + delta;
 
             // Clamp the time to the end (this may be infinity).
             let timing = this.animation.effect.getComputedTiming();
-            let max_time = timing.duration*timing.iterations;
-            let finished = new_current_time >= max_time;
+            let maxTime = timing.duration*timing.iterations;
+            let finished = newCurrentTime >= maxTime;
             if(finished)
-                new_current_time = max_time;
+                newCurrentTime = maxTime;
 
             // Update the animation.
-            this.animation.currentTime = new_current_time;
+            this.animation.currentTime = newCurrentTime;
 
-            // If we reached the end, run onfinish and stop.  This will never happen if max_time
+            // If we reached the end, run onfinish and stop.  This will never happen if maxTime
             // is infinity.
             if(finished)
             {
-                this._update_playstate("finished");
+                this._updatePlayState("finished");
                 this.finished.accept();
                 if(this.onfinish)
                     this.onfinish();

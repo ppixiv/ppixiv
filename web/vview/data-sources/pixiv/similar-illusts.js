@@ -23,8 +23,8 @@ export default class DataSource_SimilarIllusts extends DataSource
 
             // Don't wait for this to finish before continuing.
             let illustId = this.url.searchParams.get("illust_id");
-            let mediaId = helpers.illust_id_to_media_id(illustId)
-            ppixiv.mediaCache.get_media_info(mediaId).then((mediaInfo) => {
+            let mediaId = helpers.illustIdToMediaId(illustId)
+            ppixiv.mediaCache.getMediaInfo(mediaId).then((mediaInfo) => {
                 this.mediaInfo = mediaInfo;
                 this.callUpdateListeners();
             }).catch((e) => {
@@ -46,7 +46,7 @@ export default class DataSource_SimilarIllusts extends DataSource
 
         // Get "mode" from the URL.  If it's not present, use "all".
         let mode = this.url.searchParams.get("mode") || "all";
-        let result = await helpers.get_request("/ajax/discovery/artworks", {
+        let result = await helpers.getRequest("/ajax/discovery/artworks", {
             sampleIllustId: this.url.searchParams.get("illust_id"),
             mode: mode,
             limit: this.estimatedItemsPerPage,
@@ -56,13 +56,13 @@ export default class DataSource_SimilarIllusts extends DataSource
         // result.body.recommendedIllusts[].recommendMethods, recommendSeedIllustIds
         // has info about why it recommended it.
         let thumbs = result.body.thumbnails.illust;
-        await ppixiv.mediaCache.add_media_infos_partial(thumbs, "normal");
+        await ppixiv.mediaCache.addMediaInfosPartial(thumbs, "normal");
 
         let mediaIds = [];
         for(let thumb of thumbs)
-            mediaIds.push(helpers.illust_id_to_media_id(thumb.id));
+            mediaIds.push(helpers.illustIdToMediaId(thumb.id));
 
-        ppixiv.tagTranslations.add_translations_dict(result.body.tagTranslation);
+        ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
         this.addPage(page, mediaIds);
     };
 

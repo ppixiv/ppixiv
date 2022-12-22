@@ -13,36 +13,36 @@ import { helpers } from 'vview/misc/helpers.js';
 export default class PointerListener
 {
     // The global handler is used to track button presses and mouse movement globally,
-    // primarily to implement pointer_listener.check().
+    // primarily to implement PointerListener.check().
 
-    // The latest mouse position seen by install_global_handler.
-    static latest_mouse_page_position = [window.innerWidth/2, window.innerHeight/2];
-    static latest_mouse_client_position = [window.innerWidth/2, window.innerHeight/2];
-    static buttons = 0;
-    static button_pointer_ids = new Map();
-    static pointer_type = "mouse";
-    static install_global_handler()
+    // The latest mouse position seen by installGlobalHandler.
+    static latestMousePagePosition = [window.innerWidth/2, window.innerHeight/2];
+    static latestMouseClientPosition = [window.innerWidth/2, window.innerHeight/2];
+    static pointerType = "mouse";
+    static _buttons = 0;
+    static _buttonPointerIds = new Map();
+    static installGlobalHandler()
     {
         window.addEventListener("pointermove", (e) => {
-            PointerListener.latest_mouse_page_position = [e.pageX, e.pageY];
-            PointerListener.latest_mouse_client_position = [e.clientX, e.clientY];
-            this.pointer_type = e.pointerType;
+            PointerListener.latestMousePagePosition = [e.pageX, e.pageY];
+            PointerListener.latestMouseClientPosition = [e.clientX, e.clientY];
+            this.pointerType = e.pointerType;
         }, { passive: true, capture: true });
 
         new PointerListener({
             element: window,
-            button_mask: 0xFFFF, // everything
+            buttonMask: 0xFFFF, // everything
             capture: true,
             callback: (e) => {
                 if(e.pressed)
                 {
-                    PointerListener.buttons |= 1 << e.mouseButton;
-                    PointerListener.button_pointer_ids.set(e.mouseButton, e.pointerId);
+                    PointerListener._buttons |= 1 << e.mouseButton;
+                    PointerListener._buttonPointerIds.set(e.mouseButton, e.pointerId);
                 }
                 else
                 {
-                    PointerListener.buttons &= ~(1 << e.mouseButton);
-                    PointerListener.button_pointer_ids.delete(e.mouseButton);
+                    PointerListener._buttons &= ~(1 << e.mouseButton);
+                    PointerListener._buttonPointerIds.delete(e.mouseButton);
                 }
             }
         });
@@ -52,31 +52,31 @@ export default class PointerListener
     // that actually triggered the state change, and can be preventDefaulted, etc.
     //
     // To disable, include {signal: AbortSignal} in options.
-    constructor({element, callback, button_mask=1, ...options}={})
+    constructor({element, callback, buttonMask=1, ...options}={})
     {
         this.element = element;
-        this.button_mask = button_mask;
-        this.pointermove_registered = false;
-        this.buttons_down = 0;
+        this.buttonMask = buttonMask;
+        this._pointermoveRegistered = false;
+        this.buttonsDown = 0;
         this.callback = callback;
-        this.event_options = options;
+        this._eventOptions = options;
 
-        let handling_right_click = (button_mask & 2) != 0;
-        this.blocking_context_menu_until_timer = false;
-        if(handling_right_click)
-            window.addEventListener("contextmenu", this.oncontextmenu, this.event_options);
+        let handlingRightClick = (buttonMask & 2) != 0;
+        this._blockingContextMenuUntilTimer = false;
+        if(handlingRightClick)
+            window.addEventListener("contextmenu", this.oncontextmenu, this._eventOptions);
 
         if(options.signal)
         {
             options.signal.addEventListener("abort", (e) => {
-                // If we have a block_contextmenu_timer timer running when we're cancelled, remove it.
-                if(this.block_contextmenu_timer != null)
-                    realClearTimeout(this.block_contextmenu_timer);
+                // If we have a blockContextmenuTimer timer running when we're cancelled, remove it.
+                if(this.blockContextmenuTimer != null)
+                    realClearTimeout(this.blockContextmenuTimer);
             });
         }
         
-        this.element.addEventListener("pointerdown", this.onpointerevent, this.event_options);
-        this.element.addEventListener("simulatedpointerdown", this.onpointerevent, this.event_options);
+        this.element.addEventListener("pointerdown", this.onpointerevent, this._eventOptions);
+        this.element.addEventListener("simulatedpointerdown", this.onpointerevent, this._eventOptions);
     }
 
     // Register events that we only register while one or more buttons are pressed.
@@ -84,56 +84,56 @@ export default class PointerListener
     // We only register pointermove as needed, so we don't get called for every mouse
     // movement, and we only register pointerup as needed so we don't register a ton
     // of events on window.
-    register_events_while_pressed(enable)
+    _registerEventsWhilePressed(enable)
     {
-        if(this.pointermove_registered)
+        if(this._pointermoveRegistered)
             return;
-        this.pointermove_registered = true;
-        this.element.addEventListener("pointermove", this.onpointermove, this.event_options);
+        this._pointermoveRegistered = true;
+        this.element.addEventListener("pointermove", this.onpointermove, this._eventOptions);
 
         // These need to go on window, so if a mouse button is pressed and that causes
         // the element to be hidden, we still get the pointerup.
-        window.addEventListener("pointerup", this.onpointerevent, this.event_options);
-        window.addEventListener("pointercancel", this.onpointerevent, this.event_options);
+        window.addEventListener("pointerup", this.onpointerevent, this._eventOptions);
+        window.addEventListener("pointercancel", this.onpointerevent, this._eventOptions);
     }
 
-    unregister_events_while_pressed(enable)
+    _unregisterEventsWhilePressed(enable)
     {
-        if(!this.pointermove_registered)
+        if(!this._pointermoveRegistered)
             return;
-        this.pointermove_registered = false;
-        this.element.removeEventListener("pointermove", this.onpointermove, this.event_options);
-        window.removeEventListener("pointerup", this.onpointerevent, this.event_options);
-        window.removeEventListener("pointercancel", this.onpointerevent, this.event_options);
+        this._pointermoveRegistered = false;
+        this.element.removeEventListener("pointermove", this.onpointermove, this._eventOptions);
+        window.removeEventListener("pointerup", this.onpointerevent, this._eventOptions);
+        window.removeEventListener("pointercancel", this.onpointerevent, this._eventOptions);
     }
 
-    button_changed(buttons, event)
+    _buttonChanged(buttons, event)
     {
         // We need to register pointermove to see presses past the first.
         if(buttons)
-            this.register_events_while_pressed();
+            this._registerEventsWhilePressed();
         else
-            this.unregister_events_while_pressed();
+            this._unregisterEventsWhilePressed();
 
-        let old_buttons_down = this.buttons_down;
-        this.buttons_down = buttons;
+        let oldButtonsDown = this.buttonsDown;
+        this.buttonsDown = buttons;
         for(let button = 0; button < 5; ++button)
         {
             let mask = 1 << button;
 
             // Ignore this if it's not a button change for a button in our mask.
-            if(!(mask & this.button_mask))
+            if(!(mask & this.buttonMask))
                 continue;
-            let was_pressed = old_buttons_down & mask;
-            let is_pressed = this.buttons_down & mask;
+            let wasPressed = oldButtonsDown & mask;
+            let isPressed = this.buttonsDown & mask;
 
-            if(was_pressed == is_pressed)
+            if(wasPressed == isPressed)
                 continue;
 
             // Pass the button in event.mouseButton, and whether it was pressed or released in event.pressed.
             // Don't use e.button, since it's in a different order than e.buttons.
             event.mouseButton = button;
-            event.pressed = is_pressed;
+            event.pressed = isPressed;
             this.callback(event);
 
             // Remove event.mouseButton so it doesn't appear for unrelated event listeners.
@@ -145,18 +145,18 @@ export default class PointerListener
             {
                 // If this is a right-click press and the user prevented the event, block the context
                 // menu when this button is released.
-                if(is_pressed && event.defaultPrevented)
-                    this.block_context_menu_until_release = true;
+                if(isPressed && event.defaultPrevented)
+                    this._blockContextMenuUntilRelease = true;
 
                 // If this is a right-click release and the user prevented the event (or the corresponding
                 // press earlier), block the context menu briefly.  There seems to be no other way to do
                 // this: cancelling pointerdown or pointerup don't prevent actions like they should,
                 // contextmenu happens afterwards, and there's no way to know if a contextmenu event
                 // is coming other than waiting for an arbitrary amount of time.
-                if(!is_pressed && (event.defaultPrevented || this.block_context_menu_until_release))
+                if(!isPressed && (event.defaultPrevented || this._blockContextMenuUntilRelease))
                 {
-                    this.block_context_menu_until_release = false;
-                    this.block_context_menu_until_timer();
+                    this._blockContextMenuUntilRelease = false;
+                    this._blockContextMenuUntilTimer();
                 }
             }
         }
@@ -164,7 +164,7 @@ export default class PointerListener
 
     onpointerevent = (e) =>
     {
-        this.button_changed(e.buttons, e);
+        this._buttonChanged(e.buttons, e);
     }
 
     onpointermove = (e) =>
@@ -174,14 +174,14 @@ export default class PointerListener
         if(e.button == -1)
             return;
 
-        this.button_changed(e.buttons, e);
+        this._buttonChanged(e.buttons, e);
     }
 
     oncontextmenu = (e) =>
     {
         // Prevent oncontextmenu if RMB was pressed and cancelled, or if we're blocking
         // it after release.
-        if(this.block_context_menu_until_release || this.blocking_context_menu_until_timer)
+        if(this._blockContextMenuUntilRelease || this._blockingContextMenuUntilTimer)
         {
             // console.log("stop context menu (waiting for timer)");
             e.preventDefault();
@@ -190,22 +190,22 @@ export default class PointerListener
     }        
 
     // Block contextmenu for a while.
-    block_context_menu_until_timer()
+    _blockContextMenuUntilTimer()
     {
         // console.log("Waiting for timer before releasing context menu");
 
-        this.blocking_context_menu_until_timer = true;
-        if(this.block_contextmenu_timer != null)
+        this._blockingContextMenuUntilTimer = true;
+        if(this.blockContextmenuTimer != null)
         {
-            realClearTimeout(this.block_contextmenu_timer);
-            this.block_contextmenu_timer = null;
+            realClearTimeout(this.blockContextmenuTimer);
+            this.blockContextmenuTimer = null;
         }
 
-        this.block_contextmenu_timer = realSetTimeout(() => {
-            this.block_contextmenu_timer = null;
+        this.blockContextmenuTimer = realSetTimeout(() => {
+            this.blockContextmenuTimer = null;
 
             // console.log("Releasing context menu after timer");
-            this.blocking_context_menu_until_timer = false;
+            this._blockingContextMenuUntilTimer = false;
         }, 50);
     }
 
@@ -214,16 +214,16 @@ export default class PointerListener
     // This can be used if the element becomes visible, and we want to see any presses
     // already happening that are over the element.
     //
-    // This requires install_global_handler.
-    check_missed_clicks()
+    // This requires installGlobalHandler.
+    checkMissedClicks()
     {
         // If no buttons are pressed that this listener cares about, stop.
-        if(!(this.button_mask & PointerListener.buttons))
+        if(!(this.buttonMask & PointerListener.buttons))
             return;
 
         // See if the cursor is over our element.
-        let node_under_cursor = document.elementFromPoint(PointerListener.latest_mouse_client_position[0], PointerListener.latest_mouse_client_position[1]);
-        if(node_under_cursor == null || !helpers.is_above(this.element, node_under_cursor))
+        let nodeUnderCursor = document.elementFromPoint(PointerListener.latestMouseClientPosition[0], PointerListener.latestMouseClientPosition[1]);
+        if(nodeUnderCursor == null || !helpers.isAbove(this.element, nodeUnderCursor))
             return;
 
         // Simulate a pointerdown on this element for each button that's down, so we can
@@ -238,17 +238,17 @@ export default class PointerListener
             // Add this button's mask to the listener's last seen mask, so it only sees this
             // button being added.  This way, each button event is sent with the correct
             // pointerId.
-            let new_button_mask = this.buttons_down;
-            new_button_mask |= mask;
+            let newButtonMask = this.buttonsDown;
+            newButtonMask |= mask;
             let e = new MouseEvent("simulatedpointerdown", {
-                buttons: new_button_mask,
-                pageX: PointerListener.latest_mouse_page_position[0],
-                pageY: PointerListener.latest_mouse_page_position[1],
-                clientX: PointerListener.latest_mouse_page_position[0],
-                clientY: PointerListener.latest_mouse_page_position[1],
+                buttons: newButtonMask,
+                pageX: PointerListener.latestMousePagePosition[0],
+                pageY: PointerListener.latestMousePagePosition[1],
+                clientX: PointerListener.latestMousePagePosition[0],
+                clientY: PointerListener.latestMousePagePosition[1],
                 timestamp: performance.now(),
             });
-            e.pointerId = PointerListener.button_pointer_ids.get(button);
+            e.pointerId = PointerListener._buttonPointerIds.get(button);
 
             this.element.dispatchEvent(e);
         }

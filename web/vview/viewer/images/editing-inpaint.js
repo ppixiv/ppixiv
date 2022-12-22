@@ -18,14 +18,14 @@ export default class InpaintEditor extends Widget
                     <div class="image-editor-button-row box-button-row left"></div>
 
                     <div class="image-editor-button-row editor-buttons box-button-row">
-                        ${ helpers.create_box_link({label: "View",       classes: ["view-inpaint"] }) }
-                        ${ helpers.create_box_link({label: "Create lines",       classes: ["create-lines"] }) }
+                        ${ helpers.createBoxLink({label: "View",       classes: ["view-inpaint"] }) }
+                        ${ helpers.createBoxLink({label: "Create lines",       classes: ["create-lines"] }) }
 
                         <div class="inpaint-line-width-box box-link">
                             <span>Thickness</span>
                             <input class=inpaint-line-width type=range min=1 max=50>
                             <div class="save-default-thickness popup block-button" data-popup="Set as default">
-                                ${ helpers.create_icon("push_pin") }
+                                ${ helpers.createIcon("push_pin") }
                             </div>
                         </div>
                         <div class=box-link>
@@ -33,7 +33,7 @@ export default class InpaintEditor extends Widget
                             <input class=inpaint-downscale type=range min=1 max=20>
 
                             <div class="save-default-downscale popup block-button" data-popup="Set as default">
-                                ${ helpers.create_icon("push_pin") }
+                                ${ helpers.createIcon("push_pin") }
                             </div>
                         </div>
                         <div class=box-link>
@@ -41,7 +41,7 @@ export default class InpaintEditor extends Widget
                             <input class=inpaint-blur type=range min=0 max=5>
 
                             <div class="save-default-soften popup block-button" data-popup="Set as default">
-                                ${ helpers.create_icon("push_pin") }
+                                ${ helpers.createIcon("push_pin") }
                             </div>
                         </div>
                     </div>
@@ -50,100 +50,100 @@ export default class InpaintEditor extends Widget
             </div>
         `});
 
-        this.shutdown_signal = new AbortController();
+        this.shutdownSignal = new AbortController();
 
         this.width = 100;
         this.height = 100;
         this.lines = [];
-        this._downscale_ratio = 1;
+        this._downscaleRatio = 1;
         this._blur = 0;
 
-        this.dragging_segment_point = -1;
-        this.drag_start = null;
-        this.selected_line_idx = -1;
+        this._draggingSegmentPoint = -1;
+        this._dragStart = null;
+        this._selectedLineIdx = -1;
 
         this.ui = this.container.querySelector(".editor-buttons");
 
         // Remove .inpaint-editor-overlay.  It's inserted into the image overlay when we
         // have one, so it pans and zooms with the image.
-        this.editor_overlay = this.container.querySelector(".inpaint-editor-overlay");
-        this.editor_overlay.remove();
-        this.svg = this.editor_overlay.querySelector(".inpaint-container");
+        this._editorOverlay = this.container.querySelector(".inpaint-editor-overlay");
+        this._editorOverlay.remove();
+        this._svg = this._editorOverlay.querySelector(".inpaint-container");
 
-        this.create_lines_button = this.container.querySelector(".create-lines");
-        this.create_lines_button.addEventListener("click", (e) => {
+        this._createLinesButton = this.container.querySelector(".create-lines");
+        this._createLinesButton.addEventListener("click", (e) => {
             e.stopPropagation();
-            this.create_lines = !this.create_lines;
+            this.createLines = !this._createLines;
         });
 
         // Update the selected line's thickness when the thickness slider changes.
-        this.line_width_slider = this.container.querySelector(".inpaint-line-width");
-        this.line_width_slider_box = this.container.querySelector(".inpaint-line-width-box");
-        this.line_width_slider.addEventListener("input", (e) => {
-            if(this.selected_line == null)
+        this._lineWidthSlider = this.container.querySelector(".inpaint-line-width");
+        this._lineWidthSliderBox = this.container.querySelector(".inpaint-line-width-box");
+        this._lineWidthSlider.addEventListener("input", (e) => {
+            if(this._selectedLine == null)
                 return;
-            this.selected_line.thickness = parseInt(this.line_width_slider.value);
+            this._selectedLine.thickness = parseInt(this._lineWidthSlider.value);
         });
-        this.line_width_slider.value = ppixiv.settings.get("inpaint_default_thickness", 10);
+        this._lineWidthSlider.value = ppixiv.settings.get("inpaint_default_thickness", 10);
 
         // Hide the inpaint while dragging the thickness slider.
         new PointerListener({
-            element: this.line_width_slider,
+            element: this._lineWidthSlider,
             callback: (e) => {
-                this._overlay_container.hide_inpaint = e.pressed;
+                this._overlayContainer.hideInpaint = e.pressed;
             },
         });
 
-        this.downscale_slider = this.container.querySelector(".inpaint-downscale");
-        this.downscale_slider.addEventListener("change", (e) => {
-            this.parent.save_undo();
-            this.downscale_ratio = parseFloat(this.downscale_slider.value);
-        }, { signal: this.shutdown_signal.signal });
+        this._downscaleSlider = this.container.querySelector(".inpaint-downscale");
+        this._downscaleSlider.addEventListener("change", (e) => {
+            this.parent.saveUndo();
+            this.downscaleRatio = parseFloat(this._downscaleSlider.value);
+        }, { signal: this.shutdownSignal.signal });
 
-        this.blur_slider = this.container.querySelector(".inpaint-blur");
-        this.blur_slider.addEventListener("change", (e) => {
-            this.parent.save_undo();
-            this.blur = parseFloat(this.blur_slider.value);
-        }, { signal: this.shutdown_signal.signal });
+        this._blurSlider = this.container.querySelector(".inpaint-blur");
+        this._blurSlider.addEventListener("change", (e) => {
+            this.parent.saveUndo();
+            this.blur = parseFloat(this._blurSlider.value);
+        }, { signal: this.shutdownSignal.signal });
         
-        let view_inpaint_button = this.container.querySelector(".view-inpaint");
+        let viewInpaintButton = this.container.querySelector(".view-inpaint");
         new PointerListener({
-            element: view_inpaint_button,
+            element: viewInpaintButton,
             callback: (e) => {
                 this.visible = !e.pressed;
             },
-            signal: this.shutdown_signal.signal,
+            signal: this.shutdownSignal.signal,
         });
 
         // "Save default" buttons:
         this.container.querySelector(".save-default-thickness").addEventListener("click", (e) => {
             e.stopPropagation();
 
-            let value = parseInt(this.line_width_slider.value);
+            let value = parseInt(this._lineWidthSlider.value);
             ppixiv.settings.set("inpaint_default_thickness", value);
             console.log("Saved default line thickness:", value);
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
         this.container.querySelector(".save-default-downscale").addEventListener("click", (e) => {
             e.stopPropagation();
 
-            let value = parseFloat(this.downscale_slider.value);
+            let value = parseFloat(this._downscaleSlider.value);
             ppixiv.settings.set("inpaint_default_downscale", value);
             console.log("Saved default downscale:", value);
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
         this.container.querySelector(".save-default-soften").addEventListener("click", (e) => {
             e.stopPropagation();
 
-            let value = parseFloat(this.blur_slider.value);
+            let value = parseFloat(this._blurSlider.value);
             ppixiv.settings.set("inpaint_default_blur", value);
             console.log("Saved default blur:", value);
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
         new PointerListener({
-            element: this.editor_overlay,
+            element: this._editorOverlay,
             callback: this.pointerevent,
-            signal: this.shutdown_signal.signal,
+            signal: this.shutdownSignal.signal,
         });
 
         // This is a pain.  We want to handle clicks when modifier buttons are pressed, and
@@ -151,24 +151,24 @@ export default class InpaintEditor extends Widget
         // handle or not handle a mouse event and have it fall through if you don't handle
         // it, but CSS won't.  Work around this by watching for our modifier keys and setting
         // pointer-events: none as needed.
-        this.ctrl_pressed = false;
+        this._ctrlPressed = false;
         for(let modifier of ["Control", "Alt", "Shift"])
         {
             new KeyListener(modifier, (pressed) => {
-                this.ctrl_pressed = pressed;
-                this.refresh_pointer_events();
+                this._ctrlPressed = pressed;
+                this._refreshPointerEvents();
             }, {
-                signal: this.shutdown_signal.signal
+                signal: this.shutdownSignal.signal
             });
         }
 
-        this._create_lines = ppixiv.settings.get("inpaint_create_lines", false);
+        this._createLines = ppixiv.settings.get("inpaint_create_lines", false);
 
         // Prevent fullscreening if a UI element is double-clicked.
-        this.editor_overlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdown_signal.signal });
-        this.editor_overlay.addEventListener("mouseover", this.onmousehover, { signal: this.shutdown_signal.signal });
+        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal.signal });
+        this._editorOverlay.addEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal.signal });
 
-        this.refresh_pointer_events();
+        this._refreshPointerEvents();
     }
 
     shutdown()
@@ -180,89 +180,89 @@ export default class InpaintEditor extends Widget
     }
 
     // This is called when the ImageEditingOverlayContainer changes.
-    set overlay_container(overlay_container)
+    set overlayContainer(overlayContainer)
     {
-        console.assert(overlay_container instanceof ImageEditingOverlayContainer)
-        if(this.editor_overlay.parentNode)
-            this.editor_overlay.remove();
+        console.assert(overlayContainer instanceof ImageEditingOverlayContainer)
+        if(this._editorOverlay.parentNode)
+            this._editorOverlay.remove();
         
-        overlay_container.inpaint_editor_overlay = this.editor_overlay;
-        this._overlay_container = overlay_container;
+        overlayContainer.inpaintEditorOverlay = this._editorOverlay;
+        this._overlayContainer = overlayContainer;
     }
 
     refresh()
     {
         super.refresh();
 
-        helpers.set_class(this.create_lines_button, "selected", this.create_lines);
+        helpers.setClass(this._createLinesButton, "selected", this._createLines);
 
-        if(this.selected_line)
-            this.line_width_slider.value = this.selected_line.thickness;
-        this.downscale_slider.value = this.downscale_ratio;
-        this.blur_slider.value = this.blur;
+        if(this._selectedLine)
+            this._lineWidthSlider.value = this._selectedLine.thickness;
+        this._downscaleSlider.value = this._downscaleRatio;
+        this._blurSlider.value = this.blur;
     }
 
-    update_menu(menu_container)
+    updateMenu(menuContainer)
     {
-        let create = menu_container.querySelector(".edit-inpaint");
-        helpers.set_class(create, "enabled", true);
-        helpers.set_class(create, "selected", this.editor?.create_lines);
+        let create = menuContainer.querySelector(".edit-inpaint");
+        helpers.setClass(create, "enabled", true);
+        helpers.setClass(create, "selected", this.editor?._createLines);
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
-        this.editor_overlay.hidden = !this.visible;
+        super.visibilityChanged();
+        this._editorOverlay.hidden = !this.visible;
         this.ui.hidden = !this.visible;
     }
 
-    set_illust_data({replace_editor_data, extra_data, width, height})
+    setIllustData({replaceEditorData, extraData, width, height})
     {
         // Scale the thickness slider to the size of the image.
         let size = Math.min(width, height);
-        this.line_width_slider.max = size / 25;
+        this._lineWidthSlider.max = size / 25;
 
-        if(replace_editor_data)
+        if(replaceEditorData)
         {
             this.clear();
-            this.set_state(extra_data.inpaint);
+            this.setState(extraData.inpaint);
         }
 
-        if(extra_data == null)
+        if(extraData == null)
             return;
 
         // Match the size of the image.
-        this.set_size(width, height);
+        this._setSize(width, height);
 
         // If there's no data at all, load the user's defaults.
-        if(extra_data.inpaint == null)
+        if(extraData.inpaint == null)
         {
-            this.downscale_ratio = ppixiv.settings.get("inpaint_default_downscale", 1);
+            this.downscaleRatio = ppixiv.settings.get("inpaint_default_downscale", 1);
             this.blur = ppixiv.settings.get("inpaint_default_blur", 0);
         }
     }
 
-    get_data_to_save()
+    getDataToSave()
     {
         return {
-            inpaint: this.get_state({for_saving: true}),
+            inpaint: this.getState({forSaving: true}),
         }
     }
 
-    async after_save(media_info)
+    async afterSave(mediaInfo)
     {
-        if(media_info.urls == null)
+        if(mediaInfo.urls == null)
             return;
 
-        if(media_info.urls.inpaint)
+        if(mediaInfo.urls.inpaint)
         {
             // Saving the new inpaint data will change the inpaint URL.  It'll be generated the first
             // time it's fetched, which can take a little while.  Fetch it before updating image
-            // data, so it's already generated when viewer_images updates with the new URL.
+            // data, so it's already generated when ViewerImages updates with the new URL.
             // Otherwise, we'll be stuck looking at the low-res preview while it generates.
             let img = new realImage();
-            img.src = media_info.urls.inpaint;
-            await helpers.wait_for_image_load(img);
+            img.src = mediaInfo.urls.inpaint;
+            await helpers.waitForImageLoad(img);
         }
 
         return true;
@@ -270,19 +270,19 @@ export default class InpaintEditor extends Widget
 
     // Return inpaint data for saving.
     //
-    // If for_saving is true, return data to send to the server.  This clears the
+    // If forSaving is true, return data to send to the server.  This clears the
     // data entirely if there are no lines, so the inpaint data is removed entirely.
     // Otherwise, returns the full state, which is used for things like undo.
-    get_state({for_saving=false}={})
+    getState({forSaving=false}={})
     {
-        if(for_saving && this.lines.length == 0)
+        if(forSaving && this.lines.length == 0)
             return null;
 
         let result = [];
 
         let settings = { }
-        if(this._downscale_ratio != 1)
-            settings.downscale = this._downscale_ratio;
+        if(this._downscaleRatio != 1)
+            settings.downscale = this._downscaleRatio;
         if(this.blur != 0)
             settings.blur = this.blur;
         if(Object.keys(settings).length > 0)
@@ -309,7 +309,7 @@ export default class InpaintEditor extends Widget
     }
 
     // Replace the inpaint data.
-    set_state(inpaint)
+    setState(inpaint)
     {
         this.clear();
 
@@ -324,17 +324,17 @@ export default class InpaintEditor extends Widget
             {
             case "settings":
                 if(part.downscale)
-                    this.downscale_ratio = parseFloat(part.downscale);
+                    this.downscaleRatio = parseFloat(part.downscale);
                 if(part.blur)
                     this.blur = parseFloat(part.blur);
                 break;
             case "line":
-                let line = this.add_line();
+                let line = this.addLine();
                 if(part.thickness)
                     line.thickness = part.thickness;
     
                 for(let point of part.line || [])
-                    line.add_point({x: point[0], y: point[1]});
+                    line.addPoint({x: point[0], y: point[1]});
                 break;
 
             default:
@@ -346,13 +346,13 @@ export default class InpaintEditor extends Widget
         this.refresh();
     }
 
-    get downscale_ratio() { return this._downscale_ratio; }
-    set downscale_ratio(value)
+    get downscaleRatio() { return this._downscaleRatio; }
+    set downscaleRatio(value)
     {
-        if(this._downscale_ratio == value)
+        if(this._downscaleRatio == value)
             return;
 
-        this._downscale_ratio = value;
+        this._downscaleRatio = value;
         this.refresh();
     }
 
@@ -369,174 +369,174 @@ export default class InpaintEditor extends Widget
     clear()
     {
         while(this.lines.length)
-            this.remove_line(this.lines[0]);
-        this._downscale_ratio = 1;
+            this.removeLine(this.lines[0]);
+        this.downscaleRatio = 1;
         this._blur = 0;
     }
 
     onmousehover = (e) =>
     {
         let over = e.target.closest(".inpaint-line, .inpaint-handle") != null;
-        this._overlay_container.hide_inpaint = over;
+        this._overlayContainer.hideInpaint = over;
 
         // While we think we're hovering, add a mouseover listener to window, so we catch
         // all mouseover events that tell us we're no longer hovering.  If we don't do this,
         // we won't see any event if the element that's being hovered is removed from the
         // document while it's being hovered.
         if(over)
-            window.addEventListener("mouseover", this.onmousehover, { signal: this.shutdown_signal.signal });
+            window.addEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal.signal });
         else
-            window.removeEventListener("mouseover", this.onmousehover, { signal: this.shutdown_signal.signal });
+            window.removeEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal.signal });
     }
 
-    get create_lines() { return this._create_lines; }
-    set create_lines(value)
+    get createLines() { return this._createLines; }
+    set createLines(value)
     {
-        if(this._create_lines == value)
+        if(this._createLines == value)
             return;
 
-        this._create_lines = value;
-        ppixiv.settings.set("inpaint_create_lines", this.create_lines);
+        this._createLines = value;
+        ppixiv.settings.set("inpaint_create_lines", this._createLines);
 
-        this.refresh_pointer_events();
+        this._refreshPointerEvents();
 
         // If we're turning quick line creation off and we have an incomplete line,
         // delete it.
-        if(!this._create_lines && this.adding_line)
+        if(!this._createLines && this._addingLine)
         {
-            this.remove_line(this.adding_line);
-            this.adding_line = null;
+            this.removeLine(this._addingLine);
+            this._addingLine = null;
         }
 
         this.refresh();
     }
 
-    refresh_pointer_events()
+    _refreshPointerEvents()
     {
-        helpers.set_class(this.editor_overlay, "creating-lines", this._create_lines);
-        if(this.ctrl_pressed || this._create_lines)
-            this.editor_overlay.style.pointerEvents = "auto";
+        helpers.setClass(this._editorOverlay, "creating-lines", this._createLines);
+        if(this._ctrlPressed || this._createLines)
+            this._editorOverlay.style.pointerEvents = "auto";
         else
-            this.editor_overlay.style.pointerEvents = "none";
+            this._editorOverlay.style.pointerEvents = "none";
     }
 
-    get_control_point_from_element(node)
+    _getControlPointFromElement(node)
     {
-        let inpaint_segment = node.closest(".inpaint-segment")?.widget;
-        let control_point = node.closest("[data-type='control-point']");
-        let inpaint_line = node.closest(".inpaint-line");
-        if(inpaint_segment == null)
+        let inpaintSegment = node.closest(".inpaint-segment")?.widget;
+        let controlPoint = node.closest("[data-type='control-point']");
+        let inpaintLine = node.closest(".inpaint-line");
+        if(inpaintSegment == null)
             return { };
 
-        let control_point_idx = control_point? parseInt(control_point.dataset.idx):-1;
-        let inpaint_line_idx = inpaint_line? parseInt(inpaint_line.dataset.idx):-1;
+        let controlPointIdx = controlPoint? parseInt(controlPoint.dataset.idx):-1;
+        let inpaintLineIdx = inpaintLine? parseInt(inpaintLine.dataset.idx):-1;
 
         // If we're on an inpaint segment we should always have a point or line.  If we
         // don't for some reason, ignore the segment too.
-        if(control_point_idx == -1 && inpaint_line_idx == -1)
-            inpaint_segment = null;
+        if(controlPointIdx == -1 && inpaintLineIdx == -1)
+            inpaintSegment = null;
 
-        return { inpaint_segment: inpaint_segment, control_point_idx: control_point_idx, inpaint_line_idx: inpaint_line_idx };
+        return { inpaintSegment, controlPointIdx, inpaintLineIdx };
     }
     
     pointerevent = (e) =>
     {
-        let { x, y } = this.get_point_from_click(e);
-        let { inpaint_segment, control_point_idx, inpaint_line_idx } = this.get_control_point_from_element(e.target);
-        this.selected_line = inpaint_segment;
+        let { x, y } = this.getPointFromClick(e);
+        let { inpaintSegment, controlPointIdx, inpaintLineIdx } = this._getControlPointFromElement(e.target);
+        this._selectedLine = inpaintSegment;
 
         // Check if we're in the middle of adding a line.  Don't do this if the
         // same point was clicked (fall through and allow moving the point).
-        if(e.pressed && this.adding_line != null && (inpaint_segment == null || inpaint_segment != this.adding_line))
+        if(e.pressed && this._addingLine != null && (inpaintSegment == null || inpaintSegment != this._addingLine))
         {
             e.preventDefault();
             e.stopPropagation();
 
-            if(inpaint_segment == this.adding_line)
+            if(inpaintSegment == this._addingLine)
                 return;
 
-            this.parent.save_undo();
+            this.parent.saveUndo();
 
             // If another segment was clicked while adding a line, connect to that line.
-            if(inpaint_segment && control_point_idx != -1)
+            if(inpaintSegment && controlPointIdx != -1)
             {
                 // We can only connect to the beginning or end.  Connect to whichever end is
                 // closer to the point thta was clicked.
-                let point_idx = 0;
-                if(control_point_idx >= inpaint_segment.segments.length/2)
-                    point_idx = inpaint_segment.segments.length;
+                let pointIdx = 0;
+                if(controlPointIdx >= inpaintSegment.segments.length/2)
+                    pointIdx = inpaintSegment.segments.length;
 
-                let point = this.adding_line.segments[0];
-                this.remove_line(this.adding_line);
+                let point = this._addingLine.segments[0];
+                this.removeLine(this._addingLine);
 
-                this.adding_line = null;
-                inpaint_segment.add_point({x: point[0], y: point[1], at: point_idx});
+                this._addingLine = null;
+                inpaintSegment.addPoint({x: point[0], y: point[1], at: pointIdx});
 
                 // Drag the point we connected to, not the new point.
-                this.start_dragging_point(inpaint_segment, control_point_idx, e);
+                this._startDraggingPoint(inpaintSegment, controlPointIdx, e);
                 return;
             }
 
-            let new_control_point_idx = this.adding_line.add_point({x: x, y: y});
-            this.start_dragging_point(this.adding_line, new_control_point_idx, e);
-            this.adding_line = null;
+            let newControlPointIdx = this._addingLine.addPoint({x: x, y: y});
+            this._startDraggingPoint(this._addingLine, newControlPointIdx, e);
+            this._addingLine = null;
 
             return;
         }
 
-        if(e.pressed && inpaint_segment)
+        if(e.pressed && inpaintSegment)
         {
             e.preventDefault();
             e.stopPropagation();
 
-            this.parent.save_undo();
+            this.parent.saveUndo();
             
             // If shift is held, clicking a line segment inserts a point.  Otherwise, it
             // drags the whole segment.
-            if(control_point_idx == -1 && e.shiftKey)
+            if(controlPointIdx == -1 && e.shiftKey)
             {
-                let { x, y } = this.get_point_from_click(e);
-                control_point_idx = inpaint_segment.add_point({x: x, y: y, at: inpaint_line_idx});
+                let { x, y } = this.getPointFromClick(e);
+                controlPointIdx = inpaintSegment.addPoint({x: x, y: y, at: inpaintLineIdx});
             }
 
-            this.start_dragging_point(inpaint_segment, control_point_idx, e);
+            this._startDraggingPoint(inpaintSegment, controlPointIdx, e);
 
             return;
         }
-        else if(this.dragging_segment && !e.pressed)
+        else if(this._draggingSegment && !e.pressed)
         {
             // We released dragging a segment.
-            this.dragging_segment_point = -1;
-            window.removeEventListener("pointermove", this.pointermove_drag_point);
+            this._draggingSegmentPoint = -1;
+            window.removeEventListener("pointermove", this._pointermoveDragPoint);
         }
 
         // If we're in create line mode, create points on click.
-        if(e.pressed && this._create_lines)
+        if(e.pressed && this._createLines)
         {
             e.preventDefault();
             e.stopPropagation();
             
-            this.parent.save_undo();
+            this.parent.saveUndo();
 
-            this.adding_line = this.add_line();
-            this.adding_line.thickness = ppixiv.settings.get("inpaint_default_thickness", 10);
-            let control_point_idx = this.adding_line.add_point({x: x, y: y});
-            this.start_dragging_point(this.adding_line, control_point_idx, e);
+            this._addingLine = this.addLine();
+            this._addingLine.thickness = ppixiv.settings.get("inpaint_default_thickness", 10);
+            let controlPointIdx = this._addingLine.addPoint({x: x, y: y});
+            this._startDraggingPoint(this._addingLine, controlPointIdx, e);
         }
     }
 
-    start_dragging_point(inpaint_segment, point_idx=-1, e)
+    _startDraggingPoint(inpaintSegment, pointIdx=-1, e)
     {
-        this.dragging_segment = inpaint_segment;
-        this.dragging_segment_point = point_idx;
-        this.drag_pos = [e.clientX, e.clientY];
-        window.addEventListener("pointermove", this.pointermove_drag_point);
+        this._draggingSegment = inpaintSegment;
+        this._draggingSegmentPoint = pointIdx;
+        this._dragPos = [e.clientX, e.clientY];
+        window.addEventListener("pointermove", this._pointermoveDragPoint);
     }
 
     // Convert a click from client coordinates to image coordinates.
-    get_point_from_click({clientX, clientY})
+    getPointFromClick({clientX, clientY})
     {
-        let {width, height, top, left} = this.editor_overlay.getBoundingClientRect();
+        let {width, height, top, left} = this._editorOverlay.getBoundingClientRect();
         let x = (clientX - left) / width * this.width;
         let y = (clientY - top) / height * this.height;
         return { x: x, y: y };
@@ -544,47 +544,47 @@ export default class InpaintEditor extends Widget
 
     ondblclick = (e) =>
     {
-        // Block double-clicks to stop screen_illust from toggling fullscreen.
+        // Block double-clicks to stop ScreenIllust from toggling fullscreen.
         e.stopPropagation();
 
         // Delete segments and points on double-click.
-        let { inpaint_segment, control_point_idx } = this.get_control_point_from_element(e.target);
-        if(inpaint_segment)
+        let { inpaintSegment, controlPointIdx } = this._getControlPointFromElement(e.target);
+        if(inpaintSegment)
         {
-            this.parent.save_undo();
+            this.parent.saveUndo();
 
-            if(control_point_idx == -1)
-                this.remove_line(inpaint_segment);
+            if(controlPointIdx == -1)
+                this.removeLine(inpaintSegment);
             else
             {
-                inpaint_segment.remove_point(control_point_idx);
+                inpaintSegment.removePoint(controlPointIdx);
 
                 // If only one point is left, delete the segment.
-                if(inpaint_segment.segments.length < 2)
-                    this.remove_line(inpaint_segment);
+                if(inpaintSegment.segments.length < 2)
+                    this.removeLine(inpaintSegment);
             }
         }
     }
 
-    pointermove_drag_point = (e) =>
+    _pointermoveDragPoint = (e) =>
     {
         // Get the delta in client coordinates.  Don't use movementX/movementY, since it's
         // in screen pixels and will be wrong if the browser is scaled.
-        let delta_x = e.clientX - this.drag_pos[0];
-        let delta_y = e.clientY - this.drag_pos[1];
-        this.drag_pos = [e.clientX, e.clientY];
+        let delta_x = e.clientX - this._dragPos[0];
+        let delta_y = e.clientY - this._dragPos[1];
+        this._dragPos = [e.clientX, e.clientY];
 
         // Scale movement from client coordinates to the size of the container.
-        let {width, height} = this.editor_overlay.getBoundingClientRect();
+        let {width, height} = this._editorOverlay.getBoundingClientRect();
         delta_x *= this.width / width;
         delta_y *= this.height / height;
 
-        // Update the control points we're editing.  If dragging_segment_point is -1, update
+        // Update the control points we're editing.  If _draggingSegmentPoint is -1, update
         // the whole segment, otherwise update just that control point.
-        let segments = this.dragging_segment.segments;
+        let segments = this._draggingSegment.segments;
         for(let idx = 0; idx < segments.length; ++idx)
         {
-            if(this.dragging_segment_point != -1 && this.dragging_segment_point != idx)
+            if(this._draggingSegmentPoint != -1 && this._draggingSegmentPoint != idx)
                 continue;
 
             let segment = segments[idx];
@@ -596,21 +596,21 @@ export default class InpaintEditor extends Widget
             segment[1] = helpers.clamp(segment[1], 0, this.height);
         }
 
-        this.dragging_segment.update_segment();
+        this._draggingSegment.updateSegment();
     }
 
-    add_line()
+    addLine()
     {
         let line = new LineEditorSegment({
-            container: this.svg,
+            container: this._svg,
         });
 
         this.lines.push(line);
-        this.refresh_lines();
+        this._refreshLines();
         return line;
     }
 
-    remove_line(line)
+    removeLine(line)
     {
         line.container.remove();
 
@@ -618,50 +618,50 @@ export default class InpaintEditor extends Widget
         console.assert(idx != -1);
         
         // Deselect the line if it's selected.
-        if(this.selected_line_idx == idx)
-            this.selected_line = null;
-        if(this.adding_line == line)
-            this.adding_line = null;
+        if(this._selectedLineIdx == idx)
+            this._selectedLine = null;
+        if(this._addingLine == line)
+            this._addingLine = null;
 
         this.lines.splice(idx, 1);
-        this.refresh_lines();
+        this._refreshLines();
     }
 
-    set selected_line(line)
+    set _selectedLine(line)
     {
         if(line == null)
-            this.selected_line_idx = -1;
+            this._selectedLineIdx = -1;
         else
-            this.selected_line_idx = this.lines.indexOf(line);
+            this._selectedLineIdx = this.lines.indexOf(line);
 
-        this.refresh_lines();
+        this._refreshLines();
         this.refresh();
     }
 
-    get selected_line()
+    get _selectedLine()
     {
-        if(this.selected_line_idx == -1)
+        if(this._selectedLineIdx == -1)
             return null;
-        return this.lines[this.selected_line_idx];
+        return this.lines[this._selectedLineIdx];
     }
 
-    refresh_lines()
+    _refreshLines()
     {
         for(let idx = 0; idx < this.lines.length; ++idx)
         {
             let line = this.lines[idx];
-            if(idx == this.selected_line_idx)
+            if(idx == this._selectedLineIdx)
                 line.container.classList.add("selected");
             else
                 line.container.classList.remove("selected");
         }
     }
 
-    set_size(width, height)
+    _setSize(width, height)
     {
         this.width = width;
         this.height = height;
-        this.svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
+        this._svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
     }
 }
 
@@ -677,39 +677,38 @@ class LineEditorSegment extends Widget
 
         super({...options, contents: contents});
 
-        this.edit_points = [];
+        this._editPoints = [];
         this._thickness = 15;
         this.segments = [];
+        this.segmentLines = [];
 
-        this.segment_lines = [];
-
-        this.create_edit_points();
+        this.createEditPoints();
     }
 
     get thickness() { return this._thickness; }
     set thickness(value) {
         this._thickness = value;
-        this.create_edit_points();
+        this.createEditPoints();
     }
 
-    add_point({x, y, at=-1})
+    addPoint({x, y, at=-1})
     {
-        let new_segment = [x, y];
+        let newSegment = [x, y];
         if(at == -1)
             at = this.segments.length;
-        this.segments.splice(at, 0, new_segment);
-        this.create_edit_points();
+        this.segments.splice(at, 0, newSegment);
+        this.createEditPoints();
         return at;
     }
 
-    remove_point(idx)
+    removePoint(idx)
     {
         console.assert(idx < this.segments.length);
         this.segments.splice(idx, 1);
-        this.create_edit_points();
+        this.createEditPoints();
     }
 
-    create_edit_point()
+    createEditPoint()
     {
         let point = document.createElementNS(helpers.xmlns, "ellipse");
         point.setAttribute("class", "inpaint-handle");
@@ -720,15 +719,15 @@ class LineEditorSegment extends Widget
         return point;
     }
 
-    create_edit_points()
+    createEditPoints()
     {
-        for(let line of this.segment_lines)
+        for(let line of this.segmentLines)
             line.remove();
-        for(let point of this.edit_points)
+        for(let point of this._editPoints)
             point.remove();
 
-        this.segment_lines = [];
-        this.edit_points = [];
+        this.segmentLines = [];
+        this._editPoints = [];
 
         if(!this.polyline)
         {
@@ -747,24 +746,23 @@ class LineEditorSegment extends Widget
             line.dataset.idx = idx;
 
             this.container.appendChild(line);
-            this.segment_lines.push(line);
+            this.segmentLines.push(line);
         }
 
         for(let idx = 0; idx < this.segments.length; ++idx)
         {
-            let point = this.create_edit_point();
+            let point = this.createEditPoint();
             point.dataset.type = "control-point";
             point.dataset.idx = idx;
-            this.edit_points.push(point);
+            this._editPoints.push(point);
             this.container.appendChild(point);
         }
         
-        this.update_segment();
+        this.updateSegment();
     }
 
-    // Update the line and control points when they've moved.  If segments have been added
-    // or deleted, call create_segments instead.
-    update_segment()
+    // Update the line and control points when they've moved.
+    updateSegment()
     {
         let points = [];
         for(let point of this.segments)
@@ -776,7 +774,7 @@ class LineEditorSegment extends Widget
         if(0)
         for(let idx = 0; idx < this.segments.length-1; ++idx)
         {
-            let line = this.segment_lines[idx];
+            let line = this.segmentLines[idx];
             let p0 = this.segments[idx];
             let p1 = this.segments[idx+1];
 
@@ -802,13 +800,13 @@ class LineEditorSegment extends Widget
         for(let idx = 0; idx < this.segments.length; ++idx)
         {
             let segment = this.segments[idx];
-            let edit_point = this.edit_points[idx];
-            edit_point.setAttribute("cx", segment[0]);
-            edit_point.setAttribute("cy", segment[1]);
+            let editPoint = this._editPoints[idx];
+            editPoint.setAttribute("cx", segment[0]);
+            editPoint.setAttribute("cy", segment[1]);
 
             let radius = this._thickness / 2;
-            edit_point.setAttribute("rx", radius);
-            edit_point.setAttribute("ry", radius);
+            editPoint.setAttribute("rx", radius);
+            editPoint.setAttribute("ry", radius);
         }
     }
 }

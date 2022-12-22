@@ -9,7 +9,7 @@ export default class DataSource_VView extends DataSource
 {
     get name() { return "vview"; }
     get pageTitle() { return this.getDisplayingText(); }
-    get is_vview() { return true; }
+    get isVView() { return true; }
     get supportsStartPage() { return true; }
     get ui() { return UI; }
 
@@ -80,8 +80,8 @@ export default class DataSource_VView extends DataSource
         // Use the search options if there's no path.  Otherwise, we're navigating inside
         // the search, so just view the contents of where we navigated to.
         let args = new helpers.args(this.url);
-        let { search_options } = LocalAPI.get_search_options_for_args(args);
-        let folderId = LocalAPI.get_local_id_from_args(args, { get_folder: true });
+        let { searchOptions } = LocalAPI.getSearchOptionsForArgs(args);
+        let folderId = LocalAPI.getLocalIdFromArgs(args, { get_folder: true });
 
         let order = args.hash.get("order");
 
@@ -90,15 +90,15 @@ export default class DataSource_VView extends DataSource
         // and we can register the whole thing as one big page.  This lets us handle local
         // files better: if you load a random file in a big directory and then back out to
         // the search, we can show the file you were on instead of going back to the top.
-        // screen_search will load media info as needed when they're actually displayed.
+        // ScreenSearch will load media info as needed when they're actually displayed.
         //
         // If we have access restrictions (eg. we're guest and can only access certain tags),
         // this API is disabled, since all listings are bookmark searches.
-        if(search_options == null && !LocalAPI.local_info.bookmark_tag_searches_only)
+        if(searchOptions == null && !LocalAPI.localInfo.bookmark_tag_searches_only)
         {
             console.log("Loading folder contents:", folderId);
-            let resultIds = await LocalAPI.local_post_request(`/api/ids/${folderId}`, {
-                ...search_options,
+            let resultIds = await LocalAPI.localPostRequest(`/api/ids/${folderId}`, {
+                ...searchOptions,
                 ids_only: true,
 
                 order: args.hash.get("order"),
@@ -115,9 +115,9 @@ export default class DataSource_VView extends DataSource
             return;
         }
 
-        // Note that this registers the results with media_info automatically.
+        // Note that this registers the results with MediaCache automatically.
         let result = await ppixiv.mediaCache.localSearch(folderId, {
-            ...search_options,
+            ...searchOptions,
 
             order: order,
 
@@ -178,32 +178,32 @@ export default class DataSource_VView extends DataSource
     get viewingFolder()
     {
         let args = new helpers.args(this.url);
-        return LocalAPI.get_local_id_from_args(args, { get_folder: true });
+        return LocalAPI.getLocalIdFromArgs(args, { get_folder: true });
     }
 
     setPageIcon()
     {
-        helpers.set_icon({vview: true});
+        helpers.setIcon({vview: true});
     }
 
     getDisplayingText()
     {
         let args = new helpers.args(this.url);
-        return LocalAPI.get_search_options_for_args(args).title;
+        return LocalAPI.getSearchOptionsForArgs(args).title;
     }
 
     // Put the illust ID in the hash instead of the path.  Pixiv doesn't care about this,
     // and this avoids sending the user's filenames to their server as 404s.
     setCurrentMediaId(mediaId, args)
     {
-        LocalAPI.get_args_for_id(mediaId, args);
+        LocalAPI.getArgsForId(mediaId, args);
     }
 
     getMediaIdFromUrl(args)
     {
         // If the URL points to a file, return it.  If no image is being viewed this will give
         // the folder we're in, which shouldn't be returned here.
-        let illust_id = LocalAPI.get_local_id_from_args(args);
+        let illust_id = LocalAPI.getLocalIdFromArgs(args);
         if(illust_id == null || !illust_id.startsWith("file:"))
             return null;
         return illust_id;
@@ -218,7 +218,7 @@ export default class DataSource_VView extends DataSource
     // we're restricted to listing tagged bookmarks.
     get bookmarkSearchActive()
     {
-        return this.args.hash.has("bookmarks") || LocalAPI.local_info.bookmark_tag_searches_only;
+        return this.args.hash.has("bookmarks") || LocalAPI.localInfo.bookmark_tag_searches_only;
     }
 
     async fetchBookmarkTagCounts()
@@ -231,7 +231,7 @@ export default class DataSource_VView extends DataSource
         if(!this.bookmarkSearchActive)
             return;
 
-        let result = await LocalAPI.local_post_request(`/api/bookmark/tags`);
+        let result = await LocalAPI.localPostRequest(`/api/bookmark/tags`);
         if(!result.success)
         {
             console.log("Error fetching bookmark tag counts");
@@ -259,20 +259,20 @@ class UI extends Widget
 
                 <div class="box-button-row">
                     <span class="popup icon-button copy-local-path" data-popup="Copy local path to clipboard">
-                        ${ helpers.create_icon("content_copy") }
+                        ${ helpers.createIcon("content_copy") }
                     </span>
 
-                    ${ helpers.create_box_link({popup: "Close search", icon: "exit_to_app",  classes: ["clear-local-search"] }) }
-                    ${ helpers.create_box_link({label: "Bookmarks",           popup: "Show bookmarks",                       data_type: "local-bookmarks-only" }) }
+                    ${ helpers.createBoxLink({popup: "Close search", icon: "exit_to_app",  classes: ["clear-local-search"] }) }
+                    ${ helpers.createBoxLink({label: "Bookmarks",           popup: "Show bookmarks",                       dataType: "local-bookmarks-only" }) }
 
                     <div class=local-bookmark-tags-box>
-                        ${ helpers.create_box_link({label: "Tags",    icon: "ppixiv:tag", classes: ["bookmark-tags-button"] }) }
+                        ${ helpers.createBoxLink({label: "Tags",    icon: "ppixiv:tag", classes: ["bookmark-tags-button"] }) }
                     </div>
 
-                    ${ helpers.create_box_link({ label: "Type",          classes: ["file-type-button"] }) }
-                    ${ helpers.create_box_link({ label: "Aspect ratio",  classes: ["aspect-ratio-button"] }) }
-                    ${ helpers.create_box_link({ label: "Image size",    classes: ["image-size-button"] }) }
-                    ${ helpers.create_box_link({ label: "Order",         classes: ["sort-button"] }) }
+                    ${ helpers.createBoxLink({ label: "Type",          classes: ["file-type-button"] }) }
+                    ${ helpers.createBoxLink({ label: "Aspect ratio",  classes: ["aspect-ratio-button"] }) }
+                    ${ helpers.createBoxLink({ label: "Image size",    classes: ["image-size-button"] }) }
+                    ${ helpers.createBoxLink({ label: "Order",         classes: ["sort-button"] }) }
                 </div>
             </div>
         `});
@@ -283,24 +283,24 @@ class UI extends Widget
         new LocalSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
 
         dataSource.setupDropdown(this.querySelector(".file-type-button"), [{
-            createOptions: { label: "All",           data_type: "local-type-all", dataset: { default: "1"} },
+            createOptions: { label: "All",           dataType: "local-type-all", dataset: { default: "1"} },
             setupOptions: { fields: {"#type": null} },
         }, {
-            createOptions: { label: "Videos",        data_type: "local-type-videos" },
+            createOptions: { label: "Videos",        dataType: "local-type-videos" },
             setupOptions: { fields: {"#type": "videos"} },
         }, {
-            createOptions: { label: "Images",        data_type: "local-type-images" },
+            createOptions: { label: "Images",        dataType: "local-type-images" },
             setupOptions: { fields: {"#type": "images"} },
         }]);
 
         dataSource.setupDropdown(this.querySelector(".aspect-ratio-button"), [{
-            createOptions: { label: "All",           data_type: "local-aspect-ratio-all", dataset: { default: "1"} },
+            createOptions: { label: "All",           dataType: "local-aspect-ratio-all", dataset: { default: "1"} },
             setupOptions: { fields: {"#aspect-ratio": null} },
         }, {
-            createOptions: { label: "Landscape",     data_type: "local-aspect-ratio-landscape" },
+            createOptions: { label: "Landscape",     dataType: "local-aspect-ratio-landscape" },
             setupOptions: { fields: {"#aspect-ratio": `3:2...`} },
         }, {
-            createOptions: { label: "Portrait",      data_type: "local-aspect-ratio-portrait" },
+            createOptions: { label: "Portrait",      dataType: "local-aspect-ratio-portrait" },
             setupOptions: { fields: {"#aspect-ratio": `...2:3`} },
         }]);
 
@@ -393,13 +393,13 @@ class UI extends Widget
                 if(tagCount != null)
                     popup = tagCount + (tagCount == 1? " bookmark":" bookmarks");
 
-                let a = helpers.create_box_link({
+                let a = helpers.createBoxLink({
                     label: tagName,
                     classes: ["following-tag"],
-                    data_type: "following-tag",
+                    dataType: "following-tag",
                     popup,
                     link: "#",
-                    as_element: true,
+                    asElement: true,
                 });
                 if(tagName == "All bookmarks")
                     a.dataset.default = 1;
@@ -414,7 +414,7 @@ class UI extends Widget
 
         this.tagDropdownOpener = new DropdownMenuOpener({
             button: this.querySelector(".bookmark-tags-button"),
-            create_box: ({...options}) => new bookmark_tag_dropdown({ dataSource, ...options }),
+            createBox: ({...options}) => new bookmark_tag_dropdown({ dataSource, ...options }),
         });
 
         // Hide the bookmark box if we're not showing bookmarks.
@@ -422,21 +422,21 @@ class UI extends Widget
 
         dataSource.addEventListener("_refresh_ui", () => {
             // Refresh the displayed label in case we didn't have it when we created the widget.
-            this.tagDropdownOpener.set_button_popup_highlight();
+            this.tagDropdownOpener.setButtonPopupHighlight();
         }, this._signal);
 
         let clearLocalSearchButton = this.querySelector(".clear-local-search");
         clearLocalSearchButton.addEventListener("click", (e) => {
             // Get the URL for the current folder and set it to a new URL, so it removes search
             // parameters.
-            let mediaId = LocalAPI.get_local_id_from_args(dataSource.args, { get_folder: true });
+            let mediaId = LocalAPI.getLocalIdFromArgs(dataSource.args, { get_folder: true });
             let args = new helpers.args("/", ppixiv.plocation);
-            LocalAPI.get_args_for_id(mediaId, args);
+            LocalAPI.getArgsForId(mediaId, args);
             helpers.navigate(args);
         });
 
-        let searchActive = LocalAPI.get_search_options_for_args(dataSource.args).search_options != null;
-        helpers.set_class(clearLocalSearchButton, "disabled", !searchActive);
+        let searchActive = LocalAPI.getSearchOptionsForArgs(dataSource.args).searchOptions != null;
+        helpers.setClass(clearLocalSearchButton, "disabled", !searchActive);
 
         this.querySelector(".copy-local-path").addEventListener("click", (e) => {
             this.copy_link();
@@ -454,6 +454,6 @@ class UI extends Widget
         });
 
         // If we're only allowed to do bookmark searches, hide the bookmark search button.
-        this.querySelector('[data-type="local-bookmarks-only"]').hidden = LocalAPI.local_info.bookmark_tag_searches_only;
+        this.querySelector('[data-type="local-bookmarks-only"]').hidden = LocalAPI.localInfo.bookmark_tag_searches_only;
     }
 }

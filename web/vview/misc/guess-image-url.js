@@ -21,10 +21,10 @@ export default class GuessImageURL
 {
     constructor()
     {
-        this.db = new KeyStorage("ppixiv-file-types", { db_upgrade: this.db_upgrade });
+        this.db = new KeyStorage("ppixiv-file-types", { upgradeDb: this.upgradeDb });
     }
 
-    db_upgrade = (e) =>
+    upgradeDb = (e) =>
     {
         let db = e.target.result;
         let store = db.createObjectStore("ppixiv-file-types", {
@@ -41,32 +41,32 @@ export default class GuessImageURL
     }
 
     // Store info about an image that we've loaded data for.
-    add_info(image_data)
+    addInfo(imageData)
     {
-        // Everyone else now uses image_data.illustId and image_data.media_id.  We
+        // Everyone else now uses imageData.illustId and imageData.media_id.  We
         // still just use .id  here, since this is only used for Pixiv images and it's
         // not worth a migration to change the primary key.
-        /* image_data = {
-            id: image_data.illustId,
-            ...image_data,
+        /* imageData = {
+            id: imageData.illustId,
+            ...imageData,
         }
         */
 
         // Store one record per page.
         let pages = [];
-        for(let page = 0; page < image_data.pageCount; ++page)
+        for(let page = 0; page < imageData.pageCount; ++page)
         {
-            let illust_id = image_data.illustId;
-            let media_id = helpers.illust_id_to_media_id(image_data.illustId, page);
-            let url = image_data.mangaPages[page].urls.original;
+            let illustId = imageData.illustId;
+            let mediaId = helpers.illustIdToMediaId(imageData.illustId, page);
+            let url = imageData.mangaPages[page].urls.original;
             let parts = url.split(".");
             let ext = parts[parts.length-1];
     
             pages.push({
-                illust_id_and_page: media_id,
-                illust_id: illust_id,
+                illust_id_and_page: mediaId,
+                illust_id: illustId,
                 page: page,
-                user_id: image_data.userId,
+                user_id: imageData.userId,
                 url: url,
                 ext: ext,
             });
@@ -74,29 +74,29 @@ export default class GuessImageURL
 
         // We don't need to wait for this to finish, but return the promise in case
         // the caller wants to.
-        return this.db.multi_set_values(pages);
+        return this.db.multiSetValues(pages);
     }
 
     // Return the number of images by the given user that have the given file type,
     // eg. "jpg".
     //
     // We have a dedicated index for this, so retrieving the count is fast.
-    async get_filetype_count_for_user(store, user_id, filetype)
+    async _getFiletypeCountForUser(store, user_id, filetype)
     {
         let index = store.index("user_id_and_filetype");
         let query = IDBKeyRange.only([user_id, 0 /* page */, filetype]);
-        return await KeyStorage.await_request(index.count(query));
+        return await KeyStorage.awaitRequest(index.count(query));
     }
 
     // Try to guess the user's preferred file type.  Returns "jpg", "png" or null.
-    guess_filetype_for_user_id(user_id)
+    guessFileTypeForUserId(user_id)
     {
-        return this.db.db_op(async (db) => {
-            let store = this.db.get_store(db);
+        return this.db.dbOp(async (db) => {
+            let store = this.db.getStore(db);
 
             // Get the number of posts by this user with both file types.
-            let jpg = await this.get_filetype_count_for_user(store, user_id, "jpg");
-            let png = await this.get_filetype_count_for_user(store, user_id, "png");
+            let jpg = await this._getFiletypeCountForUser(store, user_id, "jpg");
+            let png = await this._getFiletypeCountForUser(store, user_id, "png");
 
             // Wait until we've seen a few images from this user before we start guessing.
             if(jpg+png < 3)
@@ -122,11 +122,11 @@ export default class GuessImageURL
         });
     }
 
-    async get_stored_record(media_id)
+    async _getStoredRecord(mediaId)
     {
-        return this.db.db_op(async (db) => {
-            let store = this.db.get_store(db);
-            let record = await KeyStorage.async_store_get(store, media_id);
+        return this.db.dbOp(async (db) => {
+            let store = this.db.getStore(db);
+            let record = await KeyStorage.asyncStoreGet(store, mediaId);
             if(record == null)
                 return null;
             else
@@ -134,7 +134,7 @@ export default class GuessImageURL
         });
     }
 
-    async guess_url(media_id)
+    async guessUrl(mediaId)
     {
         // Guessed preloading is disabled if we're using an image size limit, since
         // it's too early to tell which image we'll end up using.
@@ -142,11 +142,11 @@ export default class GuessImageURL
             return null;
 
         // If this is a local URL, we always have the image URL and we don't need to guess.
-        let { type, page } = helpers.parse_media_id(media_id);
+        let { type, page } = helpers.parseMediaId(mediaId);
         console.assert(type != "folder");
         if(type == "file")
         {
-            let thumb = ppixiv.mediaCache.get_media_info_sync(media_id, { full: false });
+            let thumb = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
             if(thumb?.illustType == "video")
                 return null;
             else
@@ -154,17 +154,17 @@ export default class GuessImageURL
         }
     
         // If we already have illust info, use it.
-        let illust_info = ppixiv.mediaCache.get_media_info_sync(media_id);
-        if(illust_info != null)
-            return illust_info.mangaPages[page].urls.original;
+        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId);
+        if(mediaInfo != null)
+            return mediaInfo.mangaPages[page].urls.original;
 
         // If we've stored this URL, use it.
-        let stored_url = await this.get_stored_record(media_id);
-        if(stored_url != null)
-            return stored_url;
+        let storedUrl = await this._getStoredRecord(mediaId);
+        if(storedUrl != null)
+            return storedUrl;
         
         // Get thumbnail data.  We need the thumbnail URL to figure out the image URL.
-        let thumb = ppixiv.mediaCache.get_media_info_sync(media_id, { full: false });
+        let thumb = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
         if(thumb == null)
             return null;
 
@@ -173,8 +173,8 @@ export default class GuessImageURL
             return null;
 
         // Try to make a guess at the file type.
-        let guessed_filetype = await this.guess_filetype_for_user_id(thumb.userId);
-        if(guessed_filetype == null)
+        let guessedFileType = await this.guessFileTypeForUserId(thumb.userId);
+        if(guessedFileType == null)
             return null;
     
         // Convert the thumbnail URL to the equivalent original URL:
@@ -185,16 +185,16 @@ export default class GuessImageURL
         url = url.replace("/c/540x540_70/", "/");
         url = url.replace("/img-master/", "/img-original/");
         url = url.replace("_master1200.", ".");
-        url = url.replace(/jpg$/, guessed_filetype);
+        url = url.replace(/jpg$/, guessedFileType);
         return url;
     }
 
     // This is called if a guessed preload fails to load.  This either means we
     // guessed wrong, or if we came from a cached URL in the database, that the
     // user reuploaded the image with a different file type.
-    async guessed_url_incorrect(media_id)
+    async guessedUrlIncorrect(mediaId)
     {
         // If this was a stored URL, remove it from the database.
-        await this.db.multi_delete([media_id]);
+        await this.db.multiDelete([mediaId]);
     }
 }

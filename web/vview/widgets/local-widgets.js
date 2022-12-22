@@ -4,7 +4,7 @@ import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
 import { helpers } from 'vview/misc/helpers.js';
 import LocalAPI from 'vview/misc/local-api.js';
 
-// local_search_box_widget and LocalSearchDropdownWidget are dumb copy-pastes
+// LocalSearchBoxWidget and LocalSearchDropdownWidget are dumb copy-pastes
 // of TagSearchBoxWidget and TagSearchDropdownWidget.  They're simpler and
 // much less used, and it didn't seem worth creating a shared base class for these.
 export class LocalSearchBoxWidget extends Widget
@@ -18,11 +18,11 @@ export class LocalSearchBoxWidget extends Widget
                         <input placeholder="Search files" size=1 autocorrect=off>
 
                         <span class="clear-local-search-button right-side-button">
-                            ${ helpers.create_icon("clear") }
+                            ${ helpers.createIcon("clear") }
                         </span>
 
                         <span class="submit-local-search-button right-side-button">
-                            ${ helpers.create_icon("search") }
+                            ${ helpers.createIcon("search") }
                         </span>
                     </div>
                 </div>
@@ -34,17 +34,17 @@ export class LocalSearchBoxWidget extends Widget
         this.dropdownOpener = new DropdownBoxOpener({
             button: this.inputElement,
 
-            create_box: ({...options}) => {
+            createBox: ({...options}) => {
                 return new LocalSearchDropdownWidget({
-                    input_element: this.container,
-                    focus_parent: this.container,
+                    inputElement: this.container,
+                    focusParent: this.container,
                     ...options,
                 });
             },
 
-            close_for_click: (e) => {
+            shouldCloseForClick: (e) => {
                 // Ignore clicks inside our container.
-                if(helpers.is_above(this.container, e.target))
+                if(helpers.isAbove(this.container, e.target))
                     return false;
 
                 return true;
@@ -76,7 +76,7 @@ export class LocalSearchBoxWidget extends Widget
         });
 
         // Search submission:
-        helpers.input_handler(this.inputElement, this.submitSearch);
+        helpers.inputHandler(this.inputElement, this.submitSearch);
 
         window.addEventListener("pp:popstate", (e) => { this.refreshFromLocation(); });
         this.refreshFromLocation();
@@ -84,11 +84,11 @@ export class LocalSearchBoxWidget extends Widget
     }
 
     // Hide if our tree becomes hidden.
-    on_visible_recursively_changed()
+    visibleRecursivelyChanged()
     {
-        super.on_visible_recursively_changed();
+        super.visibleRecursivelyChanged();
 
-        if(!this.visible_recursively)
+        if(!this.visibleRecursively)
             this.dropdownOpener.visible = false;
     }
 
@@ -108,7 +108,7 @@ export class LocalSearchBoxWidget extends Widget
     submitSearch = (e) =>
     {
         let tags = this.inputElement.value;
-        LocalAPI.navigate_to_tag_search(tags);
+        LocalAPI.navigateToTagSearch(tags);
 
         // If we're submitting by pressing enter on an input element, unfocus it and
         // close any widgets inside it (tag dropdowns).
@@ -122,7 +122,7 @@ export class LocalSearchBoxWidget extends Widget
 
 class LocalSearchDropdownWidget extends Widget
 {
-    constructor({input_element, focus_parent, ...options})
+    constructor({inputElement, focusParent, ...options})
     {
         super({...options, template: `
             <div class="search-history input-dropdown">
@@ -132,21 +132,21 @@ class LocalSearchDropdownWidget extends Widget
             </div>
         `});
 
-        this.inputElement = input_element;
+        this.inputElement = inputElement;
 
-        // While we're open, we'll close if the user clicks outside focus_parent.
-        this.focus_parent = focus_parent;
+        // While we're open, we'll close if the user clicks outside focusParent.
+        this.focusParent = focusParent;
 
         // Refresh the dropdown when the search history changes.
-        window.addEventListener("recent-local-searches-changed", this.populate_dropdown);
+        window.addEventListener("recent-local-searches-changed", this._populateDropdown);
 
         this.container.addEventListener("click", this.dropdownClick);
 
         // input-dropdown is resizable.  Save the size when the user drags it.
-        this.input_dropdown = this.container.querySelector(".input-dropdown-list");
+        this._inputDropdown = this.container.querySelector(".input-dropdown-list");
 
         // Restore input-dropdown's width.
-        let refresh_dropdown_width = () => {
+        let refreshDropdownWidth = () => {
             let width = ppixiv.settings.get("tag-dropdown-width", "400");
             width = parseInt(width);
             if(isNaN(width))
@@ -157,27 +157,27 @@ class LocalSearchDropdownWidget extends Widget
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
-            ppixiv.settings.set("tag-dropdown-width", this.input_dropdown.style.width);
+            ppixiv.settings.set("tag-dropdown-width", this._inputDropdown.style.width);
         });
-        observer.observe(this.input_dropdown, { attributes: true });
+        observer.observe(this._inputDropdown, { attributes: true });
 
         // Restore input-dropdown's width.
-        refresh_dropdown_width();
+        refreshDropdownWidth();
 
         this._load();
     }
 
     dropdownClick = (e) =>
     {
-        var remove_entry = e.target.closest(".remove-history-entry");
-        if(remove_entry != null)
+        let removeEntry = e.target.closest(".remove-history-entry");
+        if(removeEntry != null)
         {
             // Clicked X to remove a tag from history.
             e.stopPropagation();
             e.preventDefault();
 
             let tag = e.target.closest(".entry").dataset.tag;
-            remove_recent_local_search(tag);
+            this._removeRecentLocalSearch(tag);
             return;
         }
 
@@ -187,15 +187,30 @@ class LocalSearchDropdownWidget extends Widget
             this.hide();
     }
 
+    _removeRecentLocalSearch(search)
+    {
+        // Remove tag from the list.  There should normally only be one.
+        let recentTags = ppixiv.settings.get("local_searches") || [];
+        while(1)
+        {
+            let idx = recentTags.indexOf(search);
+            if(idx == -1)
+                break;
+            recentTags.splice(idx, 1);
+        }
+        ppixiv.settings.set("local_searches", recentTags);
+        window.dispatchEvent(new Event("recent-local-searches-changed"));
+    }
+        
     _load()
     {
         // Fill in the dropdown before displaying it.
-        this.populate_dropdown();
+        this._populateDropdown();
     }
 
     createEntry(search)
     {
-        let entry = this.create_template({name: "tag-dropdown-entry", html: `
+        let entry = this.createTemplate({name: "tag-dropdown-entry", html: `
             <a class=entry href=#>
                 <span class=search></span>
                 <span class="right-side-buttons">
@@ -212,24 +227,24 @@ class LocalSearchDropdownWidget extends Widget
 
         let args = new helpers.args("/", ppixiv.plocation);
         args.path = LocalAPI.path;
-        args.hash_path = "/";
+        args.hashPath = "/";
         args.hash.set("search", search);
         entry.href = args.url;
         return entry;
     }
 
     // Populate the tag dropdown.
-    populate_dropdown = () =>
+    _populateDropdown = () =>
     {
-        let tag_searches = ppixiv.settings.get("local_searches") || [];
-        tag_searches.sort();
+        let tagSearches = ppixiv.settings.get("local_searches") || [];
+        tagSearches.sort();
 
         let list = this.container.querySelector(".input-dropdown-list");
-        helpers.remove_elements(list);
+        helpers.removeElements(list);
 
-        for(let tag of tag_searches)
+        for(let tag of tagSearches)
         {
-            var entry = this.createEntry(tag);
+            let entry = this.createEntry(tag);
             entry.classList.add("history");
             list.appendChild(entry);
         }
@@ -257,14 +272,14 @@ export class ViewInExplorerWidget extends IllustWidget
         });
     }
 
-    refresh_internal({ media_id, media_info })
+    refreshInternal({ mediaId, mediaInfo })
     {
         // Hide the button if we're not on a local image.
-        this.container.closest(".button-container").hidden = !helpers.is_media_id_local(media_id);
+        this.container.closest(".button-container").hidden = !helpers.isMediaIdLocal(mediaId);
         
-        let path = media_info?.localPath;
-        this.enabled = media_info?.localPath != null;
-        helpers.set_class(this.container.querySelector("A.button"), "enabled", this.enabled);
+        let path = mediaInfo?.localPath;
+        this.enabled = mediaInfo?.localPath != null;
+        helpers.setClass(this.container.querySelector("A.button"), "enabled", this.enabled);
         if(path == null)
             return;
 
@@ -283,7 +298,7 @@ export class ViewInExplorerWidget extends IllustWidget
         a.href = url;
 
         // Set the popup for the type of ID.
-        let { type } = helpers.parse_media_id(media_id);
+        let { type } = helpers.parseMediaId(mediaId);
         let popup = type == "file"? "View file in Explorer":"View folder in Explorer";
         a.dataset.popup = popup;
     }

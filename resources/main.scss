@@ -1403,7 +1403,7 @@ body.hide-r18g .r18g { display: none; }
 {
     // Add a small minimum horizontal margin on desktops.  On mobile, allow thumbs to
     // go to the edge of the screen.  Put this padding outside of .thumbnails so it
-    // doesn't confuse make_thumbnail_sizing_style.
+    // doesn't confuse makeThumbnailSizingStyle.
     html:not(.mobile) & {
         margin: 0 1em;
     }
@@ -1463,7 +1463,7 @@ body.hide-r18g .r18g { display: none; }
         top: 0;
         pointer-events: none;
 
-        // This is set by make_thumbnail_sizing_style based on the thumbnail size.
+        // This is set by makeThumbnailSizingStyle based on the thumbnail size.
         // width: 100px;
         height: auto;
 

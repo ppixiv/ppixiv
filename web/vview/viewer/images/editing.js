@@ -11,7 +11,7 @@ export default class ImageEditor extends IllustWidget
     constructor({
         // The ImageEditingOverlayContainer, which holds editor UI that goes inside the
         // image box.
-        overlay_container,
+        overlayContainer,
         onvisibilitychanged,
         visible=null,
         ...options
@@ -27,18 +27,18 @@ export default class ImageEditor extends IllustWidget
             <div class=image-editor>
                 <div class="image-editor-buttons top">
                     <div class="image-editor-button-row box-button-row left">
-                        ${ helpers.create_box_link({icon: "undo",     popup: "Undo",          classes: ["undo", "popup-bottom"] }) }
-                        ${ helpers.create_box_link({icon: "redo",     popup: "Redo",          classes: ["redo", "popup-bottom"] }) }
+                        ${ helpers.createBoxLink({icon: "undo",     popup: "Undo",          classes: ["undo", "popup-bottom"] }) }
+                        ${ helpers.createBoxLink({icon: "redo",     popup: "Redo",          classes: ["redo", "popup-bottom"] }) }
                     </div>
                     <div class="image-editor-button-row box-button-row center ">
-                        ${ helpers.create_box_link({icon: "save",     popup: "Save",          classes: ["save-edits", "popup-bottom"] }) }
-                        ${ helpers.create_box_link({icon: "refresh",  popup: "Saving...",     classes: ["spinner"] }) }
-                        ${ helpers.create_box_link({icon: "crop",     popup: "Crop",          classes: ["show-crop", "popup-bottom"] }) }
-                        ${ helpers.create_box_link({icon: "wallpaper",popup:  "Edit panning", classes: ["show-pan", "popup-bottom"] }) }
-                        ${ helpers.create_box_link({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"], dataset: { popupSide: "center" } }) }
+                        ${ helpers.createBoxLink({icon: "save",     popup: "Save",          classes: ["save-edits", "popup-bottom"] }) }
+                        ${ helpers.createBoxLink({icon: "refresh",  popup: "Saving...",     classes: ["spinner"] }) }
+                        ${ helpers.createBoxLink({icon: "crop",     popup: "Crop",          classes: ["show-crop", "popup-bottom"] }) }
+                        ${ helpers.createBoxLink({icon: "wallpaper",popup:  "Edit panning", classes: ["show-pan", "popup-bottom"] }) }
+                        ${ helpers.createBoxLink({icon: "brush",    popup: "Inpainting",    classes: ["show-inpaint", "popup-bottom"], dataset: { popupSide: "center" } }) }
                     </div>
                     <div class="image-editor-button-row box-button-row right">
-                        ${ helpers.create_box_link({icon: "close",    popup: "Stop editing",  classes: ["close-editor", "popup-bottom"], dataset: { popupSide: "left" } }) }
+                        ${ helpers.createBoxLink({icon: "close",    popup: "Stop editing",  classes: ["close-editor", "popup-bottom"], dataset: { popupSide: "left" } }) }
                     </div>
                 </div>
             </div>
@@ -46,61 +46,61 @@ export default class ImageEditor extends IllustWidget
 
         this.container.querySelector(".spinner").hidden = true;
 
-        let crop_editor = new CropEditor({
+        let cropEditor = new CropEditor({
             container: this.container,
             mode: "crop",
             visible: false,
         });
 
-        let pan_editor = new PanEditor({
+        let panEditor = new PanEditor({
             container: this.container,
             visible: false,
         });
 
-        let inpaint_editor = new InpaintEditor({
+        let inpaintEditor = new InpaintEditor({
             container: this.container,
             visible: false,
         });
 
         this.editors = {
-            inpaint: inpaint_editor,
-            crop: crop_editor,
-            pan: pan_editor,
+            inpaint: inpaintEditor,
+            crop: cropEditor,
+            pan: panEditor,
         };
 
         this.onvisibilitychanged = onvisibilitychanged;
         this._dirty = false;
-        this.editing_media_id = null;
-        this.undo_stack = [];
-        this.redo_stack = [];
+        this._editingMediaId = null;
+        this._undoStack = [];
+        this._redoStack = [];
 
-        this.top_button_row = this.container.querySelector(".image-editor-buttons.top");
+        this._topButtonRow = this.container.querySelector(".image-editor-buttons.top");
 
-        this.show_crop = this.container.querySelector(".show-crop");
-        this.show_crop.addEventListener("click", (e) => {
+        this._showCrop = this.container.querySelector(".show-crop");
+        this._showCrop.addEventListener("click", (e) => {
             e.stopPropagation();
 
-            this.active_editor_name = this.active_editor_name == "crop"? null:"crop";
+            this.activeEditorName = this.activeEditorName == "crop"? null:"crop";
         });
 
-        this.show_pan = this.container.querySelector(".show-pan");
-        this.show_pan.addEventListener("click", (e) => {
+        this._showPan = this.container.querySelector(".show-pan");
+        this._showPan.addEventListener("click", (e) => {
             e.stopPropagation();
 
-            this.active_editor_name = this.active_editor_name == "pan"? null:"pan";
+            this.activeEditorName = this.activeEditorName == "pan"? null:"pan";
         });
 
-        this.show_inpaint = this.container.querySelector(".show-inpaint");
-        this.show_inpaint.hidden = true;
-        this.show_inpaint.addEventListener("click", (e) => {
+        this._showInpaint = this.container.querySelector(".show-inpaint");
+        this._showInpaint.hidden = true;
+        this._showInpaint.addEventListener("click", (e) => {
             e.stopPropagation();
 
-            this.active_editor_name = this.active_editor_name == "inpaint"? null:"inpaint";
+            this.activeEditorName = this.activeEditorName == "inpaint"? null:"inpaint";
         });
 
-        this.overlay_container = overlay_container;
+        this.overlayContainer = overlayContainer;
 
-        OpenWidgets.singleton.addEventListener("changed", this.refresh_temporarily_hidden, { signal: this.shutdown_signal.signal });
+        OpenWidgets.singleton.addEventListener("changed", this._refreshTemporarilyHidden, { signal: this.shutdownSignal.signal });
 
         window.addEventListener("keydown", (e) => {
             if(!this.visible)
@@ -129,7 +129,7 @@ export default class ImageEditor extends IllustWidget
                 e.stopPropagation();
                 this.paste();
             }
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
         // Refresh when these settings change.
         for(let setting of ["image_editing", "image_editing_mode"])
@@ -139,7 +139,7 @@ export default class ImageEditor extends IllustWidget
                 // Let our parent know that we may have changed editor visibility, since this
                 // affects whether image cropping is active.
                 this.onvisibilitychanged();
-            }, { signal: this.shutdown_signal.signal });
+            }, { signal: this.shutdownSignal.signal });
 
         // Stop propagation of pointerdown at the container, so clicks inside the UI don't
         // move the image.
@@ -150,29 +150,29 @@ export default class ImageEditor extends IllustWidget
             e.stopPropagation();
         });
 
-        this.save_edits = this.container.querySelector(".save-edits");
-        this.save_edits.addEventListener("click", async (e) => {
+        this._saveEdits = this.container.querySelector(".save-edits");
+        this._saveEdits.addEventListener("click", async (e) => {
             e.stopPropagation();
             this.save();
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
-        this.close_editor = this.container.querySelector(".close-editor");
-        this.close_editor.addEventListener("click", async (e) => {
+        this._closeEditor = this.container.querySelector(".close-editor");
+        this._closeEditor.addEventListener("click", async (e) => {
             e.stopPropagation();
             ppixiv.settings.set("image_editing", null);
             ppixiv.settings.set("image_editing_mode", null);
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
-        this.undo_button = this.container.querySelector(".undo");
-        this.redo_button = this.container.querySelector(".redo");
-        this.undo_button.addEventListener("click", async (e) => {
+        this._undoButton = this.container.querySelector(".undo");
+        this._redoButton = this.container.querySelector(".redo");
+        this._undoButton.addEventListener("click", async (e) => {
             e.stopPropagation();
             this.undo();            
-        }, { signal: this.shutdown_signal.signal });
-        this.redo_button.addEventListener("click", async (e) => {
+        }, { signal: this.shutdownSignal.signal });
+        this._redoButton.addEventListener("click", async (e) => {
             e.stopPropagation();
             this.redo();            
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
 
         // Hotkeys:
         window.addEventListener("keydown", (e) => {
@@ -196,24 +196,24 @@ export default class ImageEditor extends IllustWidget
                 e.preventDefault();
                 this.redo();
             }
-        }, { signal: this.shutdown_signal.signal });
+        }, { signal: this.shutdownSignal.signal });
     }
 
     // Return true if the crop editor is active.
-    get editing_crop()
+    get editingCrop()
     {
-        return ppixiv.settings.get("image_editing", false) && this.active_editor_name == "crop";
+        return ppixiv.settings.get("image_editing", false) && this.activeEditorName == "crop";
     }
 
-    refresh_temporarily_hidden = () =>
+    _refreshTemporarilyHidden = () =>
     {
         // Hide while the UI is open.  This is only needed on mobile, where our buttons
         // overlap the hover UI.
         let hidden = ppixiv.mobile && !OpenWidgets.singleton.empty;
-        helpers.set_class(this.container, "temporarily-hidden", hidden);
+        helpers.setClass(this.container, "temporarily-hidden", hidden);
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
         if(ppixiv.settings.get("image_editing") != this.visible)
             ppixiv.settings.set("image_editing", this.visible);
@@ -223,28 +223,28 @@ export default class ImageEditor extends IllustWidget
 
         this.onvisibilitychanged();
 
-        super.visibility_changed();
+        super.visibilityChanged();
     }
 
     // In principle we could refresh from thumbnail data if this is the first manga page, since
     // all we need is the image dimensions.  However, the editing container is only displayed
-    // by on_click_viewer after we have full image data anyway since it's treated as part of the
+    // by ViewerImages after we have full image data anyway since it's treated as part of the
     // main image, so we won't be displayed until then anyway.
-    async refresh_internal({ media_id, media_info })
+    async refreshInternal({ mediaId, mediaInfo })
     {
-        // We can get the media ID before we have media_info.  Ignore it until we have both.
-        if(media_info == null)
-            media_id = null;
+        // We can get the media ID before we have mediaInfo.  Ignore it until we have both.
+        if(mediaInfo == null)
+            mediaId = null;
 
-        let editor_is_open = this.open_editor != null;
-        let media_id_changing = media_id != this.editing_media_id;
+        let editorIsOpen = this.openEditor != null;
+        let mediaIdChanging = mediaId != this._editingMediaId;
 
-        this.editing_media_id = media_id;
+        this._editingMediaId = mediaId;
 
         // Only tell the editor to replace its own data if we're changing images, or the
         // editor is closed.  If the editor is open and we're not changing images, don't
         // clobber ongoing edits.
-        let replace_editor_data = media_id_changing || !editor_is_open;
+        let replaceEditorData = mediaIdChanging || !editorIsOpen;
 
         // For local images, editing data is simply stored as a field on the illust data, which
         // we can save to the server.
@@ -253,26 +253,26 @@ export default class ImageEditor extends IllustWidget
         // the data for the first page, as an extraData dictionary with page media IDs as keys.
         //
         // Pull out the dictionary containing editing data for this image to give to the editor.
-        let { width, height } = ppixiv.mediaCache.get_dimensions(media_info, media_id);
-        let extra_data = ppixiv.mediaCache.get_extra_data(media_info, media_id);
+        let { width, height } = ppixiv.mediaCache.getImageDimensions(mediaInfo, mediaId);
+        let extraData = ppixiv.mediaCache.getExtraData(mediaInfo, mediaId);
 
         // Give the editors the new illust data.
         for(let editor of Object.values(this.editors))
-            editor.set_illust_data({ media_id, extra_data, width, height, replace_editor_data });
+            editor.setIllustData({ mediaId, extraData, width, height, replaceEditorData });
 
         // If no editor is open, make sure the undo stack is cleared and clear dirty.
-        if(!editor_is_open)
+        if(!editorIsOpen)
         {
             // Otherwise, just make sure the undo stack is cleared.
-            this.undo_stack = [];
-            this.redo_stack = [];
+            this._undoStack = [];
+            this._redoStack = [];
             this.dirty = false;
         }
 
-        this.refresh_temporarily_hidden();
+        this._refreshTemporarilyHidden();
     }
 
-    get open_editor()
+    get openEditor()
     {
         for(let editor of Object.values(this.editors))
         {
@@ -284,11 +284,11 @@ export default class ImageEditor extends IllustWidget
     }
 
     // This is called when the ImageEditingOverlayContainer changes.
-    set overlay_container(overlay_container)
+    set overlayContainer(overlayContainer)
     {
-        this.current_overlay_container = overlay_container;
+        this.current_overlay_container = overlayContainer;
         for(let editor of Object.values(this.editors))
-            editor.overlay_container = overlay_container;
+            editor.overlayContainer = overlayContainer;
     }
 
     refresh()
@@ -296,44 +296,44 @@ export default class ImageEditor extends IllustWidget
         super.refresh();
 
         this.visible = ppixiv.settings.get("image_editing", false);
-        helpers.set_class(this.save_edits, "dirty", this.dirty);
+        helpers.setClass(this._saveEdits, "dirty", this.dirty);
 
-        let is_local = helpers.is_media_id_local(this.media_id);
-        if(this.media_id != null)
-            this.show_inpaint.hidden = !is_local;
+        let isLocal = helpers.isMediaIdLocal(this._mediaId);
+        if(this._mediaId != null)
+            this._showInpaint.hidden = !isLocal;
 
-        let showing_crop = this.active_editor_name == "crop" && this.visible;
-        this.editors.crop.visible = showing_crop;
-        helpers.set_class(this.show_crop, "selected", showing_crop);
+        let showingCrop = this.activeEditorName == "crop" && this.visible;
+        this.editors.crop.visible = showingCrop;
+        helpers.setClass(this._showCrop, "selected", showingCrop);
 
-        let showing_pan = this.active_editor_name == "pan" && this.visible;
-        this.editors.pan.visible = showing_pan;
-        helpers.set_class(this.show_pan, "selected", showing_pan);
+        let showingPan = this.activeEditorName == "pan" && this.visible;
+        this.editors.pan.visible = showingPan;
+        helpers.setClass(this._showPan, "selected", showingPan);
 
-        let showing_inpaint = is_local && this.active_editor_name == "inpaint" && this.visible;
-        this.editors.inpaint.visible = showing_inpaint;
-        helpers.set_class(this.show_inpaint, "selected", showing_inpaint);
+        let showingInpaint = isLocal && this.activeEditorName == "inpaint" && this.visible;
+        this.editors.inpaint.visible = showingInpaint;
+        helpers.setClass(this._showInpaint, "selected", showingInpaint);
 
-        helpers.set_class(this.undo_button, "disabled", this.undo_stack.length == 0);
-        helpers.set_class(this.redo_button, "disabled", this.redo_stack.length == 0);
+        helpers.setClass(this._undoButton, "disabled", this._undoStack.length == 0);
+        helpers.setClass(this._redoButton, "disabled", this._redoStack.length == 0);
 
         // Hide the undo buttons in the top-left when no editor is active, since it overlaps the hover
         // UI.  Undo doesn't handle changes across editors well currently anyway.
-        this.top_button_row.querySelector(".left").hidden = this.active_editor_name == null;
+        this._topButtonRow.querySelector(".left").hidden = this.activeEditorName == null;
 
         // Disable hiding the mouse cursor when editing is enabled.  This also prevents
         // the top button row from being hidden.
-        if(showing_crop || showing_inpaint)
+        if(showingCrop || showingInpaint)
             HideMouseCursorOnIdle.disable_all("image-editing");
         else
             HideMouseCursorOnIdle.enable_all("image-editing");
     }
 
     // Store the current data as an undo state.
-    save_undo()
+    saveUndo()
     {
-        this.undo_stack.push(this.get_state());
-        this.redo_stack = [];
+        this._undoStack.push(this.getState());
+        this._redoStack = [];
 
         // Anything that adds to the undo stack causes us to be dirty.
         this.dirty = true;
@@ -342,11 +342,11 @@ export default class ImageEditor extends IllustWidget
     // Revert to the previous undo state, if any.
     undo()
     {
-        if(this.undo_stack.length == 0)
+        if(this._undoStack.length == 0)
             return;
 
-        this.redo_stack.push(this.get_state());
-        this.set_state(this.undo_stack.pop());
+        this._redoStack.push(this.getState());
+        this.setState(this._undoStack.pop());
 
         // If InpaintEditor was adding a line, we just undid the first point, so end it.
         this.editors.inpaint.adding_line = null;
@@ -356,35 +356,35 @@ export default class ImageEditor extends IllustWidget
     // Redo the last undo.
     redo()
     {
-        if(this.redo_stack.length == 0)
+        if(this._redoStack.length == 0)
             return;
 
-        this.undo_stack.push(this.get_state());
-        this.set_state(this.redo_stack.pop());
+        this._undoStack.push(this.getState());
+        this.setState(this._redoStack.pop());
         this.refresh();
     }
 
     // Load and save state, for undo.
-    get_state()
+    getState()
     {
         let result = {};
         for(let [name, editor] of Object.entries(this.editors))
-            result[name] = editor.get_state();
+            result[name] = editor.getState();
         return result;
     }
 
-    set_state(state)
+    setState(state)
     {
         for(let [name, editor] of Object.entries(this.editors))
-            editor.set_state(state[name]);
+            editor.setState(state[name]);
     }
 
-    get_data_to_save({include_empty=true}={})
+    getDataToSave({include_empty=true}={})
     {
         let edits = { };
         for(let editor of Object.values(this.editors))
         {
-            for(let [key, value] of Object.entries(editor.get_data_to_save()))
+            for(let [key, value] of Object.entries(editor.getDataToSave()))
             {
                 if(include_empty || value != null)
                     edits[key] = value;
@@ -400,16 +400,16 @@ export default class ImageEditor extends IllustWidget
         this.dirty = false;
 
         let spinner = this.container.querySelector(".spinner");
-        this.save_edits.hidden = true;
+        this._saveEdits.hidden = true;
         spinner.hidden = false;
         try {
             // Get data from each editor.
-            let edits = this.get_data_to_save();
+            let edits = this.getDataToSave();
 
-            let media_info;
-            if(helpers.is_media_id_local(this.media_id))
+            let mediaInfo;
+            if(helpers.isMediaIdLocal(this._mediaId))
             {
-                let result = await LocalAPI.local_post_request(`/api/set-image-edits/${this.media_id}`, edits);
+                let result = await LocalAPI.localPostRequest(`/api/set-image-edits/${this._mediaId}`, edits);
                 if(!result.success)
                 {
                     ppixiv.message.show(`Error saving image edits: ${result.reason}`);
@@ -420,29 +420,29 @@ export default class ImageEditor extends IllustWidget
                 }
 
                 // Update cached media info to include the change.
-                media_info = result.illust;
-                LocalAPI.adjust_illust_info(media_info);
-                ppixiv.mediaCache.update_media_info(this.media_id, media_info);
+                mediaInfo = result.illust;
+                LocalAPI.adjustIllustInfo(mediaInfo);
+                ppixiv.mediaCache.updateMediaInfo(this._mediaId, mediaInfo);
             }
             else
             {
                 // Save data for Pixiv images to image_data.
-                media_info = await ppixiv.mediaCache.save_extra_image_data(this.media_id, edits);                
+                mediaInfo = await ppixiv.mediaCache.saveExtraImageData(this._mediaId, edits);                
             }
 
             // Let the widgets know that we saved.
-            let current_editor = this.active_editor;
-            if(current_editor?.after_save)
-                current_editor.after_save(media_info);
+            let currentEditor = this.activeEditor;
+            if(currentEditor?.afterSave)
+                currentEditor.afterSave(mediaInfo);
         } finally {
-            this.save_edits.hidden = false;
+            this._saveEdits.hidden = false;
             spinner.hidden = true;
         }
     }
 
     async copy()
     {
-        let data = this.get_data_to_save({include_empty: false});
+        let data = this.getDataToSave({include_empty: false});
 
         if(Object.keys(data).length == 0)
         {
@@ -482,18 +482,18 @@ export default class ImageEditor extends IllustWidget
             return;
         }
 
-        this.set_state(data);
+        this.setState(data);
         await this.save();
 
         ppixiv.message.show("Edits pasted");
     }
 
-    get active_editor_name()
+    get activeEditorName()
     {
         return ppixiv.settings.get("image_editing_mode", null);
     }
 
-    set active_editor_name(editor_name)
+    set activeEditorName(editor_name)
     {
         if(editor_name != null && this.editors[editor_name] == null)
             throw new Error(`Invalid editor name ${editor_name}`);
@@ -501,13 +501,13 @@ export default class ImageEditor extends IllustWidget
         ppixiv.settings.set("image_editing_mode", editor_name);
     }
 
-    get active_editor()
+    get activeEditor()
     {
-        let current_editor = this.active_editor_name;
-        if(current_editor == null)
+        let currentEditor = this.activeEditorName;
+        if(currentEditor == null)
             return null;
         else
-            return this.editors[current_editor];
+            return this.editors[currentEditor];
     }
 
     get dirty() { return this._dirty; }

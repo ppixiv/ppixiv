@@ -9,14 +9,14 @@ import PointerListener from 'vview/actors/pointer-listener.js';
 import { helpers } from 'vview/misc/helpers.js';
 import WhatsNew from "vview/widgets/whats-new.js";
 
-function create_settings_widget({ global_options })
+function createSettingsWidget({ globalOptions })
 {
     // Each settings widget.  Doing it this way lets us move widgets around in the
     // menu without moving big blocks of code around.
     return {
-        thumbnail_size: () => {
+        thumbnailSize: () => {
             let button = new MenuOptionButton({
-                ...global_options,
+                ...globalOptions,
                 label: "Thumbnail size",
             });
 
@@ -31,9 +31,9 @@ function create_settings_widget({ global_options })
             button.container.querySelector(".size-slider").style.flexGrow = .25;
         },
 
-        manga_thumbnail_size: () => {
+        mangaThumbnailSize: () => {
             let button = new MenuOptionButton({
-                ...global_options,
+                ...globalOptions,
                 label: "Thumbnail size (manga)",
             });
 
@@ -48,135 +48,135 @@ function create_settings_widget({ global_options })
             button.container.querySelector(".size-slider").style.flexGrow = .25;
         },
 
-        disabled_by_default: () => {
+        disabledByDefault: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Disabled by default",
                 setting: "disabled-by-default",
-                explanation_enabled: "Go to Pixiv by default.",
-                explanation_disabled: "Go here by default.",
+                explanationEnabled: "Go to Pixiv by default.",
+                explanationDisabled: "Go here by default.",
             });
         },
 
-        no_hide_cursor: () => {
+        noHideCursor: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Hide cursor",
                 setting: "no-hide-cursor",
-                invert_display: true,
-                explanation_enabled: "Hide the cursor while the mouse isn't moving.",
-                explanation_disabled: "Don't hide the cursor while the mouse isn't moving.",
+                invertDisplay: true,
+                explanationEnabled: "Hide the cursor while the mouse isn't moving.",
+                explanationDisabled: "Don't hide the cursor while the mouse isn't moving.",
             });
         },
 
-        invert_popup_hotkey: () => {
+        invertPopupHotkey: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Shift-right-click to show the popup menu",
                 setting: "invert-popup-hotkey",
-                explanation_enabled: "Shift-right-click to open the popup menu",
-                explanation_disabled: "Right click opens the popup menu",
+                explanationEnabled: "Shift-right-click to open the popup menu",
+                explanationDisabled: "Right click opens the popup menu",
             });
         },
 
-        ctrl_opens_popup: () => {
+        ctrlOpensPopup: () => {
                 return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Hold ctrl to show the popup menu",
                 setting: "ctrl_opens_popup",
-                explanation_enabled: "Pressing Ctrl shows the popup menu (for laptops)",
+                explanationEnabled: "Pressing Ctrl shows the popup menu (for laptops)",
             });
         },
 
-        ui_on_hover: () => {
+        uiOnHover: () => {
             new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Hover to show search box",
                 setting: "ui-on-hover",
-                explanation_enabled: "Only show the search box when hovering over it",
-                explanation_disabled: "Always show the search box",
+                explanationEnabled: "Only show the search box when hovering over it",
+                explanationDisabled: "Always show the search box",
             });
         },
 
-        invert_scrolling: () => {
+        invertScrolling: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Invert image panning",
                 setting: "invert-scrolling",
-                explanation_enabled: "Dragging down moves the image down",
-                explanation_disabled: "Dragging down moves the image up",
+                explanationEnabled: "Dragging down moves the image down",
+                explanationDisabled: "Dragging down moves the image up",
             });
         },
 
         theme: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Light mode",
                 setting: "theme",
-                on_value: "light",
-                off_value: "dark",
-                explanation_enabled: "FLASHBANG",
+                onValue: "light",
+                offValue: "dark",
+                explanationEnabled: "FLASHBANG",
             });
         },
 
-        disable_translations: () => {
+        disableTranslations: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Show tag translations when available",
                 setting: "disable-translations",
-                invert_display: true,
+                invertDisplay: true,
             });
         },
 
-        disable_thumbnail_panning: () => {
+        disableThumbnailPanning: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Pan thumbnails while hovering over them",
                 setting: "disable_thumbnail_panning",
-                invert_display: true,
+                invertDisplay: true,
             });
         },
 
-        disable_thumbnail_zooming: () => {
+        disableThumbnailZooming: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Zoom out thumbnails while hovering over them",
                 setting: "disable_thumbnail_zooming",
-                invert_display: true,
+                invertDisplay: true,
             });
         },
 
-        enable_transitions: () => {
+        enableTransitions: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Use transitions",
                 setting: "animations_enabled",
             });
         },
 
-        bookmark_privately_by_default: () => {
+        bookmarkPrivatelyByDefault: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Bookmark and follow privately by default",
                 setting: "bookmark_privately_by_default",
-                explanation_disabled: "Pressing Ctrl-B will bookmark publically",
-                explanation_enabled: "Pressing Ctrl-B will bookmark privately",
+                explanationDisabled: "Pressing Ctrl-B will bookmark publically",
+                explanationEnabled: "Pressing Ctrl-B will bookmark privately",
             });
         },
 
-        limit_slideshow_framerate: () => {
+        limitSlideshowFramerate: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Limit slideshows to 60 FPS",
                 setting: "slideshow_framerate",
-                on_value: 60,
-                off_value: null,
+                onValue: 60,
+                offValue: null,
             });
         },
 
-        import_extra_data: () => {
+        importExtraData: () => {
             let widget = new MenuOptionRow({
-                ...global_options,
+                ...globalOptions,
                 label: "Image edits",
             });
 
@@ -196,9 +196,9 @@ function create_settings_widget({ global_options })
             return widget;
         },
 
-        stage_slideshow: () => {
+        stageSlideshow: () => {
             let widget = new MenuOptionRow({
-                ...global_options,
+                ...globalOptions,
                 label: "Bookmark slideshow",
             });
 
@@ -208,7 +208,7 @@ function create_settings_widget({ global_options })
                 container: widget.container,
                 onclick: () => {
                     // Close the settings dialog.
-                    global_options.close_settings();
+                    globalOptions.closeSettings();
 
                     SlideshowStagingDialog.show();
                 },
@@ -217,17 +217,17 @@ function create_settings_widget({ global_options })
             return widget;
         },
 
-        quick_view: () => {
+        quickView: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Quick view",
                 setting: "quick_view",
-                explanation_enabled: "Navigate to images immediately when the mouse button is pressed",
+                explanationEnabled: "Navigate to images immediately when the mouse button is pressed",
 
                 check: () => {
                     // Only enable changing this option when using a mouse.  It has no effect
                     // on touchpads.
-                    if(PointerListener.pointer_type == "mouse")
+                    if(PointerListener.pointerType == "mouse")
                         return true;
 
                     ppixiv.message.show("Quick View is only supported when using a mouse.");
@@ -236,20 +236,20 @@ function create_settings_widget({ global_options })
             });
         },
 
-        auto_pan: () => {
+        autoPan: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Pan images",
                 setting: "auto_pan",
-                explanation_enabled: "Pan images while viewing them (drag the image to stop)",
+                explanationEnabled: "Pan images while viewing them (drag the image to stop)",
             });
         },
 
-        auto_pan_speed: () => {
+        autoPanSpeed: () => {
             let button = new MenuOptionButton({
-                ...global_options,
+                ...globalOptions,
                 label: "Time per image",
-                get_label: () => {
+                getLabel: () => {
                     let seconds = ppixiv.settings.get("auto_pan_duration");;
                     return `Pan duration: ${seconds} ${seconds != 1? "seconds":"second"}`;                                        
                 },
@@ -270,11 +270,11 @@ function create_settings_widget({ global_options })
             return button;
         },
 
-        slideshow_speed: () => {
+        slideshowSpeed: () => {
             let button = new MenuOptionButton({
-                ...global_options,
+                ...globalOptions,
                 label: "Time per image",
-                get_label: () => {
+                getLabel: () => {
                     let seconds = ppixiv.settings.get("slideshow_duration");;
                     return `Slideshow duration: ${seconds} ${seconds != 1? "seconds":"second"}`;
                 },
@@ -293,9 +293,9 @@ function create_settings_widget({ global_options })
             button.container.querySelector(".size-slider").style.flexGrow = .25;
         },
 
-        slideshow_default_animation: () => {
+        slideshowDefaultAnimation: () => {
             return new MenuOptionOptionsSetting({
-                ...global_options,
+                ...globalOptions,
                 setting: "slideshow_default",
                 label: "Slideshow mode",
                 values: ["pan", "contain"],
@@ -309,109 +309,109 @@ function create_settings_widget({ global_options })
             });
         },
 
-        slideshow_skips_manga: () => {
+        slideshowSkipsManga: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Slideshow skips manga pages",
                 setting: "slideshow_skips_manga",
-                explanation_enabled: "Slideshow mode will only show the first page.",
-                explanation_disabled: "Slideshow mode will show all pages.",
+                explanationEnabled: "Slideshow mode will only show the first page.",
+                explanationDisabled: "Slideshow mode will show all pages.",
             });
         },
 
-        expand_manga_posts: () => {
+        expandMangaPosts: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Expand manga posts in search results",
                 setting: "expand_manga_thumbnails",
             });
         },
 
-        view_mode: () => {
+        viewMode: () => {
             new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Return to the top when changing images",
                 setting: "view_mode",
-                on_value: "manga",
-                off_value: "illust",
+                onValue: "manga",
+                offValue: "illust",
             });
         },
-        link_tabs: () => {
+        linkTabs: () => {
             let widget = new LinkTabsPopup({
-                ...global_options,
+                ...globalOptions,
             });
 
             // Tell the widget when it's no longer visible.
-            global_options.page_removed_signal.addEventListener("abort", () => { widget.visible = false; });
+            globalOptions.pageRemovedSignal.addEventListener("abort", () => { widget.visible = false; });
             return widget;
         },
-        enable_linked_tabs: () => {
+        enableLinkedTabs: () => {
             return new MenuOptionToggleSetting({
-                ...global_options,
+                ...globalOptions,
                 label: "Enabled",
-                setting: "linked_tabs_enabled",
+                setting: "linkedTabs_enabled",
             });
         },
-        unlink_all_tabs: () => {
+        unlinkAllTabs: () => {
             return new MenuOptionButton({
-                ...global_options,
+                ...globalOptions,
                 label: "Unlink all tabs",
                 onclick: () => {
                     ppixiv.settings.set("linked_tabs", []);
                 },
             });
         },
-        muted_tags: () => {
+        mutedTags: () => {
             let widget = new EditMutedTagsWidget({
-                mute_type: "tag",
-                ...global_options,
+                muteType: "tag",
+                ...globalOptions,
             });
 
             // Tell the widget when it's no longer visible.
-            global_options.page_removed_signal.addEventListener("abort", () => { widget.visible = false; });
+            globalOptions.pageRemovedSignal.addEventListener("abort", () => { widget.visible = false; });
 
             return widget;
         },
-        muted_users: () => {
+        mutedUsers: () => {
             let widget = new EditMutedTagsWidget({
-                mute_type: "user",
-                ...global_options,
+                muteType: "user",
+                ...globalOptions,
             });
 
             // Tell the widget when it's no longer visible.
-            global_options.page_removed_signal.addEventListener("abort", () => { widget.visible = false; });
+            globalOptions.pageRemovedSignal.addEventListener("abort", () => { widget.visible = false; });
 
             return widget;
         },
-        whats_new: async() => {
+        whatsNew: async() => {
             let widget = new WhatsNew({
-                ...global_options,
+                ...globalOptions,
             });
 
-            global_options.page_removed_signal.addEventListener("abort", () => { widget.visible = false; });
+            globalOptions.pageRemovedSignal.addEventListener("abort", () => { widget.visible = false; });
 
             return widget;
         },
     };
 }
 
-let _page_titles = {
+let pageTitles = {
     thumbnail:  "Thumbnail options",
     image:"Image viewing",
-    tag_muting: "Muted tags",
-    user_muting: "Muted users",
-    linked_tabs: "Linked tabs",
+    tagMuting: "Muted tags",
+    userMuting: "Muted users",
+    linkedTabs: "Linked tabs",
     other: "Other",
-    whats_new: "What's New",
+    whatsNew: "What's New",
 };
 
 export class SettingsDialog extends DialogWidget
 {
-    constructor({show_page="thumbnail", ...options}={})
+    constructor({showPage="thumbnail", ...options}={})
     {
         super({
             ...options,
-            dialog_class: "settings-dialog",
+            dialogClass: "settings-dialog",
             classes: ["settings-window"],
             header: "Settings",
 
@@ -422,225 +422,224 @@ export class SettingsDialog extends DialogWidget
         });
 
         this.phone = helpers.is_phone();
-        helpers.set_class(this.container, "phone", this.phone);
-        this.page_buttons = {};
+        helpers.setClass(this.container, "phone", this.phone);
+        this._pageButtons = {};
 
         // If we're using a phone UI, we're showing items by opening a separate dialog.  The
         // page contents block will be empty, so hide it to let the options center.
         this.container.querySelector(".items").hidden = this.phone;
 
-        this.add_pages();
+        this.addPages();
 
         // If we're not on the phone UI, show the default page.
-        show_page ??= "thumbnail";
+        showPage ??= "thumbnail";
 
         if(!this.phone)
-            this.show_page(show_page);
+            this.showPage(showPage);
     }
 
-    add_pages()
+    addPages()
     {
-        this.create_page_button("thumbnail");
-        this.create_page_button("image");
+        this._createPageButton("thumbnail");
+        this._createPageButton("image");
 
         if(!ppixiv.native)
         {
-            this.create_page_button("tag_muting");
-            this.create_page_button("user_muting");
+            this._createPageButton("tagMuting");
+            this._createPageButton("userMuting");
         }
 
         if(ppixiv.sendImage.enabled)
-            this.create_page_button("linked_tabs");
+            this._createPageButton("linkedTabs");
 
-        this.create_page_button("other");
-        this.create_page_button("whats_new");
+        this._createPageButton("other");
+        this._createPageButton("whatsNew");
     }
 
-    create_page_button(name)
+    _createPageButton(name)
     {
-        let page_button = this.create_template({
-            html: helpers.create_box_link({
-                label: _page_titles[name],
+        let pageButton = this.createTemplate({
+            html: helpers.createBoxLink({
+                label: pageTitles[name],
                 classes: ["settings-page-button"],
             }),
         });
-        page_button.dataset.page = name;
+        pageButton.dataset.page = name;
 
-        page_button.addEventListener("click", (e) => {
-            this.show_page(name);
+        pageButton.addEventListener("click", (e) => {
+            this.showPage(name);
         });
-        this.container.querySelector(".sections").appendChild(page_button);
-        this.page_buttons[name] = page_button;
+        this.container.querySelector(".sections").appendChild(pageButton);
+        this._pageButtons[name] = pageButton;
 
-        return page_button;
+        return pageButton;
     }
 
-    show_page(name)
+    showPage(name)
     {
-        if(this.visible_page_name == name)
+        if(this._visiblePageName == name)
             return;
 
         // Remove the widget page or dialog if it still exists.
-        if(this.page_widget != null)
-            this.page_widget.shutdown();
-        console.assert(this.page_widget == null);
+        if(this._pageWidget != null)
+            this._pageWidget.shutdown();
+        console.assert(this._pageWidget == null);
 
-        this.visible_page_name = name;
+        this._visiblePageName = name;
 
         if(name != null)
         {
-            this.page_widget = this.create_page(name);
-            helpers.set_class(this.page_buttons[name], "selected", true);
+            this._pageWidget = this._createPage(name);
+            helpers.setClass(this._pageButtons[name], "selected", true);
             if(!this.phone)
-                this.header = _page_titles[name];
+                this.header = pageTitles[name];
 
-            this.page_widget.shutdown_signal.signal.addEventListener("abort", () => {
-                this.page_widget = null;
-                helpers.set_class(this.page_buttons[name], "selected", false);
+            this._pageWidget.shutdownSignal.signal.addEventListener("abort", () => {
+                this._pageWidget = null;
+                helpers.setClass(this._pageButtons[name], "selected", false);
             });
         }
     }
 
-    create_page(settings_page)
+    _createPage(settingsPage)
     {
         // If we're on a phone, create a dialog to show the page.  Otherwise, create the page in our
         // items container.
         if(this.phone)
-            return new SettingsPageDialog({ settings_page });
+            return new SettingsPageDialog({ settingsPage });
 
-        let page_widget = new Widget({
+        let pageWidget = new Widget({
             container: this.container.querySelector(".items"),
             template: `
                 <div class=settings-page></div>
             `
         });
 
-        SettingsDialog._fill_page({
-            settings_page,
-            page_widget,
-            page_container: page_widget.container,
+        SettingsDialog._fillPage({
+            settingsPage,
+            pageWidget,
+            pageContainer: pageWidget.container,
         });
 
-        return page_widget;
+        return pageWidget;
     }
 
-    static _fill_page({ settings_page, page_widget, page_container })
+    static _fillPage({ settingsPage, pageWidget, pageContainer })
     {
         // Set settings-list if this page is a list of options, like the thumbnail options page.
         // This class enables styling for these lists.  If it's another type of settings page
         // with its own styling, this is disabled.
-        let is_settings_list = settings_page != "tag_muting" && settings_page != "user_muting";
-        if(is_settings_list)
-            page_container.classList.add("settings-list");
+        let isSettingsList = settingsPage != "tagMuting" && settingsPage != "userMuting";
+        if(isSettingsList)
+            pageContainer.classList.add("settings-list");
 
-        // Options that we pass to all menu_options:
-        let global_options = {
+        // Options that we pass to all menu options:
+        let globalOptions = {
             classes: ["settings-row"],
-            container: page_container,
-            page_removed_signal: page_widget.shutdown_signal.signal,
+            container: pageContainer,
+            pageRemovedSignal: pageWidget.shutdownSignal.signal,
 
             // Settings widgets can call this to close the window.
-            close_settings: () => {
+            closeSettings: () => {
                 this.visible = false;
             },
         };
 
         // This gives us a dictionary of functions we can use to create each settings widget.
-        let settings_widgets = create_settings_widget({ global_options });
+        let settingsWidgets = createSettingsWidget({ globalOptions });
 
         let pages = {
             thumbnail: () =>
             {
-                settings_widgets.thumbnail_size();
+                settingsWidgets.thumbnailSize();
                 if(!ppixiv.native)
-                    settings_widgets.manga_thumbnail_size();
+                    settingsWidgets.mangaThumbnailSize();
                 if(!ppixiv.mobile)
                 {
-                    settings_widgets.disable_thumbnail_panning();
-                    settings_widgets.disable_thumbnail_zooming();
-                    settings_widgets.quick_view();
-                    settings_widgets.ui_on_hover();
+                    settingsWidgets.disableThumbnailPanning();
+                    settingsWidgets.disableThumbnailZooming();
+                    settingsWidgets.quickView();
+                    settingsWidgets.uiOnHover();
                 }
                 
                 if(!ppixiv.native)
-                    settings_widgets.expand_manga_posts();
+                    settingsWidgets.expandMangaPosts();
             },
             image: () => {
-                settings_widgets.auto_pan();
-                settings_widgets.auto_pan_speed();
-                settings_widgets.slideshow_speed();
-                settings_widgets.slideshow_default_animation();
+                settingsWidgets.autoPan();
+                settingsWidgets.autoPanSpeed();
+                settingsWidgets.slideshowSpeed();
+                settingsWidgets.slideshowDefaultAnimation();
                 if(!ppixiv.native) // native mode doesn't support manga pages
-                    settings_widgets.slideshow_skips_manga();
+                    settingsWidgets.slideshowSkipsManga();
                 
-                settings_widgets.view_mode();
+                settingsWidgets.viewMode();
                 if(!ppixiv.mobile)
                 {
-                    settings_widgets.invert_scrolling();
-                    settings_widgets.no_hide_cursor();
+                    settingsWidgets.invertScrolling();
+                    settingsWidgets.noHideCursor();
                 }
             },
 
-            tag_muting: () => {
-                settings_widgets.muted_tags();
+            tagMuting: () => {
+                settingsWidgets.mutedTags();
             },
 
-            user_muting: () => {
-                settings_widgets.muted_users();
+            userMuting: () => {
+                settingsWidgets.mutedUsers();
             },
 
-            linked_tabs: () => {
-                settings_widgets.link_tabs({visible: false});
-                settings_widgets.enable_linked_tabs();
-                settings_widgets.unlink_all_tabs();
+            linkedTabs: () => {
+                settingsWidgets.linkTabs();
+                settingsWidgets.unlinkAllTabs();
             },
 
             other: () => {
-                settings_widgets.disable_translations();
+                settingsWidgets.disableTranslations();
 
                 if(!ppixiv.native && !ppixiv.mobile)
-                    settings_widgets.disabled_by_default();
+                    settingsWidgets.disabledByDefault();
                     
                 if(!ppixiv.mobile)
                 {
                     // Firefox's contextmenu behavior is broken, so hide this option.
                     if(navigator.userAgent.indexOf("Firefox/") == -1)
-                        settings_widgets.invert_popup_hotkey();
+                        settingsWidgets.invertPopupHotkey();
         
-                    settings_widgets.ctrl_opens_popup();
-                    settings_widgets.enable_transitions();
+                    settingsWidgets.ctrlOpensPopup();
+                    settingsWidgets.enableTransitions();
                 }
         
-                // settings_widgets.theme();
-                settings_widgets.bookmark_privately_by_default();
-                settings_widgets.limit_slideshow_framerate();
+                // settingsWidgets.theme();
+                settingsWidgets.bookmarkPrivatelyByDefault();
+                settingsWidgets.limitSlideshowFramerate();
         
                 // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
                 // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
                 if(!ppixiv.native && window.showOpenFilePicker != null)
-                    settings_widgets.import_extra_data();
+                    settingsWidgets.importExtraData();
         
-                settings_widgets.stage_slideshow();
+                settingsWidgets.stageSlideshow();
             },
 
-            whats_new: () => {
-                settings_widgets.whats_new();
+            whatsNew: () => {
+                settingsWidgets.whatsNew();
             },
         };
 
-        let create_page = pages[settings_page];
-        if(create_page == null)
+        let createPage = pages[settingsPage];
+        if(createPage == null)
         {
-            console.error(`Invalid settings page: ${settings_page}`);
+            console.error(`Invalid settings page: ${settingsPage}`);
             return;
         }
 
-        create_page();
+        createPage();
         
         // Add allow-wrap to all top-level box links that we just created, so the
         // settings menu scales better.  Don't recurse into nested buttons.
-        for(let box_link of page_container.querySelectorAll(".settings-page > .box-link"))
-            box_link.classList.add("allow-wrap");
+        for(let boxLink of pageContainer.querySelectorAll(".settings-page > .box-link"))
+            boxLink.classList.add("allow-wrap");
     }
 };
 
@@ -648,28 +647,28 @@ export class SettingsDialog extends DialogWidget
 export class SettingsPageDialog extends DialogWidget
 {
     constructor({
-        settings_page,
+        settingsPage,
         ...options}={})
     {
         super({
-            header: _page_titles[settings_page],
+            header: pageTitles[settingsPage],
 
             ...options,
-            dialog_class: "settings-dialog-page",
+            dialogClass: "settings-dialog-page",
 
             // This is a nested dialog and closing it goes back to settings, so show
             // a back button instead of a close button.
-            back_icon: true,
+            backIcon: true,
             template: ``
         });
 
-        this.settings_container = this.querySelector(".scroll");
-        this.settings_container.classList.add("settings-page");
+        this._settingsContainer = this.querySelector(".scroll");
+        this._settingsContainer.classList.add("settings-page");
 
-        SettingsDialog._fill_page({
-            settings_page,
-            page_widget: this,
-            page_container: this.settings_container,
+        SettingsDialog._fillPage({
+            settingsPage,
+            pageWidget: this,
+            pageContainer: this._settingsContainer,
         });
     }
 };
@@ -687,15 +686,15 @@ class SlideshowStagingDialog extends DialogWidget
 {
     static show()
     {
-        let slideshow_args = ppixiv.app.slideshowURL;
-        if(slideshow_args == null)
+        let slideshowArgs = ppixiv.app.slideshowURL;
+        if(slideshowArgs == null)
             return;
 
         // Set the slideshow URL without sending popstate, so it'll be the current browser URL
         // that can be bookmarked but we won't actually navigate to it.  We don't want to navigate
         // to it since that'll change the placeholder "*" illust ID to a real illust ID, which
         // isn't what we want to bookmark.
-        helpers.navigate(slideshow_args, { send_popstate: false });
+        helpers.navigate(slideshowArgs, { sendPopstate: false });
 
         new SlideshowStagingDialog();
     }
@@ -714,9 +713,9 @@ class SlideshowStagingDialog extends DialogWidget
         this.url = helpers.args.location;
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
+        super.visibilityChanged();
 
         if(!this.visible)
         {

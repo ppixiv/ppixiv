@@ -5,14 +5,14 @@ import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
 export default class DialogWidget extends Widget
 {
     // The stack of dialogs currently open:
-    static active_dialogs = [];
+    static activeDialogs = [];
 
-    static get top_dialog()
+    static get topDialog()
     {
-        return this.active_dialogs[this.active_dialogs.length-1];
+        return this.activeDialogs[this.activeDialogs.length-1];
     }
 
-    static _update_block_touch_scrolling()
+    static _updateBlockTouchScrolling()
     {
         if(!ppixiv.ios)
             return;
@@ -30,28 +30,28 @@ export default class DialogWidget extends Widget
         // which is set to overflow: auto or overflow: scroll but doesn't actually scroll.  We can't tell
         // that it isn't scrolling, and iOS seems to blindly propagate any touch on a potentially-scrollable
         // element up to the nearest scrollable one.
-        if(DialogWidget.active_dialogs.length == 0)
+        if(DialogWidget.activeDialogs.length == 0)
         {
-            if(this._remove_touch_scroller_events != null)
+            if(this._removeTouchScrollerEvents != null)
             {
-                this._remove_touch_scroller_events.abort();
-                this._remove_touch_scroller_events = null;
+                this._removeTouchScrollerEvents.abort();
+                this._removeTouchScrollerEvents = null;
             }
             return;
         }
 
         // At least one dialog is open.  Start listening to touchmove if we're not already.
-        if(this._remove_touch_scroller_events)
+        if(this._removeTouchScrollerEvents)
             return;
 
-        this._remove_touch_scroller_events = new AbortController();
+        this._removeTouchScrollerEvents = new AbortController();
         window.addEventListener("touchmove", (e) => {
             // Block this movement if it's not inside the topmost open dialog.
-            let top_dialog = DialogWidget.top_dialog;
-            let dialog = top_dialog.container.querySelector(".dialog");
-            if(!helpers.is_above(dialog, e.target))
+            let topDialog = DialogWidget.topDialog;
+            let dialog = topDialog.container.querySelector(".dialog");
+            if(!helpers.isAbove(dialog, e.target))
                 e.preventDefault();
-        }, { capture: true, passive: false, signal: this._remove_touch_scroller_events.signal });
+        }, { capture: true, passive: false, signal: this._removeTouchScrollerEvents.signal });
     }
 
     constructor({
@@ -59,67 +59,67 @@ export default class DialogWidget extends Widget
         container=null,
         // "normal" is used for larger dialogs, like settings.
         // "small" is used for smaller popups like text entry.
-        dialog_type="normal",
+        dialogType="normal",
 
-        dialog_class=null,
+        dialogClass=null,
 
         // The header text:
         header=null,
 
         // Most dialogs have a close button and allow the user to navigate away.  To
         // disable this and control visibility directly, set this to false.
-        allow_close=true,
+        allowClose=true,
 
         // Most dialogs that can be closed have a close button in the corner.  If this is
         // false we'll hide that button, but you can still exit by clicking the background.
         // This is used for very simple dialogs.
-        show_close_button=true,
+        showCloseButton=true,
 
         // If false, this dialog may be large, like settings, and we'll display it in fullscreen
         // on small screens.  If true, weit's a small dialog like a confirmation prompt, and we'll
-        // always show it as a floating dialog.  The default is true if dialog_type == "small",
+        // always show it as a floating dialog.  The default is true if dialogType == "small",
         // otherwise false.
         small=null,
 
         // If true, the close button shows a back icon instead of an X.
-        back_icon=false,
+        backIcon=false,
 
         // The drag direction to close the dialog if the dialog can be dragged to close.
-        drag_direction=null,
+        dragDirection=null,
 
         template,
         ...options
     })
     {
         if(small == null)
-            small = dialog_type == "small";
+            small = dialogType == "small";
 
         // By default, regular dialogs scroll and drag right, so they don't conflict with vertical
         // scrollers.  Small dialogs currently drag down, since animating a small dialog like a
         // text entry horizontally looks weird.
-        if(drag_direction == null)
-            drag_direction = small? "down":"right";
+        if(dragDirection == null)
+            dragDirection = small? "down":"right";
 
         // Most dialogs are added to the body element.
         if(container == null)
             container = document.body;
         
-        console.assert(dialog_type == "normal" || dialog_type == "small");
+        console.assert(dialogType == "normal" || dialogType == "small");
 
-        if(dialog_class == null)
-            dialog_class = dialog_type == "normal"? "dialog-normal":"dialog-small";
+        if(dialogClass == null)
+            dialogClass = dialogType == "normal"? "dialog-normal":"dialog-small";
 
-        let close_icon = back_icon? "arrow_back_ios_new":"close";
+        let closeIcon = backIcon? "arrow_back_ios_new":"close";
         
         super({
             container,
             template: `
-                <div class="${dialog_class}">
+                <div class="${dialogClass}">
                     <div class="dialog ${classes ?? ""}">
                         <div class=header>
                             <div class="close-button-container">
                                 <div class="close-button icon-button">
-                                    ${ helpers.create_icon(close_icon) }
+                                    ${ helpers.createIcon(closeIcon) }
                                 </div>
                             </div>
 
@@ -141,43 +141,39 @@ export default class DialogWidget extends Widget
             throw new Error("Dialog shouldn't be hidden");
 
         this.small = small;
-        helpers.set_class(this.container, "small", this.small);
-        helpers.set_class(this.container, "large", !this.small);
+        helpers.setClass(this.container, "small", this.small);
+        helpers.setClass(this.container, "large", !this.small);
 
-        this.refresh_fullscreen();
-        window.addEventListener("resize", this.refresh_fullscreen, { signal: this.shutdown_signal.signal });
+        this.refreshFullscreen();
+        window.addEventListener("resize", this.refreshFullscreen, { signal: this.shutdownSignal.signal });
 
         // Create the dragger that will control animations.  Animations are only used on mobile.
         if(ppixiv.mobile)
         {
-            // drag_direction is the direction to close.  We're giving it to WidgetDragger,
+            // dragDirection is the direction to close.  We're giving it to WidgetDragger,
             // which takes the direction ti open, so reverse it.
-            drag_direction = {
+            dragDirection = {
                 down: "up", up: "down", left: "right", right: "left",
-            }[drag_direction];
+            }[dragDirection];
 
-            this.dialog_dragger = new WidgetDragger({
+            this._dialogDragger = new WidgetDragger({
                 name: "close-dialog",
                 node: this.container,
-                drag_node: this.container,
+                dragNode: this.container,
                 visible: false,
                 size: 150,
-                animated_property: "--dialog-visible",
-
-                // Call create_animation again each time this is queried, so the animation can change to
-                // adjust to the screen size if needed.
-                animations: () => this.create_animation().animation,
-                direction: drag_direction,
-                onafterhidden: () => this.visibility_changed(),
+                animatedProperty: "--dialog-visible",
+                direction: dragDirection,
+                onafterhidden: () => this.visibilityChanged(),
 
                 // Ignore vertical drags.
-                confirm_drag: ({event}) => {
+                confirmDrag: ({event}) => {
                     if(!this.drag_to_exit)
                         return false;
 
                     let horizontal = Math.abs(event.movementX) > Math.abs(event.movementY);
-                    let want_horizontal = drag_direction == "left" || drag_direction == "right";
-                    return horizontal == want_horizontal;
+                    let wantHorizontal = dragDirection == "left" || dragDirection == "right";
+                    return horizontal == wantHorizontal;
                 },
 
                 // Set dragging while dragging the dialog to disable the scroller.
@@ -185,36 +181,36 @@ export default class DialogWidget extends Widget
                 oninactive: () => this.container.classList.remove("dragging-dialog"),
             });
         
-            this.dialog_dragger.show();
+            this._dialogDragger.show();
         }
 
         // By default, dialogs with vertical or horizontal animations are also draggable.  Only
         // animated dialogs can drag to exit.
-        // this.drag_to_exit = this.dialog_dragger != null && this.animation != "fade";
+        // this.drag_to_exit = this._dialogDragger != null && this.animation != "fade";
         this.drag_to_exit = true;
 
         // If we're not the first dialog on the stack, make the previous dialog inert, so it'll ignore inputs.
-        let old_top_dialog = DialogWidget.top_dialog;
-        if(old_top_dialog)
-            old_top_dialog.container.inert = true;
+        let oldTopDialog = DialogWidget.topDialog;
+        if(oldTopDialog)
+            oldTopDialog.container.inert = true;
 
         // Add ourself to the stack.
-        DialogWidget.active_dialogs.push(this);
+        DialogWidget.activeDialogs.push(this);
 
         // Register ourself as an important visible widget, so the slideshow won't move on
         // while we're open.
         OpenWidgets.singleton.set(this, true);
 
-        if(!header && !show_close_button)
+        if(!header && !showCloseButton)
             this.container.querySelector(".header").hidden = true;
 
-        this.allow_close = allow_close;
-        this.container.querySelector(".close-button").hidden = !allow_close || !show_close_button;
+        this.allowClose = allowClose;
+        this.container.querySelector(".close-button").hidden = !allowClose || !showCloseButton;
         this.header = header;
 
-        window.addEventListener("keydown", this._onkeypress.bind(this), { signal: this.shutdown_signal.signal });
+        window.addEventListener("keydown", this._onkeypress.bind(this), { signal: this.shutdownSignal.signal });
 
-        if(this.allow_close)
+        if(this.allowClose)
         {
             // Close if the container is clicked, but not if something inside the container is clicked.
             this.container.addEventListener("click", (e) => {
@@ -224,27 +220,27 @@ export default class DialogWidget extends Widget
                 this.visible = false;
             });
 
-            let close_button = this.container.querySelector(".close-button");
-            if(close_button)
-                close_button.addEventListener("click", (e) => { this.visible = false; });
+            let closeButton = this.container.querySelector(".close-button");
+            if(closeButton)
+                closeButton.addEventListener("click", (e) => { this.visible = false; });
 
             // Hide if the top-level screen changes, so we close if the user exits the screen with browser
             // navigation but not if the viewed image is changing from something like the slideshow.  Call
             // shutdown() directly instead of setting visible, since we don't want to trigger animations here.
             window.addEventListener("screenchanged", (e) => {
                 this.shutdown();
-            }, { signal: this.shutdown_signal.signal });
+            }, { signal: this.shutdownSignal.signal });
 
             if(this._close_on_popstate)
             {
                 // Hide on any state change.
                 window.addEventListener("pp:popstate", (e) => {
                     this.shutdown();
-                }, { signal: this.shutdown_signal.signal });
+                }, { signal: this.shutdownSignal.signal });
             }
         }
 
-        DialogWidget._update_block_touch_scrolling();
+        DialogWidget._updateBlockTouchScrolling();
     }
 
     // The subclass can override this to disable automatically closing on popstate.
@@ -255,34 +251,34 @@ export default class DialogWidget extends Widget
         this.container.querySelector(".header-text").textContent = value ?? "";
     }
 
-    refresh_fullscreen = () =>
+    refreshFullscreen = () =>
     {
-        helpers.set_class(this.container, "fullscreen", helpers.is_phone() && !this.small);
+        helpers.setClass(this.container, "fullscreen", helpers.is_phone() && !this.small);
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
+        super.visibilityChanged();
 
         // Remove the widget when it's hidden.  If we're animating, we'll do this after transitionend.
-        if(!this.actually_visible)
+        if(!this.actuallyVisible)
             this.shutdown();
     }
 
     _onkeypress(e)
     {
-        let idx = DialogWidget.active_dialogs.indexOf(this);
+        let idx = DialogWidget.activeDialogs.indexOf(this);
         if(idx == -1)
         {
-            console.error("Widget isn't in active_dialogs during keypress:", this);
+            console.error("Widget isn't in activeDialogs during keypress:", this);
             return;
         }
 
         // Ignore keypresses if we're not the topmost dialog.
-        if(idx != DialogWidget.active_dialogs.length-1)
+        if(idx != DialogWidget.activeDialogs.length-1)
             return;
 
-        if(this.handle_keydown(e))
+        if(this._handleKeydown(e))
         {
             e.preventDefault();
             e.stopPropagation();
@@ -290,9 +286,9 @@ export default class DialogWidget extends Widget
     }
 
     // This can be overridden by the implementation.
-    handle_keydown(e)
+    _handleKeydown(e)
     {
-        if(this.allow_close && e.key == "Escape")
+        if(this.allowClose && e.key == "Escape")
         {
             this.visible = false;
             return true;
@@ -301,26 +297,26 @@ export default class DialogWidget extends Widget
         return false;
     }
 
-    get actually_visible()
+    get actuallyVisible()
     {
         // If we have an animator, it determines whether we're visible.
-        if(this.dialog_dragger)
-            return this.dialog_dragger.visible;
+        if(this._dialogDragger)
+            return this._dialogDragger.visible;
         else
             return super.visible;
     }
 
-    async apply_visibility()
+    async applyVisibility()
     {
-        if(this.dialog_dragger == null || this._visible)
+        if(this._dialogDragger == null || this._visible)
         {
-            super.apply_visibility();
+            super.applyVisibility();
             return;
         }
 
         // We're being hidden and we have an animation.  Tell the dragger to run our hide
         // animation.  We'll shut down when it finishes.
-        this.dialog_dragger.hide();
+        this._dialogDragger.hide();
     }
 
     // Calling shutdown() directly will remove the dialog immediately.  To remove it and allow
@@ -328,22 +324,22 @@ export default class DialogWidget extends Widget
     // finishes.
     shutdown()
     {
-        // Remove ourself from active_dialogs.
-        let idx = DialogWidget.active_dialogs.indexOf(this);
+        // Remove ourself from activeDialogs.
+        let idx = DialogWidget.activeDialogs.indexOf(this);
         if(idx == -1)
-            console.error("Widget isn't in active_dialogs when shutting down:", this);
+            console.error("Widget isn't in activeDialogs when shutting down:", this);
         else
-            DialogWidget.active_dialogs.splice(idx, 1);
+            DialogWidget.activeDialogs.splice(idx, 1);
 
         // Tell OpenWidgets that we're no longer open.
         OpenWidgets.singleton.set(this, false);
 
-        DialogWidget._update_block_touch_scrolling();
+        DialogWidget._updateBlockTouchScrolling();
 
         // If we were covering another dialog, unset inert on the previous dialog.
-        let new_top_dialog = DialogWidget.top_dialog;
-        if(new_top_dialog)
-            new_top_dialog.container.inert = false;
+        let newTopDialog = DialogWidget.topDialog;
+        if(newTopDialog)
+            newTopDialog.container.inert = false;
 
         super.shutdown();
     }

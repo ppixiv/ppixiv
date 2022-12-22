@@ -3,7 +3,7 @@ import { helpers } from 'vview/misc/helpers.js';
 export default class MediaCacheMappings
 {
     // Get the mapping from /ajax/user/id/illusts/bookmarks to illust_list.php's keys.
-    static thumbnail_info_map_illust_list =
+    static _thumbnailInfoMapIllustList =
     [
         ["illust_id", "id"],
         ["url", "url"],
@@ -22,7 +22,7 @@ export default class MediaCacheMappings
         [null, "aiType"],
     ];
 
-    static thumbnail_info_map_ranking = [
+    static _thumbnailInfoMapRanking = [
         ["illust_id", "id"],
         ["url", "url"],
         ["tags", "tags"],
@@ -52,80 +52,80 @@ export default class MediaCacheMappings
     // rankings       ranking.php
     //
     // We map each of these to "normal".
-    static remap_partial_media_info(thumb_info, source)
+    static remapPartialMediaInfo(mediaInfo, source)
     {
-        let remapped_thumb_info = null;
+        let remappedMediaInfo = null;
         if(source == "normal")
         {
             // The data is already in the format we want.  The only change we make is
             // to rename title to illustTitle, to match it up with illust info.
-            if(!("title" in thumb_info))
+            if(!("title" in mediaInfo))
             {
                 console.warn("Thumbnail info is missing key: title");
             }
             else
             {
-                thumb_info.illustTitle = thumb_info.title;
-                delete thumb_info.title;
+                mediaInfo.illustTitle = mediaInfo.title;
+                delete mediaInfo.title;
             }
 
             // Check that all keys we expect exist, and remove any keys we don't know about
             // so we don't use them accidentally.
-            let thumbnail_info_map = this.thumbnail_info_map_ranking;
-            remapped_thumb_info = { };
-            for(let pair of thumbnail_info_map)
+            let thumbnailInfoMap = this._thumbnailInfoMapRanking;
+            remappedMediaInfo = { };
+            for(let pair of thumbnailInfoMap)
             {
                 let key = pair[1];
-                if(!(key in thumb_info))
+                if(!(key in mediaInfo))
                 {
                     console.warn("Thumbnail info is missing key:", key);
                     continue;
                 }
-                remapped_thumb_info[key] = thumb_info[key];
+                remappedMediaInfo[key] = mediaInfo[key];
             }
 
-            if(!('bookmarkData' in thumb_info))
+            if(!('bookmarkData' in mediaInfo))
                 console.warn("Thumbnail info is missing key: bookmarkData");
             else
             {
-                remapped_thumb_info.bookmarkData = thumb_info.bookmarkData;
+                remappedMediaInfo.bookmarkData = mediaInfo.bookmarkData;
 
                 // See above.
-                if(remapped_thumb_info.bookmarkData != null)
-                    delete remapped_thumb_info.bookmarkData.bookmarkId;
+                if(remappedMediaInfo.bookmarkData != null)
+                    delete remappedMediaInfo.bookmarkData.bookmarkId;
             }
         }
         else if(source == "illust_list" || source == "rankings")
         {
             // Get the mapping for this mode.
-            let thumbnail_info_map = 
-                source == "illust_list"? this.thumbnail_info_map_illust_list:
-                    this.thumbnail_info_map_ranking;
+            let thumbnailInfoMap = 
+                source == "illust_list"? this._thumbnailInfoMapIllustList:
+                    this._thumbnailInfoMapRanking;
 
-            remapped_thumb_info = { };
-            for(let pair of thumbnail_info_map)
+            remappedMediaInfo = { };
+            for(let pair of thumbnailInfoMap)
             {
                 let from_key = pair[0];
                 let to_key = pair[1];
                 if(from_key == null)
                 {
                     // This is just for illust_list createDate.
-                    remapped_thumb_info[to_key] = null;
+                    remappedMediaInfo[to_key] = null;
                     continue;
                 }
 
-                if(!(from_key in thumb_info))
+                if(!(from_key in mediaInfo))
                 {
                     console.warn("Thumbnail info is missing key:", from_key);
                     continue;
                 }
-                let value = thumb_info[from_key];
-                remapped_thumb_info[to_key] = value;
+                let value = mediaInfo[from_key];
+                remappedMediaInfo[to_key] = value;
             }
 
             // Make sure that the illust IDs and user IDs are strings.
-            remapped_thumb_info.id = "" + remapped_thumb_info.id;
-            remapped_thumb_info.userId = "" + remapped_thumb_info.userId;
+            remappedMediaInfo.id = "" + remappedMediaInfo.id;
+            remappedMediaInfo.userId = "" + remappedMediaInfo.userId;
 
             // Bookmark data is a special case.
             //
@@ -149,38 +149,38 @@ export default class MediaCacheMappings
             // Some pages return buggy results.  /ajax/user/id/profile/all includes bookmarkData,
             // but private is always false, so we can't tell if it's a private bookmark.  This is
             // a site bug that we can't do anything about (it affects the site too).
-            remapped_thumb_info.bookmarkData = null;
-            if(!('is_bookmarked' in thumb_info))
+            remappedMediaInfo.bookmarkData = null;
+            if(!('is_bookmarked' in mediaInfo))
                 console.warn("Thumbnail info is missing key: is_bookmarked");
-            if(thumb_info.is_bookmarked)
+            if(mediaInfo.is_bookmarked)
             {
-                remapped_thumb_info.bookmarkData = {
+                remappedMediaInfo.bookmarkData = {
                     // See above.
-                    // bookmarkId: thumb_info.bookmark_id,
-                    private: thumb_info.bookmark_illust_restrict == 1,
+                    // bookmarkId: mediaInfo.bookmark_id,
+                    private: mediaInfo.bookmark_illust_restrict == 1,
                 };
             }
 
             // illustType can be a string in these instead of an int, so convert it.
-            remapped_thumb_info.illustType = parseInt(remapped_thumb_info.illustType);
+            remappedMediaInfo.illustType = parseInt(remappedMediaInfo.illustType);
 
             if(source == "rankings")
             {
                 // Rankings thumbnail info gives createDate as a Unix timestamp.  Convert
                 // it to the same format as everything else.
-                let date = new Date(remapped_thumb_info.createDate*1000);
-                remapped_thumb_info.createDate = date.toISOString();
+                let date = new Date(remappedMediaInfo.createDate*1000);
+                remappedMediaInfo.createDate = date.toISOString();
             }
             else if(source == "illust_list")
             {
                 // This is the only source of thumbnail data that doesn't give createDate at
                 // all.  This source is very rarely used now, so just fill in a bogus date.
-                remapped_thumb_info.createDate = new Date(0).toISOString();
+                remappedMediaInfo.createDate = new Date(0).toISOString();
             }
         }
         else if(source == "internal")
         {
-            remapped_thumb_info = thumb_info;
+            remappedMediaInfo = mediaInfo;
         }
         else
             throw "Unrecognized source: " + source;
@@ -191,46 +191,46 @@ export default class MediaCacheMappings
             // These fields are strings in some sources.  Switch them to ints.
             for(let key of ["pageCount", "width", "height"])
             {
-                if(remapped_thumb_info[key] != null)
-                    remapped_thumb_info[key] = parseInt(remapped_thumb_info[key]);
+                if(remappedMediaInfo[key] != null)
+                    remappedMediaInfo[key] = parseInt(remappedMediaInfo[key]);
             }
 
             // Different APIs return different thumbnail URLs.
-            remapped_thumb_info.url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url);
+            remappedMediaInfo.url = helpers.get_high_res_thumbnail_url(remappedMediaInfo.url);
         
             // Create a list of thumbnail URLs.
-            remapped_thumb_info.previewUrls = [];
-            for(let page = 0; page < remapped_thumb_info.pageCount; ++page)
+            remappedMediaInfo.previewUrls = [];
+            for(let page = 0; page < remappedMediaInfo.pageCount; ++page)
             {
-                let url = helpers.get_high_res_thumbnail_url(remapped_thumb_info.url, page);
-                remapped_thumb_info.previewUrls.push(url);
+                let url = helpers.get_high_res_thumbnail_url(remappedMediaInfo.url, page);
+                remappedMediaInfo.previewUrls.push(url);
             }
 
             // Remove url.  Use previewUrl[0] instead
-            delete remapped_thumb_info.url;
+            delete remappedMediaInfo.url;
 
             // Rename .tags to .tagList, for consistency with the flat tag list in illust info.
-            remapped_thumb_info.tagList = remapped_thumb_info.tags;
-            delete remapped_thumb_info.tags;
+            remappedMediaInfo.tagList = remappedMediaInfo.tags;
+            delete remappedMediaInfo.tags;
 
             // Put id in illustId and set mediaId.  This matches what we do in illust_data.
-            remapped_thumb_info.illustId = remapped_thumb_info.id;
-            remapped_thumb_info.mediaId = helpers.illust_id_to_media_id(remapped_thumb_info.illustId);
-            delete remapped_thumb_info.id;
+            remappedMediaInfo.illustId = remappedMediaInfo.id;
+            remappedMediaInfo.mediaId = helpers.illustIdToMediaId(remappedMediaInfo.illustId);
+            delete remappedMediaInfo.id;
         }
         
         // This is really annoying: the profile picture is the only field that's present in thumbnail
         // info but not illust info.  We want a single basic data set for both, so that can't include
         // the profile picture.  But, we do want to display it in places where we can't get user
         // info (muted search results), so store it separately.
-        let profile_image_url = null;
-        if(remapped_thumb_info.profileImageUrl)
+        let profileImageUrl = null;
+        if(remappedMediaInfo.profileImageUrl)
         {
-            profile_image_url = remapped_thumb_info.profileImageUrl;
-            profile_image_url = profile_image_url.replace("_50.", "_170."),
-            delete remapped_thumb_info.profileImageUrl;
+            profileImageUrl = remappedMediaInfo.profileImageUrl;
+            profileImageUrl = profileImageUrl.replace("_50.", "_170."),
+            delete remappedMediaInfo.profileImageUrl;
         }
 
-        return { remapped_thumb_info, profile_image_url };
+        return { remappedMediaInfo, profileImageUrl };
     }
 }

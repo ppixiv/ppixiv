@@ -11,12 +11,12 @@ import LocalAPI from 'vview/misc/local-api.js';
 
 export default class MoreOptionsDropdown extends IllustWidget
 {
-    get needed_data() { return "partial"; }
+    get neededData() { return "partial"; }
 
     constructor({
         // If true, show less frequently used options that are hidden by default to reduce
         // clutter.
-        show_extra=false,
+        showExtra=false,
 
         ...options
     })
@@ -29,173 +29,172 @@ export default class MoreOptionsDropdown extends IllustWidget
         `});
 
 
-        this.show_extra = show_extra;
-        this.menu_options = [];
+        this.showExtra = showExtra;
+        this._menuOptions = [];
     }
 
-    create_menu_options()
+    _createMenuOptions()
     {
-        let option_box = this.container.querySelector(".options");
-        let shared_options = {
-            container: option_box,
+        let optionBox = this.container.querySelector(".options");
+        let sharedOptions = {
+            container: optionBox,
             parent: this,
         };
 
-        for(let item of this.menu_options)
+        for(let item of this._menuOptions)
             item.container.remove();
 
-        let menu_options = {
-            similar_illustrations: () => {
+        let menuOptions = {
+            similarIllustrations: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Similar illustrations",
                     icon: "ppixiv:suggestions",
-                    requires_image: true,
+                    requiresImage: true,
                     onclick: () => {
                         this.parent.hide();
 
-                        let [illust_id] = helpers.media_id_to_illust_id_and_page(this.media_id);
-                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv?recommendations=1`);
+                        let [illustId] = helpers.mediaIdToIllustIdAndPage(this.mediaId);
+                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${illustId}#ppixiv?recommendations=1`);
                         helpers.navigate(args);
                     }
                 });
             },
-            similar_artists: () => {
+            similarArtists: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Similar artists",
                     icon: "ppixiv:suggestions",
-                    requires_user: true,
+                    requiresUser: true,
                     onclick: () => {
                         this.parent.hide();
 
-                        let args = new helpers.args(`/discovery/users#ppixiv?user_id=${this.user_id}`);
+                        let args = new helpers.args(`/discovery/users#ppixiv?user_id=${this.userId}`);
                         helpers.navigate(args);
                     }
                 });
             },
 
-            similar_local_images: () => {
+            similarLocalImages: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Similar images",
                     icon: "ppixiv:suggestions",
-                    requires_image: true,
+                    requiresImage: true,
                     onclick: () => {
                         this.parent.hide();
 
                         let args = new helpers.args("/");
                         args.path = "/similar";
-                        args.hash_path = "/#/";
-                        let { id } = helpers.parse_media_id(this.media_id);
+                        args.hashPath = "/#/";
+                        let { id } = helpers.parseMediaId(this.mediaId);
                         args.hash.set("search_path", id);
                         helpers.navigate(args);
                     }
                 });
             },
             
-            similar_bookmarks: () => {
+            similarBookmarks: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Similar bookmarks",
                     icon: "ppixiv:suggestions",
-                    requires_image: true,
+                    requiresImage: true,
                     onclick: () => {
                         this.parent.hide();
 
-                        let [illust_id] = helpers.media_id_to_illust_id_and_page(this.media_id);
-                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${illust_id}#ppixiv`);
+                        let [illustId] = helpers.mediaIdToIllustIdAndPage(this.mediaId);
+                        let args = new helpers.args(`/bookmark_detail.php?illust_id=${illustId}#ppixiv`);
                         helpers.navigate(args);
                     }
                 });
             },
 
-            index_folder: () => {
+            indexFolderForSimilaritySearch: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Index similarity",
                     icon: "ppixiv:suggestions",
-                    hide_if_unavailable: true,
-                    requires: ({media_id}) => {
-                        if(media_id == null)
+                    hideIfUnavailable: true,
+                    requires: ({mediaId}) => {
+                        if(mediaId == null)
                             return false;
-                        let { type } = helpers.parse_media_id(media_id);
+
+                        let { type } = helpers.parseMediaId(mediaId);
                         return type == "folder";
                     },
 
                     onclick: () => {
                         this.parent.hide();
-                        LocalAPI.index_folder(this.media_id);
+                        LocalAPI.indexFolderForSimilaritySearch(this.mediaId);
                     }
                 });
             },
 
-            edit_mutes: () => {
+            editMutes: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Edit mutes",
 
                     // Only show this entry if we have at least a media ID or a user ID.
-                    requires: ({media_id, user_id}) => { return media_id != null || user_id != null; },
+                    requires: ({mediaId, userId}) => { return mediaId != null || userId != null; },
 
                     icon: "mat:block",
 
                     onclick: async () => {
                         this.parent.hide();
                         new MutedTagsForPostDialog({
-                            media_id: this.media_id,
-                            user_id: this.user_id,
+                            mediaId: this.mediaId,
+                            userId: this.userId,
                         });
                     }
                 });
             },
 
-            refresh_image: () => {
+            refreshImage: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Refresh image",
-
-                    requires_image: true,
-
+                    requiresImage: true,
                     icon: "mat:refresh",
 
                     onclick: async () => {
                         this.parent.hide();
-                        ppixiv.mediaCache.refresh_media_info(this.media_id);
+                        ppixiv.mediaCache.refreshMediaInfo(this.mediaId);
                     }
                 });
             },
 
-            share_image: () => {
+            shareImage: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Share image",
                     icon: "mat:share",
 
                     // This requires an image and support for the share API.
-                    requires: ({media_id}) => {
+                    requires: ({mediaId}) => {
                         if(navigator.share == null)
                             return false;
-                        if(media_id == null || helpers.is_media_id_local(media_id))
+                        if(mediaId == null || helpers.isMediaIdLocal(mediaId))
                             return false;
 
-                        let media_info = ppixiv.mediaCache.get_media_info_sync(media_id, { full: false });
-                        return media_info && media_info.illustType != 2;
+                        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
+                        return mediaInfo && mediaInfo.illustType != 2;
                     },
 
                     onclick: async () => {
-                        let illust_data = await ppixiv.mediaCache.get_media_info(this._media_id, { full: true });
-                        let page = helpers.parse_media_id(this.media_id).page;
-                        let { url } = ppixiv.mediaCache.get_main_image_url(illust_data, page);
+                        let mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId, { full: true });
+                        let page = helpers.parseMediaId(this.mediaId).page;
+                        let { url } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
 
-                        let title = `${illust_data.userName} - ${illust_data.illustId}`;
-                        if(illust_data.mangaPages.length > 1)
+                        let title = `${mediaInfo.userName} - ${mediaInfo.illustId}`;
+                        if(mediaInfo.mangaPages.length > 1)
                         {
-                            let manga_page = helpers.parse_media_id(this._media_id).page;
-                            title += " #" + (manga_page + 1);
+                            let mangaPage = helpers.parseMediaId(this._mediaId).page;
+                            title += " #" + (mangaPage + 1);
                         }
 
-                        title += `.${helpers.get_extension(url)}`;
+                        title += `.${helpers.getExtension(url)}`;
                         navigator.share({
                             url,
                             title,
@@ -204,60 +203,60 @@ export default class MoreOptionsDropdown extends IllustWidget
                 });
             },
 
-            download_image: () => {
+            downloadImage: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Download image",
                     icon: "mat:download",
-                    hide_if_unavailable: true,
-                    requires_image: true,
-                    available: () => { return this.media_info && Actions.isDownloadTypeAvailable("image", this.media_info); },
+                    hideIfUnavailable: true,
+                    requiresImage: true,
+                    available: () => { return this.mediaInfo && Actions.isDownloadTypeAvailable("image", this.mediaInfo); },
                     onclick: () => {
-                        Actions.downloadIllust(this.media_id, "image");
+                        Actions.downloadIllust(this.mediaId, "image");
                         this.parent.hide();
                     }
                 });
             },
 
-            download_manga: () => {
+            downloadManga: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Download manga ZIP",
                     icon: "mat:download",
-                    hide_if_unavailable: true,
-                    requires_image: true,
-                    available: () => { return this.media_info && Actions.isDownloadTypeAvailable("ZIP", this.media_info); },
+                    hideIfUnavailable: true,
+                    requiresImage: true,
+                    available: () => { return this.mediaInfo && Actions.isDownloadTypeAvailable("ZIP", this.mediaInfo); },
                     onclick: () => {
-                        Actions.downloadIllust(this.media_id, "ZIP");
+                        Actions.downloadIllust(this.mediaId, "ZIP");
                         this.parent.hide();
                     }
                 });
             },
 
-            download_video: () => {
+            downloadVideo: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Download video MKV",
                     icon: "mat:download",
-                    hide_if_unavailable: true,
-                    requires_image: true,
-                    available: () => { return this.media_info && Actions.isDownloadTypeAvailable("MKV", this.media_info); },
+                    hideIfUnavailable: true,
+                    requiresImage: true,
+                    available: () => { return this.mediaInfo && Actions.isDownloadTypeAvailable("MKV", this.mediaInfo); },
                     onclick: () => {
-                        Actions.downloadIllust(this.media_id, "MKV");
+                        Actions.downloadIllust(this.mediaId, "MKV");
                         this.parent.hide();
                     }
                 });
             },
 
-            send_to_tab: () => {
+            sendToTab: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Send to tab",
                     classes: ["button-send-image"],
                     icon: "mat:open_in_new",
-                    requires_image: true,
+                    requiresImage: true,
                     onclick: () => {
-                        new SendImagePopup({ media_id: this.media_id });
+                        new SendImagePopup({ mediaId: this.mediaId });
                         this.parent.hide();
                     }
                 });
@@ -265,10 +264,10 @@ export default class MoreOptionsDropdown extends IllustWidget
 
             toggleSlideshow: () => {
                 return new MenuOptionToggle({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Slideshow",
                     icon: "mat:wallpaper",
-                    requires_image: true,
+                    requiresImage: true,
                     checked: helpers.args.location.hash.get("slideshow") == "1",
                     onclick: () => {
                         ppixiv.app.toggleSlideshow();
@@ -277,14 +276,14 @@ export default class MoreOptionsDropdown extends IllustWidget
                 });
             },
 
-            toggle_loop: () => {
+            toggleLoop: () => {
                 return new MenuOptionToggle({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Loop",
                     checked: helpers.args.location.hash.get("slideshow") == "loop",
                     icon: "mat:replay_circle_filled",
-                    requires_image: true,
-                    hide_if_unavailable: true,
+                    requiresImage: true,
+                    hideIfUnavailable: true,
                     onclick: () => {
                         ppixiv.app.loopSlideshow();
                         this.refresh();
@@ -292,9 +291,9 @@ export default class MoreOptionsDropdown extends IllustWidget
                 });
             },
 
-            linked_tabs: () => {
+            linkedTabs: () => {
                 let widget = new MenuOptionToggleSetting({
-                    container: option_box,
+                    container: optionBox,
                     label: "Linked tabs",
                     setting: "linked_tabs_enabled",
                     icon: "mat:link",
@@ -302,14 +301,14 @@ export default class MoreOptionsDropdown extends IllustWidget
                 
                 new MenuOptionButton({
                     container: widget.container.querySelector(".checkbox"),
-                    container_position: "beforebegin",
+                    containerPosition: "beforebegin",
                     label: "Edit",
                     classes: ["small-font"],
 
                     onclick: (e) => {
                         e.stopPropagation();
 
-                        new SettingsPageDialog({ settings_page: "linked_tabs" });
+                        new SettingsPageDialog({ settingsPage: "linkedTabs" });
 
                         this.parent.hide();
                         return true;
@@ -319,26 +318,26 @@ export default class MoreOptionsDropdown extends IllustWidget
                 return widget;
             },
 
-            image_editing: () => {
+            imageEditing: () => {
                 return new MenuOptionToggleSetting({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Image editing",
                     icon: "mat:brush",
-                    setting: "image_editing",
-                    requires_image: true,
+                    setting: "imageEditing",
+                    requiresImage: true,
 
                     onclick: () => {
                         // When editing is turned off, clear the editing mode too.
-                        let enabled = ppixiv.settings.get("image_editing");
+                        let enabled = ppixiv.settings.get("imageEditing");
                         if(!enabled)
                             ppixiv.settings.set("image_editing_mode", null);
                     },
                 });
             },
 
-            open_settings: () => {
+            openSettings: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Settings",
                     icon: "mat:settings",
                     onclick: () => {
@@ -350,7 +349,7 @@ export default class MoreOptionsDropdown extends IllustWidget
 
             exit: () => {
                 return new MenuOptionButton({
-                    ...shared_options,
+                    ...sharedOptions,
                     label: "Return to Pixiv",
                     icon: "mat:logout",
                     url: "#no-ppixiv",
@@ -358,91 +357,91 @@ export default class MoreOptionsDropdown extends IllustWidget
             },
         };
 
-        this.menu_options = [];
+        this._menuOptions = [];
         if(!ppixiv.native)
         {
-            this.menu_options.push(menu_options.similar_illustrations());
-            this.menu_options.push(menu_options.similar_artists());
-            if(this.show_extra)
-                this.menu_options.push(menu_options.similar_bookmarks());
+            this._menuOptions.push(menuOptions.similarIllustrations());
+            this._menuOptions.push(menuOptions.similarArtists());
+            if(this.showExtra)
+                this._menuOptions.push(menuOptions.similarBookmarks());
             
-            this.menu_options.push(menu_options.download_image());
-            this.menu_options.push(menu_options.download_manga());
-            this.menu_options.push(menu_options.download_video());
-            this.menu_options.push(menu_options.edit_mutes());
+            this._menuOptions.push(menuOptions.downloadImage());
+            this._menuOptions.push(menuOptions.downloadManga());
+            this._menuOptions.push(menuOptions.downloadVideo());
+            this._menuOptions.push(menuOptions.editMutes());
 
             // This is hidden by default since it's special-purpose: it shares the image URL, not the
             // page URL, which is used for special-purpose iOS shortcuts stuff that probably nobody else
             // cares about.
             if(ppixiv.settings.get("show_share"))
-                this.menu_options.push(menu_options.share_image());
+                this._menuOptions.push(menuOptions.shareImage());
         }
         else
         {
-            this.menu_options.push(menu_options.similar_local_images());
+            this._menuOptions.push(menuOptions.similarLocalImages());
         }
 
         if(ppixiv.sendImage.enabled)
         {
-            this.menu_options.push(menu_options.send_to_tab());
-            this.menu_options.push(menu_options.linked_tabs());
+            this._menuOptions.push(menuOptions.sendToTab());
+            this._menuOptions.push(menuOptions.linkedTabs());
         }
 
         // These are in the top-level menu on mobile.  Don't show these if we're on the search
         // view either, since they want to actually be on the illust view, not hovering a thumbnail.
-        let screen_name = ppixiv.app.get_displayed_screen({ name: true })
-        if(!ppixiv.mobile && screen_name == "illust")
+        let screenName = ppixiv.app.getDisplayedScreen({ name: true })
+        if(!ppixiv.mobile && screenName == "illust")
         {
-            this.menu_options.push(menu_options.toggleSlideshow());
-            this.menu_options.push(menu_options.toggle_loop());
+            this._menuOptions.push(menuOptions.toggleSlideshow());
+            this._menuOptions.push(menuOptions.toggleLoop());
         }
         if(!ppixiv.mobile)
-            this.menu_options.push(menu_options.image_editing());
+            this._menuOptions.push(menuOptions.imageEditing());
         if(ppixiv.native)
-            this.menu_options.push(menu_options.index_folder());
-        if(this.show_extra || ppixiv.native)
-            this.menu_options.push(menu_options.refresh_image());
+            this._menuOptions.push(menuOptions.indexFolderForSimilaritySearch());
+        if(this.showExtra || ppixiv.native)
+            this._menuOptions.push(menuOptions.refreshImage());
 
         // Add settings for mobile.  On desktop, this is available in a bunch of other
         // higher-profile places.
         if(ppixiv.mobile)
-            this.menu_options.push(menu_options.open_settings());
+            this._menuOptions.push(menuOptions.openSettings());
 
         if(!ppixiv.native && !ppixiv.mobile)
-            this.menu_options.push(menu_options.exit());
+            this._menuOptions.push(menuOptions.exit());
     }
 
-    setUserId(user_id)
+    setUserId(userId)
     {
-        this.user_id = user_id;
+        this.userId = userId;
         this.refresh();
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
         if(this.visible)
             this.refresh();
     }
 
-    async refresh_internal({ media_id, media_info })
+    async refreshInternal({ mediaId, mediaInfo })
     {
         if(!this.visible)
             return;
 
-        this.create_menu_options();
+        this._createMenuOptions();
 
-        this.media_info = media_info;
+        this.mediaInfo = mediaInfo;
 
-        for(let option of this.menu_options)
+        for(let option of this._menuOptions)
         {
             let enable = true;
     
             // Enable or disable buttons that require an image.
-            if(option.options.requires_image && media_id == null)
+            if(option.options.requiresImage && mediaId == null)
                 enable = false;
-            if(option.options.requires_user && this.user_id == null)
+            if(option.options.requiresUser && this.userId == null)
                 enable = false;
-            if(option.options.requires && !option.options.requires({media_id: media_id, user_id: this.user_id}))
+            if(option.options.requires && !option.options.requires({mediaId, userId: this.userId}))
                 enable = false;
             if(enable && option.options.available)
                 enable = option.options.available();
@@ -450,7 +449,7 @@ export default class MoreOptionsDropdown extends IllustWidget
 
             // Some options are hidden when they're unavailable, because they clutter
             // the menu too much.
-            if(option.options.hide_if_unavailable)
+            if(option.options.hideIfUnavailable)
                 option.container.hidden = !enable;
         }
     }

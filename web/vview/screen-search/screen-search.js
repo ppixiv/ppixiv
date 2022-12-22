@@ -32,7 +32,7 @@ export default class ScreenSearch extends Screen
             </div>
         `});
 
-        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdown_signal.signal });        
+        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal.signal });        
         
         // Add the top search UI if we're on desktop.
         if(!ppixiv.mobile)
@@ -53,11 +53,11 @@ export default class ScreenSearch extends Screen
             let resize = new ResizeObserver(() => {
                 topUiBox.style.setProperty('--ui-box-height', `${topUiBox.offsetHeight}px`);
             }).observe(topUiBox);
-            this.shutdown_signal.signal.addEventListener("abort", () => resize.disconnect());
+            this.shutdownSignal.signal.addEventListener("abort", () => resize.disconnect());
 
             // The ui-on-hover class enables the hover style if it's enabled.
-            let refreshUiOnHover = () => helpers.set_class(topUiBox, "ui-on-hover", ppixiv.settings.get("ui-on-hover") && !ppixiv.mobile);
-            ppixiv.settings.addEventListener("ui-on-hover", refreshUiOnHover, { signal: this.shutdown_signal.signal });
+            let refreshUiOnHover = () => helpers.setClass(topUiBox, "ui-on-hover", ppixiv.settings.get("ui-on-hover") && !ppixiv.mobile);
+            ppixiv.settings.addEventListener("ui-on-hover", refreshUiOnHover, { signal: this.shutdownSignal.signal });
             refreshUiOnHover();
         }
 
@@ -79,9 +79,9 @@ export default class ScreenSearch extends Screen
                     });
                 }
 
-                apply_visibility()
+                applyVisibility()
                 {
-                    helpers.set_class(this.container, "shown", this._visible);
+                    helpers.setClass(this.container, "shown", this._visible);
                 }
             }({
                 container: this.container.querySelector(".title-bar-container"),
@@ -93,28 +93,28 @@ export default class ScreenSearch extends Screen
             });
 
             // Set the height on the nav bar and title for transitions to use.
-            helpers.set_height_as_property(this.querySelector(".title-bar"), "--title-height", {
+            helpers.setHeightAsProperty(this.querySelector(".title-bar"), "--title-height", {
                 ...this._signal,
                 target: this.container,
             });
-            helpers.set_height_as_property(this.thumbnailUiMobile.container, "--nav-bar-height", {
+            helpers.setHeightAsProperty(this.thumbnailUiMobile.container, "--nav-bar-height", {
                 ...this._signal,
                 target: this.container,
             });
     
             let onchange = () =>
             {
-                let shown = !this.scroll_listener.scrolled_forwards;
+                let shown = !this.scrollListener.scrolledForwards;
                 this.thumbnailUiMobile.visible = shown;
                 this.titleBarWidget.visible = shown;
             };
             
             let scroller = this.querySelector(".search-results");
-            this.scroll_listener = new ScrollListener({
+            this.scrollListener = new ScrollListener({
                 scroller,
                 parent: this,
                 onchange,
-                sticky_ui_node: this.querySelector(".title-bar"),
+                stickyUiNode: this.querySelector(".title-bar"),
             });
             onchange();
         }
@@ -129,19 +129,19 @@ export default class ScreenSearch extends Screen
             e.preventDefault();
             e.stopImmediatePropagation();
     
-            let manga_view = this.dataSource?.name == "manga";
-            ppixiv.settings.adjust_zoom(manga_view? "manga-thumbnail-size":"thumbnail-size", e.deltaY > 0);
+            let mangaView = this.dataSource?.name == "manga";
+            ppixiv.settings.adjustZoom(mangaView? "manga-thumbnail-size":"thumbnail-size", e.deltaY > 0);
         }, { passive: false });
 
         this.container.addEventListener("keydown", (e) => {
-            let zoom = helpers.is_zoom_hotkey(e);
+            let zoom = helpers.isZoomHotkey(e);
             if(zoom != null)
             {
                 e.preventDefault();
                 e.stopImmediatePropagation();
 
-                let manga_view = this.dataSource?.name == "manga";
-                ppixiv.settings.adjust_zoom(manga_view? "manga-thumbnail-size":"thumbnail-size", zoom < 0);
+                let mangaView = this.dataSource?.name == "manga";
+                ppixiv.settings.adjustZoom(mangaView? "manga-thumbnail-size":"thumbnail-size", zoom < 0);
             }
         });
 
@@ -149,17 +149,17 @@ export default class ScreenSearch extends Screen
         //
         // We don't currently show the local navigation panel on mobile.  The UI isn't set up for
         // it, and it causes thumbnails to flicker while scrolling for some reason.
-        if(LocalAPI.is_enabled() && !LocalAPI.local_info.bookmark_tag_searches_only && !ppixiv.mobile)
+        if(LocalAPI.isEnabled() && !LocalAPI.localInfo.bookmark_tag_searches_only && !ppixiv.mobile)
         {
-            let local_navigation_box = this.container.querySelector(".local-navigation-box");
+            let localNavigationBox = this.container.querySelector(".local-navigation-box");
 
             // False if the user has hidden the navigation tree.  Default to false on mobile, since
             // it takes up a lot of screen space.  Also default to false if we were initially opened
             // as a similar image search.
-            this.local_navigation_visible = !ppixiv.mobile && ppixiv.plocation.pathname != "/similar";
+            this._localNavigationVisible = !ppixiv.mobile && ppixiv.plocation.pathname != "/similar";
 
-            this.local_nav_widget = new LocalNavigationTreeWidget({
-                container: local_navigation_box,
+            this._localNavigationTree = new LocalNavigationTreeWidget({
+                container: localNavigationBox,
             });
 
             // Hack: if the local API isn't enabled, hide the local navigation box completely.  This shouldn't
@@ -167,10 +167,10 @@ export default class ScreenSearch extends Screen
             // away when the page loads.  That'll still happen if you have the local API enabled and you're on
             // a Pixiv page, but this avoids the visual glitch for most users.  I'm not sure how to fix this
             // cleanly.
-            local_navigation_box.hidden = false;
+            localNavigationBox.hidden = false;
         }
 
-        this.search_view = new SearchView({
+        this.searchView = new SearchView({
             container: this.container.querySelector(".thumbnail-container-box"),
         });
     }
@@ -187,7 +187,7 @@ export default class ScreenSearch extends Screen
             return;
         this._active = false;
 
-        this.search_view.deactivate();
+        this.searchView.deactivate();
     }
 
     async activate({ oldMediaId })
@@ -200,38 +200,38 @@ export default class ScreenSearch extends Screen
         this._active = true;
         this.refreshUi();
 
-        await this.search_view.activate({ oldMediaId });
+        await this.searchView.activate({ oldMediaId });
     }
 
     scrollToMediaId(mediaId)
     {
-        this.search_view.scrollToMediaId(mediaId);
+        this.searchView.scrollToMediaId(mediaId);
     }
 
     getRectForMediaId(mediaId)
     {
-        return this.search_view.getRectForMediaId(mediaId);
+        return this.searchView.getRectForMediaId(mediaId);
     }
     
-    setDataSource(data_source)
+    setDataSource(dataSource)
     {
-        if(this.dataSource == data_source)
+        if(this.dataSource == dataSource)
             return;
 
         // Remove listeners from the old data source.
         if(this.dataSource != null)
             this.dataSource.removeEventListener("updated", this.dataSourceUpdated);
 
-        this.dataSource = data_source;
+        this.dataSource = dataSource;
 
-        this.search_view.setDataSource(data_source);
+        this.searchView.setDataSource(dataSource);
         if(this.desktopSearchUi)
-            this.desktopSearchUi.setDataSource(data_source);
+            this.desktopSearchUi.setDataSource(dataSource);
 
-        if(this.current_data_source_ui)
+        if(this._currentDataSourceUi)
         {
-            this.current_data_source_ui.shutdown();
-            this.current_data_source_ui = null;
+            this._currentDataSourceUi.shutdown();
+            this._currentDataSourceUi = null;
         }
     
         if(this.dataSource == null)
@@ -244,10 +244,10 @@ export default class ScreenSearch extends Screen
         {
             if(this.dataSource.ui)
             {
-                let data_source_ui_container = this.container.querySelector(".title-bar .data-source-ui");
-                this.current_data_source_ui = new this.dataSource.ui({
+                let dataSourceUiContainer = this.container.querySelector(".title-bar .data-source-ui");
+                this._currentDataSourceUi = new this.dataSource.ui({
                     dataSource: this.dataSource,
-                    container: data_source_ui_container,
+                    container: dataSourceUiContainer,
                 });
             }
         }
@@ -292,10 +292,10 @@ export default class ScreenSearch extends Screen
             this.thumbnailUiMobile.refreshUi();
 
         this.dataSource.setPageIcon();
-        helpers.set_page_title(this.dataSource.pageTitle || "Loading...");
+        helpers.setPageTitle(this.dataSource.pageTitle || "Loading...");
         
         // Refresh whether we're showing the local navigation widget and toggle button.
-        helpers.set_dataset(this.container.dataset, "showNavigation", this.can_show_local_navigation && this.local_navigation_visible);
+        helpers.setDataSet(this.container.dataset, "showNavigation", this.canShowLocalNavigation && this._localNavigationVisible);
 
         this.refreshUiForUserId();
     };
@@ -308,9 +308,9 @@ export default class ScreenSearch extends Screen
         this.desktopSearchUi.userInfoLinks.setUserIdAndDataSource({userId: this.viewingUserId, dataSource: this.dataSource});
     }
     
-    get can_show_local_navigation()
+    get canShowLocalNavigation()
     {
-        return this.dataSource?.is_vview && !LocalAPI?.local_info?.bookmark_tag_searches_only;
+        return this.dataSource?.isVView && !LocalAPI?.localInfo?.bookmark_tag_searches_only;
     }
 
     // Return the user ID we're viewing, or null if we're not viewing anything specific to a user.
@@ -363,7 +363,7 @@ export default class ScreenSearch extends Screen
                 let text = await navigator.clipboard.readText();
                 let input = this.container.querySelector(".local-tag-search-box input");
                 input.value = text;
-                LocalAPI.navigate_to_tag_search(text, {add_to_history: false});
+                LocalAPI.navigateToTagSearch(text, {addToHistory: false});
             }
         }
     }

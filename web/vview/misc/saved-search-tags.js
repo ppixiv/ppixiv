@@ -27,34 +27,34 @@ export default class SavedSearchTags
     // Return a map of all recent and saved tags, mapping from group names to lists
     // of searches.  Recent searches are returned with a tag of "null".  The map is
     // ordered.
-    static get_all_groups({data=null}={})
+    static getAllGroups({data=null}={})
     {
         let result = new Map();
         result.set(null, []); // recents
 
         data ??= this.data();
-        let in_group = null;
-        for(let recent_tag of data)
+        let inGroup = null;
+        for(let recentTag of data)
         {
-            if((recent_tag instanceof Object) && recent_tag.type == "section")
+            if((recentTag instanceof Object) && recentTag.type == "section")
             {
-                in_group = recent_tag.name;
-                result.set(in_group, []);
+                inGroup = recentTag.name;
+                result.set(inGroup, []);
                 continue;
             }
 
-            result.get(in_group).push(recent_tag);
+            result.get(inGroup).push(recentTag);
         }
 
         return result;
     }
 
-    // Set recent-tag-searches from a group map returned by get_all_groups.
-    static set_all_groups(groups)
+    // Set recent-tag-searches from a group map returned by getAllGroups.
+    static setAllGroups(groups)
     {
         let data = [];
 
-        for(let [name, tags_in_group] of groups.entries())
+        for(let [name, tagsInGroup] of groups.entries())
         {
             if(name != null)
             {
@@ -64,7 +64,7 @@ export default class SavedSearchTags
                 });
             }
 
-            for(let tag of tags_in_group)
+            for(let tag of tagsInGroup)
                 data.push(tag);
         }
 
@@ -74,96 +74,96 @@ export default class SavedSearchTags
     }
 
     // Return all individual tags that the user has in recents and saved searches.
-    static get_all_used_tags()
+    static getAllUsedTags()
     {
-        let all_tags = new Set();
-        for(let group_tags of this.get_all_groups().values())
+        let allTags = new Set();
+        for(let group_tags of this.getAllGroups().values())
         {
             for(let tags of group_tags)
                 for(let tag of tags.split(" "))
-                    all_tags.add(tag);
+                    allTags.add(tag);
         }
 
-        return all_tags;
+        return allTags;
     }
 
     // Add tag to the recent search list, or move it to the front.  If group is set, add
     // a saved search in the given group.  If group is null, add to the recent list.
     //
     // If tag is null, just create group if it doesn't exist.
-    static add(tag, { group=null, add_to_end=true }={})
+    static add(tag, { group=null, addToEnd=true }={})
     {
-        if(this._disable_adding_search_tags || tag == "")
+        if(this._disableAddingSearchTags || tag == "")
             return;
 
-        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
+        let recentTags = ppixiv.settings.get("recent-tag-searches") || [];
 
         // If tag is already in the list as a recent tag, remove it.
         if(tag != null)
         {
             // If tag is a saved tag, don't change it.
-            if(this.group_name_for_tag(tag) != null)
+            if(this.groupNameForTag(tag) != null)
                 return;
 
-            let idx = recent_tags.indexOf(tag);
+            let idx = recentTags.indexOf(tag);
             if(idx != -1)
-                recent_tags.splice(idx, 1);
+                recentTags.splice(idx, 1);
         }
 
         // If we're adding it as a recent, add it to the beginning.  If we're adding it as
         // a saved tag, create the null separating recents and saved tags if needed, and add
         // the tag at the end.
         if(group == null)
-            recent_tags.unshift(tag);
+            recentTags.unshift(tag);
         else
         {
             // Find or create the group header for this group.
-            let [start_idx, end_idx] = this.find_group_range(group);
-            if(start_idx == -1)
+            let [startIdx, endIdx] = this._findGroupRange(group);
+            if(startIdx == -1)
             {
                 console.log(`Created tag group: ${group}`);
-                recent_tags.push({
+                recentTags.push({
                     type: "section",
                     name: group,
                 });
 
-                start_idx = end_idx = recent_tags.length;
+                startIdx = endIdx = recentTags.length;
             }
     
             // If tag is null, we're just creating the group and not adding anything to it.
             if(tag != null)
             {
-                if(add_to_end)
-                    recent_tags.splice(end_idx, 0, tag);
+                if(addToEnd)
+                    recentTags.splice(endIdx, 0, tag);
                 else
-                    recent_tags.splice(start_idx+1, 0, tag);
+                    recentTags.splice(startIdx+1, 0, tag);
             }
         }
 
-        ppixiv.settings.set("recent-tag-searches", recent_tags);
+        ppixiv.settings.set("recent-tag-searches", recentTags);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
 
     // Replace a saved tag.
-    static modify_tag(old_tags, new_tags)
+    static modifyTag(oldTags, newTags)
     {
-        if(old_tags == new_tags)
+        if(oldTags == newTags)
             return;
 
         let data = this.data();
-        if(this.find_index({tag: new_tags, data}) != -1)
+        if(this.findIndex({tag: newTags, data}) != -1)
         {
             ppixiv.message.show(`Saved tag already exists`);
             return;
         }
 
         // Find the tag.
-        let idx = this.find_index({tag: old_tags, data});
+        let idx = this.findIndex({tag: oldTags, data});
         if(idx == -1)
             return;
 
-        data[idx] = new_tags;
+        data[idx] = newTags;
         ppixiv.settings.set("recent-tag-searches", data);
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
         ppixiv.message.show(`Saved tag updated`);
@@ -172,149 +172,149 @@ export default class SavedSearchTags
     // Return [start,end) in the tag list for the given section, where start is the
     // index of the section header and end is one past last entry in the group.  If
     // the section doesn't exist, return [-1,-1].
-    static find_group_range(section_name, { data }={})
+    static _findGroupRange(sectionName, { data }={})
     {
-        let recent_tags = data ?? this.data();
+        let recentTags = data ?? this.data();
 
         // Find the start of the group.  recent searches always start at the beginning.
-        let start_idx = -1;
-        if(section_name == null)
-            start_idx = 0;
+        let startIdx = -1;
+        if(sectionName == null)
+            startIdx = 0;
         else
         {
-            for(let idx = 0; idx < recent_tags.length; ++idx)
+            for(let idx = 0; idx < recentTags.length; ++idx)
             {
-                let group = recent_tags[idx];
+                let group = recentTags[idx];
                 if(!(group instanceof Object) || group.type != "section")
                     continue;
-                if(group.name != section_name)
+                if(group.name != sectionName)
                     continue;
 
-                start_idx = idx;
+                startIdx = idx;
                 break;
             }
         }
 
         // Return -1 if the group doesn't exist.
-        if(start_idx == -1)
+        if(startIdx == -1)
             return [-1, -1];
 
         // Find the end of the group.
-        for(let idx = start_idx+1; idx < recent_tags.length; ++idx)
+        for(let idx = startIdx+1; idx < recentTags.length; ++idx)
         {
-            let group = recent_tags[idx];
+            let group = recentTags[idx];
             if(!(group instanceof Object) || group.type != "section")
                 continue;
 
-            return [start_idx, idx];
+            return [startIdx, idx];
         }
 
-        return [start_idx,recent_tags.length];
+        return [startIdx,recentTags.length];
     }
 
     // Delete the given group and all tags inside it.
-    static delete_group(group)
+    static deleteGroup(group)
     {
-        let [start_idx, end_idx] = this.find_group_range(group);
-        if(start_idx == -1)
+        let [startIdx, endIdx] = this._findGroupRange(group);
+        if(startIdx == -1)
             return;
 
-        let count = end_idx - start_idx;
+        let count = endIdx - startIdx;
 
-        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
-        recent_tags.splice(start_idx, count);
-        ppixiv.settings.set("recent-tag-searches", recent_tags);
+        let recentTags = ppixiv.settings.get("recent-tag-searches") || [];
+        recentTags.splice(startIdx, count);
+        ppixiv.settings.set("recent-tag-searches", recentTags);
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
         ppixiv.message.show(`Group "${group}" deleted`);
     }
     
     // Rename a group.  The new name must not already exist.
-    static rename_group(from, to)
+    static renameGroup(from, to)
     {
-        let from_idx = this.find_index({group: from});
+        let from_idx = this.findIndex({group: from});
         if(from_idx == -1)
             return;
 
-        if(this.find_index({group: to}) != -1)
+        if(this.findIndex({group: to}) != -1)
         {
             ppixiv.message.show(`Group "${to}" already exists`);
             return;
         }
 
-        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
-        recent_tags[from_idx].name = to;
-        ppixiv.settings.set("recent-tag-searches", recent_tags);
+        let recentTags = ppixiv.settings.get("recent-tag-searches") || [];
+        recentTags[from_idx].name = to;
+        ppixiv.settings.set("recent-tag-searches", recentTags);
 
         // If this group was collapsed, rename it in collapsed-tag-groups.
-        let collapsed_groups = this.get_collapsed_tag_groups();
-        if(collapsed_groups.has(from))
+        let collapsedGroups = this.getCollapsedTagGroups();
+        if(collapsedGroups.has(from))
         {
-            collapsed_groups.delete(from);
-            collapsed_groups.add(to);
-            ppixiv.settings.set("collapsed-tag-groups", [...collapsed_groups]);
+            collapsedGroups.delete(from);
+            collapsedGroups.add(to);
+            ppixiv.settings.set("collapsed-tag-groups", [...collapsedGroups]);
         }
 
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
 
-    static move_group(group, { down })
+    static moveGroup(group, { down })
     {
         let data = ppixiv.settings.get("recent-tag-searches") || [];
 
-        let groups = this.get_all_groups(data);
-        let tag_groups = Array.from(groups.keys());
-        let idx = tag_groups.indexOf(group);
+        let groups = this.getAllGroups(data);
+        let tagGroups = Array.from(groups.keys());
+        let idx = tagGroups.indexOf(group);
         if(idx == -1)
             return;
 
-        // Reorder tag_groups.
+        // Reorder tagGroups.
         let swap_with = idx + (down? +1:-1);
-        if(swap_with < 0 || swap_with >= tag_groups.length)
+        if(swap_with < 0 || swap_with >= tagGroups.length)
             return;
         
         // Refuse to move recents, which must always be the first group.
-        if(tag_groups[idx] == null || tag_groups[swap_with] == null)
+        if(tagGroups[idx] == null || tagGroups[swap_with] == null)
             return;
 
-        [tag_groups[idx], tag_groups[swap_with]] = [tag_groups[swap_with], tag_groups[idx]];
+        [tagGroups[idx], tagGroups[swap_with]] = [tagGroups[swap_with], tagGroups[idx]];
         
         let new_groups = new Map();
-        for(let group of tag_groups)
+        for(let group of tagGroups)
         {
             new_groups.set(group, groups.get(group));
         }
 
-        this.set_all_groups(new_groups);
+        this.setAllGroups(new_groups);
     }
 
-    static get_collapsed_tag_groups()
+    static getCollapsedTagGroups()
     {
         return new Set(ppixiv.settings.get("collapsed-tag-groups") || []);
     }
     
-    // group_name can be null to collapse recents.  If collapse is "toggle", toggle the current value.
-    static set_tag_group_collapsed(group_name, collapse)
+    // groupName can be null to collapse recents.  If collapse is "toggle", toggle the current value.
+    static setTagGroupCollapsed(groupName, collapse)
     {
-        let collapsed_groups = this.get_collapsed_tag_groups();
+        let collapsedGroups = this.getCollapsedTagGroups();
         if(collapse == "toggle")
-            collapse = !collapsed_groups.has(group_name);
-        if(collapsed_groups.has(group_name) == collapse)
+            collapse = !collapsedGroups.has(groupName);
+        if(collapsedGroups.has(groupName) == collapse)
             return;
 
         if(collapse)
-            collapsed_groups.add(group_name);
+            collapsedGroups.add(groupName);
         else
-            collapsed_groups.delete(group_name);
+            collapsedGroups.delete(groupName);
             
-        ppixiv.settings.set("collapsed-tag-groups", [...collapsed_groups]);
+        ppixiv.settings.set("collapsed-tag-groups", [...collapsedGroups]);
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
 
     // This is a hack used by TagSearchBoxWidget to temporarily disable adding to history.
-    static disable_adding_search_tags(value)
+    static disableAddingSearchTags(value)
     {
-        this._disable_adding_search_tags = value;
+        this._disableAddingSearchTags = value;
     }
 
     // recent-tag-searches contains both recent tags and saved tags.  Recent tags are listed
@@ -323,21 +323,21 @@ export default class SavedSearchTags
     // always unique.
     //
     // Return the group name if tag is a saved tag, otherwise null.
-    static group_name_for_tag(tag)
+    static groupNameForTag(tag)
     {
-        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
+        let recentTags = ppixiv.settings.get("recent-tag-searches") || [];
 
-        let in_group = null;
-        for(let recent_tag of recent_tags)
+        let inGroup = null;
+        for(let recentTag of recentTags)
         {
-            if((recent_tag instanceof Object) && recent_tag.type == "section")
+            if((recentTag instanceof Object) && recentTag.type == "section")
             {
-                in_group = recent_tag.name;
+                inGroup = recentTag.name;
                 continue;
             }
 
-            if(recent_tag == tag)
-                return in_group;
+            if(recentTag == tag)
+                return inGroup;
         }
 
         return null;
@@ -346,13 +346,13 @@ export default class SavedSearchTags
     static remove(tag)
     {
         // Remove tag from the list.  There should normally only be one.
-        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
-        let idx = recent_tags.indexOf(tag);
+        let recentTags = ppixiv.settings.get("recent-tag-searches") || [];
+        let idx = recentTags.indexOf(tag);
         if(idx == -1)
             return;
 
-        recent_tags.splice(idx, 1);
-        ppixiv.settings.set("recent-tag-searches", recent_tags);
+        recentTags.splice(idx, 1);
+        ppixiv.settings.set("recent-tag-searches", recentTags);
         
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
@@ -361,8 +361,8 @@ export default class SavedSearchTags
     static move(tag, to_idx)
     {
         // Remove tag from the list.  There should normally only be one.
-        let recent_tags = ppixiv.settings.get("recent-tag-searches") || [];
-        let idx = recent_tags.indexOf(tag);
+        let recentTags = ppixiv.settings.get("recent-tag-searches") || [];
+        let idx = recentTags.indexOf(tag);
         if(idx == -1)
             return;
         if(idx == to_idx)
@@ -372,32 +372,32 @@ export default class SavedSearchTags
         // the offset changing as we remove the old one.
         if(to_idx > idx)
             to_idx--;
-        recent_tags.splice(idx, 1);
+        recentTags.splice(idx, 1);
 
-        recent_tags.splice(to_idx, 0, tag);
+        recentTags.splice(to_idx, 0, tag);
 
-        ppixiv.settings.set("recent-tag-searches", recent_tags);
+        ppixiv.settings.set("recent-tag-searches", recentTags);
         
         window.dispatchEvent(new Event("recent-tag-searches-changed"));
     }
 
     // Return the index in recent-tag-searches of the given tag or group, or -1 if it
     // doesn't exist.
-    static find_index({tag, group, data=null})
+    static findIndex({tag, group, data=null})
     {
         data ??= ppixiv.settings.get("recent-tag-searches") || [];
 
         for(let idx = 0; idx < data.length; ++idx)
         {
-            let recent_tag = data[idx];
-            if((recent_tag instanceof Object) && recent_tag.type == "section")
+            let recentTag = data[idx];
+            if((recentTag instanceof Object) && recentTag.type == "section")
             {
-                if(group != null && recent_tag.name == group)
+                if(group != null && recentTag.name == group)
                     return idx;
             }
             else
             {
-                if(tag != null && recent_tag == tag)
+                if(tag != null && recentTag == tag)
                     return idx;
             }
         }

@@ -8,43 +8,43 @@ export default class UserCache extends EventTarget
     {
         super();
 
-        this.user_data = { };
-        this.all_user_follow_tags = null;
-        this.user_follow_info = { };
-        this.user_info_loads = {};
-        this.follow_info_loads = {};
-        this.user_follow_tags_load = null;
-        this.nonexistant_user_ids = { };
+        this._userData = { };
+        this._allUserFollowTags = null;
+        this._userFollowInfo = { };
+        this._userInfoLoads = {};
+        this._followInfoLoads = {};
+        this._userFollowTagsLoad = null;
+        this._nonexistantUserIds = { };
     }
 
-    async get_user_id_for_media_id(media_id)
+    async getUserIdForMediaId(mediaId)
     {
-        if(media_id == null)
+        if(mediaId == null)
             return null;
 
         // If the media ID is a user ID, use it.
-        let { type, id } = helpers.parse_media_id(media_id);
+        let { type, id } = helpers.parseMediaId(mediaId);
         if(type == "user")
             return id;
 
         // Fetch media info.  We don't need to coalesce these requests if this is called
         // multiple times, since media_cache will do that for us.
-        let media_info = await ppixiv.mediaCache.get_media_info(media_id, { full: false });
-        return media_info?.userId;
+        let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
+        return mediaInfo?.userId;
     }
 
     // Call all illust_modified callbacks.
-    call_user_modified_callbacks(user_id)
+    callUserModifiedCallbacks(userId)
     {
-        console.log("User modified:", user_id);
+        console.log(`User modified: ${userId}`);
         let event = new Event("usermodified");
-        event.user_id = user_id;
+        event.user_id = userId;
         this.dispatchEvent(event);
     }
     
-    get_user_load_error(user_id)
+    getUserLoadError(userId)
     {
-        return this.nonexistant_user_ids[user_id];
+        return this._nonexistantUserIds[userId];
     }
 
     // The user request can either return a small subset of data (just the username,
@@ -52,133 +52,132 @@ export default class UserCache extends EventTarget
     // User preloads often only have the smaller set, and we want to use the preload
     // data whenever possible.
     //
-    // get_user_info requests the smaller set of data, and get_user_info_full requests
+    // getUserInfo requests the smaller set of data, and getUserInfoFull requests
     // the full data.
     //
-    // Note that get_user_info will return the full data if we have it already.
-    async get_user_info_full(user_id)
+    // Note that getUserInfo will return the full data if we have it already.
+    async getUserInfoFull(userId)
     {
-        return await this._get_user_info(user_id, true);
+        return await this._getUserInfo(userId, true);
     }
 
-    async get_user_info(user_id)
+    async getUserInfo(userId)
     {
-        return await this._get_user_info(user_id, false);
+        return await this._getUserInfo(userId, false);
     }
 
-    get_user_info_sync(user_id)
+    getUserInfoSync(userId)
     {
-        return this.user_data[user_id];
+        return this._userData[userId];
     }
 
-
-    // Load user_id if needed.
+    // Load userId if needed.
     //
-    // If load_full_data is false, it means the caller only needs partial data, and we
+    // If loadFullData is false, it means the caller only needs partial data, and we
     // won't send a request if we already have that, but if we do end up loading the
     // user we'll always load full data.
     //
     // Some sources only give us partial data, which only has a subset of keys.  See
-    // _check_user_data for the keys available with partial and full data.
-    _get_user_info(user_id, load_full_data)
+    // _checkUserData for the keys available with partial and full data.
+    _getUserInfo(userId, loadFullData)
     {
-        if(user_id == null)
+        if(userId == null)
             return null;
 
         // Stop if we know this user doesn't exist.
-        let base_media_id = "user:" + user_id;
-        if(base_media_id in this.nonexistant_user_ids)
+        let baseMediaId = `user:${userId}`;
+        if(baseMediaId in this._nonexistantUserIds)
             return null;
         
         // If we already have the user info for this illustration (and it's full data, if
         // requested), we're done.
-        if(this.user_data[user_id] != null)
+        if(this._userData[userId] != null)
         {
-            // user_info.partial is 1 if it's the full data (this is backwards).  If we need
+            // userInfo.partial is 1 if it's the full data (this is backwards).  If we need
             // full data and we only have partial data, we still need to request data.
-            if(!load_full_data || this.user_data[user_id].partial)
+            if(!loadFullData || this._userData[userId].partial)
             {
                 return new Promise(resolve => {
-                    resolve(this.user_data[user_id]);
+                    resolve(this._userData[userId]);
                 });
             }
         }
 
         // If there's already a load in progress, just return it.
-        if(this.user_info_loads[user_id] != null)
-            return this.user_info_loads[user_id];
+        if(this._userInfoLoads[userId] != null)
+            return this._userInfoLoads[userId];
        
-        this.user_info_loads[user_id] = this._load_user_info(user_id);
-        this.user_info_loads[user_id].then(() => {
-            delete this.user_info_loads[user_id];
+        this._userInfoLoads[userId] = this._loadUserInfo(userId);
+        this._userInfoLoads[userId].then(() => {
+            delete this._userInfoLoads[userId];
         });
 
-        return this.user_info_loads[user_id];
+        return this._userInfoLoads[userId];
     };
     
-    async _load_user_info(user_id)
+    async _loadUserInfo(userId)
     {
         // -1 is for illustrations with no user, which is used for local images.
-        if(user_id == -1)
+        if(userId == -1)
             return null;
 
-        // console.log("Fetch user", user_id);
-        let result = await helpers.get_request("/ajax/user/" + user_id, {full:1});
+        // console.log("Fetch user", userId);
+        let result = await helpers.getRequest(`/ajax/user/${userId}`, {full:1});
         if(result == null || result.error)
         {
             let message = result?.message || "Error loading user";
-            console.log(`Error loading user ${user_id}: ${message}`);
-            this.nonexistant_user_ids[`user:${user_id}`] = message;
+            console.log(`Error loading user ${userId}: ${message}`);
+            this._nonexistantUserIds[`user:${userId}`] = message;
             return null;
         }
 
-        return this._loaded_user_info(result);
+        return this._loadedUserInfo(result);
     }
 
     // Add user data that we received from other sources.
-    add_user_data(user_data)
+    addUserData(userData)
     {
-        this._loaded_user_info({
-            body: user_data,
+        this._loadedUserInfo({
+            body: userData,
         });
     }
 
-    _loaded_user_info = (user_result) =>
+    _loadedUserInfo = (userResult) =>
     {
-        if(user_result.error)
+        if(userResult.error)
             return;
 
-        let user_data = user_result.body;
-        user_data = this._check_user_data(user_data);
+        let userData = userResult.body;
+        userData = this._checkUserData(userData);
 
-        let user_id = user_data.userId;
-        // console.log("Got user", user_id);
+        let userId = userData.userId;
+        // console.log("Got user", userId);
 
         // Store the user data.
-        if(this.user_data[user_id] == null)
-            this.user_data[user_id] = user_data;
+        if(this._userData[userId] == null)
+            this._userData[userId] = userData;
         else
         {
             // If we already have an object for this user, we're probably replacing partial user data
-            // with full user data.  Don't replace the user_data object itself, since widgets will have
+            // with full user data.  Don't replace the userData object itself, since widgets will have
             // a reference to the old one which will become stale.  Just replace the data inside the
             // object.
-            let old_user_data = this.user_data[user_id];
-            for(let key of Object.keys(old_user_data))
-                delete old_user_data[key];
-            for(let key of Object.keys(user_data))
-                old_user_data[key] = user_data[key];
+            let oldUserData = this._userData[userId];
+            for(let key of Object.keys(oldUserData))
+                delete oldUserData[key];
+            for(let key of Object.keys(userData))
+                oldUserData[key] = userData[key];
         }
 
-        return user_data;
+        return userData;
     }
 
-    _check_user_data(user_data)
+    _checkUserData(userData)
     {
         // Make sure that the data contains all of the keys we expect, so we catch any unexpected
         // missing data early.  Discard keys that we don't use, to make sure we update this if we
         // make use of new keys.  This makes sure that the user data keys are always consistent.
-        let full_keys = [
+        let fullKeys = [
             'userId',
             // 'background',
             // 'image',
@@ -195,7 +194,7 @@ export default class UserCache extends EventTarget
             // 'sketchLives',
         ];
 
-        let partial_keys = [
+        let partialKeys = [
             'userId',
             'isFollowed',
             'name',
@@ -204,128 +203,127 @@ export default class UserCache extends EventTarget
         ];
 
         // partial is 0 if this is partial user data and 1 if it's full data (this is backwards).
-        let expected_keys = user_data.partial? full_keys:partial_keys;
+        let expectedKeys = userData.partial? fullKeys:partialKeys;
 
-        let remapped_user_data = { };
-        for(let key of expected_keys)
+        let remappedUserData = { };
+        for(let key of expectedKeys)
         {
-            if(!(key in user_data))
+            if(!(key in userData))
             {
                 console.warn("User info is missing key:", key);
                 continue;
             }
-            remapped_user_data[key] = user_data[key];
+            remappedUserData[key] = userData[key];
         }
-        return remapped_user_data;
+        return remappedUserData;
     }
 
     // Load the follow info for a followed user, which includes follow tags and whether the
     // follow is public or private.  If the user isn't followed, return null.
     // 
-    // This can also fetch the results of load_all_user_follow_tags and will cache it if
-    // available, so if you're calling both get_user_follow_info and load_all_user_follow_tags,
+    // This can also fetch the results of loadAllUserFollowTags and will cache it if
+    // available, so if you're calling both getUserFollowInfo and loadAllUserFollowTags,
     // call this first.
-    async get_user_follow_info(user_id, { refresh=false }={})
+    async getUserFollowInfo(userId, { refresh=false }={})
     {
         // If we request following info for a user we're not following, we'll get a 400.  This
         // isn't great, since it means we have to make an extra API call first to see if we're
         // following to avoid spamming request errors.
-        let user_data = await this.get_user_info(user_id);
-        if(!user_data.isFollowed)
+        let userData = await this.getUserInfo(userId);
+        if(!userData.isFollowed)
         {
-            delete this.user_follow_info[user_id];
+            delete this._userFollowInfo[userId];
             return null;
         }
 
         // Stop if this user's follow info is already loaded.
-        if(!refresh && this.user_follow_info[user_id])
-            return this.user_follow_info[user_id];
+        if(!refresh && this._userFollowInfo[userId])
+            return this._userFollowInfo[userId];
 
         // If another request is already running for this user, wait for it to finish and use
         // its result.
-        if(this.follow_info_loads[user_id])
+        if(this._followInfoLoads[userId])
         {
-            await this.follow_info_loads[user_id];
-            return this.user_follow_info[user_id];
+            await this._followInfoLoads[userId];
+            return this._userFollowInfo[userId];
         }
 
-        this.follow_info_loads[user_id] = helpers.get_request("/ajax/following/user/details", {
-            user_id: user_id,
+        this._followInfoLoads[userId] = helpers.getRequest("/ajax/following/user/details", {
+            user_id: userId,
             lang: "en",
         });
         
-        let data = await this.follow_info_loads[user_id];
-        this.follow_info_loads[user_id] = null;
+        let data = await this._followInfoLoads[userId];
+        this._followInfoLoads[userId] = null;
 
         if(data.error)
         {
-            console.log(`Couldn't request follow info for ${user_id}`);
+            console.log(`Couldn't request follow info for ${userId}`);
             return null;
         }
 
         // This returns both selected tags and all follow tags, so we can also update
         // all_user_follow_tags.
-        let all_tags = [];
+        let allTags = [];
         let tags = new Set();
-        for(let tag_info of data.body.tags)
+        for(let tagInfo of data.body.tags)
         {
-            all_tags.push(tag_info.name);
-            if(tag_info.selected)
-                tags.add(tag_info.name);
+            allTags.push(tagInfo.name);
+            if(tagInfo.selected)
+                tags.add(tagInfo.name);
         }
 
-        this.set_cached_all_user_follow_tags(all_tags);
-        this.user_follow_info[user_id] = {
+        this._setCachedAllUserFollowTags(allTags);
+        this._userFollowInfo[userId] = {
             tags,
-            following_privately: data.body.restrict == "1",
+            followingPrivately: data.body.restrict == "1",
         }
-        return this.user_follow_info[user_id];
+        return this._userFollowInfo[userId];
     }
 
-    get_user_follow_info_sync(user_id)
+    getUserFollowInfoSync(userId)
     {
-        return this.user_follow_info[user_id];
+        return this._userFollowInfo[userId];
     }
 
     // Load all of the user's follow tags.  This is cached unless refresh is true.
-    async load_all_user_follow_tags({ refresh=false }={})
+    async loadAllUserFollowTags({ refresh=false }={})
     {
         // Follow tags require premium.
-        if(!window.global_data.premium)
+        if(!ppixiv.pixivInfo.premium)
             return [];
 
-        if(!refresh && this.all_user_follow_tags != null)
-            return this.all_user_follow_tags;
+        if(!refresh && this._allUserFollowTags != null)
+            return this._allUserFollowTags;
 
         // If another call is already running, wait for it to finish and use its result.
-        if(this.user_follow_tags_load)
+        if(this._userFollowTagsLoad)
         {
-            await this.user_follow_tags_load;
-            return this.all_user_follow_tags;
+            await this._userFollowTagsLoad;
+            return this._allUserFollowTags;
         }
 
         // The only ways to get this list seem to be from looking at an already-followed
         // user, or looking at the follow list.
-        this.user_follow_tags_load = helpers.get_request(`/ajax/user/${window.global_data.user_id}/following`, {
+        this._userFollowTagsLoad = helpers.getRequest(`/ajax/user/${ppixiv.pixivInfo.userId}/following`, {
             offset: 0,
             limit: 1,
             rest: "show",
         });
         
-        let result = await this.user_follow_tags_load;
-        this.user_follow_tags_load = null;
+        let result = await this._userFollowTagsLoad;
+        this._userFollowTagsLoad = null;
 
         if(result.error)
             console.log("Error retrieving follow tags");
         else
-            this.set_cached_all_user_follow_tags(result.body.followUserTags);
+            this._setCachedAllUserFollowTags(result.body.followUserTags);
 
-        return this.all_user_follow_tags;
+        return this._allUserFollowTags;
     }
-
     
     // Update the list of tags we've followed a user with.
-    set_cached_all_user_follow_tags(tags)
+    _setCachedAllUserFollowTags(tags)
     {
         tags.sort();
 
@@ -339,37 +337,37 @@ export default class UserCache extends EventTarget
         if(idx != -1)
             tags.splice(idx, 1);
 
-        this.all_user_follow_tags = tags;
+        this._allUserFollowTags = tags;
     }
 
     // Add a new tag to all_user_follow_tags When the user creates a new one.
-    add_to_cached_all_user_follow_tags(tag)
+    addCachedUserFollowTags(tag)
     {
-        if(this.all_user_follow_tags == null || this.all_user_follow_tags.indexOf(tag) != -1)
+        if(this._allUserFollowTags == null || this._allUserFollowTags.indexOf(tag) != -1)
             return;
 
-        this.all_user_follow_tags.push(tag);
-        this.all_user_follow_tags.sort();
+        this._allUserFollowTags.push(tag);
+        this._allUserFollowTags.sort();
     }
 
     // Update the follow info for a user.  This is used after updating a follow.
-    update_cached_follow_info(user_id, followed, follow_info)
+    updateCachedFollowInfo(userId, followed, follow_info)
     {
         // If user info isn't loaded, follow info isn't either.
-        let user_info = this.get_user_info_sync(user_id);
-        if(user_info == null)
+        let userInfo = this.getUserInfoSync(userId);
+        if(userInfo == null)
             return;
 
-        user_info.isFollowed = followed;
+        userInfo.isFollowed = followed;
         if(!followed)
         {
-            delete this.user_follow_info[user_id];
+            delete this._userFollowInfo[userId];
         }
         else
         {
-            this.user_follow_info[user_id] = follow_info;
+            this._userFollowInfo[userId] = follow_info;
         }
 
-        this.call_user_modified_callbacks(user_id);
+        this.callUserModifiedCallbacks(userId);
     }
 }

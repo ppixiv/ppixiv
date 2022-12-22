@@ -5,35 +5,35 @@ export default class TagTranslations
 {
     constructor()
     {
-        this.db = new KeyStorage("ppixiv-tag-translations");
+        this._db = new KeyStorage("ppixiv-tag-translations");
 
         // Firefox's private mode is broken: instead of making storage local to the session and
         // not saved to disk, it just disables IndexedDB entirely, which is lazy and breaks pages.
         // Keep a copy of tags we've seen in this session to work around this  This isn't a problem
         // in other browsers.
-        this.cache = new Map();
+        this._cache = new Map();
     }
 
     // Store a list of tag translations.
     // 
-    // tag_list is a dictionary:
+    // tags is a dictionary:
     // {
     //     original_tag: {
     //         en: "english tag",
     //     }
     // }
-    async add_translations_dict(tags)
+    async addTranslationsDict(tags)
     {
         let translations = [];
         for(let tag of Object.keys(tags))
         {
-            let tag_info = tags[tag];
+            let tagInfo = tags[tag];
             let tag_translation = {};
-            for(let lang of Object.keys(tag_info))
+            for(let lang of Object.keys(tagInfo))
             {
-                if(tag_info[lang] == "")
+                if(tagInfo[lang] == "")
                     continue;
-                tag_translation[lang] = tag_info[lang];
+                tag_translation[lang] = tagInfo[lang];
             }
 
             if(Object.keys(tag_translation).length > 0)
@@ -45,12 +45,12 @@ export default class TagTranslations
             }
         }
 
-        this.add_translations(translations);
+        this.addTranslations(translations);
     }
     
     // Store a list of tag translations.
     // 
-    // tag_list is a list of
+    // tagList is a list of
     // {
     //     tag: "original tag",
     //     translation: {
@@ -60,10 +60,10 @@ export default class TagTranslations
     //
     // This is the same format that Pixiv uses in newer APIs.  Note that we currently only store
     // English translations.
-    async add_translations(tag_list)
+    async addTranslations(tagList)
     {
         let data = {};
-        for(let tag of tag_list)
+        for(let tag of tagList)
         {
             // If a tag has no keys and no romanization, skip it so we don't fill our database
             // with useless entries.
@@ -82,30 +82,30 @@ export default class TagTranslations
 
             // Store the tag data that we care about.  We don't need to store post-specific info
             // like "deletable".
-            let tag_info = {
+            let tagInfo = {
                 tag: tag.tag,
                 translation: translation,
             };
             if(tag.romaji)
-                tag_info.romaji = tag.romaji;
-            data[tag.tag] = tag_info;
+                tagInfo.romaji = tag.romaji;
+            data[tag.tag] = tagInfo;
 
             if(translation.en)
-                this.cache.set(tag.tag, translation.en);
+                this._cache.set(tag.tag, translation.en);
         }
 
         // Batch write:
-        await this.db.multi_set(data);
+        await this._db.multiSet(data);
     }
 
-    async get_tag_info(tags)
+    async getTagInfo(tags)
     {
         // If the user has disabled translations, don't return any.
         if(ppixiv.settings.get("disable-translations"))
             return {};
 
         let result = {};
-        let translations = await this.db.multi_get(tags);
+        let translations = await this._db.multiGet(tags);
         for(let i = 0; i < tags.length; ++i)
         {
             if(translations[i] == null)
@@ -115,9 +115,9 @@ export default class TagTranslations
         return result;
     }
 
-    async get_translations(tags, language="en")
+    async getTranslations(tags, language="en")
     {
-        let info = await this.get_tag_info(tags);
+        let info = await this.getTagInfo(tags);
         let result = {};
         for(let tag of tags)
         {
@@ -137,36 +137,36 @@ export default class TagTranslations
         {
             if(result[tag])
                 continue;
-            result[tag] = this.cache.get(tag);
+            result[tag] = this._cache.get(tag);
         }
 
         return result;
     }
 
     // Given a tag search, return a translated search.
-    async translate_tag_list(tags, language)
+    async translateTagList(tags, language)
     {
         // Pull out individual tags, removing -prefixes.
-        let split_tags = helpers.split_search_tags(tags);
-        let tag_list = [];
-        for(let tag of split_tags)
+        let splitTags = helpers.splitSearchTags(tags);
+        let tagList = [];
+        for(let tag of splitTags)
         {
-            let [prefix, unprefixed_tag] = helpers.split_tag_prefixes(tag);
-            tag_list.push(unprefixed_tag);
+            let [prefix, unprefixedTag] = helpers.splitTagPrefixes(tag);
+            tagList.push(unprefixedTag);
         }
 
         // Get translations.
-        let translated_tags = await this.get_translations(tag_list, language);
+        let translatedTags = await this.getTranslations(tagList, language);
 
         // Put the search back together.
         let result = [];
-        for(let one_tag of split_tags)
+        for(let oneTag of splitTags)
         {
-            let prefix_and_tag = helpers.split_tag_prefixes(one_tag);
-            let prefix = prefix_and_tag[0];
-            let tag = prefix_and_tag[1];
-            if(translated_tags[tag])
-                tag = translated_tags[tag];
+            let prefixAndTag = helpers.splitTagPrefixes(oneTag);
+            let prefix = prefixAndTag[0];
+            let tag = prefixAndTag[1];
+            if(translatedTags[tag])
+                tag = translatedTags[tag];
             result.push(prefix + tag);
         }
         return result;
@@ -174,29 +174,12 @@ export default class TagTranslations
 
     // A shortcut to retrieve one translation.  If no translation is available, returns the
     // original tag.
-    async get_translation(tag, language="en")
+    async getTranslation(tag, language="en")
     {
-        let translated_tags = await this.get_translations([tag], "en");
-        if(translated_tags[tag])
-            return translated_tags[tag];
+        let translatedTags = await this.getTranslations([tag], "en");
+        if(translatedTags[tag])
+            return translatedTags[tag];
         else
             return tag;
-    }
-
-    // Set the innerText of an element to tag, translating it if possible.
-    //
-    // This is async to look up the tag translation, but it's safe to release this
-    // without awaiting.
-    async set_translated_tag(element, tag)
-    {
-        let original_tag = tag;
-        element.dataset.tag = original_tag;
-        tag = await this.get_translation(tag);
-
-        // Stop if another call was made here while we were async.
-        if(element.dataset.tag != original_tag)
-            return;
-
-        element.innerText = tag;
     }
 }

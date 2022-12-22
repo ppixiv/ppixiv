@@ -4,7 +4,7 @@ import Widget from 'vview/widgets/widget.js';
 export default class Screen extends Widget
 {
     // Handle a key input.  This is only called while the screen is active.
-    handle_onkeydown(e)
+    handleKeydown(e)
     {
     }
 
@@ -12,8 +12,8 @@ export default class Screen extends Widget
     get displayedMediaId() { return null; }
 
     // Screens don't hide themselves when visible is false, but we still set visibility so
-    // visible_recursively works.
-    apply_visibility() { }
+    // visibleRecursively works.
+    applyVisibility() { }
 
     get active() { return !this.container.inert; }
 

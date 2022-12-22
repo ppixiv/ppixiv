@@ -8,7 +8,7 @@ export class CheckboxWidget extends Widget
         ...options})
     {
         super({...options, template: `
-            ${ helpers.create_icon("", { classes: ["checkbox"] }) }
+            ${ helpers.createIcon("", { classes: ["checkbox"] }) }
         `});
 
         this._checked = true;

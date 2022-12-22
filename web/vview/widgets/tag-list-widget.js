@@ -10,9 +10,9 @@ export default class TagListWidget extends Widget
         super({...options});
     };
 
-    format_tag_link(tag)
+    formatTagLink(tag)
     {
-        return helpers.get_args_for_tag_search(tag, ppixiv.plocation);
+        return helpers.getArgsForTagSearch(tag, ppixiv.plocation);
     };
 
     async set(tags)
@@ -27,33 +27,33 @@ export default class TagListWidget extends Widget
             return;
 
         // Short circuit if the tag list isn't changing, since IndexedDB is really slow.
-        if(this.last_tags != null && JSON.stringify(this.last_tags) == JSON.stringify(this.tags))
+        if(this._currentTags != null && JSON.stringify(this._currentTags) == JSON.stringify(this.tags))
             return;
 
         // Look up tag translations.
-        let tag_list = this.tags;
-        let translated_tags = await ppixiv.tagTranslations.get_translations(tag_list, "en");
+        let tagList = this.tags;
+        let translatedTags = await ppixiv.tagTranslations.getTranslations(tagList, "en");
         
         // Stop if the tag list changed while we were reading tag translations.
-        if(tag_list != this.tags)
+        if(tagList != this.tags)
             return;
 
-        this.last_tags = this.tags;
+        this._currentTags = this.tags;
 
         // Remove any old tag list and create a new one.
-        helpers.remove_elements(this.container);
+        helpers.removeElements(this.container);
 
-        for(let tag of tag_list)
+        for(let tag of tagList)
         {
-            let translated_tag = tag;
-            if(translated_tags[tag])
-                translated_tag = translated_tags[tag];
+            let translatedTag = tag;
+            if(translatedTags[tag])
+                translatedTag = translatedTags[tag];
 
-            let a = helpers.create_box_link({
-                label: translated_tag,
+            let a = helpers.createBoxLink({
+                label: translatedTag,
                 classes: ["tag-entry"],
-                link: this.format_tag_link(tag),
-                as_element: true,
+                link: this.formatTagLink(tag),
+                asElement: true,
             });
 
             this.container.appendChild(a);

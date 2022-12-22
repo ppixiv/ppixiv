@@ -36,19 +36,19 @@ export class AvatarWidget extends Widget
         if(this.options.mode != "dropdown" && this.options.mode != "overlay")
             throw "Invalid avatar widget mode";
 
-        helpers.set_class(this.container, "big", big);
+        helpers.setClass(this.container, "big", big);
 
-        ppixiv.userCache.addEventListener("usermodified", this.user_changed, { signal: this.shutdown_signal.signal });
+        ppixiv.userCache.addEventListener("usermodified", this._userChanged, { signal: this.shutdownSignal.signal });
 
-        let element_author_avatar = this.container.querySelector(".avatar");
-        let avatar_link = this.container.querySelector(".avatar-link");
+        let avatarElement = this.container.querySelector(".avatar");
+        let avatarLink = this.container.querySelector(".avatar-link");
 
         if(interactive)
         {
-            this.follow_dropdown_opener = new DropdownBoxOpener({
-                button: avatar_link,
+            this.followDropdownOpener = new DropdownBoxOpener({
+                button: avatarLink,
                 onvisibilitychanged: dropdownvisibilitychanged,
-                create_box: ({...options}) => {
+                createBox: ({...options}) => {
                     return new FollowWidget({
                         ...options,
                         userId: this.userId,
@@ -56,10 +56,10 @@ export class AvatarWidget extends Widget
                 },
             });
 
-            avatar_link.addEventListener("click", (e) => {
+            avatarLink.addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.follow_dropdown_opener.visible = !this.follow_dropdown_opener.visible;
+                this.followDropdownOpener.visible = !this.followDropdownOpener.visible;
             }, {
                 // Hack: capture this event so we get clicks even over the eye widget.  We can't
                 // set it to pointer-events: none since it reacts to mouse movement.
@@ -68,7 +68,7 @@ export class AvatarWidget extends Widget
 
             // Clicking the avatar used to go to the user page, but now it opens the follow dropdown.
             // Allow doubleclicking it instead, to keep it quick to go to the user.
-            avatar_link.addEventListener("dblclick", (e) => {
+            avatarLink.addEventListener("dblclick", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
 
@@ -80,16 +80,16 @@ export class AvatarWidget extends Widget
         // A canvas filter for the avatar.  This has no actual filters.  This is just to kill off any
         // annoying GIF animations in people's avatars.
         this.img = document.createElement("img");
-        this.base_filter = new ImageCanvasFilter(this.img, element_author_avatar);
+        this._baseFilter = new ImageCanvasFilter(this.img, avatarElement);
         
         this.container.dataset.mode = this.options.mode;
 
         // Show the favorite UI when hovering over the avatar icon.
-        let avatar_popup = this.container; //container.querySelector(".avatar-popup");
+        let avatarPopup = this.container; //container.querySelector(".avatar-popup");
         if(this.options.mode == "dropdown")
         {
-            avatar_popup.addEventListener("mouseover", (e) => { helpers.set_class(avatar_popup, "popup-visible", true); });
-            avatar_popup.addEventListener("mouseout", (e) => { helpers.set_class(avatar_popup, "popup-visible", false); });
+            avatarPopup.addEventListener("mouseover", (e) => { helpers.setClass(avatarPopup, "popup-visible", true); });
+            avatarPopup.addEventListener("mouseout", (e) => { helpers.setClass(avatarPopup, "popup-visible", false); });
         }
 
         new CreepyEyeWidget({
@@ -97,15 +97,15 @@ export class AvatarWidget extends Widget
         });
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
+        super.visibilityChanged();
 
         this.refresh();
     }
 
     // Refresh when the user changes.
-    user_changed = ({user_id}) =>
+    _userChanged = ({user_id}) =>
     {
         if(this.userId == null || this.userId != user_id)
             return;
@@ -116,8 +116,8 @@ export class AvatarWidget extends Widget
     async setUserId(user_id)
     {
         // Close the dropdown if the user is changing.
-        if(this.userId != user_id && this.follow_dropdown_opener)
-            this.follow_dropdown_opener.visible = false;
+        if(this.userId != user_id && this.followDropdownOpener)
+            this.followDropdownOpener.visible = false;
 
         this.userId = user_id;
         this.refresh();
@@ -127,21 +127,21 @@ export class AvatarWidget extends Widget
     {
         if(this.userId == null || this.userId == -1)
         {
-            this.user_data = null;
+            this.userData = null;
             this.container.classList.add("loading");
 
             // Set the avatar image to a blank image, so it doesn't flash the previous image
             // the next time we display it.  It should never do this, since we set a new image
             // before displaying it, but Chrome doesn't do this correctly at least with canvas.
-            this.img.src = helpers.blank_image;
+            this.img.src = helpers.blankImage;
             return;
         }
 
         // If we've seen this user's profile image URL from thumbnail data, start loading it
         // now.  Otherwise, we'll have to wait until user info finishes loading.
-        let cached_profile_url = ppixiv.mediaCache.user_profile_urls[this.userId];
-        if(cached_profile_url)
-            this.img.src = cached_profile_url;
+        let cachedProfileUrl = ppixiv.mediaCache.userProfileUrls[this.userId];
+        if(cachedProfileUrl)
+            this.img.src = cachedProfileUrl;
 
         // Set up stuff that we don't need user info for.
         this.container.querySelector(".avatar-link").href = `/users/${this.userId}/artworks#ppixiv`;
@@ -151,27 +151,27 @@ export class AvatarWidget extends Widget
             this.container.querySelector(".avatar").classList.remove("popup");
 
         // Clear stuff we need user info for, so we don't show old data while loading.
-        helpers.set_class(this.container, "followed", false);
+        helpers.setClass(this.container, "followed", false);
         this.container.querySelector(".avatar").dataset.popup = "";
 
         this.container.classList.remove("loading");
         this.container.querySelector(".follow-icon").hidden = true;
 
-        let user_data = await ppixiv.userCache.get_user_info(this.userId);
-        this.user_data = user_data;
-        if(user_data == null)
+        let userData = await ppixiv.userCache.getUserInfo(this.userId);
+        this.userData = userData;
+        if(userData == null)
             return;
 
-        this.container.querySelector(".follow-icon").hidden = !this.user_data.isFollowed;
-        this.container.querySelector(".avatar").dataset.popup = this.user_data.name;
+        this.container.querySelector(".follow-icon").hidden = !this.userData.isFollowed;
+        this.container.querySelector(".avatar").dataset.popup = this.userData.name;
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
         let key = "imageBig";
-        if(this.user_data[key])
-            this.img.src = this.user_data[key];
+        if(this.userData[key])
+            this.img.src = this.userData[key];
         else
-            this.img.src = helpers.blank_image;
+            this.img.src = helpers.blankImage;
     }
 };
 
@@ -181,31 +181,31 @@ export class AvatarWidget extends Widget
 // When an image loads, draw it to a canvas of the same size, optionally applying filter
 // effects.
 //
-// If base_filter is supplied, it's a filter to apply to the top copy of the image.
+// If baseFilter is supplied, it's a filter to apply to the top copy of the image.
 // If overlay(ctx, img) is supplied, it's a function to draw to the canvas.  This can
 // be used to mask the top copy.
 class ImageCanvasFilter
 {
-    constructor(img, canvas, base_filter, overlay)
+    constructor(img, canvas, baseFilter, overlay)
     {
         this.img = img;
         this.canvas = canvas;
-        this.base_filter = base_filter || "";
+        this._baseFilter = baseFilter || "";
         this.overlay = overlay;
         this.ctx = this.canvas.getContext("2d");
 
-        this.img.addEventListener("load", this.update_canvas);
+        this.img.addEventListener("load", this._updateCanvas);
 
         // For some reason, browsers can't be bothered to implement onloadstart, a seemingly
         // fundamental progress event.  So, we have to use a mutation observer to tell when
         // the image is changed, to make sure we clear it as soon as the main image changes.
         this.observer = new MutationObserver((mutations) => {
-            for(var mutation of mutations) {
+            for(let mutation of mutations) {
                 if(mutation.type == "attributes")
                 {
                     if(mutation.attributeName == "src")
                     {
-                        this.update_canvas();
+                        this._updateCanvas();
                     }
                 }
             }
@@ -213,41 +213,41 @@ class ImageCanvasFilter
 
         this.observer.observe(this.img, { attributes: true });
         
-        this.update_canvas();
+        this._updateCanvas();
     }
 
     clear()
     {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.current_url = helpers.blank_image;
+        this._currentUrl = helpers.blankImage;
     }
 
-    update_canvas = () =>
+    _updateCanvas = () =>
     {
         // The URL for the image we're rendering.  If the image isn't complete, use the blank image
         // URL instead, since we're just going to clear.
-        let current_url = this.img.src;
+        let currentUrl = this.img.src;
         if(!this.img.complete)
-            current_url = helpers.blank_image;
+            currentUrl = helpers.blankImage;
 
-        if(current_url == this.current_url)
+        if(currentUrl == this._currentUrl)
             return;
 
-        helpers.set_class(this.canvas, "loaded", false);
+        helpers.setClass(this.canvas, "loaded", false);
 
         this.canvas.width = this.img.naturalWidth;
         this.canvas.height = this.img.naturalHeight;
         this.clear();
 
-        this.current_url = current_url;
+        this._currentUrl = currentUrl;
 
         // If we're rendering the blank image (or an incomplete image), stop.
-        if(current_url == helpers.blank_image)
+        if(currentUrl == helpers.blankImage)
             return;
 
         // Draw the image onto the canvas.
         this.ctx.save();
-        this.ctx.filter = this.base_filter;
+        this.ctx.filter = this._baseFilter;
         this.ctx.drawImage(this.img, 0, 0);
         this.ctx.restore();
 
@@ -262,7 +262,7 @@ class ImageCanvasFilter
         // Use destination-over to draw the image underneath the overlay we just drew.
         this.ctx.globalCompositeOperation = "destination-over";
         this.ctx.drawImage(this.img, 0, 0);
-        helpers.set_class(this.canvas, "loaded", true);
+        helpers.setClass(this.canvas, "loaded", true);
     }
 }
 
@@ -290,11 +290,11 @@ class CreepyEyeWidget extends Widget
         if(e.type == "mouseleave")
             this.hover = false;
 
-        let eye_middle = this.container.querySelector(".middle");
+        let eyeMiddle = this.container.querySelector(".middle");
 
         if(!this.hover)
         {
-            eye_middle.style.transform = "";
+            eyeMiddle.style.transform = "";
             return;
         }
         let mouse = [e.clientX, e.clientY];
@@ -302,19 +302,19 @@ class CreepyEyeWidget extends Widget
         let bounds = this.container.getBoundingClientRect();
         let eye = [bounds.x + bounds.width/2, bounds.y + bounds.height/2];
 
-        let vector_length = (vec) =>Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
+        let vectorLength = (vec) =>Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
 
         // Normalize to get a direction vector.
-        let normalize_vector = (vec) =>
+        let normalizeVector = (vec) =>
         {
-            var length = vector_length(vec);
+            let length = vectorLength(vec);
             if(length < 0.0001)
                 return [0,0];
             return [vec[0]/length, vec[1]/length];
         };
 
         let pos = [mouse[0] - eye[0], mouse[1] - eye[1]];
-        pos = normalize_vector(pos);
+        pos = normalizeVector(pos);
 
         if(Math.abs(pos[0]) < 0.5)
         {
@@ -326,7 +326,7 @@ class CreepyEyeWidget extends Widget
 //        pos[0] = 1 - ((1-pos[0]) * (1-pos[0]));
         pos[0] *= -3;
         pos[1] *= -6;
-        eye_middle.style.transform = "translate(" + pos[0] + "px, " + pos[1] + "px)";
+        eyeMiddle.style.transform = "translate(" + pos[0] + "px, " + pos[1] + "px)";
     }
 }
 
@@ -341,26 +341,26 @@ class FollowWidget extends Widget
         super({
             ...options, template: `
             <div class="follow-container vertical-list">
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "View posts",
                     icon: "image",
                     classes: ["view-posts"],
                 })}
 
                 <!-- Buttons for following and unfollowing: -->
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "Follow",
                     icon: "public",
                     classes: ["follow-button-public"],
                 })}
 
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "Follow privately",
                     icon: "lock",
                     classes: ["follow-button-private"],
                 })}
 
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "Unfollow",
                     icon: "delete",
                     classes: ["unfollow-button"],
@@ -369,13 +369,13 @@ class FollowWidget extends Widget
                 <!-- Buttons for toggling a follow between public and private.  This is separate
                      from the buttons above, since it comes after to make sure that the unfollow
                      button is above the toggle buttons. -->
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "Change to public",
                     icon: "public",
                     classes: ["toggle-follow-button-public"],
                 })}
 
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "Change to private",
                     icon: "lock",
                     classes: ["toggle-follow-button-private"],
@@ -385,7 +385,7 @@ class FollowWidget extends Widget
                      since he won't have access to tags and this will be empty. -->
                 <div class="separator premium-only"><div></div></div>
 
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "Add new tag",
                     icon: "add_circle",
                     classes: ["premium-only", "add-follow-tag"],
@@ -405,10 +405,10 @@ class FollowWidget extends Widget
         this.container.querySelector(".add-follow-tag").addEventListener("click", (e) => this._addFollowTag());
 
         // Refresh if the user we're displaying changes.
-        ppixiv.userCache.addEventListener("usermodified", this.user_changed, this._signal);
+        ppixiv.userCache.addEventListener("usermodified", this._userChanged, this._signal);
     }
 
-    user_changed = ({user_id}) =>
+    _userChanged = ({user_id}) =>
     {
         if(!this.visible || user_id != this.userId)
             return;
@@ -451,25 +451,25 @@ class FollowWidget extends Widget
 
             // Refresh with whether we're followed or not, so the follow/unfollow UI is
             // displayed as early as possible.
-            let user_info = await ppixiv.userCache.get_user_info(this.userId);
+            let userInfo = await ppixiv.userCache.getUserInfo(this.userId);
             if(!this.visible)
                 return;
 
-            this._refreshWithData({ user_info, following: user_info.isFollowed });
+            this._refreshWithData({ userInfo, following: userInfo.isFollowed });
             
-            if(!user_info.isFollowed)
+            if(!userInfo.isFollowed)
             {
                 // We're not following, so just load the follow tag list.
-                let all_tags = await ppixiv.userCache.load_all_user_follow_tags();
-                this._refreshWithData({ user_info, following: user_info.isFollowed, all_tags, selected_tags: new Set() });
+                let allTags = await ppixiv.userCache.loadAllUserFollowTags();
+                this._refreshWithData({ userInfo, following: userInfo.isFollowed, allTags, selectedTags: new Set() });
                 return;
             }
 
             // Get full follow info to find out if the follow is public or private, and which
             // tags are selected.
-            let follow_info = await ppixiv.userCache.get_user_follow_info(this.userId);
-            let all_tags = await ppixiv.userCache.load_all_user_follow_tags();
-            this._refreshWithData({user_info, following: true, following_privately: follow_info?.following_privately, all_tags, selected_tags: follow_info?.tags});
+            let followInfo = await ppixiv.userCache.getUserFollowInfo(this.userId);
+            let allTags = await ppixiv.userCache.loadAllUserFollowTags();
+            this._refreshWithData({userInfo, following: true, followingPrivately: followInfo?.followingPrivately, allTags, selectedTags: followInfo?.tags});
         } finally {
             this.refreshing = false;
         }
@@ -477,7 +477,7 @@ class FollowWidget extends Widget
 
     // Refresh the UI with as much data as we have.  This data comes in a bunch of little pieces,
     // so we get it incrementally.
-    _refreshWithData({user_info=null, following=null, following_privately=null, all_tags=null, selected_tags=null}={})
+    _refreshWithData({userInfo=null, following=null, followingPrivately=null, allTags=null, selectedTags=null}={})
     {
         if(!this.visible)
             return;
@@ -490,8 +490,8 @@ class FollowWidget extends Widget
         this.container.querySelector(".add-follow-tag").hidden = true;
         this.container.querySelector(".separator").hidden = true;
         
-        let view_text = user_info != null? `View ${user_info.name}'s posts`:`View posts`;
-        this.container.querySelector(".view-posts .label").innerText = view_text;
+        let viewText = userInfo != null? `View ${userInfo.name}'s posts`:`View posts`;
+        this.container.querySelector(".view-posts .label").innerText = viewText;
         this.container.querySelector(".view-posts").href = `/users/${this._userId}/artworks#ppixiv`;
 
         // If following is null, we're still waiting for the initial user data request
@@ -504,10 +504,10 @@ class FollowWidget extends Widget
             // If we know whether we're following privately or publically, we can show the
             // button to change the follow mode.  If we don't have that yet, we can only show
             // unfollow.
-            if(following_privately != null)
+            if(followingPrivately != null)
             {
-                this.container.querySelector(".toggle-follow-button-public").hidden = !following_privately;
-                this.container.querySelector(".toggle-follow-button-private").hidden = following_privately;
+                this.container.querySelector(".toggle-follow-button-public").hidden = !followingPrivately;
+                this.container.querySelector(".toggle-follow-button-private").hidden = followingPrivately;
             }
 
             this.container.querySelector(".unfollow-button").hidden = false;
@@ -522,25 +522,25 @@ class FollowWidget extends Widget
         for(let element of this.container.querySelectorAll(".follow-tag"))
             element.remove();
 
-        if(all_tags != null)
+        if(allTags != null)
         {
             // Show the separator and "add tag" button once we have the tag list.
             this.container.querySelector(".add-follow-tag").hidden = false;
             this.container.querySelector(".separator").hidden = false;
 
-            all_tags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
-            for(let tag of all_tags)
+            allTags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+            for(let tag of allTags)
             {
-                let button = helpers.create_box_link({
+                let button = helpers.createBoxLink({
                     label: tag,
                     classes: ["follow-tag"],
                     icon: "bookmark",
-                    as_element: true,
+                    asElement: true,
                 });
     
                 // True if the user is bookmarked with this tag.
-                let selected = selected_tags.has(tag);
-                helpers.set_class(button, "selected", selected);
+                let selected = selectedTags.has(tag);
+                helpers.setClass(button, "selected", selected);
 
                 this.container.appendChild(button);
 
@@ -551,9 +551,9 @@ class FollowWidget extends Widget
         }
     }
 
-    async _clickedFollow(follow_privately)
+    async _clickedFollow(followPrivately)
     {
-        await Actions.follow(this._userId, follow_privately);
+        await Actions.follow(this._userId, followPrivately);
     }
 
     async _clickedUnfollow()
@@ -577,8 +577,8 @@ class FollowWidget extends Widget
         let userId = this.userId;
 
         // If the user isn't followed, the first tag is added by following.
-        let user_data = await ppixiv.userCache.get_user_info(userId);
-        if(!user_data.isFollowed)
+        let userData = await ppixiv.userCache.getUserInfo(userId);
+        if(!userData.isFollowed)
         {
             // We're not following, so follow the user with default privacy and the
             // selected tag.
@@ -587,14 +587,14 @@ class FollowWidget extends Widget
         }
 
         // We're already following, so update the existing tags.
-        let follow_info = await ppixiv.userCache.get_user_follow_info(userId);
-        if(follow_info == null)
+        let followInfo = await ppixiv.userCache.getUserFollowInfo(userId);
+        if(followInfo == null)
         {
             console.log("Error retrieving follow info to update tags");
             return;
         }
 
-        let tag_was_selected = follow_info.tags.has(tag);
-        Actions.changeFollowTags(userId, {tag: tag, add: !tag_was_selected});
+        let tagWasSelected = followInfo.tags.has(tag);
+        Actions.changeFollowTags(userId, {tag: tag, add: !tagWasSelected});
     }
 };

@@ -91,11 +91,11 @@ let updateHistory = [
         text: `
             Added a panning/slideshow editor, to edit how an image will pan and zoom during
             slideshows.  Right-click and enable
-            ${ helpers.create_icon("settings") } ${ helpers.create_icon("brush") } Image Editing, then
-            ${ helpers.create_icon("wallpaper") } Edit Panning while viewing an image.
+            ${ helpers.createIcon("settings") } ${ helpers.createIcon("brush") } Image Editing, then
+            ${ helpers.createIcon("wallpaper") } Edit Panning while viewing an image.
             <p>
-            Added a button to ${ helpers.create_icon("restart_alt") }
-            Refresh the search from the current page.  The ${ helpers.create_icon("refresh") }
+            Added a button to ${ helpers.createIcon("restart_alt") }
+            Refresh the search from the current page.  The ${ helpers.createIcon("refresh") }
             Refresh button now always restarts from the beginning.
         `,
     },
@@ -105,7 +105,7 @@ let updateHistory = [
             Pressing Ctrl-P now toggles image panning.
             <p>        
             Added image cropping for trimming borders from images.
-            Enable ${ helpers.create_icon("settings") } Image Editing in the context menu to
+            Enable ${ helpers.createIcon("settings") } Image Editing in the context menu to
             display the editor.
             <p>
             The page number is now shown over expanded manga posts while hovering over
@@ -125,7 +125,7 @@ let updateHistory = [
             Added a new way of viewing manga posts.
             <p>
             You can now view manga posts in search results.  Click the page count in the corner of
-            thumbnails to show all manga pages.  You can also click ${ helpers.create_icon("open_in_full") }
+            thumbnails to show all manga pages.  You can also click ${ helpers.createIcon("open_in_full") }
             in the top menu to expand everything, or turn it on everywhere in settings.
         `,
     }, {
@@ -148,7 +148,7 @@ let updateHistory = [
     {
         version: 121,
         text: `
-Added a slideshow mode.  Click ${ helpers.create_icon("wallpaper") } at the top.
+Added a slideshow mode.  Click ${ helpers.createIcon("wallpaper") } at the top.
 <p>
 Added an option to pan images as they're viewed.
 <p>
@@ -368,7 +368,6 @@ export default class WhatsNew extends widget
     static handleLastViewedVersion()
     {
         let refresh = () => {
-            //let whats_new_button = this.container.querySelector(".settings-page-button[data-page='whats_new']");
             let lastViewedVersion = ppixiv.settings.get("whats-new-last-viewed-version", 0);
     
             // This was stored as a string before, since it came from GM_info.script.version.  Make
@@ -376,7 +375,7 @@ export default class WhatsNew extends widget
             lastViewedVersion = parseInt(lastViewedVersion);
     
             let newUpdates = lastViewedVersion < WhatsNew.latestInterestingHistoryRevision();
-            helpers.set_dataset(document.documentElement.dataset, "whatsNewUpdated", newUpdates);
+            helpers.setDataSet(document.documentElement.dataset, "whatsNewUpdated", newUpdates);
         };
         refresh();
         ppixiv.settings.addEventListener("whats-new-last-viewed-version", refresh);
@@ -384,7 +383,7 @@ export default class WhatsNew extends widget
 
     constructor({...options}={}) 
     {
-        super({...options, dialog_class: "whats-new-dialog", header: "Updates", template: `
+        super({...options, dialogClass: "whats-new-dialog", header: "Updates", template: `
             <div class=whats-new-dialog>
                 <div class=contents>
                 </div>
@@ -422,7 +421,7 @@ export default class WhatsNew extends widget
         {
             let update = updateHistory[idx];
             let previousUpdate = updateHistory[idx+1];
-            let entry = this.create_template({name: "item", html: `
+            let entry = this.createTemplate({name: "item", html: `
                 <div class=item>
                     <a class=rev href=#></a>
                     <div class=text></span>

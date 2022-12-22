@@ -294,7 +294,7 @@ class AppStartup
         return this._urlSupported(window.location);
     }
 
-    // helpers.get_path_without_language:
+    // helpers.getPathWithoutLanguage:
     _getPathWithoutLanguage(path)
     {
         if(/^\/..\//.exec(path))
@@ -316,7 +316,7 @@ class AppStartup
         let pathname = this._getPathWithoutLanguage(url.pathname);
 
         let parts = pathname.split("/");
-        let firstPart = parts[1]; // helpers.get_page_type_from_url
+        let firstPart = parts[1]; // helpers.getPageTypeFromUrl
         if(firstPart == "artworks")
             return true; // manga, current_illust
         else if(firstPart == "users")

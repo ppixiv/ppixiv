@@ -14,8 +14,8 @@ export default class ViewerImagesDesktop extends ViewerImages
 
         this._pointerListener = new PointerListener({
             element: this.container,
-            button_mask: 1,
-            signal: this.shutdown_signal.signal,
+            buttonMask: 1,
+            signal: this.shutdownSignal.signal,
             callback: this._pointerevent,
         });
     }
@@ -37,15 +37,15 @@ export default class ViewerImagesDesktop extends ViewerImages
             // Stop animating if this is a real click.  If it's a carried-over click during quick
             // view, don't stop animating until we see a drag.
             if(e.type != "simulatedpointerdown")
-                this._stop_animation();
+                this._stopAnimation();
 
             let zoomCenterPos;
             if(!this.getLockedZoom())
-                zoomCenterPos = this.get_image_position([e.clientX, e.clientY]);
+                zoomCenterPos = this.getImagePosition([e.clientX, e.clientY]);
 
             // If this is a simulated press event, the button was pressed on the previous page,
             // probably due to quick view.  Don't zoom from this press, but do listen to pointermove,
-            // so send_mouse_movement_to_linked_tabs is still called.
+            // so sendMouseMovementToLinkedTabs is still called.
             let allowZoom = true;
             if(e.type == "simulatedpointerdown" && !this.getLockedZoom())
                 allowZoom = false;
@@ -62,7 +62,7 @@ export default class ViewerImagesDesktop extends ViewerImages
             // If this is a click-zoom, align the zoom to the point on the image that
             // was clicked.
             if(!this.getLockedZoom())
-                this.set_image_position([e.clientX, e.clientY], zoomCenterPos);
+                this.setImagePosition([e.clientX, e.clientY], zoomCenterPos);
 
             this._reposition();
 
@@ -142,9 +142,9 @@ export default class ViewerImagesDesktop extends ViewerImages
 
         this._dragMovement[0] += movementX;
         this._dragMovement[1] += movementY;
-        if(this._animations_running && this._dragMovement[0] < 4 && this._dragMovement[1] < 4)
+        if(this._animationsRunning && this._dragMovement[0] < 4 && this._dragMovement[1] < 4)
             return;
 
-        this._apply_pointer_movement({movementX, movementY});
+        this.applyPointerMovement({movementX, movementY});
     }
 }

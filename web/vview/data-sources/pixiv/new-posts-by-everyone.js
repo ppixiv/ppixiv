@@ -42,7 +42,7 @@ export default class DataSource_NewPostsByEveryone extends DataSource
         console.log("Assuming page", page, "starts at", this.lastId);
 
         let url = "/ajax/illust/new";
-        let result = await helpers.get_request(url, {
+        let result = await helpers.getRequest(url, {
             limit: 20,
             type: type,
             r18: r18,
@@ -56,10 +56,10 @@ export default class DataSource_NewPostsByEveryone extends DataSource
         }
 
         let mediaIds = [];
-        for(let illust_data of result.body.illusts)
-            mediaIds.push(helpers.illust_id_to_media_id(illust_data.id));
+        for(let illustData of result.body.illusts)
+            mediaIds.push(helpers.illustIdToMediaId(illustData.id));
 
-        await ppixiv.mediaCache.add_media_infos_partial(result.body.illusts, "normal");
+        await ppixiv.mediaCache.addMediaInfosPartial(result.body.illusts, "normal");
 
         // Register the new page of data.
         this.addPage(page, mediaIds);
@@ -74,12 +74,12 @@ class UI extends Widget
             <div>
                 <div class=box-button-row>
                     <div class=box-button-row>
-                        ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations",     data_type: "new-illust-type-illust" }) }
-                        ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",        data_type: "new-illust-type-manga" }) }
+                        ${ helpers.createBoxLink({label: "Illustrations", popup: "Show illustrations",     dataType: "new-illust-type-illust" }) }
+                        ${ helpers.createBoxLink({label: "Manga",         popup: "Show manga only",        dataType: "new-illust-type-manga" }) }
                     </div>
 
                     <div class=box-button-row>
-                        ${ helpers.create_box_link({label: "R18",           popup: "Show only R18 works",         data_type: "new-illust-ages-r18" }) }
+                        ${ helpers.createBoxLink({label: "R18",           popup: "Show only R18 works",         dataType: "new-illust-ages-r18" }) }
                     </div>
                 </div>
             </div>

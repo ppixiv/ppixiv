@@ -121,7 +121,7 @@ export default class IllustIdList
             return { };
 
         // Try the first page.
-        mediaId = helpers.get_media_id_first_page(mediaId);
+        mediaId = helpers.getMediaIdFirstPage(mediaId);
         for(let [page, ids] of this.mediaIdsByPage)
         {
             let idx = ids.indexOf(mediaId);
@@ -145,7 +145,7 @@ export default class IllustIdList
                 return null;
 
             // If it's not an illustration, keep looking.
-            let { type } = helpers.parse_media_id(mediaId);
+            let { type } = helpers.parseMediaId(mediaId);
             if(type == "illust" || type == "file")
                 return mediaId;
         }
@@ -169,21 +169,21 @@ export default class IllustIdList
 
         // If we're navigating forwards and we're not skipping manga pages, grab media info to
         // get the page count to see if we're at the end. 
-        let id = helpers.parse_media_id(mediaId);
+        let id = helpers.parseMediaId(mediaId);
         if(id.type == "illust" && manga == 'normal')
         {
             // If we're navigating backwards and we're past page 1, just go to the previous page.
             if(!next && id.page > 0)
             {
                 id.page--;
-                return helpers.encode_media_id(id);
+                return helpers.encodeMediaId(id);
             }
 
             // If we're navigating forwards, grab illust data to see if we can navigate to the
             // next page.
             if(next)
             {
-                let info = ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false });
+                let info = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
                 if(info == null)
                 {
                     // This can happen if we're viewing a deleted image, which has no illust info.
@@ -191,12 +191,12 @@ export default class IllustIdList
                 }
                 else
                 {
-                    let [oldIllustId, oldPage] = helpers.media_id_to_illust_id_and_page(mediaId);
+                    let [oldIllustId, oldPage] = helpers.mediaIdToIllustIdAndPage(mediaId);
                     if(oldPage < info.pageCount - 1)
                     {
                         // There are more pages, so just navigate to the next page.
                         id.page++;
-                        return helpers.encode_media_id(id);
+                        return helpers.encodeMediaId(id);
                     }
                 }
             }
@@ -240,16 +240,16 @@ export default class IllustIdList
         }
 
         // If we're navigating backwards and we're not in skip-to-first mode, get the last page on newMediaId.
-        if(!next && manga != 'skip-to-first' && helpers.parse_media_id(newMediaId).type == "illust")
+        if(!next && manga != 'skip-to-first' && helpers.parseMediaId(newMediaId).type == "illust")
         {
-            let info = ppixiv.mediaCache.get_media_info_sync(newMediaId, { full: false });
+            let info = ppixiv.mediaCache.getMediaInfoSync(newMediaId, { full: false });
             if(info == null)
             {
                 console.log("Thumbnail info missing for", mediaId);
                 return null;
             }
 
-            newMediaId = helpers.get_media_id_for_page(newMediaId, info.pageCount - 1);
+            newMediaId = helpers.getMediaIdForPage(newMediaId, info.pageCount - 1);
         }
 
         return newMediaId;

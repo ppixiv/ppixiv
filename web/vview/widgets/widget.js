@@ -5,24 +5,24 @@ import { helpers } from 'vview/misc/helpers.js';
 export default class Widget extends Actor
 {
     // Find the widget containing a node.
-    static from_node(node, { allow_none=false }={})
+    static fromNode(node, { allowNone=false }={})
     {
-        if(node == null && allow_none)
+        if(node == null && allowNone)
             return null;
 
         // The top node for the widget has the widget class.
-        let widget_top_node = node.closest(".widget");
-        if(widget_top_node == null)
+        let widgetTopNode = node.closest(".widget");
+        if(widgetTopNode == null)
         {
-            if(allow_none)
+            if(allowNone)
                 return null;
 
             console.log("Node wasn't in a widget:", node);
             throw new Error("Node wasn't in a widget:", node);
         }
 
-        console.assert(widget_top_node.widget != null);
-        return widget_top_node.widget;
+        console.assert(widgetTopNode.widget != null);
+        return widgetTopNode.widget;
     }
 
     constructor({
@@ -35,7 +35,7 @@ export default class Widget extends Actor
         // An insertAdjacentElement position (beforebegin, afterbegin, beforeend, afterend) indicating
         // where our contents should be inserted relative to container.  This can also be "replace", which
         // will replace container.
-        container_position="beforeend",
+        containerPosition="beforeend",
         ...options}={})
     {
         // If container is a widget instead of a node, use the container's root node.
@@ -44,21 +44,21 @@ export default class Widget extends Actor
 
         if(parent == null)
         {
-            let parent_search_node = container;
+            let parentSearchNode = container;
             if(contents)
-                parent_search_node = contents.parentNode;
-            if(parent_search_node == null && parent == null)
+                parentSearchNode = contents.parentNode;
+            if(parentSearchNode == null && parent == null)
                 console.warn("Can't search for parent");
-            if(parent_search_node)
+            if(parentSearchNode)
             {
-                let parent_widget = Widget.from_node(parent_search_node, { allow_none: true });
-                if(parent != null && parent !== parent_widget)
+                let parentWidget = Widget.fromNode(parentSearchNode, { allowNone: true });
+                if(parent != null && parent !== parentWidget)
                 {
-                    console.assert(parent === parent_widget);
-                    console.log("Found:", parent_widget);
+                    console.assert(parent === parentWidget);
+                    console.log("Found:", parentWidget);
                     console.log("Expected:", parent);
                 }
-                parent = parent_widget;
+                parent = parentWidget;
             }
         }
 
@@ -68,13 +68,13 @@ export default class Widget extends Actor
         if(template)
         {
             console.assert(contents == null);
-            this.container = this.create_template({html: template});
+            this.container = this.createTemplate({html: template});
             if(container != null)
             {
-                if(container_position == "replace")
+                if(containerPosition == "replace")
                     container.replaceWith(this.container);
                 else
-                    container.insertAdjacentElement(container_position, this.container);
+                    container.insertAdjacentElement(containerPosition, this.container);
             }
         }
         else
@@ -90,14 +90,14 @@ export default class Widget extends Actor
         this.container.widget = this;
 
         // visible is the initial visibility.  We can't just set this.visible here, since
-        // it'll call refresh and visibility_changed, and the subclass isn't ready for those
+        // it'll call refresh and visibilityChanged, and the subclass isn't ready for those
         // to be called since it hasn't initialized yet.  Set this._visible directly, and
         // defer the initial refresh.
         this._visible = visible;
-        this.apply_visibility();
+        this.applyVisibility();
 
         helpers.defer(() => {
-            this.visibility_changed();
+            this.visibilityChanged();
             this.refresh();
         });
     }
@@ -117,12 +117,12 @@ export default class Widget extends Actor
             return;
 
         this._visible = value;
-        this.apply_visibility();
+        this.applyVisibility();
 
-        this.visibility_changed();
+        this.visibilityChanged();
 
-        // Let descendants know that visible_recursively may have changed.
-        this._call_on_visible_recursively_changed();
+        // Let descendants know that visibleRecursively may have changed.
+        this._callVisibleRecursivelyChanged();
     }
 
     shutdown()
@@ -136,32 +136,32 @@ export default class Widget extends Actor
     //
     // By default the widget is visible based on the value of this.visible, but the
     // subclass can override this.
-    apply_visibility()
+    applyVisibility()
     {
-        helpers.set_class(this.container, "hidden-widget", !this._visible);
+        helpers.setClass(this.container, "hidden-widget", !this._visible);
     }
 
     // this.visible sets whether or not we want to be visible, but other things might influence
     // it too, like animations.  Setting visible = false on an animated widget will start its
-    // hide animation, but actually_visible will return true until the animation finishes.
-    get actually_visible()
+    // hide animation, but actuallyVisible will return true until the animation finishes.
+    get actuallyVisible()
     {
         return this.visible;
     }
 
-    // This is called when actually_visible changes.  The subclass can override this.
-    visibility_changed()
+    // This is called when actuallyVisible changes.  The subclass can override this.
+    visibilityChanged()
     {
-        if(this.actually_visible)
+        if(this.actuallyVisible)
         {
             // Create an AbortController that will be aborted when the widget is hidden.
-            if(this.visibility_abort == null)
-                this.visibility_abort = new AbortController;
+            if(this.visibilityAbort == null)
+                this.visibilityAbort = new AbortController;
         } else {
-            if(this.visibility_abort)
-                this.visibility_abort.abort();
+            if(this.visibilityAbort)
+                this.visibilityAbort.abort();
 
-            this.visibility_abort = null;
+            this.visibilityAbort = null;
         }
     }
 

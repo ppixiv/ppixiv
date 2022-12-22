@@ -161,7 +161,7 @@ export class HideMouseCursorOnIdle
         // This is set as a separate style, so we can disable it selectively.  This allows us to
         // globally disable mouse hiding.  This used to be done by setting a class on body, but
         // that's slower and can cause animation hitches.
-        let style = helpers.add_style("hide-cursor", `
+        let style = helpers.addStyle("hide-cursor", `
             .hide-cursor {
                 cursor: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), none !important;
             }
@@ -225,10 +225,10 @@ export class HideMouseCursorOnIdle
         // and UI elements that are hidden with the cursor.
         let stationary = TrackMouseMovement.singleton.stationary;
         let hidden = stationary && HideMouseCursorOnIdle.is_enabled;
-        helpers.set_class(this.element, "hide-cursor", hidden);
-        helpers.set_class(this.element, "show-cursor", !hidden);
+        helpers.setClass(this.element, "hide-cursor", hidden);
+        helpers.setClass(this.element, "show-cursor", !hidden);
 
-        helpers.set_class(this.element, "cursor-stationary", stationary);
-        helpers.set_class(this.element, "cursor-active", !stationary);
+        helpers.setClass(this.element, "cursor-stationary", stationary);
+        helpers.setClass(this.element, "cursor-active", !stationary);
     }
 }

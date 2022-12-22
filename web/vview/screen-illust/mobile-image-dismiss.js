@@ -14,11 +14,11 @@ export default class MobileImageDismiss
                 this.parent.container,
                 this.parent.querySelector(".fade-search"),
             ],
-            drag_node: this.parent.container,
+            dragNode: this.parent.container,
             size: () => this._dragDistance,
 
-            animated_property: "--illust-hidden",
-            animated_property_inverted: true,
+            animatedProperty: "--illust-hidden",
+            animatedPropertyInverted: true,
 
             // We're hidden until set_active makes us visible.
             visible: false,
@@ -27,7 +27,7 @@ export default class MobileImageDismiss
                 return ppixiv.settings.get("animations_enabled")? 250:0;
             },
             size: 500,
-            confirm_drag: ({event}) => {
+            confirmDrag: ({event}) => {
                 // Don't do anything if the screen isn't active.
                 if(!this.parent._active || !ppixiv.mobile)
                     return false;
@@ -56,8 +56,8 @@ export default class MobileImageDismiss
                     // a navigation that has already happened (browser back).
                     if(this.parent._active)
                     {
-                        let args = new helpers.args(this.parent.data_source.searchUrl.toString());
-                        ppixiv.app.navigate_from_image_to_search(args);
+                        let args = new helpers.args(this.parent.dataSource.searchUrl.toString());
+                        ppixiv.app.navigateFromIllustToSearch(args);
                     }
 
                     // See if we want to remove the viewer now that the animation has finished.
@@ -147,7 +147,7 @@ export default class MobileImageDismiss
     activate()
     {
         // Run the show animation if we're not shown, or if we're currently hiding.
-        if(!this.dragger.visible || !this.dragger.animating_to_shown)
+        if(!this.dragger.visible || !this.dragger.isAnimatingToShown)
             this.dragger.show();
     }
 
@@ -159,7 +159,7 @@ export default class MobileImageDismiss
 
     get isAnimating()
     {
-        return this.dragger.animation_playing;
+        return this.dragger.isAnimationPlaying;
     }
 
     // Return a promise that resolves when there's no animation running, or null if
@@ -175,6 +175,6 @@ export default class MobileImageDismiss
         if(this.isAnimating || !this.parent.active || this.dragger.position < 1)
             return;
 
-        ppixiv.app.scrollSearchToMediaId(this.parent.data_source, this.parent._wantedMediaId);
+        ppixiv.app.scrollSearchToMediaId(this.parent.dataSource, this.parent._wantedMediaId);
     }
 }

@@ -29,8 +29,8 @@ function getMainSearchMenuOptions()
         // On mobile, just show a single bookmarks and follows item.
         options = [
             ...options,
-            { label: "Bookmarks",          icon: "favorite",        url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
-            { label: "Followed users",     icon: "visibility",      url: `/users/${window.global_data.user_id}/following#ppixiv` },
+            { label: "Bookmarks",          icon: "favorite",        url: `/users/${ppixiv.pixivInfo.userId}/bookmarks/artworks#ppixiv` },
+            { label: "Followed users",     icon: "visibility",      url: `/users/${ppixiv.pixivInfo.userId}/following#ppixiv` },
         ];
     }
     else
@@ -38,14 +38,14 @@ function getMainSearchMenuOptions()
         options = [
             ...options,
             [
-                { label: "Bookmarks",          icon: "favorite",    url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
-                { label: "all",                                     url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv` },
-                { label: "Public",                                  url: `/users/${window.global_data.user_id}/bookmarks/artworks#ppixiv?show-all=0` },
-                { label: "Private",                                 url: `/users/${window.global_data.user_id}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
+                { label: "Bookmarks",          icon: "favorite",    url: `/users/${ppixiv.pixivInfo.userId}/bookmarks/artworks#ppixiv` },
+                { label: "all",                                     url: `/users/${ppixiv.pixivInfo.userId}/bookmarks/artworks#ppixiv` },
+                { label: "Public",                                  url: `/users/${ppixiv.pixivInfo.userId}/bookmarks/artworks#ppixiv?show-all=0` },
+                { label: "Private",                                 url: `/users/${ppixiv.pixivInfo.userId}/bookmarks/artworks?rest=hide#ppixiv?show-all=0` },
             ], [
-                { label: "Followed users",     icon: "visibility",  url: `/users/${window.global_data.user_id}/following#ppixiv` },
-                { label: "Public",                                  url: `/users/${window.global_data.user_id}/following#ppixiv` },
-                { label: "Private",                                 url: `/users/${window.global_data.user_id}/following?rest=hide#ppixiv` },
+                { label: "Followed users",     icon: "visibility",  url: `/users/${ppixiv.pixivInfo.userId}/following#ppixiv` },
+                { label: "Public",                                  url: `/users/${ppixiv.pixivInfo.userId}/following#ppixiv` },
+                { label: "Private",                                 url: `/users/${ppixiv.pixivInfo.userId}/following?rest=hide#ppixiv` },
             ]
         ];
     }

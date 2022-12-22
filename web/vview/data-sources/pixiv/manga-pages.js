@@ -13,10 +13,10 @@ export default class DataSource_MangaPages extends DataSource
 
         // /artworks/#
         url = new URL(url);
-        url = helpers.get_url_without_language(url);
+        url = helpers.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
         let illustId = parts[2];
-        this.mediaId = helpers.illust_id_to_media_id(illustId);
+        this.mediaId = helpers.illustIdToMediaId(illustId);
     }
 
     async loadPageInternal(page)
@@ -27,17 +27,17 @@ export default class DataSource_MangaPages extends DataSource
         // We need full illust info for getMangaAspectRatio, but we can fill out most of the
         // UI with thumbnail or illust info.  Load whichever one we have first and update, so we
         // display initial info quickly.
-        this.mediaInfo = await ppixiv.mediaCache.get_media_info(this.mediaId, { full: false });
+        this.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId, { full: false });
         this.callUpdateListeners();
 
         // Load media info before continuing.
-        this.illustInfo = await ppixiv.mediaCache.get_media_info(this.mediaId);
+        this.illustInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId);
         if(this.illustInfo == null)
             return;
 
         let pageMediaIds = [];
         for(let page = 0; page < this.illustInfo.pageCount; ++page)
-            pageMediaIds.push(helpers.get_media_id_for_page(this.mediaId, page));
+            pageMediaIds.push(helpers.getMediaIdForPage(this.mediaId, page));
 
         this.addPage(page, pageMediaIds);
     }
@@ -76,7 +76,7 @@ export default class DataSource_MangaPages extends DataSource
     }
 
     // Given a list of manga info, return the aspect ratio to use to display them.
-    // This can be passed as the "ratio" option to make_thumbnail_sizing_style.
+    // This can be passed as the "ratio" option to makeThumbnailSizingStyle.
     getMangaAspectRatio(mangaPages)
     {
         // A lot of manga posts use the same resolution for all images, or just have

@@ -16,7 +16,7 @@ export default class DataSource_Discovery extends DataSource
     {
         // Get "mode" from the URL.  If it's not present, use "all".
         let mode = this.url.searchParams.get("mode") || "all";
-        let result = await helpers.get_request("/ajax/discovery/artworks", {
+        let result = await helpers.getRequest("/ajax/discovery/artworks", {
             limit: this.estimatedItemsPerPage,
             mode: mode,
             lang: "en",
@@ -25,13 +25,13 @@ export default class DataSource_Discovery extends DataSource
         // result.body.recommendedIllusts[].recommendMethods, recommendSeedIllustIds
         // has info about why it recommended it.
         let thumbs = result.body.thumbnails.illust;
-        await ppixiv.mediaCache.add_media_infos_partial(thumbs, "normal");
+        await ppixiv.mediaCache.addMediaInfosPartial(thumbs, "normal");
 
         let mediaIds = [];
         for(let thumb of thumbs)
-            mediaIds.push(helpers.illust_id_to_media_id(thumb.id));
+            mediaIds.push(helpers.illustIdToMediaId(thumb.id));
 
-        ppixiv.tagTranslations.add_translations_dict(result.body.tagTranslation);
+        ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
         this.addPage(page, mediaIds);
     }
 }
@@ -43,9 +43,9 @@ class UI extends Widget
         super({ ...options, template: `
             <div>
                 <div class=box-button-row>
-                    ${ helpers.create_box_link({label: "All",      popup: "Show all works",    data_type: "all" }) }
-                    ${ helpers.create_box_link({label: "All ages", popup: "All ages",          data_type: "safe" }) }
-                    ${ helpers.create_box_link({label: "R18",      popup: "R18",               data_type: "r18", classes: ["r18"] }) }
+                    ${ helpers.createBoxLink({label: "All",      popup: "Show all works",    dataType: "all" }) }
+                    ${ helpers.createBoxLink({label: "All ages", popup: "All ages",          dataType: "safe" }) }
+                    ${ helpers.createBoxLink({label: "R18",      popup: "R18",               dataType: "r18", classes: ["r18"] }) }
                 </div>
             </div>
         `});

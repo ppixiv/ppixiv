@@ -17,7 +17,7 @@ export default class ClickOutsideListener extends Actor
 
         new PointerListener({
             element: document.documentElement,
-            button_mask: 0xFFFF,
+            buttonMask: 0xFFFF,
             callback: this.windowPointerdown,
             ...this._signal,
         });
@@ -28,7 +28,7 @@ export default class ClickOutsideListener extends Actor
     {
         for(let ancestor of this.nodeList)
         {
-            if(helpers.is_above(ancestor, node))
+            if(helpers.isAbove(ancestor, node))
                 return true;
         }
         return false;
@@ -48,7 +48,7 @@ export default class ClickOutsideListener extends Actor
 
         // We don't cancel this event, but set a property on it to let IsolatedTapHandler
         // know this press shouldn't be treated as an isolated tap.
-        e.partially_handled = true;
+        e.partiallyHandled = true;
 
         this.callback(e.target, {event: e});
     }

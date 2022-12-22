@@ -64,9 +64,9 @@ export default class Bezier2D
     // on the velocity.
     //
     // Returns a bezier-curve() string.
-    static find_curve_for_velocity({
+    static findCurveForVelocity({
         // The desired velocity (usually in pixels/sec):
-        target_velocity,
+        targetVelocity,
 
         // The distance the animation will be travelling (usually in pixels):
         distance,
@@ -75,7 +75,7 @@ export default class Bezier2D
         duration,
 
         // If true, return a Bezier2D.  Otherwise, return a cubic-bezier string.
-        return_object=false,
+        returnObject=false,
     }={})
     {
         // Do a simple search ac
@@ -97,8 +97,8 @@ export default class Bezier2D
             let segment_distance = distance * curve.evaluate(sample_seconds / duration); // distance travelled in sample_seconds
             let actual_distance_per_second = segment_distance / sample_seconds; // distance travelled in one second at that speed
 
-            let error = Math.abs(actual_distance_per_second - target_velocity);
-            // console.log(`${actual_distance_per_second.toFixed(0)} from ${target_velocity.toFixed(0)}`);
+            let error = Math.abs(actual_distance_per_second - targetVelocity);
+            // console.log(`${actual_distance_per_second.toFixed(0)} from ${targetVelocity.toFixed(0)}`);
             if(best_error == null || error < best_error)
             {
                 best_error = error;
@@ -108,7 +108,7 @@ export default class Bezier2D
             // console.log(`t ${t} segment ${segment} segment_distance ${segment_distance} actual_distance_per_second ${actual_distance_per_second}`);
         }
 
-        if(return_object)
+        if(returnObject)
             return new Bezier2D(best_t, 0.5 - best_t, 0.45, 1.0);
         else
             return `cubic-bezier(${best_t}, ${0.5-best_t}, 0.45, 1)`;

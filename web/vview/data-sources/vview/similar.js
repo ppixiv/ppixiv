@@ -8,7 +8,7 @@ export default class DataSources_VViewSimilar extends DataSource
     get name() { return "similar"; }
     get pageTitle() { return this.getDisplayingText(); }
     getDisplayingText() { return `Similar images`; }
-    get is_vview() { return true; }
+    get isVView() { return true; }
 
     async loadPageInternal(page)
     {
@@ -20,7 +20,7 @@ export default class DataSources_VViewSimilar extends DataSource
         let path = args.hash.get("search_path");
         let url = args.hash.get("searchUrl");
 
-        let result = await LocalAPI.local_post_request(`/api/similar/search`, {
+        let result = await LocalAPI.localPostRequest(`/api/similar/search`, {
             path,
             url,
             max_results: 10,
@@ -43,8 +43,8 @@ export default class DataSources_VViewSimilar extends DataSource
 
             // Register the results with media_cache.
             let entry = item.entry;
-            LocalAPI.adjust_illust_info(entry);
-            await ppixiv.mediaCache.add_media_info_full(entry, { preprocessed: true });
+            LocalAPI.adjustIllustInfo(entry);
+            await ppixiv.mediaCache.addMediaInfoFull(entry, { preprocessed: true });
 
             mediaIds.push(entry.mediaId);
         }
@@ -60,7 +60,7 @@ export default class DataSources_VViewSimilar extends DataSource
 
     setPageIcon()
     {
-        helpers.set_icon({vview: true});
+        helpers.setIcon({vview: true});
     }
 
     get uiInfo()
@@ -76,7 +76,7 @@ export default class DataSources_VViewSimilar extends DataSource
             let path = args.hash.get("search_path");
             if(path)
             {
-                let mediaId = helpers.encode_media_id({type: "file", id: path});
+                let mediaId = helpers.encodeMediaId({type: "file", id: path});
                 let linkArgs = getUrlForMediaId(mediaId);
                 imageLinkUrl = linkArgs;
             }

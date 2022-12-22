@@ -47,7 +47,7 @@ export default class DataSource_Rankings extends DataSource
         if(date)
             data.date = date;
 
-        let result = await helpers.get_request("/touch/ajax/ranking/illust", data);
+        let result = await helpers.getRequest("/touch/ajax/ranking/illust", data);
         let thisDate = result.body.rankingDate;
 
         function formatDate(date)
@@ -79,7 +79,7 @@ export default class DataSource_Rankings extends DataSource
 
         let mediaIds = [];
         for(let item of result.body.ranking)
-            mediaIds.push(helpers.illust_id_to_media_id("" + item.illustId));
+            mediaIds.push(helpers.illustIdToMediaId("" + item.illustId));
 
         return { mediaIds, thisDate, nextDate, prevDate, lastPage };
     }
@@ -96,7 +96,7 @@ export default class DataSource_Rankings extends DataSource
         if(date)
             data.date = date;
 
-        let result = await helpers.get_request("/ranking.php", data);
+        let result = await helpers.getRequest("/ranking.php", data);
         let thisDate = result.date;
 
         let nextDate = result.next_date;
@@ -129,10 +129,10 @@ export default class DataSource_Rankings extends DataSource
         // but it's not quite the same.
         let mediaIds = [];
         for(let item of result.contents)
-            mediaIds.push(helpers.illust_id_to_media_id("" + item.illust_id));
+            mediaIds.push(helpers.illustIdToMediaId("" + item.illust_id));
 
         // Register this as thumbnail data.
-        await ppixiv.mediaCache.add_media_infos_partial(result.contents, "rankings");
+        await ppixiv.mediaCache.addMediaInfosPartial(result.contents, "rankings");
 
         return { mediaIds, thisDate, nextDate, prevDate, lastPage };
     }
@@ -178,14 +178,14 @@ class UI extends Widget
         super({ ...options, template: `
             <div class="ranking-data-source box-button-row">
                 <div class="box-button-row date-row">
-                    ${ helpers.create_box_link({label: "Previous day", popup: "Show the previous day",     data_type: "new-illust-type-illust", classes: ["nav-yesterday"] }) }
+                    ${ helpers.createBoxLink({label: "Previous day", popup: "Show the previous day",     dataType: "new-illust-type-illust", classes: ["nav-yesterday"] }) }
                     <span class=nav-today></span>
-                    ${ helpers.create_box_link({label: "Next day", popup: "Show the next day",     data_type: "new-illust-type-illust", classes: ["nav-tomorrow"] }) }
+                    ${ helpers.createBoxLink({label: "Next day", popup: "Show the next day",     dataType: "new-illust-type-illust", classes: ["nav-tomorrow"] }) }
                 </div>
 
                 <div class=box-button-row>
-                    ${ helpers.create_box_link({label: "Ranking type",    popup: "Rankings to display", classes: ["mode-button"] }) }
-                    ${ helpers.create_box_link({label: "Contents",    popup: "Content type to display", classes: ["content-type-button"] }) }
+                    ${ helpers.createBoxLink({label: "Ranking type",    popup: "Rankings to display", classes: ["mode-button"] }) }
+                    ${ helpers.createBoxLink({label: "Contents",    popup: "Content type to display", classes: ["content-type-button"] }) }
                 </div>
 
                 <div class="box-button-row modes"></div>
@@ -264,7 +264,7 @@ class UI extends Widget
             return mode;
         }
 
-        let currentArgs = new helpers.args(this.url);
+        let currentArgs = new helpers.args(dataSource.url);
 
         // The current content type: all, illust, manga, ugoira
         let currentContent = currentArgs.query.get("content") || "all";
@@ -298,11 +298,11 @@ class UI extends Widget
             console.assert(current_ranking_type, currentMode);
             let { content } = current_ranking_type;
 
-            let button = helpers.create_box_link({
+            let button = helpers.createBoxLink({
                 label: agesToggle.toUpperCase(),
                 popup: `Show ${agesToggle.toUpperCase()} works`,
                 classes: [agesToggle],
-                as_element: true,
+                asElement: true,
             });
             modeContainer.appendChild(button);
 
@@ -332,15 +332,15 @@ class UI extends Widget
         // Create the content dropdown.
         new DropdownMenuOpener({
             button: this.querySelector(".content-type-button"),
-            create_box: ({...options}) => {
+            createBox: ({...options}) => {
                 let dropdown = new Widget({
                     ...options,
                     template: `
                         <div class="vertical-list">
-                            ${ helpers.create_box_link({label: "All",           popup: "Show all works",           data_type: "content-all" }) }
-                            ${ helpers.create_box_link({label: "Illustrations", popup: "Show illustrations only",  data_type: "content-illust" }) }
-                            ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",     data_type: "content-ugoira" }) }
-                            ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",          data_type: "content-manga" }) }
+                            ${ helpers.createBoxLink({label: "All",           popup: "Show all works",           dataType: "content-all" }) }
+                            ${ helpers.createBoxLink({label: "Illustrations", popup: "Show illustrations only",  dataType: "content-illust" }) }
+                            ${ helpers.createBoxLink({label: "Animations",    popup: "Show animations only",     dataType: "content-ugoira" }) }
+                            ${ helpers.createBoxLink({label: "Manga",         popup: "Show manga only",          dataType: "content-manga" }) }
                         </div>
                     `,
                 });
@@ -376,7 +376,7 @@ class UI extends Widget
         // Create the mode dropdown.
         new DropdownMenuOpener({
             button: this.querySelector(".mode-button"),
-            create_box: ({...options}) => {
+            createBox: ({...options}) => {
                 let dropdown = new Widget({
                     ...options,
                     template: `
@@ -396,10 +396,10 @@ class UI extends Widget
                     if(content.indexOf(contentKey) == -1)
                         continue;
 
-                    let button = helpers.create_box_link({
+                    let button = helpers.createBoxLink({
                         label,
                         popup,
-                        as_element: true,
+                        asElement: true,
                     });
                     dropdown.container.appendChild(button);
 
@@ -422,7 +422,7 @@ class UI extends Widget
         // This UI is greyed rather than hidden before we have the dates, so the UI doesn't
         // shift around as we load.
         let yesterday = this.querySelector(".nav-yesterday");
-        helpers.set_class(yesterday, "disabled", this.dataSource.prevDate == null);
+        helpers.setClass(yesterday, "disabled", this.dataSource.prevDate == null);
         if(this.dataSource.prevDate)
         {
             let url = new URL(this.dataSource.url);
@@ -431,7 +431,7 @@ class UI extends Widget
         }
 
         let tomorrow = this.querySelector(".nav-tomorrow");
-        helpers.set_class(tomorrow, "disabled", this.dataSource.nextDate == null);
+        helpers.setClass(tomorrow, "disabled", this.dataSource.nextDate == null);
         if(this.dataSource.nextDate)
         {
             let url = new URL(this.dataSource.url);

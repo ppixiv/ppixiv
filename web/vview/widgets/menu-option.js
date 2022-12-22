@@ -12,8 +12,8 @@ export class MenuOption extends Widget
     })
     {
         super(options);
-        for(let class_name of classes)
-            this.container.classList.add(class_name);
+        for(let className of classes)
+            this.container.classList.add(className);
 
         this.onrefresh = refresh;
     }
@@ -23,16 +23,16 @@ export class MenuOption extends Widget
         if(this.onrefresh)
             this.onrefresh();
 
-        this.refresh_explanation();
+        this.refreshExplanation();
     }
 
     // The current explanation text.  The subclass can override this.
-    get explanation_text() { return null; }
+    get explanationText() { return null; }
 
     // Update the explanation text, if any.
-    refresh_explanation()
+    refreshExplanation()
     {
-        let text = this.explanation_text;
+        let text = this.explanationText;
         if(typeof(text) == "function")
             text = text();
 
@@ -72,16 +72,16 @@ export class MenuOptionButton extends MenuOption
     constructor({
         url=null,
         label,
-        get_label=null,
+        getLabel=null,
         onclick=null,
-        explanation_enabled=null,
-        explanation_disabled=null,
+        explanationEnabled=null,
+        explanationDisabled=null,
         popup=null,
         icon=null,
         ...options})
     {
         super({...options, template: `
-            ${helpers.create_box_link({
+            ${helpers.createBoxLink({
                 label,
                 icon: icon,
                 link: url,
@@ -94,13 +94,13 @@ export class MenuOptionButton extends MenuOption
         // Set the box-link label to flex, to push buttons to the right:
         this.container.querySelector(".label-box").style.flex = "1";
 
-        this.onclick_handler = onclick;
+        this._clickHandler = onclick;
         this._enabled = true;
-        this.explanation_enabled = explanation_enabled;
-        this.explanation_disabled = explanation_disabled;
-        this.get_label = get_label;
+        this.explanationEnabled = explanationEnabled;
+        this.explanationDisabled = explanationDisabled;
+        this.getLabel = getLabel;
 
-        if(this.onclick_handler != null)
+        if(this._clickHandler != null)
             this.container.classList.add("clickable");
 
         this.container.querySelector(".label").innerText = label;
@@ -111,13 +111,13 @@ export class MenuOptionButton extends MenuOption
     {
         super.refresh();
 
-        if(this.get_label)
-            this.container.querySelector(".label").innerText = this.get_label();
+        if(this.getLabel)
+            this.container.querySelector(".label").innerText = this.getLabel();
     }
 
     set enabled(value)
     {
-        helpers.set_class(this.container, "disabled", !value);
+        helpers.setClass(this.container, "disabled", !value);
         this._enabled = value;
     }
 
@@ -126,18 +126,13 @@ export class MenuOptionButton extends MenuOption
         return this._enabled;
     }
 
-    get explanation_text()
+    get explanationText()
     {
-        return this.enabled? this.explanation_enabled:this.explanation_disabled;
+        return this.enabled? this.explanationEnabled:this.explanationDisabled;
     }
 
     onclick = (e) =>
     {
-        // If consume_clicks is true, stopPropagation to stop the menu we're inside from
-        // closing.
-        if(this.consume_clicks)
-            e.stopPropagation();
-
         if(!this._enabled)
         {
             // Always preventDefault if we're disabled.
@@ -145,11 +140,11 @@ export class MenuOptionButton extends MenuOption
             return;
         }
 
-        if(this.onclick_handler)
+        if(this._clickHandler)
         {
             // XXX: check callers
             // e.preventDefault();
-            this.onclick_handler(e);
+            this._clickHandler(e);
         }
     }
 }
@@ -162,7 +157,7 @@ export class MenuOptionNestedButton extends MenuOption
         label,
         ...options})
     {
-        super({...options, template: helpers.create_box_link({label: "",   classes: ["clickable"] })});
+        super({...options, template: helpers.createBoxLink({label: "",   classes: ["clickable"] })});
 
         this.container.querySelector(".label").innerText = label;
         this.container.addEventListener("click", (e) => {
@@ -191,9 +186,9 @@ export class MenuOptionToggle extends MenuOptionButton
     get value() { return false; }
     set value(value) { }
 
-    get explanation_text()
+    get explanationText()
     {
-        return this.value? this.explanation_enabled:this.explanation_disabled;
+        return this.value? this.explanationEnabled:this.explanationDisabled;
     }
 }
 
@@ -206,8 +201,8 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
         // Most settings are just booleans, but this can be used to toggle between
         // string keys.  This can make adding more values to the option easier later
         // on.  A default value should be set in settings.js if this is used.
-        on_value=true,
-        off_value=false,
+        onValue=true,
+        offValue=false,
         ...options})
     {
         super({...options,
@@ -224,10 +219,10 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
         });
 
         this.setting = setting;
-        this.on_value = on_value;
-        this.off_value = off_value;
+        this.onValue = onValue;
+        this.offValue = offValue;
         if(this.setting)
-            ppixiv.settings.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdown_signal.signal });
+            ppixiv.settings.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdownSignal.signal });
     }
 
     refresh()
@@ -235,7 +230,7 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
         super.refresh();
 
         var value = this.value;
-        if(this.options.invert_display)
+        if(this.options.invertDisplay)
             value = !value;
 
         this.checkbox.checked = value;
@@ -243,12 +238,12 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
 
     get value()
     {
-        return ppixiv.settings.get(this.setting) == this.on_value;
+        return ppixiv.settings.get(this.setting) == this.onValue;
     }
 
     set value(value)
     {
-        ppixiv.settings.set(this.setting, value? this.on_value:this.off_value);
+        ppixiv.settings.set(this.setting, value? this.onValue:this.offValue);
     }
 }
 
@@ -290,13 +285,13 @@ export class MenuOptionSlider extends MenuOption
     
     refresh()
     {
-        this._slider_value = this.value;
+        this.sliderValue = this.value;
         super.refresh();
     }
 
     oninput = (e) =>
     {
-        this.value = this._slider_value;
+        this.value = this.sliderValue;
     }
 
     get value()
@@ -309,20 +304,20 @@ export class MenuOptionSlider extends MenuOption
         super.value = value;
     }
 
-    _slider_index_to_value(value)
+    _sliderIndexToValue(value)
     {
         if(this.list == null)
             return value;
         return this.list[value];
     }
 
-    _value_to_slider_index(value)
+    _valueToSliderIndex(value)
     {
         if(this.list == null)
             return value;
 
-        let closest_idx = -1;
-        let closest_distance = null;
+        let closestIndex = -1;
+        let closestDistance = null;
         for(let idx = 0; idx < this.list.length; ++idx)
         {
             let v = this.list[idx];
@@ -332,18 +327,18 @@ export class MenuOptionSlider extends MenuOption
                 return idx;
 
             let distance = Math.abs(value - v);
-            if(closest_distance == null || distance < closest_distance)
+            if(closestDistance == null || distance < closestDistance)
             {
-                closest_idx = idx;
-                closest_distance = distance;
+                closestIndex = idx;
+                closestDistance = distance;
             }
         }
-        return closest_idx;
+        return closestIndex;
     }
 
-    set _slider_value(value)
+    set sliderValue(value)
     {
-        value = this._value_to_slider_index(value);
+        value = this._valueToSliderIndex(value);
 
         if(this.slider.value == value)
             return;
@@ -351,10 +346,10 @@ export class MenuOptionSlider extends MenuOption
         this.slider.value = value;
     }
 
-    get _slider_value()
+    get sliderValue()
     {
         let value = parseInt(this.slider.value);
-        value = this._slider_index_to_value(value);
+        value = this._sliderIndexToValue(value);
         return value;
     }
 }
@@ -368,8 +363,8 @@ export class MenuOptionSliderSetting extends MenuOptionSlider
         this.setting = setting;
     }
 
-    get min_value() { return this.options.min; }
-    get max_value() { return this.options.max; }
+    get minValue() { return this.options.min; }
+    get maxValue() { return this.options.max; }
 
     get value()
     {
@@ -398,7 +393,7 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
             label: label,
         });
 
-        this.get_explanation = explanation;
+        this._getExplanation = explanation;
 
         this.setting = setting;
         this.values = values;
@@ -419,9 +414,9 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
         this.container.querySelector(".slider").style.flexGrow = .25;        
     }
 
-    get explanation_text()
+    get explanationText()
     {
-        return this.get_explanation(this.slider.value);
+        return this._getExplanation(this.slider.value);
     }
 };
 
@@ -438,7 +433,7 @@ export class MenuOptionsThumbnailSizeSlider extends MenuOptionSliderSetting
     // Increase or decrease zoom.
     move(down)
     {
-        ppixiv.settings.adjust_zoom(this.setting, down);
+        ppixiv.settings.adjustZoom(this.setting, down);
     }
 
     get value()
@@ -449,7 +444,7 @@ export class MenuOptionsThumbnailSizeSlider extends MenuOptionSliderSetting
         return value;
     }
     set value(value) { super.value = value;  }
-    static thumbnail_size_for_value(value)
+    static thumbnailSizeForValue(value)
     {
         return 100 * Math.pow(1.3, value);
     }

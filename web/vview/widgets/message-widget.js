@@ -21,7 +21,7 @@ export default class MessageWidget extends Widget
     {
         console.assert(message != null);
 
-        this.clear_timer();
+        this.clearTimer();
 
         this.container.querySelector(".message").innerHTML = message;
 
@@ -32,7 +32,7 @@ export default class MessageWidget extends Widget
         }, 3000);
     }
 
-    clear_timer()
+    clearTimer()
     {
         if(this.timer != null)
         {
@@ -43,7 +43,7 @@ export default class MessageWidget extends Widget
 
     hide()
     {
-        this.clear_timer();
+        this.clearTimer();
         this.container.classList.remove("show");
     }
 }

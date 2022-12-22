@@ -17,7 +17,7 @@ export default class Viewer extends Widget
         // This promise will be fulfilled with true once the viewer is displaying something,
         // so any previous viewer can be removed without flashing a blank screen.  It'll be
         // fulfilled with false if we're shut down before that happens.
-        this.ready = helpers.make_promise();
+        this.ready = helpers.makePromise();
     }
 
     shutdown()
@@ -30,10 +30,7 @@ export default class Viewer extends Widget
     set active(value) { this._active = value; }
     get active() { return this._active; }
 
-    // Return the amount of space that should be reserved by the mobile UI for this view.
-    get bottom_reservation() { return "0px"; }
-
     // This is only called on mobile to handle double-tap to zoom.
-    toggle_zoom() { }
+    toggleZoom() { }
 }
 

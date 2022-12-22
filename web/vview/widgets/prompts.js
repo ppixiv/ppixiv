@@ -16,10 +16,10 @@ export class TextPrompt extends DialogWidget
         ...options
     }={})
     {
-        super({...options, dialog_class: "text-entry-popup", small: true, header: title, template: `
+        super({...options, dialogClass: "text-entry-popup", small: true, header: title, template: `
             <div class=input-box>
                 <div class=editor contenteditable></div>
-                <span class=submit-button>${ helpers.create_icon("mat:check") }</span>
+                <span class=submit-button>${ helpers.createIcon("mat:check") }</span>
             </div>
         `});
         
@@ -35,9 +35,9 @@ export class TextPrompt extends DialogWidget
         this.container.querySelector(".submit-button").addEventListener("click", this.submit);
     }
 
-    handle_keydown = (e) =>
+    _handleKeydown = (e) =>
     {
-        if(super.handle_keydown(e))
+        if(super._handleKeydown(e))
             return true;
 
         // The escape key is handled by DialogWidget.
@@ -50,13 +50,13 @@ export class TextPrompt extends DialogWidget
         return false;
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
+        super.visibilityChanged();
 
         if(this.visible)
         {
-            window.addEventListener("keydown", this.onkeydown, { signal: this.visibility_abort.signal });
+            window.addEventListener("keydown", this.onkeydown, { signal: this.visibilityAbort.signal });
 
             // Focus when we become visible.
             this.input.focus();
@@ -82,7 +82,7 @@ export class TextPrompt extends DialogWidget
     }
 }
 
-export class confirm_prompt extends DialogWidget
+export class ConfirmPrompt extends DialogWidget
 {
     static async prompt(options)
     {
@@ -96,17 +96,17 @@ export class confirm_prompt extends DialogWidget
         ...options
     }={})
     {
-        super({...options, dialog_class: "confirm-dialog", allow_close: false, small: true, header,
+        super({...options, dialogClass: "confirm-dialog", allowClose: false, small: true, header,
         template: `
             <div class=text hidden></div>
             <div class=input-box>
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "Yes",
                     icon: "image",
                     classes: ["yes"],
                 })}
 
-                ${helpers.create_box_link({
+                ${helpers.createBoxLink({
                     label: "No",
                     icon: "image",
                     classes: ["no"],
@@ -116,17 +116,17 @@ export class confirm_prompt extends DialogWidget
         
         if(text)
         {
-            let text_node = this.container.querySelector(".text");
-            text_node.innerText = text;
-            text_node.hidden = false;
+            let textNode = this.container.querySelector(".text");
+            textNode.innerText = text;
+            textNode.hidden = false;
         }
 
         this.result = new Promise((completed, cancelled) => {
             this._completed = completed;
         });
 
-        this.container.querySelector(".yes").addEventListener("click", () => this.submit(true), { signal: this.shutdown_signal.signal });
-        this.container.querySelector(".no").addEventListener("click", () => this.submit(false), { signal: this.shutdown_signal.signal });
+        this.container.querySelector(".yes").addEventListener("click", () => this.submit(true), { signal: this.shutdownSignal.signal });
+        this.container.querySelector(".no").addEventListener("click", () => this.submit(false), { signal: this.shutdownSignal.signal });
     }
 
     onkeydown = (e) =>
@@ -146,13 +146,13 @@ export class confirm_prompt extends DialogWidget
         }
     }
 
-    visibility_changed()
+    visibilityChanged()
     {
-        super.visibility_changed();
+        super.visibilityChanged();
 
         if(this.visible)
         {
-            window.addEventListener("keydown", this.onkeydown, { signal: this.visibility_abort.signal });
+            window.addEventListener("keydown", this.onkeydown, { signal: this.visibilityAbort.signal });
         }
         else
         {

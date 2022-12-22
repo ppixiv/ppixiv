@@ -2,7 +2,6 @@ import Widget from 'vview/widgets/widget.js';
 import CreateSearchMenu from 'vview/screen-search/search-menu.js';
 import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
 import * as DataSource from 'vview/data-sources/all.js';
-import ArtistDataSource from 'vview/data-sources/pixiv/artist.js';
 import { DataSource_BookmarksBase } from 'vview/data-sources/pixiv/bookmarks.js';
 import DialogWidget from 'vview/widgets/dialog.js';
 import LocalAPI from 'vview/misc/local-api.js';
@@ -20,23 +19,23 @@ export default class MobileSearchUI extends Widget
             <div class=mobile-navigation-bar>
                 <div class="header-contents button-row">
                     <div class="icon-button back-button disabled">
-                        ${ helpers.create_icon("mat:arrow_back_ios_new") }
+                        ${ helpers.createIcon("mat:arrow_back_ios_new") }
                     </div>
 
                     <div class="icon-button refresh-search-button">
-                        ${ helpers.create_icon("refresh") }
+                        ${ helpers.createIcon("refresh") }
                     </div>
 
                     <div class="icon-button menu">
-                        ${ helpers.create_icon("search") }
+                        ${ helpers.createIcon("search") }
                     </div>
 
                     <div class="icon-button slideshow">
-                        ${ helpers.create_icon("wallpaper") }
+                        ${ helpers.createIcon("wallpaper") }
                     </div>
 
                     <div class="icon-button preferences-button">
-                        ${ helpers.create_icon("settings") }
+                        ${ helpers.createIcon("settings") }
                     </div>
                 </div>
             </div>
@@ -45,7 +44,7 @@ export default class MobileSearchUI extends Widget
         this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
         this.container.querySelector(".preferences-button").addEventListener("click", (e) => new SettingsDialog());
         this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(ppixiv.app.slideshowURL));
-        this.container.querySelector(".menu").addEventListener("click", (e) => new mobile_edit_search_dialog());
+        this.container.querySelector(".menu").addEventListener("click", (e) => new MobileEditSearchDialog());
 
         this.container.querySelector(".back-button").addEventListener("click", () => {
             if(ppixiv.native)
@@ -53,10 +52,10 @@ export default class MobileSearchUI extends Widget
                 if(this.parent.displayedMediaId == null)
                     return;
 
-                let parent_folder_id = LocalAPI.get_parent_folder(this.parent.displayedMediaId);
+                let parentFolderId = LocalAPI.getParentFolder(this.parent.displayedMediaId);
 
                 let args = helpers.args.location;
-                LocalAPI.get_args_for_id(parent_folder_id, args);
+                LocalAPI.getArgsForId(parentFolderId, args);
                 helpers.navigate(args);
             }
             else if(ppixiv.phistory.permanent)
@@ -66,32 +65,32 @@ export default class MobileSearchUI extends Widget
         });
     }
 
-    apply_visibility()
+    applyVisibility()
     {
-        helpers.set_class(this.container, "shown", this._visible);
+        helpers.setClass(this.container, "shown", this._visible);
     }
 
     refreshUi()
     {
         // The back button navigate to parent locally, otherwise it's browser back if we're in
         // permanent history mode.
-        let back_button = this.container.querySelector(".back-button");
-        let show_back_button;
+        let backButton = this.container.querySelector(".back-button");
+        let showBackButton;
         if(ppixiv.native)
-            show_back_button = LocalAPI.get_parent_folder(this.parent.displayedMediaId) != null;
+            showBackButton = LocalAPI.getParentFolder(this.parent.displayedMediaId) != null;
         else if(ppixiv.phistory.permanent)
-            show_back_button = ppixiv.phistory.length > 1;
-        helpers.set_class(back_button, "disabled", !show_back_button);
+            showBackButton = ppixiv.phistory.length > 1;
+        helpers.setClass(backButton, "disabled", !showBackButton);
     }
 }
 
 // This dialog shows the search filters that are in the header box on desktop.
-class mobile_edit_search_dialog extends DialogWidget
+class MobileEditSearchDialog extends DialogWidget
 {
     constructor({...options}={})
     {
         super({...options,
-            dialog_class: "edit-search-dialog",
+            dialogClass: "edit-search-dialog",
             header: "Search",
             template: `
                 <div class="search-selection vertical-list">
@@ -100,8 +99,8 @@ class mobile_edit_search_dialog extends DialogWidget
         });
 
         // Create the menu items.  This is the same as the dropdown list for desktop.
-        let option_box = this.container.querySelector(".search-selection");
-        CreateSearchMenu(option_box);
+        let optionBox = this.container.querySelector(".search-selection");
+        CreateSearchMenu(optionBox);
 
         this.container.addEventListener("click", (e) => {
             let a = e.target.closest("A");
@@ -122,66 +121,63 @@ class mobile_edit_search_dialog extends DialogWidget
         this.refresh();
     }
 
-    get active_row()
+    get activeRow()
     {
         // The active row is the one who would load a data source of the same class as the current one.
-        let current_data_source = this.data_source;
+        let currentDataSource = this.dataSource;
 
         for(let button of this.container.querySelectorAll(".navigation-button"))
         {
             let url = new URL(button.href);
-            let data_source_class = DataSource.getDataSourceForUrl(url);
+            let dataSourceClass = DataSource.getDataSourceForUrl(url);
 
-            if(current_data_source instanceof data_source_class)
+            if(currentDataSource instanceof dataSourceClass)
                 return button;
 
             // Hack: the bookmarks row corresponds to multiple subclasses.  All of them should
             // map back to the bookmarks row.
-            if(current_data_source instanceof DataSource_BookmarksBase &&
-               data_source_class.prototype instanceof DataSource_BookmarksBase)
+            if(currentDataSource instanceof DataSource_BookmarksBase &&
+               dataSourceClass.prototype instanceof DataSource_BookmarksBase)
                return button;
         }
 
-        throw new Error("Couldn't match data source for", current_data_source.__proto__);
+        throw new Error("Couldn't match data source for", currentDataSource.__proto__);
     }
 
     refresh()
     {
-        let active_row = this.active_row;
+        let activeRow = this.activeRow;
         for(let button of this.container.querySelectorAll(".navigation-button"))
-            helpers.set_class(button, "selected", button == active_row);
+            helpers.setClass(button, "selected", button == activeRow);
 
         // Show this row if it's hidden.  Some rows are only displayed while they're in use.
-        active_row.widget.visible = true;
+        activeRow.widget.visible = true;
 
         // If this is the artist row, set the title based on the artist name.
-        if(active_row.classList.contains("artist-row"))
+        if(activeRow.classList.contains("artist-row"))
         {
-            let data_source_is_artist = this.data_source instanceof ArtistDataSource;
-            if(data_source_is_artist)
-            {
-                let username = this.data_source.user_info?.name;
-                active_row.querySelector(".label").innerText = username? `Artist: ${username}`:`Artist`;
-            }
+            let title = this.dataSource.uiInfo.mobileTitle;
+            if(title)
+                activeRow.querySelector(".label").innerText = title;
         }
-        this.recreate_ui();
+        this._recreateUi();
     }
 
     // We always show the primary data source.
-    get data_source()
+    get dataSource()
     {
-        return ppixiv.app.data_source;
+        return ppixiv.app.currentDataSource;
     }
 
-    recreate_ui()
+    _recreateUi()
     {
         // Create the UI.
-        let position = this.active_row;
+        let position = this.activeRow;
         let row = position.closest(".box-link-row");
         if(row)
             position = row;
     }
 
     // Tell DialogWidget not to close us on popstate.  It'll still close us if the screen changes.
-    get _close_on_popstate() { return false; }
+    get _closeOnPopstate() { return false; }
 }

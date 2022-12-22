@@ -31,12 +31,12 @@ export default class DragImageChanger
         this.dragger = new DragHandler({
             name: "image-changer",
             element: this.container,
-            confirm_drag: ({event}) => {
+            confirmDrag: ({event}) => {
                 // Stop if there's no image, if the screen wasn't able to load one.
                 if(this.mainViewer == null)
                     return false;
 
-                if(helpers.should_ignore_horizontal_drag(event))
+                if(helpers.shouldIgnoreHorizontalDrag(event))
                     return false;
 
                 return true;
@@ -45,7 +45,7 @@ export default class DragImageChanger
             ondragstart: (args) => this.ondragstart(args),
             ondrag: (args) => this.ondrag(args),
             ondragend: (args) => this.ondragend(args),
-            deferred_start: () => {
+            deferredStart: () => {
                 // If an animation is running, disable deferring drags, so grabbing the dragger will
                 // stop the animation.  Otherwise, defer drags until the first pointermove (the normal
                 // behavior).
@@ -75,7 +75,7 @@ export default class DragImageChanger
     // The image changed externally or the screen is becoming inactive, so stop any drags and animations.
     stop()
     {
-        this.dragger.cancel_drag();
+        this.dragger.cancelDrag();
         this.cancelAnimation();
     }
 
@@ -97,7 +97,7 @@ export default class DragImageChanger
         }
 
         // Another drag started while the previous drag's transition was still happening.
-        // Stop the animation, and set the drag_distance to where the animation was stopped.
+        // Stop the animation, and set the drag distance to where the animation was stopped.
         this.cancelAnimation();
         return true;
     }
@@ -115,7 +115,7 @@ export default class DragImageChanger
         for(let animation of animations)
             animation.pause();
 
-        // If a drag is active, set drag_distance to the X position of the main viewer to match
+        // If a drag is active, set drag distance to the X position of the main viewer to match
         // the drag to where the animation was.
         if(this.dragDistance != null && this.mainViewer)
         {
@@ -160,11 +160,11 @@ export default class DragImageChanger
         this.refreshDragPosition();
     }
 
-    getViewerX(viewer_index)
+    getViewerX(viewerIndex)
     {
         // This offset from the main viewer.  Viewers above are negative and below
         // are positive.
-        let relativeIdx = viewer_index - this.mainViewerIndex;
+        let relativeIdx = viewerIndex - this.mainViewerIndex;
 
         let x = this.viewerDistance * relativeIdx;
         x += this.dragDistance;
@@ -205,7 +205,7 @@ export default class DragImageChanger
     // Add a new viewer if we've dragged far enough to need one.
     async _addViewersIfNeeded()
     {
-        let drag_threshold = 5;
+        let dragThreshold = 5;
 
         // See if we need to add another viewer in either direction.
         //
@@ -213,12 +213,12 @@ export default class DragImageChanger
         // 0, it's just above the screen.
         let leftViewerEdge = this.getViewerX(-1) + this.viewerDistance;
         let addForwards = null;
-        if(leftViewerEdge > drag_threshold)
+        if(leftViewerEdge > dragThreshold)
             addForwards = false;
 
         // The left edge of the rightmost viewer.
         let rightViewerEdge = this.getViewerX(this.viewers.length) - this.imageGap;
-        if(rightViewerEdge < window.innerWidth - drag_threshold)
+        if(rightViewerEdge < window.innerWidth - dragThreshold)
             addForwards = true;
 
         // If the user drags multiple times quickly, the drag target may be past the end.
@@ -290,7 +290,7 @@ export default class DragImageChanger
             if(mediaId == null)
                 return { }
 
-            let earlyIllustData = await ppixiv.mediaCache.get_media_info(mediaId, { full: false });
+            let earlyIllustData = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
             return { mediaId, earlyIllustData };
         } finally {
             let cancelled = sentinel != this.addingViewer;
@@ -417,20 +417,20 @@ export default class DragImageChanger
 
             // This offset from the main viewer.  Viewers above are negative and below
             // are positive.
-            let this_idx = idx - mainViewerIndex;
+            let thisIdxd = idx - mainViewerIndex;
 
             // The animation starts at the current translateX.
             let startX = new DOMMatrix(getComputedStyle(viewer.container).transform).e;
             //let startX = this.getViewerX(idx);
 
             // Animate everything to their default positions relative to the main image.
-            let endX = this.viewerDistance * this_idx;
+            let endX = this.viewerDistance * thisIdxd;
 
             // Estimate a curve to match the fling.
-            let easing = Bezier2D.find_curve_for_velocity({
+            let easing = Bezier2D.findCurveForVelocity({
                 distance: Math.abs(endX - startX),
                 duration: duration / 1000, // in seconds
-                target_velocity: Math.abs(recentVelocity),
+                targetVelocity: Math.abs(recentVelocity),
             });
 
             // If we're panning left but the user dragged right (or vice versa), that usually means we

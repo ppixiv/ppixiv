@@ -21,18 +21,18 @@ export default class ViewerUgoira extends ViewerVideoBase
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         let args = helpers.args.location;
-        this.want_playing = !args.state.paused;
+        this.wantPlaying = !args.state.paused;
 
         // True if the user is seeking.  We temporarily pause while seeking.  This is separate
-        // from this.want_playing so we stay paused after seeking if we were paused at the start.
+        // from this.wantPlaying so we stay paused after seeking if we were paused at the start.
         this.seeking = false;
 
-        window.addEventListener("visibilitychange", this.refreshFocus.bind(this), { signal: this.shutdown_signal.signal });
+        window.addEventListener("visibilitychange", this.refreshFocus.bind(this), { signal: this.shutdownSignal.signal });
     }
 
     async load()
     {
-        // Show a static image while we're waiting for the video to load, like viewer_images.
+        // Show a static image while we're waiting for the video to load, like ViewerImages.
         //
         // Pixiv gives us two usable images: the search thumbnail (previewUrls[0] + urls.small),
         // and urls.original, which is a full-size frame of the first frame.  We'll show the
@@ -45,38 +45,38 @@ export default class ViewerUgoira extends ViewerVideoBase
         // of the video.
         //
         // First, show the thumbnail if we're on Pixiv:
-        let local = helpers.is_media_id_local(this.mediaId);
+        let local = helpers.isMediaIdLocal(this.mediaId);
         if(!local)
         {
             // Load early data to show the low-res preview quickly.  This is a simpler version of
-            // what viewer_images does.
-            let load_sentinel = this._loadSentinel = new Object();
-            let early_illust_data = await ppixiv.mediaCache.get_media_info(this.mediaId, { full: false });
-            if(load_sentinel !== this._loadSentinel)
+            // what ViewerImages does.
+            let loadSentinel = this._loadSentinel = new Object();
+            let partialMediaInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId, { full: false });
+            if(loadSentinel !== this._loadSentinel)
                 return;
-            this.create_preview_images(early_illust_data.previewUrls[0], null);
+            this._createPreviewImages(partialMediaInfo.previewUrls[0], null);
         }
 
         // Fire this.ready when either preview finishes loading.
-        helpers.wait_for_any_image_load([this.preview_img1, this.preview_img2]).then(() => this.ready.accept(true));
+        helpers.waitForAnyImageLoad([this.previewImage1, this.previewImage2]).then(() => this.ready.accept(true));
 
         // Load full data.
         let { slideshow=false, onnextimage=null } = this.options;
-        let load_sentinel = await super.load(this.mediaId, {
+        let loadSentinel = await super.load(this.mediaId, {
             slideshow,
             onnextimage: () => onnextimage(this),
         });
-        if(load_sentinel !== this._loadSentinel)
+        if(loadSentinel !== this._loadSentinel)
             return;
 
         // Now show the poster if we're local, or change to the original image on Pixiv.
         if(local)
-            this.create_preview_images(this.mediaInfo.urls.poster, null);
+            this._createPreviewImages(this.mediaInfo.urls.poster, null);
         else
-            this.create_preview_images(this.mediaInfo.previewUrls[0], this.mediaInfo.urls.original);
+            this._createPreviewImages(this.mediaInfo.previewUrls[0], this.mediaInfo.urls.original);
 
         // This can be used to abort ZipImagePlayer's download.
-        this.abort_controller = new AbortController;
+        this.abortController = new AbortController;
 
         let source = null;
         if(local)
@@ -97,7 +97,7 @@ export default class ViewerUgoira extends ViewerVideoBase
             source: source,
             local: local,
             mime_type: this.mediaInfo.ugoiraMetadata?.mime_type,
-            signal: this.abort_controller.signal,
+            signal: this.abortController.signal,
             autosize: true,
             canvas: this.video,
             loop: !slideshow,
@@ -105,9 +105,9 @@ export default class ViewerUgoira extends ViewerVideoBase
             onfinished: () => onnextimage(this),
         });            
 
-        this.player.videoInterface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abort_controller.signal });
+        this.player.videoInterface.addEventListener("timeupdate", this.ontimeupdate, { signal: this.abortController.signal });
 
-        this.videoUi.video_changed({player: this, video: this.player.videoInterface});
+        this.videoUi.videoChanged({player: this, video: this.player.videoInterface});
 
         this.refreshFocus();
     }
@@ -117,10 +117,10 @@ export default class ViewerUgoira extends ViewerVideoBase
         super.shutdown();
 
         // Cancel the player's download and remove event listeners.
-        if(this.abort_controller)
+        if(this.abortController)
         {
-            this.abort_controller.abort();
-            this.abort_controller = null;
+            this.abortController.abort();
+            this.abortController = null;
         }
 
         // Send a finished progress callback if we were still loading.
@@ -134,30 +134,30 @@ export default class ViewerUgoira extends ViewerVideoBase
             this.player = null;
         }
 
-        if(this.preview_img1)
+        if(this.previewImage1)
         {
-            this.preview_img1.remove();
-            this.preview_img1 = null;
+            this.previewImage1.remove();
+            this.previewImage1 = null;
         }
-        if(this.preview_img2)
+        if(this.previewImage2)
         {
-            this.preview_img2.remove();
-            this.preview_img2 = null;
+            this.previewImage2.remove();
+            this.previewImage2 = null;
         }
     }
 
-    async create_preview_images(url1, url2)
+    async _createPreviewImages(url1, url2)
     {
-        if(this.preview_img1)
+        if(this.previewImage1)
         {
-            this.preview_img1.remove();
-            this.preview_img1 = null;
+            this.previewImage1.remove();
+            this.previewImage1 = null;
         }
 
-        if(this.preview_img2)
+        if(this.previewImage2)
         {
-            this.preview_img2.remove();
-            this.preview_img2 = null;
+            this.previewImage2.remove();
+            this.previewImage2 = null;
         }
         
         // Create an image to display the static image while we load.
@@ -174,7 +174,7 @@ export default class ViewerUgoira extends ViewerVideoBase
             img1.style.objectFit = "contain";
             img1.src = url1;
             this.videoContainer.appendChild(img1);
-            this.preview_img1 = img1;
+            this.previewImage1 = img1;
 
             // Allow clicking the previews too, so if you click to pause the video before it has enough
             // data to start playing, it'll still toggle to paused.
@@ -192,11 +192,11 @@ export default class ViewerUgoira extends ViewerVideoBase
             img2.src = url2;
             this.videoContainer.appendChild(img2);
             img2.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
-            this.preview_img2 = img2;
+            this.previewImage2 = img2;
 
             // Wait for the high-res image to finish loading.
-            let img1 = this.preview_img1;
-            helpers.wait_for_image_load(img2).then(() => {
+            let img1 = this.previewImage1;
+            helpers.waitForImageLoad(img2).then(() => {
                 // Remove the low-res preview image when the high-res one finishes loading.
                 img1.remove();
             });
@@ -225,21 +225,21 @@ export default class ViewerUgoira extends ViewerVideoBase
     // flicker when the first frame is drawn.
     ontimeupdate = () =>
     {
-        if(this.preview_img1)
-            this.preview_img1.hidden = true;
-        if(this.preview_img2)
-            this.preview_img2.hidden = true;
+        if(this.previewImage1)
+            this.previewImage1.hidden = true;
+        if(this.previewImage2)
+            this.previewImage2.hidden = true;
         this.video.hidden = false;
 
-        this.update_seek_bar();
+        this.updateSeekBar();
     }
 
-    update_seek_bar()
+    updateSeekBar()
     {
         // Update the seek bar.
-        let current_time = this.player.getCurrentFrameTime();
+        let currentTime = this.player.getCurrentFrameTime();
         let duration = this.player.getSeekableDuration();
-        this.setSeekBar({current_time, duration});
+        this.setSeekBar({currentTime, duration});
     }
 
     // This is sent manually by the UI handler so we can control focus better.
@@ -253,7 +253,7 @@ export default class ViewerUgoira extends ViewerVideoBase
             if(!this.player)
                 return;
 
-            var speed;
+            let speed;
             switch(e.code)
             {
             case "Digit1": speed = 0.10; break;
@@ -277,7 +277,7 @@ export default class ViewerUgoira extends ViewerVideoBase
             e.stopPropagation();
             e.preventDefault();
 
-            this.setWantPlaying(!this.want_playing);
+            this.setWantPlaying(!this.wantPlaying);
 
             return;
         case "Home":
@@ -307,10 +307,10 @@ export default class ViewerUgoira extends ViewerVideoBase
                 return;
 
             this.pause();
-            var current_frame = this.player.getCurrentFrame();
-            var next = e.code == "KeyW";
-            var new_frame = current_frame + (next?+1:-1);
-            this.player.setCurrentFrame(new_frame);
+            let currentFrame = this.player.getCurrentFrame();
+            let next = e.code == "KeyW";
+            let newFrame = currentFrame + (next?+1:-1);
+            this.player.setCurrentFrame(newFrame);
             return;
         }
     }
@@ -328,15 +328,15 @@ export default class ViewerUgoira extends ViewerVideoBase
     // Set whether the user wants the video to be playing or paused.
     setWantPlaying(value)
     {
-        if(this.want_playing != value)
+        if(this.wantPlaying != value)
         {
             // Store the play/pause state in history, so if we navigate out and back in while
             // paused, we'll stay paused.
             let args = helpers.args.location;
             args.state.paused = !value;
-            helpers.navigate(args, { add_to_history: false, cause: "updating-video-pause" });
+            helpers.navigate(args, { addToHistory: false, cause: "updating-video-pause" });
 
-            this.want_playing = value;
+            this.wantPlaying = value;
         }
 
         this.refreshFocus();
@@ -349,7 +349,7 @@ export default class ViewerUgoira extends ViewerVideoBase
         if(this.player == null)
             return;
 
-        let active = this.want_playing && !this.seeking && !window.document.hidden && this._active;
+        let active = this.wantPlaying && !this.seeking && !window.document.hidden && this._active;
         if(active)
             this.player.play(); 
         else

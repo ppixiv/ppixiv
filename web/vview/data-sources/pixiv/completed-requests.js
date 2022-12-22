@@ -17,7 +17,7 @@ export default class DataSources_CompletedRequests extends DataSource
         let mode = args.get("mode") || "all";
         let type = args.get_pathname_segment(2); // "illust" in "request/complete/illust"
 
-        let result = await helpers.get_request(`/ajax/commission/page/request/complete/${type}`, {
+        let result = await helpers.getRequest(`/ajax/commission/page/request/complete/${type}`, {
             mode,
             p: page,
             lang: "en",
@@ -29,10 +29,10 @@ export default class DataSources_CompletedRequests extends DataSource
             request_data[request.requestId] = request;
         
         for(let user of result.body.users)
-            ppixiv.userCache.add_user_data(user);
+            ppixiv.userCache.addUserData(user);
 
-        await ppixiv.mediaCache.add_media_infos_partial(result.body.thumbnails.illust, "normal");
-        ppixiv.tagTranslations.add_translations_dict(result.body.tagTranslation);
+        await ppixiv.mediaCache.addMediaInfosPartial(result.body.thumbnails.illust, "normal");
+        ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
 
         let mediaIds = [];
         let requestIds = result.body.page[showing == "latest"? "requestIds":"recommendRequestIds"];
@@ -45,11 +45,11 @@ export default class DataSources_CompletedRequests extends DataSource
             // as regular posts.
             let request = request_data[requestId];
             let request_post_id = request.postWork.postWorkId;
-            let mediaId = helpers.illust_id_to_media_id(request_post_id);
+            let mediaId = helpers.illustIdToMediaId(request_post_id);
 
             // This returns a lot of post IDs that don't exist.  Why are people deleting so many of these?
             // Check whether the post was in result.body.thumbnails.illust.
-            if(ppixiv.mediaCache.get_media_info_sync(mediaId, { full: false }) == null)
+            if(ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }) == null)
                 continue;
 
             mediaIds.push(mediaId);
@@ -68,20 +68,20 @@ class UI extends Widget
             <div>
                 <div class="box-button-row">
                     <div style="margin-right: 25px;">
-                        ${ helpers.create_box_link({label: "Latest",        popup: "Show latest completed requests",       data_type: "completed-requests-latest" }) }
-                        ${ helpers.create_box_link({label: "Recommended",   popup: "Show recommmended completed requests", data_type: "completed-requests-recommended" }) }
+                        ${ helpers.createBoxLink({label: "Latest",        popup: "Show latest completed requests",       dataType: "completed-requests-latest" }) }
+                        ${ helpers.createBoxLink({label: "Recommended",   popup: "Show recommmended completed requests", dataType: "completed-requests-recommended" }) }
                     </div>
 
                     <div style="margin-right: 25px;">
-                        ${ helpers.create_box_link({label: "Illustrations", popup: "Show latest completed requests",       data_type: "completed-requests-illust" }) }
-                        ${ helpers.create_box_link({label: "Animations",    popup: "Show animations only",                 data_type: "completed-requests-ugoira" }) }
-                        ${ helpers.create_box_link({label: "Manga",         popup: "Show manga only",                      data_type: "completed-requests-manga" }) }
+                        ${ helpers.createBoxLink({label: "Illustrations", popup: "Show latest completed requests",       dataType: "completed-requests-illust" }) }
+                        ${ helpers.createBoxLink({label: "Animations",    popup: "Show animations only",                 dataType: "completed-requests-ugoira" }) }
+                        ${ helpers.createBoxLink({label: "Manga",         popup: "Show manga only",                      dataType: "completed-requests-manga" }) }
                     </div>
 
                     <div>
-                        ${ helpers.create_box_link({label: "All",           popup: "Show all works",                       data_type: "completed-requests-all" }) }
-                        ${ helpers.create_box_link({label: "All ages",      popup: "Show all-ages works",                  data_type: "completed-requests-safe" }) }
-                        ${ helpers.create_box_link({label: "R18",           popup: "Show R18 works",                       data_type: "completed-requests-r18", classes: ["r18"] }) }
+                        ${ helpers.createBoxLink({label: "All",           popup: "Show all works",                       dataType: "completed-requests-all" }) }
+                        ${ helpers.createBoxLink({label: "All ages",      popup: "Show all-ages works",                  dataType: "completed-requests-safe" }) }
+                        ${ helpers.createBoxLink({label: "R18",           popup: "Show R18 works",                       dataType: "completed-requests-r18", classes: ["r18"] }) }
                     </div>
                 </div>
             </div>

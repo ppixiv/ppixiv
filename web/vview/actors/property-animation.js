@@ -19,8 +19,8 @@ export default class PropertyAnimation
 
         // The position of the animation is always 0-1.  The property value is scaled to
         // this range:
-        property_start=0,
-        property_end=1,
+        propertyStart=0,
+        propertyEnd=1,
 
         // If play() is called, this is called after the animation completes.
         onanimationfinished,
@@ -36,8 +36,8 @@ export default class PropertyAnimation
         this.onchange = onchange;
         this.state = "stopped";
         this.property = property;
-        this.property_start = property_start;
-        this.property_end = property_end;
+        this.propertyStart = propertyStart;
+        this.propertyEnd = propertyEnd;
     }
 
     shutdown()
@@ -62,34 +62,34 @@ export default class PropertyAnimation
         if(this.playing)
             throw new Error("Animation is running");
 
-        this._set_position(offset);
+        this._setPosition(offset);
     }
 
-    _set_position(position)
+    _setPosition(position)
     {
-        let old_position = this._position;
-        let old_value = this._property_value;
+        let oldPosition = this._position;
+        let oldValue = this._propertyValue;
         this._position = position;
 
-        let value = this._property_value = this.property_value_for_position(position);
+        let value = this._propertyValue = this.propertyValueForPosition(position);
         for(let node of this.node)
             node.style.setProperty(this.property, value);
 
-        // Call onchange with the old and new values.  Note that old_value and old_position
+        // Call onchange with the old and new values.  Note that oldValue and oldPosition
         // are null on the first call.
-        this.onchange({position, value, old_position, old_value});
+        this.onchange({position, value, oldPosition, oldValue});
     }
 
     // Return the value of the output property for the given 0-1 position.
-    property_value_for_position(position)
+    propertyValueForPosition(position)
     {
-        return helpers.scale(position, 0, 1, this.property_start, this.property_end);
+        return helpers.scale(position, 0, 1, this.propertyStart, this.propertyEnd);
     }
 
     // Return the current value of the property.
-    get current_property_value()
+    get currentPropertyValue()
     {
-        return this.property_value_for_position(this._position);
+        return this.propertyValueForPosition(this._position);
     }
 
     // Return true if an animation is active.
@@ -98,11 +98,11 @@ export default class PropertyAnimation
         return this._playToken != null;
     }
 
-    // Play the animation from the current position to end_position, replacing any running animation.
-    async play({end_position=1, easing="ease-in-out", duration=300}={})
+    // Play the animation from the current position to endPosition, replacing any running animation.
+    async play({endPosition=1, easing="ease-in-out", duration=300}={})
     {
         // This is just for convenience, so the caller can tell which way an animation is going.
-        this.animating_towards = end_position;
+        this.animatingTowards = endPosition;
 
         // Create a new token.  If another play() call takes over the animation or we're stopped, this
         // will change and we'll stop animating.
@@ -113,8 +113,8 @@ export default class PropertyAnimation
         if(curve == null)
             throw new Error(`Unknown easing curve: ${easing}`);
 
-        let start_position = this._position;
-        let start_time = Date.now();
+        let startPosition = this._position;
+        let startTime = Date.now();
         while(1)
         {
             await helpers.vsync();
@@ -124,23 +124,23 @@ export default class PropertyAnimation
                 return;
 
             // The position through this animation, from 0 to 1:
-            let offset = (Date.now() - start_time) / duration;
+            let offset = (Date.now() - startTime) / duration;
             offset = helpers.clamp(offset, 0, 1);
 
             // Apply easing.
             let offset_with_easing = curve.evaluate(offset);
 
             // Update the animation.  Snap to the start and end positions to remove rounding error.
-            let new_position = helpers.scale(offset_with_easing, 0, 1, start_position, end_position);
-            if(Math.abs(new_position - start_position) < 0.00001) new_position = start_position;
-            if(Math.abs(new_position - end_position) < 0.00001) new_position = end_position;
-            this._set_position(new_position);
+            let newPosition = helpers.scale(offset_with_easing, 0, 1, startPosition, endPosition);
+            if(Math.abs(newPosition - startPosition) < 0.00001) newPosition = startPosition;
+            if(Math.abs(newPosition - endPosition) < 0.00001) newPosition = endPosition;
+            this._setPosition(newPosition);
 
             if(offset == 1)
                 break;
         }
 
-        this.animating_towards = null;
+        this.animatingTowards = null;
         this._playToken = null;
         this.onanimationfinished(this);
     }

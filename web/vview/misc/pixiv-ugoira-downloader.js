@@ -57,7 +57,7 @@ export default class PixivUgoiraDownloader
         let firstFrameURL = URL.createObjectURL(blob);
         img.src = firstFrameURL;
 
-        await helpers.wait_for_image_load(img);
+        await helpers.waitForImageLoad(img);
 
         URL.revokeObjectURL(firstFrameURL);
         let width = img.naturalWidth;
@@ -89,7 +89,7 @@ export default class PixivUgoiraDownloader
             // Build the file.
             let mkv = encoder.build();
             let filename = this.illustData.userName + " - " + this.illustData.illustId + " - " + this.illustData.illustTitle + ".mkv";
-            helpers.save_blob(mkv, filename);
+            helpers.saveBlob(mkv, filename);
         } catch(e) {
             console.error(e);
         };

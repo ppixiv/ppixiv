@@ -17,7 +17,7 @@ export default class DataSource_SearchUsers extends DataSource
         // Use the mobile API for this.  THe desktop site has no API and has to be scraped, and if
         // we're on mobile we can't access the desktop page, but the mobile site's API works either
         // way.
-        let result = await helpers.get_request("/touch/ajax/search/users", {
+        let result = await helpers.getRequest("/touch/ajax/search/users", {
             nick: this.username,
             s_mode: "s_usr",
             p: page,
@@ -36,7 +36,7 @@ export default class DataSource_SearchUsers extends DataSource
         let mediaIds = [];
         for(let user of result.body.users)
         {
-            ppixiv.extraCache.add_quick_user_data({
+            ppixiv.extraCache.addQuickUserData({
                 user_id: user.user_id,
                 user_name: user.user_name,
                 profile_img: user.profile_img.main,
@@ -91,7 +91,7 @@ class UI extends Widget
                 <div class="user-search-box input-field-container hover-menu-box">
                     <input class=search-users placeholder="Search users">
                     <span class="search-submit-button right-side-button">
-                        ${ helpers.create_icon("search") }
+                        ${ helpers.createIcon("search") }
                     </span>
                 </div>
             </div>
@@ -100,7 +100,7 @@ class UI extends Widget
         this.dataSource = dataSource;
 
         this.querySelector(".user-search-box .search-submit-button").addEventListener("click", this.submitUserSearch);
-        helpers.input_handler(this.querySelector(".user-search-box input.search-users"), this.submitUserSearch);
+        helpers.inputHandler(this.querySelector(".user-search-box input.search-users"), this.submitUserSearch);
 
         this.querySelector(".search-users").value = dataSource.username;
     }

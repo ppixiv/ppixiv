@@ -20,7 +20,7 @@ export default class DataSource_Illust extends DataSource
 
     async _loadMediaInfo()
     {
-        this.mediaInfo = await ppixiv.mediaCache.get_media_info(this.mediaId, { full: false });
+        this.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId, { full: false });
     }
 
     // Show the illustration by default.
@@ -37,12 +37,12 @@ export default class DataSource_Illust extends DataSource
         //
         // The page (if any) is stored in the hash.
         let url = args.url;
-        url = helpers.get_url_without_language(url);
+        url = helpers.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
         let illust_id = parts[2];
 
         let page = this.getPageFromUrl(args);
-        return helpers.illust_id_to_media_id(illust_id, page);
+        return helpers.illustIdToMediaId(illust_id, page);
     }
 
     // We're always viewing our media ID.
@@ -62,7 +62,7 @@ export default class DataSource_Illust extends DataSource
     // quick view.
     setCurrentMediaId(mediaId, args)
     {
-        let [illustId] = helpers.media_id_to_illust_id_and_page(mediaId);
+        let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
 
         // Pixiv's inconsistent URLs are annoying.  Figure out where the ID field is.
         // If the first field is a language, it's the third field (/en/artworks/#), otherwise

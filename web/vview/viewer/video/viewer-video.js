@@ -4,7 +4,7 @@ import { helpers } from 'vview/misc/helpers.js';
 // A player for video files.
 //
 // This is only used for local files, since Pixiv doesn't have any video support.
-// See viewer_ugoira for Pixiv's jank animation format.
+// See ViewerUgoira for Pixiv's jank animation format.
 //
 // We don't show buffering.  This is only used for viewing local files.
 export default class ViewerVideo extends ViewerVideoBase
@@ -42,21 +42,21 @@ export default class ViewerVideo extends ViewerVideoBase
 
         this.videoContainer.appendChild(this.video);
 
-        this.video.addEventListener("timeupdate", () => this.update_seek_bar());
-        this.video.addEventListener("progress", () => this.update_seek_bar());
+        this.video.addEventListener("timeupdate", () => this.updateSeekBar());
+        this.video.addEventListener("progress", () => this.updateSeekBar());
 
         // Clicking on mobile shows the menu, so use dblclick for pause.
         this.videoContainer.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
 
         // In case we start PIP without playing first, switch the poster when PIP starts.
-        this.video.addEventListener("enterpictureinpicture", (e) => { this.switch_poster_to_thumb(); });
+        this.video.addEventListener("enterpictureinpicture", (e) => { this._switchPosterToThumb(); });
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         let args = helpers.args.location;
-        this.want_playing = !args.state.paused;
+        this.wantPlaying = !args.state.paused;
 
         // True if the user is seeking.  We temporarily pause while seeking.  This is separate
-        // from this.want_playing so we stay paused after seeking if we were paused at the start.
+        // from this.wantPlaying so we stay paused after seeking if we were paused at the start.
         this.seeking = false;
     }
     
@@ -83,7 +83,7 @@ export default class ViewerVideo extends ViewerVideoBase
         // Set the video URLs.  
         this.video.poster = this.mediaInfo.mangaPages[0].urls.poster;
         this.source.src = this.mediaInfo.mangaPages[0].urls.original;
-        this.update_seek_bar();
+        this.updateSeekBar();
 
         // Sometimes mysteriously needing a separate load() call isn't isn't a sign of
         // good HTML element design.  Everything else just updates after you change it,
@@ -91,7 +91,7 @@ export default class ViewerVideo extends ViewerVideoBase
         this.video.load();
 
         // Tell the video UI about the video.
-        this.videoUi.video_changed({player: this, video: this.video});
+        this.videoUi.videoChanged({player: this, video: this.video});
         
         // We want to wait until something is displayed before firing this.ready, but
         // HTMLVideoElement doesn't give an event for that, and there's no event at
@@ -101,7 +101,7 @@ export default class ViewerVideo extends ViewerVideoBase
         let img = document.createElement("img");
         img.src = this.video.poster;
         let decode = img.decode();
-        let canplay = helpers.wait_for_event(this.video, "loadeddata");
+        let canplay = helpers.waitForEvent(this.video, "loadeddata");
 
         // Wait for at least one to complete.
         await Promise.any([canplay, decode]);
@@ -143,21 +143,21 @@ export default class ViewerVideo extends ViewerVideoBase
     // Replace the poster with the thumbnail if we enter PIP.  Chrome displays the poster
     // in the main window while PIP is active, and the thumbnail is better for that.  It's
     // low res, but Chrome blurs this image anyway.
-    switch_poster_to_thumb()
+    _switchPosterToThumb()
     {
         if(this.mediaInfo != null)
             this.video.poster = this.mediaInfo.mangaPages[0].urls.small;
     }
 
-    update_seek_bar()
+    updateSeekBar()
     {
         // Update the seek bar.
-        let current_time = isNaN(this.video.currentTime)? 0:this.video.currentTime;
+        let currentTime = isNaN(this.video.currentTime)? 0:this.video.currentTime;
         let duration = isNaN(this.video.duration)? 1:this.video.duration;
-        this.setSeekBar({current_time, duration});
+        this.setSeekBar({currentTime, duration});
     }
 
-    toggle_mute()
+    toggleMute()
     {
         this.video.muted = !this.video.muted;
     }
@@ -197,12 +197,12 @@ export default class ViewerVideo extends ViewerVideoBase
         switch(e.code)
         {
         case "KeyM":
-            this.toggle_mute();
+            this.toggleMute();
             break;
         case "Space":
             e.stopPropagation();
             e.preventDefault();
-            this.setWantPlaying(!this.want_playing);
+            this.setWantPlaying(!this.wantPlaying);
             return;
 
         case "Home":
@@ -246,15 +246,15 @@ export default class ViewerVideo extends ViewerVideoBase
     // Set whether the user wants the video to be playing or paused.
     setWantPlaying(value)
     {
-        if(this.want_playing != value)
+        if(this.wantPlaying != value)
         {
             // Store the play/pause state in history, so if we navigate out and back in while
             // paused, we'll stay paused.
             let args = helpers.args.location;
             args.state.paused = !value;
-            helpers.navigate(args, { add_to_history: false, cause: "updating-video-pause" });
+            helpers.navigate(args, { addToHistory: false, cause: "updating-video-pause" });
 
-            this.want_playing = value;
+            this.wantPlaying = value;
         }
 
         this.refreshFocus();
@@ -267,7 +267,7 @@ export default class ViewerVideo extends ViewerVideoBase
         if(this.source == null)
             return;
 
-        let active = this.want_playing && !this.seeking && this._active;
+        let active = this.wantPlaying && !this.seeking && this._active;
         if(active)
             this.video.play(); 
         else
@@ -284,8 +284,8 @@ export default class ViewerVideo extends ViewerVideoBase
         if(seconds != null)
         {
             this.video.currentTime = seconds;
-            this.update_seek_bar();
-            this.videoUi.time_changed();
+            this.updateSeekBar();
+            this.videoUi.timeChanged();
         }
     };
 }

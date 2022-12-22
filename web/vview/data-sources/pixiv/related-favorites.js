@@ -29,8 +29,8 @@ export default class DataSource_RelatedFavorites extends DataSourceFromPage
         // Get info for the illustration we're displaying bookmarks for.
         let queryArgs = this.url.searchParams;
         let illustId = queryArgs.get("illustId");
-        let mediaId = helpers.illust_id_to_media_id(illustId)
-        this.illustInfo = await ppixiv.mediaCache.get_media_info(mediaId);
+        let mediaId = helpers.illustIdToMediaId(illustId)
+        this.illustInfo = await ppixiv.mediaCache.getMediaInfo(mediaId);
         this.callUpdateListeners();
 
         return super.loadPageInternal(page);
@@ -43,7 +43,7 @@ export default class DataSource_RelatedFavorites extends DataSourceFromPage
         for(let element of doc.querySelectorAll("li.bookmark-item a[data-user_id]"))
         {
             // Register this as quick user data, for use in thumbnails.
-            ppixiv.extraCache.add_quick_user_data({
+            ppixiv.extraCache.addQuickUserData({
                 user_id: element.dataset.user_id,
                 user_name: element.dataset.user_name,
 

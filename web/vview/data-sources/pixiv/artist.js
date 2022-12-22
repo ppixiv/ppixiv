@@ -32,7 +32,7 @@ export default class DataSources_Artist extends DataSource
     get viewingUserId()
     {
         // /users/13245
-        return helpers.get_path_part(this.url, 1);
+        return helpers.getPathPart(this.url, 1);
     };
 
     // Return "artworks" (all), "illustrations" or "manga".
@@ -49,7 +49,7 @@ export default class DataSources_Artist extends DataSource
         // instead of having a link to page 2, it only has "See all", which goes to /artworks and shows you
         // page 1 again.  That's pointless, so we treat the top page as /artworks the same.  /illustrations
         // and /manga filter those types.
-        let url = helpers.get_url_without_language(this.url);
+        let url = helpers.getUrlWithoutLanguage(this.url);
         let parts = url.pathname.split("/");
         return parts[3] || "artworks";
     }
@@ -61,13 +61,13 @@ export default class DataSources_Artist extends DataSource
         let currentTag = this.currentTag;
         if(currentTag != null)
         {
-            this.translatedTags = await ppixiv.tagTranslations.get_translations([currentTag], "en");
+            this.translatedTags = await ppixiv.tagTranslations.getTranslations([currentTag], "en");
             this.callUpdateListeners();
         }
 
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.userInfo = await ppixiv.userCache.get_user_info_full(this.viewingUserId);
+        this.userInfo = await ppixiv.userCache.getUserInfoFull(this.viewingUserId);
 
         // Update to refresh our page title, which uses userInfo.
         this.callUpdateListeners();
@@ -89,11 +89,11 @@ export default class DataSources_Artist extends DataSource
 
             // Tell media_cache to start loading these media IDs.  This will happen anyway if we don't
             // do it here, but we know these posts are all from the same user ID, so kick it off here
-            // to hint batch_get_media_info_partial to use the user-specific API.  Don't wait for this
+            // to hint batchGetMediaInfoPartial to use the user-specific API.  Don't wait for this
             // to complete, since we don't need to and it'll cause the search view to take longer to
             // appear.
             let mediaIds = this.pages[page-1] || [];
-            ppixiv.mediaCache.batch_get_media_info_partial(mediaIds, { user_id: this.viewingUserId });
+            ppixiv.mediaCache.batchGetMediaInfoPartial(mediaIds, { userId: this.viewingUserId });
 
             // Register this page.
             this.addPage(page, mediaIds);
@@ -111,7 +111,7 @@ export default class DataSources_Artist extends DataSource
                 "manga";
 
             let requestUrl = "/ajax/user/" + this.viewingUserId + "/" + typeForUrl + "/tag";
-            let result = await helpers.get_request(requestUrl, {
+            let result = await helpers.getRequest(requestUrl, {
                 tag: tag,
                 offset: (page-1)*48,
                 limit: 48,
@@ -119,7 +119,7 @@ export default class DataSources_Artist extends DataSource
 
             // This data doesn't have profileImageUrl or userName.  That's presumably because it's
             // used on user pages which get that from user data, but this seems like more of an
-            // inconsistency than an optimization.  Fill it in for media_info.
+            // inconsistency than an optimization.  Fill it in for mediaInfo.
             for(let item of result.body.works)
             {
                 item.userName = this.userInfo.name;
@@ -128,9 +128,9 @@ export default class DataSources_Artist extends DataSource
 
             let mediaIds = [];
             for(let illustData of result.body.works)
-                mediaIds.push(helpers.illust_id_to_media_id(illustData.id)); 
+                mediaIds.push(helpers.illustIdToMediaId(illustData.id)); 
 
-            await ppixiv.mediaCache.add_media_infos_partial(result.body.works, "normal");
+            await ppixiv.mediaCache.addMediaInfosPartial(result.body.works, "normal");
 
             // Register the new page of data.
             this.addPage(page, mediaIds);
@@ -159,7 +159,7 @@ export default class DataSources_Artist extends DataSource
     {
         let type = this.viewingType;
 
-        let result = await helpers.get_request("/ajax/user/" + this.viewingUserId + "/profile/all", {});
+        let result = await helpers.getRequest("/ajax/user/" + this.viewingUserId + "/profile/all", {});
 
         // Remember if this user is accepting requests, so we can add a link.
         this.acceptingRequests = result.body.request.showRequestTab;
@@ -198,14 +198,14 @@ export default class DataSources_Artist extends DataSource
 
         let mediaIds = [];
         for(let illustId of illustIds)
-            mediaIds.push(helpers.illust_id_to_media_id(illustId));
+            mediaIds.push(helpers.illustIdToMediaId(illustId));
 
         return mediaIds;
     };
 
     async load_booth()
     {
-        let bootRequest = await helpers.get_request("https://api.booth.pm/pixiv/shops/show.json", {
+        let bootRequest = await helpers.getRequest("https://api.booth.pm/pixiv/shops/show.json", {
             pixiv_user_id: this.viewingUserId,
             adult: "include",
             limit: 24,
@@ -233,6 +233,9 @@ export default class DataSources_Artist extends DataSource
     {
         return {
             userId: this.viewingUserId,
+
+            // Override the title on the mobile search menu.
+            mobileTitle: this.userInfo?.name? `Artist: ${this.userInfo?.name}`:`Artist`,
         }
     }
 
@@ -241,7 +244,7 @@ export default class DataSources_Artist extends DataSource
     {
         // Get user info.  We probably have this on this.userInfo, but that async load
         // might not be finished yet.
-        let userInfo = await ppixiv.userCache.get_user_info_full(this.viewingUserId);
+        let userInfo = await ppixiv.userCache.getUserInfoFull(this.viewingUserId);
         console.log("Loading tags for user", userInfo.userId);
 
         // Load this artist's common tags.
@@ -249,9 +252,9 @@ export default class DataSources_Artist extends DataSource
 
         // Mark the tags in this.postTags that the user has searched for recently, so they can be
         // marked in the UI.
-        let user_tag_searches = SavedSearchTags.get_all_used_tags();
+        let userTagSearch = SavedSearchTags.getAllUsedTags();
         for(let tag of this.postTags)
-            tag.recent = user_tag_searches.has(tag.tag);
+            tag.recent = userTagSearch.has(tag.tag);
 
         // Move tags that this artist uses to the top if the user has searched for them recently.
         this.postTags.sort((lhs, rhs) => {
@@ -264,7 +267,7 @@ export default class DataSources_Artist extends DataSource
         let tags = [];
         for(let tagInfo of this.postTags)
             tags.push(tagInfo.tag);
-        this.translatedTags = await ppixiv.tagTranslations.get_translations(tags, "en");
+        this.translatedTags = await ppixiv.tagTranslations.getTranslations(tags, "en");
 
         // Refresh the tag list now that it's loaded.
         this.dispatchEvent(new Event("_refresh_ui"));
@@ -275,7 +278,7 @@ export default class DataSources_Artist extends DataSource
         if(userInfo.frequentTags)
             return Array.from(userInfo.frequentTags);
 
-        let result = await helpers.get_request("/ajax/user/" + userInfo.userId + "/illustmanga/tags", {});
+        let result = await helpers.getRequest("/ajax/user/" + userInfo.userId + "/illustmanga/tags", {});
         if(result.error)
         {
             console.error("Error fetching tags for user " + userInfo.userId + ": " + result.error);
@@ -302,7 +305,7 @@ export default class DataSources_Artist extends DataSource
                 },
             });
         }
-        ppixiv.tagTranslations.add_translations(translations);
+        ppixiv.tagTranslations.addTranslations(translations);
 
         // Cache the results on the user info.
         userInfo.frequentTags = result.body;
@@ -333,10 +336,10 @@ class UI extends Widget
         super({ ...options, template: `
             <div>
                 <div class="box-button-row search-options-row">
-                    ${ helpers.create_box_link({label: "Works",    popup: "Show all works",            data_type: "artist-works" }) }
-                    ${ helpers.create_box_link({label: "Illusts",  popup: "Show illustrations only",   data_type: "artist-illust" }) }
-                    ${ helpers.create_box_link({label: "Manga",    popup: "Show manga only",           data_type: "artist-manga" }) }
-                    ${ helpers.create_box_link({label: "Tags",     popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] }) }
+                    ${ helpers.createBoxLink({label: "Works",    popup: "Show all works",            dataType: "artist-works" }) }
+                    ${ helpers.createBoxLink({label: "Illusts",  popup: "Show illustrations only",   dataType: "artist-illust" }) }
+                    ${ helpers.createBoxLink({label: "Manga",    popup: "Show manga only",           dataType: "artist-manga" }) }
+                    ${ helpers.createBoxLink({label: "Tags",     popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] }) }
                 </div>
 
                 <vv-container class=avatar-container></vv-container>
@@ -347,7 +350,7 @@ class UI extends Widget
 
         dataSource.addEventListener("_refresh_ui", () => {
             // Refresh the displayed label in case we didn't have it when we created the widget.
-            this.tagDropdown.set_button_popup_highlight();
+            this.tagDropdown.setButtonPopupHighlight();
         }, this._signal);
 
         dataSource.setPathItem(this.container, "artist-works", 2, "artworks");
@@ -370,7 +373,7 @@ class UI extends Widget
             refreshTags()
             {
                 // Refresh the post tag list.
-                helpers.remove_elements(this.container);
+                helpers.removeElements(this.container);
 
                 if(dataSource.postTags != null)
                 {
@@ -414,13 +417,13 @@ class UI extends Widget
                 if(tagInfo.recent)
                     classes.push("recent");
 
-                let a = helpers.create_box_link({
+                let a = helpers.createBoxLink({
                     label: translatedTag,
                     classes,
                     popup: tagInfo?.cnt,
                     link: "#",
-                    as_element: true,
-                    data_type: "artist-tag",
+                    asElement: true,
+                    dataType: "artist-tag",
                 });
 
                 dataSource.setItem(a, { fields: {"tag": tag != "All"? tag:null} });
@@ -434,7 +437,7 @@ class UI extends Widget
 
         this.tagDropdown = new DropdownMenuOpener({
             button: this.querySelector(".member-tags-button"),
-            create_box: ({...options}) => new TagDropdown({dataSource, ...options}),
+            createBox: ({...options}) => new TagDropdown({dataSource, ...options}),
             onvisibilitychanged: (opener) => {
                 // Populate the tags dropdown if it's opened, so we don't load user tags for every user page.
                 if(opener.visible);
