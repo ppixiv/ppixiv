@@ -97,18 +97,6 @@ class AppStartup
         let importer = new ModuleImporterClass();
         await importer.load(modules);
 
-        // Force all scripts to be imported.  This is just so we catch errors early.
-        for(let moduleName of Object.keys(modules))
-        {
-            try {
-                await importer.import(moduleName);
-            } catch(e) {
-                console.error(`Error loading ${moduleName}`, e);
-                alert(`Error loading ${moduleName}: ${e}`);
-                return;
-            }
-        }
-
         // Run the app.
         console.log("Launching app");
         let { default: App } = await importer.import("vview/app.js");
@@ -564,16 +552,13 @@ class AppStartup
         window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
         window.HTMLDocument.prototype.createElement = function(type, options)
         {
-            if(type == "script")
-            {
-                // Let es-module-shims create script nodes.
-                let stack = (new Error()).stack;
-                if(stack.indexOf("es-module-shims") != -1)
-                    return origCreateElement.apply(this, arguments);
-            }
+            // Let es-module-shims create nodes.
+            let stack = (new Error()).stack;
+            if(stack.indexOf("es-module-shims") != -1)
+                return origCreateElement.apply(this, arguments);
 
-            // Prevent the underlying site from creating new script and style elements.
-            if(type == "script" || type == "style")
+            // Prevent the underlying site from creating these elements.
+            if(type == "script" || type == "style" || type == "iframe")
             {
                 // console.warn("Disabling createElement " + type);
                 class ElementDisabled extends Error { };
@@ -725,6 +710,16 @@ class ModuleImporter_Native extends ModuleImporter
         importMap.type = "importmap";
         importMap.textContent = JSON.stringify({ imports }, null, 4);
         document.head.appendChild(importMap);
+
+        // Preload the modules.  We don't need to leave these nodes in the document.
+        for(let url of Object.values(scripts))
+        {
+            let link = document.createElement("link");
+            link.rel = "modulepreload";
+            link.href = url;
+            document.head.appendChild(link);
+            link.remove();
+        }
     }
 
     import = async(modulePath) =>
@@ -1107,8 +1102,6 @@ class ModuleImporter_Babel extends ModuleImporter
         // Import the module this is a stub for.
         let importStub = ``;
 
-        importStub += "try {\n";
-
         importStub += `
 // Stub for ${importPath}
 let url = window._importMappings[${JSON.stringify(importPath)}];
@@ -1116,7 +1109,6 @@ let url = window._importMappings[${JSON.stringify(importPath)}];
 var module = await import(url);
 // console.log("Imported ${importPath}");
         `;
-        importStub += '} catch(e) { console.log("buh", e); }';
 
         // Re-export its named exports:
         if(exports.length > 0)
