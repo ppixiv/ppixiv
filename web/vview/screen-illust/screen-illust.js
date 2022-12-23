@@ -416,14 +416,7 @@ export default class ScreenIllust extends Screen
         if(this.oldViewer)
             this.viewer.visible = false;
 
-        this.viewer.ready.finally(async() => {
-            // Await once in case this is called synchronously.
-            await helpers.sleep(0);
-
-            // Allow this to be called multiple times.
-            if(this.oldViewer == null)
-                return;
-
+        this.viewer.ready.finally(() => {
             // The new viewer is displaying an image, so we can remove the old viewer now.
             //
             // If this isn't the main viewer anymore, another one was created and replaced this one
@@ -432,8 +425,11 @@ export default class ScreenIllust extends Screen
                 return;
 
             this.viewer.visible = true;
-            this.oldViewer.shutdown();
-            this.oldViewer = null;
+            if(this.oldViewer)
+            {
+                this.oldViewer.shutdown();
+                this.oldViewer = null;
+            }
         });
 
         this.viewer.active = this._active;
