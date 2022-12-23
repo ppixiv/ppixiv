@@ -9,15 +9,15 @@ class AppStartup
 {
     constructor(init)
     {
-        this.init = init;
-        this.initialSetup();
+        this.initialSetup(init);
     }
 
-    async initialSetup()
+    async initialSetup({modules, ...init})
     {
-        window.ppixiv = this.init;
+        // The rest of our argument becomes the global window.ppixiv object.
+        window.ppixiv = init;
 
-        console.log(`${ppixiv.native? "vview":"ppixiv"} setup`);
+        console.log(`${init.native? "vview":"ppixiv"} setup`);
         console.log("Browser:", navigator.userAgent);
         
         // "Stay" for iOS leaves a <script> node containing ourself in the document.  Remove it for
@@ -42,51 +42,54 @@ class AppStartup
         // that we don't want to do before we know we're going to proceed.
         this._cleanupEnvironment();
 
-        await this.loadModules();
-
-        // Run the app.
-        let { default: App } = await ppixiv.importModule("vview/app.js");
-
-        console.log("Launching app");
-        new App();
+        await this.loadAndLaunchApp({modules, resources: init.resources});
     }
     
-    async loadModules()
+    async loadAndLaunchApp({modules, resources})
     {
-        // this.init.modules is a mapping from module names to resource paths containing
-        // the module source.  Make a module name -> source mapping to load the modules.
+        // modules is a mapping from module names to resource paths containing the module
+        // source.  Make a module name -> source mapping to load the modules.
         let scripts = { };
-        for(let [moduleName, modulePath] of Object.entries(this.init.modules))
+        for(let [moduleName, modulePath] of Object.entries(modules))
         {
-            let source = this.init.resources[modulePath];
+            let source = resources[modulePath];
             scripts[moduleName] = { source };
 
             // Delete the module source from resources.  We don't need it anymore.
-            delete this.init.resources[modulePath];
+            delete resources[modulePath];
         }
 
         let useShim = false;
-        if(!HTMLScriptElement.supports("importmap"))
+        if(HTMLScriptElement.supports && HTMLScriptElement.supports("importmap"))
             useShim = true;
-            useShim = true;
 
-        let moduleProcessorClass = useShim? ModuleImporter_Babel:ModuleImporter_Native;
-        //moduleProcessorClass = ModuleImporter_ESModuleShims;
+        let ModuleImporterClass = ModuleImporter_Native;
+        if(useShim)
+        {
+            // Use ModuleImporter_ESModuleShims if it's available, otherwise use ModuleImporter_Babel.
+            ModuleImporterClass = ModuleImporter_ESModuleShims ?? ModuleImporter_Babel;
+        }
 
-        let processor = new moduleProcessorClass();
-        ppixiv.importModule = processor.import;
-
-        await processor.load(scripts);
+        // Load our modules.
+        let importer = new ModuleImporterClass();
+        await importer.load(scripts);
 
         // Force all scripts to be imported.  This is just so we catch errors early.
         for(let path of Object.keys(scripts))
         {
             try {
-                await ppixiv.importModule(path);
+                await importer.import(path);
             } catch(e) {
                 console.error(`Error loading ${path}`, e);
+                alert(`Error loading ${path}: ${e}`);
+                return;
             }
         }
+
+        // Run the app.
+        console.log("Launching app");
+        let { default: App } = await importer.import("vview/app.js");
+        new App();
     }
 
     // Block until DOMContentLoaded.
