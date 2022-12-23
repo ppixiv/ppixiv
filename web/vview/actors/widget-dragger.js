@@ -279,32 +279,35 @@ export default class WidgetDragger
         }
     }
 
-    // Stop any animations, and jump to the given position.
-    setPositionWithoutTransition(position=0)
-    {
-        this._dragAnimation.stop();
-        this._dragAnimation.position = position;
-
-        this._setState("idle");
-    }
-    
     // Animate to the fully shown state.  If given, velocity is the drag speed that caused this.
     //
     // If a drag is in progress, it'll continue, and cancel the animation if it moves again.  The
     // drag will be cancelled if the animation completes.
-    show({ easing=null }={})
+    //
+    // If transition is false, jump to the new state without animating.
+    show({ easing=null, transition=true }={})
     {
-        this._animateTo({endPosition: 1, easing});
+        this._animateTo({endPosition: 1, easing, transition});
     }
 
     // Animate to the completely hidden state.  If given, velocity is the drag speed that caused this.
-    hide({ easing=null }={})
+    hide({ easing=null, transition=true }={})
     {
-        this._animateTo({endPosition: 0, easing});
+        this._animateTo({endPosition: 0, easing, transition});
     }
 
-    _animateTo({ endPosition, easing=null }={})
+    _animateTo({ endPosition, easing=null, transition=true }={})
     {
+        // If we don't want a transition, stop any animation and just jump to this position.
+        if(!transition)
+        {
+            this._dragAnimation.stop();
+            this._dragAnimation.position = endPosition;
+            this._setVisible(endPosition > 0);
+            this._setState("idle");
+            return;
+        }
+
         // Stop if we're already in this state.
         if(this._state == "idle" && this._dragAnimation.position == endPosition)
             return;

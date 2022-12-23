@@ -143,7 +143,7 @@ export default class ScreenIllust extends Screen
         }
     }
 
-    async activate({ mediaId, restoreHistory })
+    async activate({ mediaId, restoreHistory, cause })
     {
         let wasActive = this._active;
         this._active = true;
@@ -163,7 +163,7 @@ export default class ScreenIllust extends Screen
 
         // Tell the dragger to transition us in.
         if(this.mobileImageDismiss)
-            this.mobileImageDismiss.activate();
+            this.mobileImageDismiss.activate({ cause });
     }
 
     deactivate()

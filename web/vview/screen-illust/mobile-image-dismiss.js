@@ -144,11 +144,16 @@ export default class MobileImageDismiss
     }
 
     // The screen was set active or inactive.
-    activate()
+    activate({cause})
     {
         // Run the show animation if we're not shown, or if we're currently hiding.
         if(!this.dragger.visible || !this.dragger.isAnimatingToShown)
-            this.dragger.show();
+        {
+            // Skip the animation if this is a new page load rather than a transition from
+            // something else.
+            let transition = cause != "initialization";
+            this.dragger.show({transition});
+        }
     }
 
     deactivate()

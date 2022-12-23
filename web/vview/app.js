@@ -503,6 +503,7 @@ export default class App
         await newScreen.activate({
             mediaId,
             oldMediaId,
+            cause,
             restoreHistory,
         });
 
