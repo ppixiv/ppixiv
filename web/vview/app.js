@@ -843,45 +843,27 @@ export default class App
         let globalData = doc.querySelector("#meta-global-data");
         if(globalData != null)
             globalData = JSON.parse(globalData.getAttribute("content"));
-        else
+
+        if(globalData == null)
         {
-            // And another one.  This one's used on /request.
-            globalData = doc.querySelector("script#__NEXT_DATA__");
-            if(globalData != null)
+            // /request has its own special tag.
+            let nextData = doc.querySelector("script#__NEXT_DATA__");
+            if(nextData != null)
             {
-                globalData = JSON.parse(globalData.innerText);
-                globalData = globalData.props.pageProps;
+                nextData = JSON.parse(nextData.innerText);
+                globalData = nextData.props.pageProps;
             }
         }
 
-        // This is the global "pixiv" object, which is used on older pages.
-        let pixiv = helpers.getPixivData(doc);
-
-        // Hack: don't use this object if we're on /history.php.  It has both of these, and
-        // this object doesn't actually have all info, but its presence will prevent us from
-        // falling back and loading meta-global-data if needed.
-        if(document.location.pathname == "/history.php")
-            pixiv = null;
-
-        // Discard any of these that have no login info.
-        if(globalData && globalData.userData == null)
-            globalData = null;
-        if(pixiv && (pixiv.user == null || pixiv.user.id == null))
-            pixiv = null;
-
-        if(globalData == null && pixiv == null)
+        if(globalData == null)
             return false;
 
-        if(globalData != null)
-        {
-            this._initGlobalData(globalData.token, globalData.userData.id, globalData.userData.premium,
-                    globalData.mute, globalData.userData.xRestrict);
-        }
-        else
-        {
-            this._initGlobalData(pixiv.context.token, pixiv.user.id, pixiv.user.premium,
-                    pixiv.user.mutes, pixiv.user.explicit);
-        }
+        // Discard this if it doesn't have login info.
+        if(globalData.userData == null)
+            return false;
+
+        this._initGlobalData(globalData.token, globalData.userData.id, globalData.userData.premium,
+                globalData.mute, globalData.userData.xRestrict);
 
         return true;
     }

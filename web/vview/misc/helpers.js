@@ -1535,39 +1535,6 @@ export class helpers
             return ["", tag];
     }
 
-    // If this is an older page (currently everything except illustrations), the CSRF token,
-    // etc. are stored on an object called "pixiv".  We aren't actually executing scripts, so
-    // find the script block.
-    static getPixivData(doc)
-    {
-        // Find all script elements that set pixiv.xxx.  There are two of these, and we need
-        // both of them.
-        let init_elements = [];
-        for(let element of doc.querySelectorAll("script"))
-        {
-            if(element.innerText == null)
-                continue;
-            if(!element.innerText.match(/pixiv.*(token|id) = /))
-                continue;
-
-            init_elements.push(element);
-        }
-
-        if(init_elements.length < 1)
-            return null;
-        
-        // Create a stub around the scripts to let them execute as if they're initializing the
-        // original object.
-        let init_script = "";
-        init_script += "(function() {";
-        init_script += "let pixiv = { config: {}, context: {}, user: {} }; ";
-        for(let element of init_elements)
-            init_script += element.innerText;
-        init_script += "return pixiv;";
-        init_script += "})();";
-        return eval(init_script);
-    }
-
     // Return true if the given illust_data.tags contains the pixel art (ドット絵) tag.
     static tagsContainDot(tag_list)
     {
