@@ -251,9 +251,12 @@ export class ImageBookmarkedWidget extends IllustWidget
 
 export class BookmarkCountWidget extends IllustWidget
 {
-    refreshInternal({ mediaInfo })
+    refreshInternal({ mediaId, mediaInfo })
     {
-        this.container.textContent = mediaInfo?.bookmarkCount ?? "---";
+        let text = "";
+        if(!helpers.isMediaIdLocal(mediaId))
+            text = mediaInfo?.bookmarkCount ?? "---";
+        this.container.textContent = text;
     }
 }
 
@@ -293,8 +296,11 @@ export class LikeButtonWidget extends IllustWidget
 
 export class LikeCountWidget extends IllustWidget
 {
-    async refreshInternal({ mediaInfo })
+    async refreshInternal({ mediaId, mediaInfo })
     {
-        this.container.textContent = mediaInfo?.likeCount ?? "---";
+        let text = "";
+        if(!helpers.isMediaIdLocal(mediaId))
+            text = mediaInfo?.likeCount ?? "---";
+        this.container.textContent = text;
     }
 }
