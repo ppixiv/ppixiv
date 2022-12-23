@@ -270,7 +270,7 @@ export default class DataSources_Artist extends DataSource
         this.translatedTags = await ppixiv.tagTranslations.getTranslations(tags, "en");
 
         // Refresh the tag list now that it's loaded.
-        this.dispatchEvent(new Event("_refresh_ui"));
+        this.callUpdateListeners();
     }
 
     async getUserTags(userInfo)
@@ -348,7 +348,7 @@ class UI extends Widget
 
         this.dataSource = dataSource;
 
-        dataSource.addEventListener("_refresh_ui", () => {
+        dataSource.addEventListener("updated", () => {
             // Refresh the displayed label in case we didn't have it when we created the widget.
             this.tagDropdown.setButtonPopupHighlight();
         }, this._signal);

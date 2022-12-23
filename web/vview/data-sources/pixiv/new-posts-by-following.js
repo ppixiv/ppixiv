@@ -37,7 +37,7 @@ export default class DataSource_NewPostsByFollowing extends DataSource
         // Store bookmark tags.
         this.bookmarkTags = data.page.tags;
         this.bookmarkTags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
-        this.dispatchEvent(new Event("_refresh_ui"));
+        this.callUpdateListeners();
 
         // Populate thumbnail data with this data.
         await ppixiv.mediaCache.addMediaInfosPartial(data.thumbnails.illust, "normal");

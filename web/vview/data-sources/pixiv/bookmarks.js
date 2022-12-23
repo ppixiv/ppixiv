@@ -153,7 +153,7 @@ export class DataSource_BookmarksBase extends DataSource
             this.bookmarkTagCounts[tag] = tags[tag];
 
         // Update the UI with the tag list.
-        this.dispatchEvent(new Event("_refresh_ui"));
+        this.callUpdateListeners();
     }
     
     // Get API arguments to query bookmarks.
@@ -502,7 +502,7 @@ class UI extends Widget
         this.dataSource = dataSource;
 
         // Refresh the displayed label in case we didn't have it when we created the widget.
-        this.dataSource.addEventListener("_refresh_ui", () => this.tagDropdown.setButtonPopupHighlight(), this._signal);
+        this.dataSource.addEventListener("updated", () => this.tagDropdown.setButtonPopupHighlight(), this._signal);
 
         // The public/private button only makes sense when viewing your own bookmarks.
         let publicPrivateButtonContainer = this.querySelector(".bookmarks-public-private");

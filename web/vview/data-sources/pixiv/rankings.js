@@ -164,7 +164,7 @@ export default class DataSource_Rankings extends DataSource
         this.todayText ??= thisDate;
         this.prevDate = prevDate;
         this.nextDate = nextDate;
-        this.dispatchEvent(new Event("_refresh_ui"));
+        this.callUpdateListeners();
 
         // Register the new page of data.
         this.addPage(page, mediaIds);
@@ -194,7 +194,7 @@ class UI extends Widget
 
         this.dataSource = dataSource;
 
-        dataSource.addEventListener("_refresh_ui", () => this.refreshDates(), this._signal);
+        dataSource.addEventListener("updated", () => this.refreshDates(), this._signal);
         this.refreshDates();
 
         /*

@@ -825,7 +825,7 @@ export class TagDropdownWidget extends Widget
 
         this.dataSource = dataSource;
 
-        this.dataSource.addEventListener("_refresh_ui", () => this.refreshTags(), this._signal);
+        this.dataSource.addEventListener("updated", () => this.refreshTags(), this._signal);
         this.refreshTags();
     }
 

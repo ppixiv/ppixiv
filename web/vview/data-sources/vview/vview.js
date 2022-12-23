@@ -239,7 +239,7 @@ export default class DataSource_VView extends DataSource
         }
 
         this.bookmarkTagCounts = result.tags;
-        this.dispatchEvent(new Event("_refresh_ui"));
+        this.callUpdateListeners();
     }
 
     copyLink()
@@ -420,7 +420,7 @@ class UI extends Widget
         // Hide the bookmark box if we're not showing bookmarks.
         this.querySelector(".local-bookmark-tags-box").hidden = !dataSource.bookmarkSearchActive;
 
-        dataSource.addEventListener("_refresh_ui", () => {
+        dataSource.addEventListener("updated", () => {
             // Refresh the displayed label in case we didn't have it when we created the widget.
             this.tagDropdownOpener.setButtonPopupHighlight();
         }, this._signal);

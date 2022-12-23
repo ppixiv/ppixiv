@@ -189,7 +189,7 @@ export default class DataSource_Search extends DataSource
         if(this.relatedTags == null)
         {
             this.relatedTags = body.relatedTags;
-            this.dispatchEvent(new Event("_refresh_ui"));
+            this.callUpdateListeners();
         }
 
         // Add translations.
@@ -311,7 +311,7 @@ class UI extends Widget
         `});
 
         this.dataSource = dataSource;
-        this.dataSource.addEventListener("_refresh_ui", () => this.refresh(), this._signal);
+        this.dataSource.addEventListener("updated", () => this.refresh(), this._signal);
 
         class RelatedTagDropdown extends TagDropdownWidget
         {

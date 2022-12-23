@@ -59,7 +59,7 @@ export default class DataSource_Follows extends DataSource
         // Store following tags.
         this.followTags = result.body.followUserTags;
         this.followTags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
-        this.dispatchEvent(new Event("_refresh_ui"));
+        this.callUpdateListeners();
 
         // Make a list of the first illustration for each user.
         let illusts = [];
@@ -176,7 +176,7 @@ class UI extends Widget
                     template: `<div class="follow-tag-list vertical-list"></div>`,
                 });
 
-                dataSource.addEventListener("_refresh_ui", () => this.refreshFollowingTags(), this._signal);
+                dataSource.addEventListener("updated", () => this.refreshFollowingTags(), this._signal);
                 this.refreshFollowingTags();
             }
 
