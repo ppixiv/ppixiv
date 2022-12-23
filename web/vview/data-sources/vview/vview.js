@@ -81,7 +81,7 @@ export default class DataSource_VView extends DataSource
         // the search, so just view the contents of where we navigated to.
         let args = new helpers.args(this.url);
         let { searchOptions } = LocalAPI.getSearchOptionsForArgs(args);
-        let folderId = LocalAPI.getLocalIdFromArgs(args, { get_folder: true });
+        let folderId = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
 
         let order = args.hash.get("order");
 
@@ -136,7 +136,7 @@ export default class DataSource_VView extends DataSource
         }
 
         // If we got a local path, store it to allow copying it to the clipboard.
-        this.localPath = result.local_path;
+        this.localPath = result.localPath;
 
         // Update the next and previous page IDs.  If we're loading backwards, always update
         // the previous page.  If we're loading forwards, always update the next page.  If
@@ -178,7 +178,7 @@ export default class DataSource_VView extends DataSource
     get viewingFolder()
     {
         let args = new helpers.args(this.url);
-        return LocalAPI.getLocalIdFromArgs(args, { get_folder: true });
+        return LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
     }
 
     setPageIcon()
@@ -242,7 +242,7 @@ export default class DataSource_VView extends DataSource
         this.dispatchEvent(new Event("_refresh_ui"));
     }
 
-    copy_link()
+    copyLink()
     {
         // The user clicked the "copy local link" button.
         navigator.clipboard.writeText(this.localPath);
@@ -348,7 +348,7 @@ class UI extends Widget
             setupOptions: { fields: {"#order": "shuffle"}, toggle: true },
         }]);
 
-        class bookmark_tag_dropdown extends TagDropdownWidget
+        class BookmarkTagDropdown extends TagDropdownWidget
         {
             refreshTags()
             {
@@ -414,7 +414,7 @@ class UI extends Widget
 
         this.tagDropdownOpener = new DropdownMenuOpener({
             button: this.querySelector(".bookmark-tags-button"),
-            createBox: ({...options}) => new bookmark_tag_dropdown({ dataSource, ...options }),
+            createBox: ({...options}) => new BookmarkTagDropdown({ dataSource, ...options }),
         });
 
         // Hide the bookmark box if we're not showing bookmarks.
@@ -429,7 +429,7 @@ class UI extends Widget
         clearLocalSearchButton.addEventListener("click", (e) => {
             // Get the URL for the current folder and set it to a new URL, so it removes search
             // parameters.
-            let mediaId = LocalAPI.getLocalIdFromArgs(dataSource.args, { get_folder: true });
+            let mediaId = LocalAPI.getLocalIdFromArgs(dataSource.args, { getFolder: true });
             let args = new helpers.args("/", ppixiv.plocation);
             LocalAPI.getArgsForId(mediaId, args);
             helpers.navigate(args);
@@ -439,11 +439,11 @@ class UI extends Widget
         helpers.setClass(clearLocalSearchButton, "disabled", !searchActive);
 
         this.querySelector(".copy-local-path").addEventListener("click", (e) => {
-            this.copy_link();
+            this.copyLink();
         });
 
         // Hide the "copy local path" button if we don't have one.
-        this.querySelector(".copy-local-path").hidden = dataSource.local_path == null;
+        this.querySelector(".copy-local-path").hidden = dataSource.localPath == null;
 
         dataSource.setItem(this.container, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true,
             adjustUrl: (args) => {

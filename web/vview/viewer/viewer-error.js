@@ -77,8 +77,8 @@ export default class ViewerError extends Viewer
 
         if(mutedTag)
         {
-            let translated_tag = await ppixiv.tagTranslations.getTranslation(mutedTag);
-            this.errorText.innerText = translated_tag;
+            let translatedTag = await ppixiv.tagTranslations.getTranslation(mutedTag);
+            this.errorText.innerText = translatedTag;
         }
         else if(mutedUser)
             this.errorText.innerText = mediaInfo.userName;

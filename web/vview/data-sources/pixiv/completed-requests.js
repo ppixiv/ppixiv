@@ -15,7 +15,7 @@ export default class DataSources_CompletedRequests extends DataSource
         let args = new helpers.args(new URL(this.url));
         let showing = args.get("type") || "latest"; // "latest" or "recommended"
         let mode = args.get("mode") || "all";
-        let type = args.get_pathname_segment(2); // "illust" in "request/complete/illust"
+        let type = args.getPathnameSegment(2); // "illust" in "request/complete/illust"
 
         let result = await helpers.getRequest(`/ajax/commission/page/request/complete/${type}`, {
             mode,

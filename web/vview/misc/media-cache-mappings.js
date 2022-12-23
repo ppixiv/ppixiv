@@ -105,22 +105,22 @@ export default class MediaCacheMappings
             remappedMediaInfo = { };
             for(let pair of thumbnailInfoMap)
             {
-                let from_key = pair[0];
-                let to_key = pair[1];
-                if(from_key == null)
+                let fromKey = pair[0];
+                let toKey = pair[1];
+                if(fromKey == null)
                 {
                     // This is just for illust_list createDate.
-                    remappedMediaInfo[to_key] = null;
+                    remappedMediaInfo[toKey] = null;
                     continue;
                 }
 
-                if(!(from_key in mediaInfo))
+                if(!(fromKey in mediaInfo))
                 {
-                    console.warn("Thumbnail info is missing key:", from_key);
+                    console.warn("Thumbnail info is missing key:", fromKey);
                     continue;
                 }
-                let value = mediaInfo[from_key];
-                remappedMediaInfo[to_key] = value;
+                let value = mediaInfo[fromKey];
+                remappedMediaInfo[toKey] = value;
             }
 
             // Make sure that the illust IDs and user IDs are strings.

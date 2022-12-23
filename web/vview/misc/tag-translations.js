@@ -34,19 +34,19 @@ export default class TagTranslations
         for(let tag of Object.keys(tags))
         {
             let tagInfo = tags[tag];
-            let tag_translation = {};
+            let tagTranslation = {};
             for(let lang of Object.keys(tagInfo))
             {
                 if(tagInfo[lang] == "")
                     continue;
-                tag_translation[lang] = tagInfo[lang];
+                tagTranslation[lang] = tagInfo[lang];
             }
 
-            if(Object.keys(tag_translation).length > 0)
+            if(Object.keys(tagTranslation).length > 0)
             {
                 translations.push({
                     tag: tag,
-                    translation: tag_translation,
+                    translation: tagTranslation,
                 });
             }
         }

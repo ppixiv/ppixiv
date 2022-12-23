@@ -43,11 +43,11 @@ export default class Slideshow
     {
         if(this.mode == "slideshow")
         {
-            let slideshow_default = ppixiv.settings.get("slideshow_default", "pan");
-            if(slideshow_default == "contain")
+            let slideshowDefault = ppixiv.settings.get("slideshowDefault", "pan");
+            if(slideshowDefault == "contain")
                 return this.getAnimation(Slideshow.pans.stationary);
             else    
-                return this.getAnimation(Slideshow.pans.default_slideshow);
+                return this.getAnimation(Slideshow.pans.defaultSlideshow);
         }
 
         // Choose whether to use the horizontal or vertical depending on how the image fits the screen.
@@ -70,8 +70,8 @@ export default class Slideshow
         }
 
         let template = horizontal? 
-            Slideshow.pans.default_slideshow_hold_landscape:
-            Slideshow.pans.default_slideshow_hold_portrait;
+            Slideshow.pans.defaultSlideshowHoldLandscape:
+            Slideshow.pans.defaultSlideshowHoldPortrait;
 
         return this.getAnimation(template);
     }
@@ -88,7 +88,7 @@ export default class Slideshow
         // This gives a visually interesting slideshow that works well for most images, and isn't
         // very sensitive to aspect ratio and usually does something reasonable whether the image
         // or monitor are in landscape or portrait.
-        default_slideshow: Object.freeze({
+        defaultSlideshow: Object.freeze({
             start_zoom: 1.25,
             end_zoom: 1,
             x1: 0,    y1: 1,
@@ -97,14 +97,14 @@ export default class Slideshow
 
         // The default animations for slideshow-hold mode.  If the image can move vertically,
         // use a vertical pan with a slight zoom.  Otherwise, use a horizontal pan with no zoom.
-        default_slideshow_hold_portrait: Object.freeze({
+        defaultSlideshowHoldPortrait: Object.freeze({
             start_zoom: 1.10,
             end_zoom: 1.00,
             x1: 0.5,    y1: 0.1,
             x2: 0.5,    y2: 1.0,
         }),
 
-        default_slideshow_hold_landscape: Object.freeze({
+        defaultSlideshowHoldLandscape: Object.freeze({
             x1: 0,     y1: 0.5,
             x2: 1,     y2: 0.5,
         }),

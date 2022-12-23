@@ -116,7 +116,7 @@ export default class DragHandler
 
         if(this.pinch && this._dragDelayTimer != null && this.pointers.size > 1)
         {
-            // We were in _delaying_before_drag and a second tap started.  Cancel the delay and
+            // We were in deferDelayMs and a second tap started.  Cancel the delay and
             // start immediately for pinch zooming.
             // console.log("Starting deferred drag due to multitouch");
             realClearTimeout(this._dragDelayTimer);
@@ -130,10 +130,10 @@ export default class DragHandler
         window.addEventListener("pointermove", this._pointermove, this._signal);
         this._dragStarted = false;
 
-        RunningDrags.add(this, ({other_dragger}) => {
+        RunningDrags.add(this, ({otherDragger}) => {
             this.cancelDrag();
             if(this.oncancelled)
-                this.oncancelled({other_dragger});
+                this.oncancelled({otherDragger});
         });
 
         // Ask the caller if we want to defer the start of the drag until the first pointer
@@ -379,7 +379,7 @@ class RunningDrags
                 continue;
 
             // Tell the dragger which other dragger cancelled it.
-            cancelDrag({dragger, other_dragger: activeDraggers});
+            cancelDrag({dragger, otherDragger: activeDraggers});
         }
     }
 

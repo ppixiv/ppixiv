@@ -86,8 +86,8 @@ export default class PanEditor extends Widget
         // box linearly and feels more natural.
         this._zoomSlider = this.ui.querySelector(".zoom-slider");
 
-        // Use watch_edits to save undo at the start of inputs being dragged.
-        helpers.watch_edits(this._zoomSlider, { signal: this.shutdownSignal.signal });
+        // Use watchEdits to save undo at the start of inputs being dragged.
+        helpers.watchEdits(this._zoomSlider, { signal: this.shutdownSignal.signal });
         this._zoomSlider.addEventListener("editbegin", (e) => { this.parent.saveUndo(); this._isSet = true; });
         this._zoomSlider.addEventListener("edit", (e) => {
             // console.log(e);
@@ -313,7 +313,7 @@ export default class PanEditor extends Widget
     {
         this._isSet = data != null;
         if(data == null)
-            data = Slideshow.pans.default_slideshow;
+            data = Slideshow.pans.defaultSlideshow;
 
         this.rect = new FixedDOMRect(data.x1, data.y1, data.x2, data.y2);
 

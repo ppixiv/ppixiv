@@ -46,7 +46,7 @@ export class EditMutedTagsWidget extends Widget
 
         this.container.querySelector(".add-muted-tag-box").hidden = muteType != "tag";
         this.container.querySelector(".add-muted-user-box").hidden = muteType != "user";
-        this.container.querySelector(".add-muted-tag").addEventListener("click", this.click_add_muted_tag);
+        this.container.querySelector(".add-muted-tag").addEventListener("click", this._clickedAddMutedTag);
         this.container.querySelector(".mute-warning-button").addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -274,7 +274,7 @@ export class EditMutedTagsWidget extends Widget
     }
 
     // Add to our muted tag list.
-    click_add_muted_tag = async (e) =>
+    _clickedAddMutedTag = async (e) =>
     {
         e.preventDefault();
         e.stopPropagation();

@@ -788,7 +788,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
         await this.root.load();
         signal.check();
 
-        let mediaId = LocalAPI.getLocalIdFromArgs(args, { get_folder: true });
+        let mediaId = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
         let { id } = helpers.parseMediaId(mediaId);
 
         // Split apart the path.

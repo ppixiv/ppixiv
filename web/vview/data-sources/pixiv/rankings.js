@@ -161,7 +161,7 @@ export default class DataSource_Rankings extends DataSource
         if(lastPage)
             this.maxPage = Math.min(page, this.maxPage);
 
-        this.today_text ??= thisDate;
+        this.todayText ??= thisDate;
         this.prevDate = prevDate;
         this.nextDate = nextDate;
         this.dispatchEvent(new Event("_refresh_ui"));
@@ -294,9 +294,9 @@ class UI extends Widget
         {
             let targetMode = currentMode;
 
-            let current_ranking_type = rankingTypes[currentMode];
-            console.assert(current_ranking_type, currentMode);
-            let { content } = current_ranking_type;
+            let currentRankingType = rankingTypes[currentMode];
+            console.assert(currentRankingType, currentMode);
+            let { content } = currentRankingType;
 
             let button = helpers.createBoxLink({
                 label: agesToggle.toUpperCase(),
@@ -360,10 +360,10 @@ class UI extends Widget
                             // If the current mode and ages combination doesn't exist in the content type
                             // this link will switch to, also reset the mode to daily, since it exists for
                             // all "all-ages" modes.
-                            let current_ranking_type = rankingTypes[currentMode];
-                            console.assert(current_ranking_type, currentMode);
+                            let currentRankingType = rankingTypes[currentMode];
+                            console.assert(currentRankingType, currentMode);
                             let switching_to_content_key = contentKeyFor(content, currentAges);
-                            if(current_ranking_type.content.indexOf(switching_to_content_key) == -1)
+                            if(currentRankingType.content.indexOf(switching_to_content_key) == -1)
                                 args.query.set("mode", "daily");
                         },
                     });
@@ -416,8 +416,8 @@ class UI extends Widget
 
     refreshDates = () =>
     {
-        if(this.dataSource.today_text)
-            this.querySelector(".nav-today").innerText = this.dataSource.today_text;
+        if(this.dataSource.todayText)
+            this.querySelector(".nav-today").innerText = this.dataSource.todayText;
 
         // This UI is greyed rather than hidden before we have the dates, so the UI doesn't
         // shift around as we load.

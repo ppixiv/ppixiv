@@ -51,7 +51,7 @@ export default class ViewerImagesDesktop extends ViewerImages
                 allowZoom = false;
 
             if(allowZoom)
-                this._mouse_pressed = true;
+                this._mousePressed = true;
 
             this._dragMovement = [0,0];
 
@@ -75,7 +75,7 @@ export default class ViewerImagesDesktop extends ViewerImages
             // Tell HideMouseCursorOnIdle that the mouse cursor should be hidden, even though the
             // cursor may have just been moved.  This prevents the cursor from appearing briefly and
             // disappearing every time a zoom is released.
-            TrackMouseMovement.singleton.simulate_inactivity();
+            TrackMouseMovement.singleton.simulateInactivity();
            
             this.stopDragging();
         }
@@ -109,7 +109,7 @@ export default class ViewerImagesDesktop extends ViewerImages
 
         ClassFlags.get.set("hide-ui", false);
         
-        this._mouse_pressed = false;
+        this._mousePressed = false;
         this._reposition();
     }
 

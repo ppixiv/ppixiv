@@ -286,7 +286,7 @@ export default class ImageEditor extends IllustWidget
     // This is called when the ImageEditingOverlayContainer changes.
     set overlayContainer(overlayContainer)
     {
-        this.current_overlay_container = overlayContainer;
+        this.currentOverlayContainer = overlayContainer;
         for(let editor of Object.values(this.editors))
             editor.overlayContainer = overlayContainer;
     }
@@ -324,9 +324,9 @@ export default class ImageEditor extends IllustWidget
         // Disable hiding the mouse cursor when editing is enabled.  This also prevents
         // the top button row from being hidden.
         if(showingCrop || showingInpaint)
-            HideMouseCursorOnIdle.disable_all("image-editing");
+            HideMouseCursorOnIdle.disableAll("image-editing");
         else
-            HideMouseCursorOnIdle.enable_all("image-editing");
+            HideMouseCursorOnIdle.enableAll("image-editing");
     }
 
     // Store the current data as an undo state.
@@ -349,7 +349,7 @@ export default class ImageEditor extends IllustWidget
         this.setState(this._undoStack.pop());
 
         // If InpaintEditor was adding a line, we just undid the first point, so end it.
-        this.editors.inpaint.adding_line = null;
+        this.editors.inpaint.addingline = null;
         this.refresh();
     }
 
@@ -379,14 +379,14 @@ export default class ImageEditor extends IllustWidget
             editor.setState(state[name]);
     }
 
-    getDataToSave({include_empty=true}={})
+    getDataToSave({includeEmpty=true}={})
     {
         let edits = { };
         for(let editor of Object.values(this.editors))
         {
             for(let [key, value] of Object.entries(editor.getDataToSave()))
             {
-                if(include_empty || value != null)
+                if(includeEmpty || value != null)
                     edits[key] = value;
             }
         }
@@ -442,7 +442,7 @@ export default class ImageEditor extends IllustWidget
 
     async copy()
     {
-        let data = this.getDataToSave({include_empty: false});
+        let data = this.getDataToSave({includeEmpty: false});
 
         if(Object.keys(data).length == 0)
         {
@@ -493,12 +493,12 @@ export default class ImageEditor extends IllustWidget
         return ppixiv.settings.get("image_editing_mode", null);
     }
 
-    set activeEditorName(editor_name)
+    set activeEditorName(editorName)
     {
-        if(editor_name != null && this.editors[editor_name] == null)
-            throw new Error(`Invalid editor name ${editor_name}`);
+        if(editorName != null && this.editors[editorName] == null)
+            throw new Error(`Invalid editor name ${editorName}`);
 
-        ppixiv.settings.set("image_editing_mode", editor_name);
+        ppixiv.settings.set("image_editing_mode", editorName);
     }
 
     get activeEditor()

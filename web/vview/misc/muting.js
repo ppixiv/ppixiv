@@ -119,9 +119,9 @@ export default class Muting extends EventTarget
         if(this._mutedUserIds.indexOf(user_id) != -1)
             return true;
         
-        for(let {value: muted_user_id} of this.extraMutes)
+        for(let {value: mutedUserId} of this.extraMutes)
         {
-            if(user_id == muted_user_id)
+            if(user_id == mutedUserId)
                 return true;
         }
         return false;
@@ -349,8 +349,8 @@ export default class Muting extends EventTarget
 
         // Stop if the item is already in the list.
         let mutes = this.extraMutes;
-        for(let {value: muted_value, type: muted_type} of mutes)
-            if(value == muted_value && type == muted_type)
+        for(let {value: mutedValue, type: mutedType} of mutes)
+            if(value == mutedValue && type == mutedType)
             {
                 console.log("Item is already muted");
                 return;

@@ -37,10 +37,10 @@ export default class DataSource_SearchUsers extends DataSource
         for(let user of result.body.users)
         {
             ppixiv.extraCache.addQuickUserData({
-                user_id: user.user_id,
-                user_name: user.user_name,
-                profile_img: user.profile_img.main,
-            }, "user_search");
+                userId: user.user_id,
+                userName: user.user_name,
+                profileImageUrl: user.profile_img.main,
+            });
 
             mediaIds.push(`user:${user.user_id}`);
         }

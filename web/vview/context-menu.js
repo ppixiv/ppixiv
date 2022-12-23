@@ -481,7 +481,7 @@ export default class ContextMenu extends Widget
         // Adjust the fade-in so it's centered around the centered element.
         this.displayedMenu.style.transformOrigin = (pos[0]) + "px " + (pos[1]) + "px";
 
-        HideMouseCursorOnIdle.disable_all("contextMenu");
+        HideMouseCursorOnIdle.disableAll("contextMenu");
 
         // Make sure we're up to date if we deferred an update while hidden.
         this.refresh();
@@ -687,7 +687,7 @@ export default class ContextMenu extends Widget
         this.applyVisibility();
 
         this.displayedMenu = null;
-        HideMouseCursorOnIdle.enable_all("contextMenu");
+        HideMouseCursorOnIdle.enableAll("contextMenu");
         this._buttonsDown = {};
         ClassFlags.get.set("hide-ui", false);
         window.removeEventListener("blur", this._windowBlur);
@@ -1402,7 +1402,7 @@ class ImageInfoWidget extends IllustWidget
             if(showFolder)
             {
                 let {id} = helpers.parseMediaId(this._mediaId);
-                this.container.querySelector(".folder-text").innerText = helpers.get_path_suffix(id, 1, 1); // parent directory
+                this.container.querySelector(".folder-text").innerText = helpers.getPathSuffix(id, 1, 1); // parent directory
             }
         }
 

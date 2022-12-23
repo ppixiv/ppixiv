@@ -105,10 +105,10 @@ export default class IllustIdList
 
     // Return the page number mediaId is on and the index within the page.
     //
-    // If check_first_page is true and mediaId isn't in the list, try the first page
+    // If checkFirstPage is true and mediaId isn't in the list, try the first page
     // of mediaId too, so if we're looking for page 3 of a manga post and the data
     // source only contains the first page, we'll use that.
-    getPageForMediaId(mediaId, { check_first_page=true }={})
+    getPageForMediaId(mediaId, { checkFirstPage=true }={})
     {
         for(let [page, ids] of this.mediaIdsByPage)
         {
@@ -117,7 +117,7 @@ export default class IllustIdList
                 return { page, idx, mediaId };
         }
 
-        if(!check_first_page)
+        if(!checkFirstPage)
             return { };
 
         // Try the first page.
@@ -211,11 +211,11 @@ export default class IllustIdList
         while(newMediaId == null)
         {
             let ids = this.mediaIdsByPage.get(page);
-            let new_idx = idx + (next? +1:-1);
-            if(new_idx >= 0 && new_idx < ids.length)
+            let newIdx = idx + (next? +1:-1);
+            if(newIdx >= 0 && newIdx < ids.length)
             {
                 // Navigate to the next or previous image on the same page.
-                newMediaId = ids[new_idx];
+                newMediaId = ids[newIdx];
                 break;
             }
             
@@ -261,8 +261,8 @@ export default class IllustIdList
         if(this.mediaIdsByPage.size == 0)
             return null;
 
-        let first_page = this.getLowestLoadedPage();
-        return this.mediaIdsByPage.get(first_page)[0];
+        let firstPage = this.getLowestLoadedPage();
+        return this.mediaIdsByPage.get(firstPage)[0];
     }
 
     // Return the last ID, or null if we don't have any.
@@ -271,8 +271,8 @@ export default class IllustIdList
         if(this.mediaIdsByPage.size == 0)
             return null;
 
-        let last_page = this.getHighestLoadedPage();
-        let ids = this.mediaIdsByPage.get(last_page);
+        let lastPage = this.getHighestLoadedPage();
+        let ids = this.mediaIdsByPage.get(lastPage);
         return ids[ids.length-1];
     }
 

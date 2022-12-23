@@ -28,12 +28,12 @@ export default class UserCache extends EventTarget
             return id;
 
         // Fetch media info.  We don't need to coalesce these requests if this is called
-        // multiple times, since media_cache will do that for us.
+        // multiple times, since MediaCache will do that for us.
         let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
         return mediaInfo?.userId;
     }
 
-    // Call all illust_modified callbacks.
+    // Fire usermodified to let listeners know that a user's info changed.
     callUserModifiedCallbacks(userId)
     {
         console.log(`User modified: ${userId}`);
@@ -263,7 +263,7 @@ export default class UserCache extends EventTarget
         }
 
         // This returns both selected tags and all follow tags, so we can also update
-        // all_user_follow_tags.
+        // _userFollowInfo.
         let allTags = [];
         let tags = new Set();
         for(let tagInfo of data.body.tags)
@@ -340,7 +340,7 @@ export default class UserCache extends EventTarget
         this._allUserFollowTags = tags;
     }
 
-    // Add a new tag to all_user_follow_tags When the user creates a new one.
+    // Add a new tag to _allUserFollowTags when the user creates a new one.
     addCachedUserFollowTags(tag)
     {
         if(this._allUserFollowTags == null || this._allUserFollowTags.indexOf(tag) != -1)
@@ -351,7 +351,7 @@ export default class UserCache extends EventTarget
     }
 
     // Update the follow info for a user.  This is used after updating a follow.
-    updateCachedFollowInfo(userId, followed, follow_info)
+    updateCachedFollowInfo(userId, followed, followInfo)
     {
         // If user info isn't loaded, follow info isn't either.
         let userInfo = this.getUserInfoSync(userId);
@@ -365,7 +365,7 @@ export default class UserCache extends EventTarget
         }
         else
         {
-            this._userFollowInfo[userId] = follow_info;
+            this._userFollowInfo[userId] = followInfo;
         }
 
         this.callUserModifiedCallbacks(userId);

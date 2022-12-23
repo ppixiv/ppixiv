@@ -1108,7 +1108,7 @@ export default class ViewerImages extends Viewer
         }
 
         // Crop the image by scaling up cropBox to cut off the right and bottom,
-        // then shifting left and up.  The size is relative to image_box, so this
+        // then shifting left and up.  The size is relative to imageBox, so this
         // doesn't actually increase the image size.
         let cropWidth = this._croppedSize.width / this._originalWidth;
         let cropHeight = this._croppedSize.height / this._originalHeight;

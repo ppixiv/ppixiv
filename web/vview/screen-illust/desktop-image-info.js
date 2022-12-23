@@ -363,7 +363,7 @@ export default class DesktopImageInfo extends Widget
         if(showFolder)
         {
             let {id} = helpers.parseMediaId(this.mediaId);
-            folderTextElement.innerText = helpers.get_path_suffix(id, 2, 1); // last two parent directories
+            folderTextElement.innerText = helpers.getPathSuffix(id, 2, 1); // last two parent directories
 
             let parentFolderId = LocalAPI.getParentFolder(id);
             let args = new helpers.args("/", ppixiv.plocation);
@@ -405,20 +405,20 @@ export default class DesktopImageInfo extends Widget
         downloadVideoButton.hidden = !Actions.isDownloadTypeAvailable("MKV", mediaInfo);
     }
 
-    setPostInfo(post_info_container)
+    setPostInfo(postInfoContainer)
     {
         let mediaInfo = this.mediaInfo;
 
         let setInfo = (query, text) =>
         {
-            let node = post_info_container.querySelector(query);
+            let node = postInfoContainer.querySelector(query);
             node.innerText = text;
             node.hidden = text == "";
         };
 
         let seconds_old = (new Date() - new Date(mediaInfo.createDate)) / 1000;
         setInfo(".post-age", helpers.age_to_string(seconds_old));
-        post_info_container.querySelector(".post-age").dataset.popup = helpers.date_to_string(mediaInfo.createDate);
+        postInfoContainer.querySelector(".post-age").dataset.popup = helpers.date_to_string(mediaInfo.createDate);
 
         let info = "";
 
@@ -454,10 +454,10 @@ export default class DesktopImageInfo extends Widget
         setInfo(".ugoira-frames", mediaInfo.ugoiraMetadata? (mediaInfo.ugoiraMetadata.frames.length + " frames"):"");
 
         // Add the page count for manga.
-        let page_text = "";
+        let pageText = "";
         if(mediaInfo.pageCount > 1 && this.displayedPage != null)
-            page_text = "Page " + (this.displayedPage+1) + "/" + mediaInfo.pageCount;
-        setInfo(".page-count", page_text);
+            pageText = "Page " + (this.displayedPage+1) + "/" + mediaInfo.pageCount;
+        setInfo(".page-count", pageText);
     }
 
     clickedDownload = (e) =>
@@ -472,8 +472,8 @@ export default class DesktopImageInfo extends Widget
         e.preventDefault();
         e.stopPropagation();
 
-        let download_type = clickedButton.dataset.download;
-        Actions.downloadIllust(this._mediaId, download_type, this.displayedPage);
+        let downloadType = clickedButton.dataset.download;
+        Actions.downloadIllust(this._mediaId, downloadType, this.displayedPage);
     }
  }
 

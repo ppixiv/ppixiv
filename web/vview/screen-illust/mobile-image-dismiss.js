@@ -20,7 +20,7 @@ export default class MobileImageDismiss
             animatedProperty: "--illust-hidden",
             animatedPropertyInverted: true,
 
-            // We're hidden until set_active makes us visible.
+            // We're hidden until setActive makes us visible.
             visible: false,
             direction: "down", // down to make visible, up to hide
             duration: () => {

@@ -79,8 +79,8 @@ export default class Bezier2D
     }={})
     {
         // Do a simple search ac
-        let best_error = null;
-        let best_t = 0;
+        let bestError = null;
+        let bestT = 0;
         for(let t = 0; t < 0.5; t += 0.05)
         {
             // We're searching from (0, 0.5, 0.5, 1), which eases in slowly: // https://cubic-bezier.com/#0,.5,.5,1
@@ -93,25 +93,25 @@ export default class Bezier2D
 
             // Roughly estimate the velocity at the start of the curve by seeing how far we'd travel in the
             // first 60Hz frame.
-            let sample_seconds = 1/60; // one "frame"
-            let segment_distance = distance * curve.evaluate(sample_seconds / duration); // distance travelled in sample_seconds
-            let actual_distance_per_second = segment_distance / sample_seconds; // distance travelled in one second at that speed
+            let sampleSeconds = 1/60; // one "frame"
+            let segmentDistance = distance * curve.evaluate(sampleSeconds / duration); // distance travelled in sampleSeconds
+            let actualDistancePerSecond = segmentDistance / sampleSeconds; // distance travelled in one second at that speed
 
-            let error = Math.abs(actual_distance_per_second - targetVelocity);
-            // console.log(`${actual_distance_per_second.toFixed(0)} from ${targetVelocity.toFixed(0)}`);
-            if(best_error == null || error < best_error)
+            let error = Math.abs(actualDistancePerSecond - targetVelocity);
+            // console.log(`${actualDistancePerSecond.toFixed(0)} from ${targetVelocity.toFixed(0)}`);
+            if(bestError == null || error < bestError)
             {
-                best_error = error;
-                best_t = t;
+                bestError = error;
+                bestT = t;
             }
 
-            // console.log(`t ${t} segment ${segment} segment_distance ${segment_distance} actual_distance_per_second ${actual_distance_per_second}`);
+            // console.log(`t ${t} segment ${segment} segmentDistance ${segmentDistance} actualDistancePerSecond ${actualDistancePerSecond}`);
         }
 
         if(returnObject)
-            return new Bezier2D(best_t, 0.5 - best_t, 0.45, 1.0);
+            return new Bezier2D(bestT, 0.5 - bestT, 0.45, 1.0);
         else
-            return `cubic-bezier(${best_t}, ${0.5-best_t}, 0.45, 1)`;
+            return `cubic-bezier(${bestT}, ${0.5-bestT}, 0.45, 1)`;
     }
 }
 

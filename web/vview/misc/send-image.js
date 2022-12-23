@@ -62,7 +62,7 @@ export default class SendImage
 
         // Make a new ID, and save it to the session.  This helps us keep the same ID
         // when we're reloaded.
-        storage.ppixivTabId = helpers.create_uuid();
+        storage.ppixivTabId = helpers.createUuid();
         return storage.ppixivTabId;
     }
 

@@ -76,7 +76,7 @@ export class Args
             key = key.substr(1);
 
         if(path)
-            return this.get_pathname_segment(parseInt(key));
+            return this.getPathnameSegment(parseInt(key));
 
         let params = hash? this.hash:this.query;
         return params.get(key);
@@ -104,7 +104,7 @@ export class Args
 
     // Return the pathname segment with the given index.  If the path is "/abc/def", "abc" is
     // segment 0.  If idx is past the end, return null.
-    get_pathname_segment(idx)
+    getPathnameSegment(idx)
     {
         // The first pathname segment is always empty, since the path always starts with a slash.
         idx++;
@@ -678,7 +678,7 @@ export class helpers
 
     // Like Promise.all, but takes a dictionary of {key: promise}, returning a
     // dictionary of {key: result}.
-    static async await_map(map)
+    static async awaitMap(map)
     {
         Promise.all(Object.values(map));
 
@@ -821,7 +821,7 @@ export class helpers
     // since that gets overridden by other UI anyway.
     //
     // signal can be an AbortSignal to remove these event listeners.
-    static watch_edits(input, { signal }={})
+    static watchEdits(input, { signal }={})
     {
         let dragging = false;
         let inside_edit = false;
@@ -2479,8 +2479,8 @@ export class helpers
             // it.  For example, "books/Book Name/001" will be displayed a "001 - books/Book Name".
             // This is consistent with the title we use in the search view.
             let {id} = helpers.parseMediaId(illust_data.mediaId);
-            let name = helpers.get_path_suffix(id, 1, 0); // filename
-            let parent = helpers.get_path_suffix(id, 2, 1); // parent directories
+            let name = helpers.getPathSuffix(id, 1, 0); // filename
+            let parent = helpers.getPathSuffix(id, 2, 1); // parent directories
             page_title += `${name} - ${parent}`;
         }
 
@@ -2690,7 +2690,7 @@ export class helpers
     }
 
     // Return the last count parts of path.
-    static get_path_suffix(path, count=2, remove_from_end=0, { remove_extension=true }={})
+    static getPathSuffix(path, count=2, remove_from_end=0, { remove_extension=true }={})
     {
         let parts = path.split('/');
         parts = parts.splice(0, parts.length - remove_from_end);
@@ -2822,7 +2822,7 @@ export class helpers
     }
 
     // Generate a UUID.
-    static create_uuid()
+    static createUuid()
     {
         let data = new Uint8Array(32);
         crypto.getRandomValues(data);

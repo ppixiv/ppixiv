@@ -429,7 +429,7 @@ export default class Actions
         await helpers.rpcPostRequest("/bookmark_add.php", {
             mode: "add",
             type: "user",
-            user_id,
+            user_id: userId,
             tag: tag ?? "",
             restrict: followPrivately? 1:0,
             format: "json",
@@ -459,8 +459,7 @@ export default class Actions
     // Change the privacy status of a user we're already following.
     static async changeFollowPrivacy(userId, followPrivately)
     {
-        let data = await helpers.postRequest("/ajax/following/user/restrict_change", {
-            mode: "following_user_restrict_change",
+        let data = await helpers.rpcPostRequest("/ajax/following/user/restrict_change", {
             user_id: userId,
             restrict: followPrivately? 1:0,
         });
@@ -480,7 +479,7 @@ export default class Actions
             ppixiv.userCache.updateCachedFollowInfo(userId, true, info);
         }
 
-        let userInfo = await ppixiv.userCache.get_userInfo(ususerIder_id);
+        let userInfo = await ppixiv.userCache.getUserInfo(userId);
         let message = `Now following ${userInfo.name} ${followPrivately? "privately":"publically"}`;
         ppixiv.message.show(message);
     }
@@ -500,13 +499,13 @@ export default class Actions
             return;
         }
 
-        let userInfo = await ppixiv.userCache.get_userInfo(userId);
+        let userInfo = await ppixiv.userCache.getUserInfo(userId);
         let message = add? `Added the tag "${tag}" to ${userInfo.name}`:`Removed the tag "${tag}" from ${userInfo.name}`;
         ppixiv.message.show(message);
 
         // Get follow info so we can update the tag list.  This will usually already be loaded,
         // since the caller will have had to load it to show the UI in the first place.
-        let followInfo = await ppixiv.userCache.getUserFollowInfo(ususerIder_id);
+        let followInfo = await ppixiv.userCache.getUserFollowInfo(userId);
         if(followInfo == null)
         {
             console.log("Error retrieving follow info to update tags");
@@ -537,10 +536,10 @@ export default class Actions
             id: userId,
         });
 
-        let userData = await ppixiv.userCache.get_userInfo(userId);
+        let userData = await ppixiv.userCache.getUserInfo(userId);
 
         // Record that we're no longer following and refresh the UI.
-        ppixiv.userCache.updateCachedFollowInfo(user_id, false);
+        ppixiv.userCache.updateCachedFollowInfo(userId, false);
 
         ppixiv.message.show("Unfollowed " + userData.name);
     }
@@ -551,7 +550,7 @@ export default class Actions
     static async downloadIllust(mediaId, downloadType)
     {
         let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId);
-        let userInfo = await ppixiv.userCache.get_userInfo(mediaInfo.userId);
+        let userInfo = await ppixiv.userCache.getUserInfo(mediaInfo.userId);
         console.log(`Download ${mediaId} with type $[downloadType}`);
 
         if(downloadType == "MKV")

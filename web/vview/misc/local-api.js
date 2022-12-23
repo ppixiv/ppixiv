@@ -64,13 +64,13 @@ export default class LocalAPI
     // refresh from disk, even if it thinks it's not necessary.
     static async loadMediaInfo(mediaId, { refreshFromDisk=false }={})
     {
-        let illust_data = await LocalAPI.localPostRequest(`/api/illust/${mediaId}`, {
+        let mediaInfo = await LocalAPI.localPostRequest(`/api/illust/${mediaId}`, {
             refreshFromDisk,
         });
-        if(illust_data.success)
-            LocalAPI.adjustIllustInfo(illust_data.illust);
+        if(mediaInfo.success)
+            LocalAPI.adjustIllustInfo(mediaInfo.illust);
 
-        return illust_data;
+        return mediaInfo;
     }
 
     // Fill in some redundant fields.  The local API doesn't use mangaPages,
@@ -83,7 +83,7 @@ export default class LocalAPI
             illust.mangaPages = [];
             illust.pageCount = 0;
 
-            // These metadata fields don't exist for folders.  Set them to null so MediaCache._check_illust_data doesn't complain.
+            // These metadata fields don't exist for folders.  Set them to null so MediaCache._checkMediaInfo doesn't complain.
             illust.width = illust.height = illust.userName = null;
             illust.illustType = 1;
         }
@@ -97,7 +97,7 @@ export default class LocalAPI
             illust.pageCount = 1;
         }
 
-        // illustId is only for Pixiv images.  Set it so MediaCache._check_illust_data doesn't complain.
+        // illustId is only for Pixiv images.  Set it so MediaCache._checkMediaInfo doesn't complain.
         illust.illustId = null;
 
         // Local media info is always full.
@@ -161,7 +161,7 @@ export default class LocalAPI
         }
 
         // The path previously on args:
-        let args_root = args.hashPath || "";
+        let argsRoot = args.hashPath || "";
         
         // The new path to set:
         let { type, id: path } = helpers.parseMediaId(mediaId);
@@ -169,7 +169,7 @@ export default class LocalAPI
         if(type == "file")
         {
             // Put the relative path to new_path from root/path in "file".
-            let filename = Path.getRelativePath(args_root, path);
+            let filename = Path.getRelativePath(argsRoot, path);
             args.hash.set("file", filename);
             return args;
         }
@@ -188,14 +188,14 @@ export default class LocalAPI
     // Get the local file or folder ID from a URL.
     //
     // Normally, a URL is a file if a "file" hash arg is present, otherwise it's
-    // a folder.  If get_folder is true, return the folder, ignoring any file argument.
-    static getLocalIdFromArgs(args, { get_folder=false }={})
+    // a folder.  If getFolder is true, return the folder, ignoring any file argument.
+    static getLocalIdFromArgs(args, { getFolder=false }={})
     {
         // Combine the hash path and the filename to get the local ID.
         let root = args.hashPath;
 
         let file = args.hash.get("file");
-        if(file == null || get_folder)
+        if(file == null || getFolder)
             return "folder:" + root;
 
         // The file can also be relative or absolute.
@@ -210,7 +210,7 @@ export default class LocalAPI
     {
         let searchOptions = { };
         let title = null;
-        let search_root = helpers.get_path_suffix(args.hashPath, 2);
+        let search_root = helpers.getPathSuffix(args.hashPath, 2);
 
         if(args.hash.has("search"))
         {
@@ -264,9 +264,9 @@ export default class LocalAPI
             searchOptions = null;
 
             // When there's no search, just show the current path as the title.
-            let folder_id = LocalAPI.getLocalIdFromArgs(args, { get_folder: true });
+            let folder_id = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
             let { id } = helpers.parseMediaId(folder_id);
-            title = helpers.get_path_suffix(id);
+            title = helpers.getPathSuffix(id);
         }
 
         return { searchOptions, title: title };
@@ -402,8 +402,8 @@ export default class LocalAPI
         // Replace the current history entry.  This pushes any history state to the
         // login page.  It'll preserve it after logging in and redirecting back here,
         // so we'll try to retain it.
-        let login_url = "/client/resources/auth.html?" + query.toString();
-        window.history.replaceState(history.state, "", login_url.toString());
+        let loginUrl = "/client/resources/auth.html?" + query.toString();
+        window.history.replaceState(history.state, "", loginUrl.toString());
         document.location.reload();
     }
 
@@ -465,11 +465,11 @@ export default class LocalAPI
         });
         if(!result.success)
         {
-            message_widget.singleton.show(`Error indexing ${id}: ${result.reason}`);
+            ppixiv.message.show(`Error indexing ${id}: ${result.reason}`);
             return;
         }
 
-        message_widget.singleton.show(`Begun indexing ${id} for similarity searching`);
+        ppixiv.message.show(`Begun indexing ${id} for similarity searching`);
     }
 
     // Remember that we've loaded a thumbnail this session.
@@ -501,8 +501,8 @@ export class LocalBroadcastChannel extends EventTarget
 
         // Create a regular BroadcastChannel.  Other tabs in the same browser will receive
         // messages through this, so they don't need to round-trip through WebSockets.
-        this.broadcast_channel = new BroadcastChannel(this.name);
-        this.broadcast_channel.addEventListener("message", this.receivedBroadcastChannelMessage);
+        this.broadcastChannel = new BroadcastChannel(this.name);
+        this.broadcastChannel.addEventListener("message", this.receivedBroadcastChannelMessage);
     }
 
     // Handle a message received over WebSockets.
@@ -522,13 +522,13 @@ export class LocalBroadcastChannel extends EventTarget
     postMessage(data)
     {
         LocalBroadcastChannelConnection.get.send(this.name, data);
-        this.broadcast_channel.postMessage(data);
+        this.broadcastChannel.postMessage(data);
     }
 
     close()
     {
         LocalBroadcastChannelConnection.get.removeEventListener(this.name, this.receivedWebSocketsMessage);
-        this.broadcast_channel.removeEventListener("message", this.receivedBroadcastChannelMessage);
+        this.broadcastChannel.removeEventListener("message", this.receivedBroadcastChannelMessage);
     }
 };
 
@@ -569,7 +569,7 @@ class LocalBroadcastChannelConnection extends EventTarget
         this._browserId = ppixiv.settings.get("_browserId");
         if(this._browserId == null)
         {
-            this._browserId = helpers.create_uuid();
+            this._browserId = helpers.createUuid();
             ppixiv.settings.set("_browserId", this._browserId);
             console.log("Assigned broadcast browser ID:", this._browserId);
         }
@@ -627,13 +627,13 @@ class LocalBroadcastChannelConnection extends EventTarget
             this._reconnectionAttempts++;
 
         this._reconnectionAttempts = Math.min(this._reconnectionAttempts, 5);
-        let reconnect_delay = Math.pow(this._reconnectionAttempts, 2);
-        // console.log("Reconnecting in", reconnect_delay);
+        let reconnectDelay = Math.pow(this._reconnectionAttempts, 2);
+        // console.log("Reconnecting in", reconnectDelay);
         
         this.reconnectId = realSetTimeout(() => {
             this.reconnectId = null;
             this.connect();
-        }, reconnect_delay*1000);
+        }, reconnectDelay*1000);
     }
 
     wsOpened = async(e) =>

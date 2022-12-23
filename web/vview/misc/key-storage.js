@@ -2,11 +2,11 @@
 // Originally from https://gist.github.com/wilsonpage/01d2eb139959c79e0d9a
 export default class KeyStorage
 {
-    constructor(store_name, {upgradeDb=null, version=1}={})
+    constructor(storeName, {upgradeDb=null, version=1}={})
     {
-        this._dbName = store_name;
+        this._dbName = storeName;
         this._upgradeDb = upgradeDb;
-        this._storeName = store_name;
+        this._storeName = storeName;
         this._version = version;
         this._failed = false;
     }

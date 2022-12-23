@@ -106,7 +106,7 @@ export default class CropEditor extends Widget
 
         window.addEventListener("pointermove", this.pointermove);
         this.dragging = dragParts[clickedHandle];
-        this.drag_pos = this.clientToContainerPos({ x: e.clientX, y: e.clientY });
+        this._dragPos = this.clientToContainerPos({ x: e.clientX, y: e.clientY });
         this.refresh();
     }
 
@@ -127,8 +127,8 @@ export default class CropEditor extends Widget
         // Get the delta in client coordinates.  Don't use movementX/movementY, since it's
         // in screen pixels and will be wrong if the browser is scaled.
         let pos = this.clientToContainerPos({ x: e.clientX, y: e.clientY });
-        let delta = { x: pos.x - this.drag_pos.x, y: pos.y - this.drag_pos.y };
-        this.drag_pos = pos;
+        let delta = { x: pos.x - this._dragPos.x, y: pos.y - this._dragPos.y };
+        this._dragPos = pos;
 
         // Apply the drag.
         if(this.dragging == "move")
@@ -249,7 +249,7 @@ export default class CropEditor extends Widget
             this._editorOverlay.remove();
 
         overlayContainer.cropEditorOverlay = this._editorOverlay;
-        this._overlay_container = overlayContainer;
+        this._overlayContainer = overlayContainer;
     }
 
     getDataToSave()

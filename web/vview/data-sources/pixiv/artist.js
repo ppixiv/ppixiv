@@ -183,7 +183,7 @@ export default class DataSources_Artist extends DataSource
         // If this user has a linked Booth account, look it up.  Only do this if the profile indicates
         // that it exists.  Don't wait for this to complete.
         if(result.body?.externalSiteWorksStatus?.booth)
-            this.load_booth();
+            this.loadBooth();
 
         let illustIds = [];
         if(type == "artworks" || type == "illustrations")
@@ -203,7 +203,7 @@ export default class DataSources_Artist extends DataSource
         return mediaIds;
     };
 
-    async load_booth()
+    async loadBooth()
     {
         let bootRequest = await helpers.getRequest("https://api.booth.pm/pixiv/shops/show.json", {
             pixiv_user_id: this.viewingUserId,

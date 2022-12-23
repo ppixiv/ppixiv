@@ -57,7 +57,7 @@ export default class ImagePreloader
         if(this.currentMediaId != mediaId)
             return;
 
-        // Store the illustInfo for current_media_id.
+        // Store the illustInfo for currentMediaId.
         this.currentMediaInfo = illustInfo;
 
         this.checkFetchQueue();
@@ -84,7 +84,7 @@ export default class ImagePreloader
         if(this._speculativeMediaId != mediaId)
             return;
 
-        // Store the illustInfo for current_media_id.
+        // Store the illustInfo for speculativeMediaId.
         this._speculativeMediaInfo = illustInfo;
 
         this.checkFetchQueue();
@@ -128,8 +128,8 @@ export default class ImagePreloader
         // let it finish.
         for(let preload of filteredPreloads)
         {
-            let active_preload = this._findActivePreloadByUrl(preload.url);
-            if(active_preload != null)
+            let activePreload = this._findActivePreloadByUrl(preload.url);
+            if(activePreload != null)
                 return;
         }
 
@@ -150,7 +150,7 @@ export default class ImagePreloader
             });
 
             promise.finally(() => {
-                // Add the URL to recently_preloaded_urls, so we don't try to preload this
+                // Add the URL to recentlyPreloadedUrls, so we don't try to preload this
                 // again for a while.  We do this even on error, so we don't try to load
                 // failing images repeatedly.
                 //
@@ -229,7 +229,7 @@ export default class ImagePreloader
             if(!firefox)
                 results.push(new FetchResourceLoader(mediaInfo.ugoiraMetadata.originalSrc));
 
-            // Preload the original image too, which viewer_ugoira displays if the ZIP isn't
+            // Preload the original image too, which ViewerUgoira displays if the ZIP isn't
             // ready yet.
             results.push(new ImgResourceLoader(mediaInfo.urls.original));
 
@@ -279,7 +279,7 @@ export default class ImagePreloader
 
     // Try to start a guessed preload.
     //
-    // This uses guess_image_url to try to figure out the image URL earlier.  Normally
+    // This uses guessImageUrl to try to figure out the image URL earlier.  Normally
     // we have to wait for the image info request to finish before we have the image URL
     // to start loading, but if we can guess the URL correctly then we can start loading
     // it immediately.
@@ -311,7 +311,7 @@ export default class ImagePreloader
         if(guessedUrl)
         {
             this.guessedPreload = new ImgResourceLoader(guessedUrl, () => {
-                // The image load failed.  Let guessed_preload know.
+                // The image load failed.  Let guessImageUrl know.
                 // console.info("Guessed image load failed");
                 ppixiv.guessImageUrl.guessedUrlIncorrect(mediaId);
             });

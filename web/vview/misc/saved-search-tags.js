@@ -77,9 +77,9 @@ export default class SavedSearchTags
     static getAllUsedTags()
     {
         let allTags = new Set();
-        for(let group_tags of this.getAllGroups().values())
+        for(let groupTags of this.getAllGroups().values())
         {
-            for(let tags of group_tags)
+            for(let tags of groupTags)
                 for(let tag of tags.split(" "))
                     allTags.add(tag);
         }
@@ -232,8 +232,8 @@ export default class SavedSearchTags
     // Rename a group.  The new name must not already exist.
     static renameGroup(from, to)
     {
-        let from_idx = this.findIndex({group: from});
-        if(from_idx == -1)
+        let fromIdx = this.findIndex({group: from});
+        if(fromIdx == -1)
             return;
 
         if(this.findIndex({group: to}) != -1)
@@ -243,7 +243,7 @@ export default class SavedSearchTags
         }
 
         let recentTags = ppixiv.settings.get("recent-tag-searches") || [];
-        recentTags[from_idx].name = to;
+        recentTags[fromIdx].name = to;
         ppixiv.settings.set("recent-tag-searches", recentTags);
 
         // If this group was collapsed, rename it in collapsed-tag-groups.
@@ -269,23 +269,23 @@ export default class SavedSearchTags
             return;
 
         // Reorder tagGroups.
-        let swap_with = idx + (down? +1:-1);
-        if(swap_with < 0 || swap_with >= tagGroups.length)
+        let swapWith = idx + (down? +1:-1);
+        if(swapWith < 0 || swapWith >= tagGroups.length)
             return;
         
         // Refuse to move recents, which must always be the first group.
-        if(tagGroups[idx] == null || tagGroups[swap_with] == null)
+        if(tagGroups[idx] == null || tagGroups[swapWith] == null)
             return;
 
-        [tagGroups[idx], tagGroups[swap_with]] = [tagGroups[swap_with], tagGroups[idx]];
+        [tagGroups[idx], tagGroups[swapWith]] = [tagGroups[swapWith], tagGroups[idx]];
         
-        let new_groups = new Map();
+        let newGroups = new Map();
         for(let group of tagGroups)
         {
-            new_groups.set(group, groups.get(group));
+            newGroups.set(group, groups.get(group));
         }
 
-        this.setAllGroups(new_groups);
+        this.setAllGroups(newGroups);
     }
 
     static getCollapsedTagGroups()

@@ -49,9 +49,9 @@ export default class ExtraCache
             return [...this._bookmarkedImageTags[mediaId]]; 
 
         let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
-        let bookmark_page = await helpers.fetchDocument("/bookmark_add.php?type=illust&illust_id=" + illustId);
+        let bookmarkPage = await helpers.fetchDocument("/bookmark_add.php?type=illust&illust_id=" + illustId);
         
-        let tags = bookmark_page.querySelector(".bookmark-detail-unit form input[name='tag']").value;
+        let tags = bookmarkPage.querySelector(".bookmark-detail-unit form input[name='tag']").value;
         tags = tags.split(" ");
         tags = tags.filter((value) => { return value != ""; });
 
@@ -94,17 +94,17 @@ export default class ExtraCache
     // we're displaying lots of users in search results.
     //
     // We can get this info from two places, the following page (data_source_follows) and the
-    // user recommendations page (data_source_discovery_users).  Of course, since Pixiv never
+    // user recommendations page (DataSource_DiscoverUsers).  Of course, since Pixiv never
     // does anything the same way twice, they have different formats.
     //
     // The only info we need is:
     // userId
     // userName
     // profileImageUrl
-    addQuickUserData(sourceData, source)
+    addQuickUserData(sourceData, source="normal")
     {
         let data = null;
-        if(source == "following")
+        if(source == "normal" || source == "following")
         {
             data = {
                 userId: sourceData.userId,
@@ -120,7 +120,7 @@ export default class ExtraCache
                 profileImageUrl: sourceData.imageBig,
             };
         }
-        else if(source == "users_bookmarking_illust" || source == "user_search")
+        else if(source == "users_bookmarking_illust")
         {
             data = {
                 userId: sourceData.user_id,

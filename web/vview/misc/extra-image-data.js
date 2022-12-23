@@ -68,7 +68,7 @@ export default class ExtraImageData
                 if(data)
                     promises[mediaId] = data;
             }
-            return await helpers.await_map(promises);
+            return await helpers.awaitMap(promises);
         }) ?? {};
     }
 
@@ -121,7 +121,7 @@ export default class ExtraImageData
                 })();
             }
 
-            return await helpers.await_map(promises);
+            return await helpers.awaitMap(promises);
         }) ?? {};
     }
 
@@ -179,7 +179,7 @@ export default class ExtraImageData
 
         if(exportedData.data.length == 0)
         {
-            message_widget.singleton.show("No edited images to export.");
+            ppixiv.message.show("No edited images to export.");
             return;
         }
 
@@ -232,7 +232,7 @@ export default class ExtraImageData
         console.log(`Importing data:`, data);
         await this.db.multiSet(dataByMediaId);
 
-        // Tell image_data that we've replaced extra data, so any loaded images are updated.
+        // Tell MediaCache that we've replaced extra data, so any loaded images are updated.
         for(let [mediaId, data] of Object.entries(dataByMediaId))
             ppixiv.mediaCache.replaceExtraData(mediaId, data);
 

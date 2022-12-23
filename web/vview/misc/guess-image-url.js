@@ -103,13 +103,13 @@ export default class GuessImageURL
                 return null;
 
             // If a user's posts are at least 90% one file type, use that type.
-            let jpg_fraction = jpg / (jpg+png);
-            if(jpg_fraction > 0.9)
+            let jpegFraction = jpg / (jpg+png);
+            if(jpegFraction > 0.9)
             {
                 console.debug(`User ${user_id} posts mostly JPEGs`);
                 return "jpg";
             }
-            else if(jpg_fraction < 0.1)
+            else if(jpegFraction < 0.1)
             {
                 console.debug(`User ${user_id} posts mostly PNGs`);
                 return "png";

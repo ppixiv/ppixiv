@@ -32,7 +32,7 @@ export default class MobileImageUI extends Widget
         
         this.transitionTarget = transitionTarget;
 
-        this.info_widget = new ImageInfoWidget({
+        this.infoWidget = new ImageInfoWidget({
             container: this.container.querySelector(".context-menu-image-info-container"),
         });
 
@@ -49,7 +49,7 @@ export default class MobileImageUI extends Widget
             animatedProperty: "--menu-bar-pos",
             direction: "down",
 
-            oncancelled: ({other_dragger}) => {
+            oncancelled: ({otherDragger}) => {
                 if(!this.dragger.visible)
                     return;
 
@@ -156,7 +156,7 @@ export default class MobileImageUI extends Widget
         if(this.dragger.isAnimationPlaying)
             return;
 
-        this.info_widget.setMediaId(this._mediaId);
+        this.infoWidget.setMediaId(this._mediaId);
         this.page.mediaId = this._mediaId;
 
         // Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
@@ -214,8 +214,8 @@ class IllustBottomMenuBar extends Widget
 
         this.container.querySelector(".button-view-manga").addEventListener("click", this.clickedViewManga);
 
-        this.toggleSlideshow_button = this.container.querySelector(".button-toggle-slideshow");
-        this.toggleSlideshow_button.addEventListener("click", (e) => {
+        this.toggleSlideshowButton = this.container.querySelector(".button-toggle-slideshow");
+        this.toggleSlideshowButton.addEventListener("click", (e) => {
             ppixiv.app.toggleSlideshow();
             this.parent.hide();
             this.refresh();
@@ -298,7 +298,7 @@ class IllustBottomMenuBar extends Widget
         buttonViewManga.dataset.popup = "View manga pages";
         buttonViewManga.hidden = !ppixiv.app.navigateOutEnabled;
 
-        helpers.setClass(this.toggleSlideshow_button, "selected", ppixiv.app.slideshowMode == "1");
+        helpers.setClass(this.toggleSlideshowButton, "selected", ppixiv.app.slideshowMode == "1");
         helpers.setClass(this.toggleLoopButton, "selected", ppixiv.app.slideshowMode == "loop");
         helpers.setClass(this.container.querySelector(".button-bookmark"), "enabled", true);
 
@@ -319,7 +319,7 @@ class IllustBottomMenuBar extends Widget
     }
 
     // Return the folder ID that the parent button goes to.
-    // XXX: merge somewhere with main_context_menu
+    // XXX: merge somewhere with ContextMenu
     get parentFolderId()
     {
         let folder_id = this.folderIdForParent;
@@ -336,8 +336,8 @@ class IllustBottomMenuBar extends Widget
         // sense whether you're clicking on an image in a search result (go to the
         // location of the image), while viewing an image (also go to the location of
         // the image), or in a folder view (go to the folder's parent).
-        let currently_displaying_id = LocalAPI.getLocalIdFromArgs(helpers.args.location);
-        if(parentFolderId == currently_displaying_id)
+        let currentlyDisplayingId = LocalAPI.getLocalIdFromArgs(helpers.args.location);
+        if(parentFolderId == currentlyDisplayingId)
             parentFolderId = LocalAPI.getParentFolder(parentFolderId);
 
         return parentFolderId;
@@ -372,8 +372,6 @@ class BookmarkTagDialog extends DialogWidget
         this.tagListWidget = new BookmarkTagListWidget({
             container: this.container.querySelector(".scroll"),
             containerPosition: "afterbegin",
-            public_bookmark_button: this.publicBookmark,
-            private_bookmark_button: this.privateBookmark,
         });
 
         this.publicBookmark = new BookmarkButtonWidget({
@@ -441,9 +439,7 @@ class MoreOptionsDialog extends DialogWidget
         this.moreOptionsWidget.setMediaId(mediaId);
     }
 
-    get content_node() { return this.moreOptionsWidget.container; }
-
-    // more_options_widget items can call hide() on us when it's clicked.
+    // moreOptionsWidget items can call hide() on us when it's clicked.
     hide()
     {
         this.visible = false;
@@ -496,7 +492,7 @@ class ImageInfoWidget extends IllustWidget
 
     set showPageNumber(value)
     {
-        this._show_page_number = value;
+        this._showPageNumber = value;
         this.refresh();
     }
 
@@ -539,7 +535,7 @@ class ImageInfoWidget extends IllustWidget
         // the index of the current file if it's loaded all results.
         let currentPage = this._page;
         let pageCount = mediaInfo.pageCount;
-        let showPageNumber = this._show_page_number;
+        let showPageNumber = this._showPageNumber;
         if(this.dataSource?.name == "vview" && this.dataSource.allPagesLoaded)
         {
             let { page } = this.dataSource.idList.getPageForMediaId(mediaId);
@@ -569,7 +565,7 @@ class ImageInfoWidget extends IllustWidget
         if(showFolder)
         {
             let {id} = helpers.parseMediaId(this._mediaId);
-            this.container.querySelector(".folder-text").innerText = helpers.get_path_suffix(id, 1, 1); // parent directory
+            this.container.querySelector(".folder-text").innerText = helpers.getPathSuffix(id, 1, 1); // parent directory
         }
 
         // If we're on the first page then we only requested early info, and we can use the dimensions
