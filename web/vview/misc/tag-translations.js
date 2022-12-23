@@ -14,6 +14,12 @@ export default class TagTranslations
         this._cache = new Map();
     }
 
+    // Return true if translations are enabled by the user.
+    get enabled()
+    {
+        return !ppixiv.settings.get("disable-translations");
+    }
+
     // Store a list of tag translations.
     // 
     // tags is a dictionary:
@@ -101,7 +107,7 @@ export default class TagTranslations
     async getTagInfo(tags)
     {
         // If the user has disabled translations, don't return any.
-        if(ppixiv.settings.get("disable-translations"))
+        if(!this.enabled)
             return {};
 
         let result = {};
@@ -117,6 +123,9 @@ export default class TagTranslations
 
     async getTranslations(tags, language="en")
     {
+        if(!this.enabled)
+            return {};
+
         let info = await this.getTagInfo(tags);
         let result = {};
         for(let tag of tags)

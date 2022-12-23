@@ -25,7 +25,7 @@ export default class DesktopSearchUI extends Widget
                     <img src="${helpers.blankImage}">
                 </a>
 
-                <div class=title-with-button-row-container data-hidden-on="mobile">
+                <div class=title-with-button-row-container>
                     <div class=title-with-button-row>
                         <div class="displaying title-font"></div>
                         <div style="flex: 1;"></div>
@@ -35,11 +35,11 @@ export default class DesktopSearchUI extends Widget
                 </div>
 
                 <div class=button-row style="margin-bottom: 0.5em;">
-                    <div class="icon-button toggle-local-navigation-button popup" data-popup="Show navigation" hidden data-hidden-on="mobile">
+                    <div class="icon-button toggle-local-navigation-button popup" data-popup="Show navigation" hidden>
                         ${ helpers.createIcon("mat:keyboard_double_arrow_left") }
                     </div>
 
-                    <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv" data-hidden-on="mobile">
+                    <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
                         ${ helpers.createIcon("ppixiv:pixiv") }
                     </a>
 
