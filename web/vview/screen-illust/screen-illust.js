@@ -369,10 +369,6 @@ export default class ScreenIllust extends Screen
         // Tell the preloader about the current image.
         ImagePreloader.singleton.setCurrentImage(mediaId);
 
-        // Make sure the URL points to this image.
-        let args = ppixiv.app.getMediaURL(mediaId);
-        helpers.navigate(args, { addToHistory: false, sendPopstate: false });
-
         // Speculatively load the next image, which is what we'll show if you press page down, so
         // advancing through images is smoother.
         //

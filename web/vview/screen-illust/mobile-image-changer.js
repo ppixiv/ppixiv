@@ -405,6 +405,10 @@ export default class DragImageChanger
 
             // Make our neighboring viewer primary.
             this.parent.showImageViewer({ newViewer: draggedToViewer });
+
+            // Update the page URL to point to this viewer.
+            let args = ppixiv.app.getMediaURL(draggedToViewer.mediaId);
+            helpers.navigate(args, { addToHistory: false, sendPopstate: false });
         }
 
         let duration = 400;
