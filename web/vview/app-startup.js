@@ -5,19 +5,53 @@
 // If we're running on Pixiv, this checks if we want to be active, and handles adding the
 // the "start ppixiv" button.  If the app is running, it starts it.  This also handles
 // shutting down Pixiv's scripts before we get started.
+//
+// For vview, this is the main entry point.
 class AppStartup
 {
-    constructor(init)
+    constructor({env, rootUrl})
     {
-        this.initialSetup(init);
+        this.initialSetup({env, rootUrl});
     }
 
-    async initialSetup({modules, ...init})
+    // We can either be given a startup environment, or a server URL where we can fetch one.
+    // If we're running in a user script then the environment is packaged into the script, and
+    // if we're running on vview or a user script development environment we'll have a URL.
+    // We'll always be given one or the other.  This lets us skip the extra stuff in bootstrap.js
+    // when we're running natively, and just start directly.
+    async initialSetup({env, rootUrl})
     {
-        // The rest of our argument becomes the global window.ppixiv object.
-        window.ppixiv = init;
+        let native = location.hostname != "pixiv.net" && location.hostname != "www.pixiv.net";
+        let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
+        let android = navigator.userAgent.indexOf('Android') != -1;
+        let mobile = ios || android;
 
-        console.log(`${init.native? "vview":"ppixiv"} setup`);
+        // If we weren't given an environment, fetch it from rootUrl.
+        if(env == null)
+        {
+            if(rootUrl == null)
+            {
+                alert("Unexpected error: no environment or root URL");
+                return;
+            }
+
+            // init.js gives us the list of source and resource files to load.  If we're running
+            // natively, just fetch it normally.  If we're running as a user script (this is used
+            // for debugging), use a sync XHR to try to mimic the regular environment as closely
+            // as possible.  This avoids going async and letting page scripts run.
+            let url = new URL("/client/init.js", rootUrl);
+            let request = await fetch(url);
+            env = await request.json();
+        }
+
+        // Set up the global object.
+        window.ppixiv = {
+            resources: env.resources,
+            version: env.version,
+            native, mobile, ios, android,
+        };
+    
+        console.log(`${native? "vview":"ppixiv"} setup`);
         console.log("Browser:", navigator.userAgent);
         
         // "Stay" for iOS leaves a <script> node containing ourself in the document.  Remove it for
@@ -42,25 +76,14 @@ class AppStartup
         // that we don't want to do before we know we're going to proceed.
         this._cleanupEnvironment();
 
-        await this.loadAndLaunchApp({modules, resources: init.resources});
+        let { modules } = env;
+        await this.loadAndLaunchApp({modules});
     }
     
-    async loadAndLaunchApp({modules, resources})
+    async loadAndLaunchApp({modules})
     {
-        // modules is a mapping from module names to resource paths containing the module
-        // source.  Make a module name -> source mapping to load the modules.
-        let scripts = { };
-        for(let [moduleName, modulePath] of Object.entries(modules))
-        {
-            let source = resources[modulePath];
-            scripts[moduleName] = { source };
-
-            // Delete the module source from resources.  We don't need it anymore.
-            delete resources[modulePath];
-        }
-
         let useShim = false;
-        if(HTMLScriptElement.supports && HTMLScriptElement.supports("importmap"))
+        if(!HTMLScriptElement.supports || !HTMLScriptElement.supports("importmap"))
             useShim = true;
 
         let ModuleImporterClass = ModuleImporter_Native;
@@ -72,16 +95,16 @@ class AppStartup
 
         // Load our modules.
         let importer = new ModuleImporterClass();
-        await importer.load(scripts);
+        await importer.load(modules);
 
         // Force all scripts to be imported.  This is just so we catch errors early.
-        for(let path of Object.keys(scripts))
+        for(let moduleName of Object.keys(modules))
         {
             try {
-                await importer.import(path);
+                await importer.import(moduleName);
             } catch(e) {
-                console.error(`Error loading ${path}`, e);
-                alert(`Error loading ${path}: ${e}`);
+                console.error(`Error loading ${moduleName}`, e);
+                alert(`Error loading ${moduleName}: ${e}`);
                 return;
             }
         }
@@ -691,11 +714,9 @@ class ModuleImporter_Native extends ModuleImporter
     load(scripts)
     {
         let imports = { };
-        for(let [path, {source}] of Object.entries(scripts))
+        for(let [path, url] of Object.entries(scripts))
         {
-            let blob = new Blob([source], { type: "application/javascript" });
-            let blobURL = URL.createObjectURL(blob);
-            imports[path] = blobURL;
+            imports[path] = url;
             this._knownModules.add(path);
         }
 
@@ -732,11 +753,9 @@ class ModuleImporter_ESModuleShims extends ModuleImporter
         await ModuleImporter_ESModuleShims._fetch();
 
         let imports = { };
-        for(let [path, {source}] of Object.entries(scripts))
+        for(let [path, url] of Object.entries(scripts))
         {
-            let blob = new Blob([source], { type: "application/javascript" });
-            let blobURL = URL.createObjectURL(blob);
-            imports[path] = blobURL;
+            imports[path] = url;
             this._knownModules.add(path);
         }
 
@@ -758,6 +777,7 @@ class ModuleImporter_ESModuleShims extends ModuleImporter
             shimMode: true,
             polyfillEnable: false,
             fetch: realFetch,
+            noLoadEventRetriggers: true,
         };
 
         // Stop if already loaded.
@@ -863,8 +883,20 @@ class ModuleImporter_Babel extends ModuleImporter
         // used by stubs.
         window._importMappings ??= { };
 
+        // Fetch scripts.
+        let sources = { };
+        for(let [path, url] of Object.entries(scripts))
+            sources[path] = realFetch(url);
+        await Promise.all(Object.values(sources));
+
+        for(let [path, source] of Object.entries(sources))
+        {
+            let response = await source;
+            sources[path] = await response.text();
+        }
+
         // Pass 1: find exports
-        for(let [path, { source }] of Object.entries(scripts))
+        for(let [path, source] of Object.entries(sources))
         {
             let scriptInfo = {
                 imports: [],
@@ -928,7 +960,7 @@ class ModuleImporter_Babel extends ModuleImporter
         //
         // This could reuse the AST from the first pass, but it's not worth it.  It doesn't make much
         // of a difference, and it breaks the source map output.
-        for(let [path, {source}] of Object.entries(scripts))
+        for(let [path, source] of Object.entries(sources))
         {
             let scriptInfo = this._info.get(path);
 
@@ -1151,6 +1183,3 @@ export default _default;
         return result;
     }
 }
-
-// Start up.
-//new AppStartup();

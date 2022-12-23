@@ -3,6 +3,7 @@
 import aiohttp, asyncio, base64, glob, os, json, mimetypes
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
+import urllib.parse
 from ..util import misc
 from ..util.paths import open_path
 from ..build.build_ppixiv import Build
@@ -54,18 +55,19 @@ def _get_path_timestamp_suffix(path):
 
     return f'?{mtime}'
 
-def get_modules():
+def _get_modules(base_url):
     modules = Build.get_modules()
 
     # Replace the module path with the API path, and add a cache timestamp.
     for module_name, path in modules.items():
         url_path = '/web/' / PurePosixPath(module_name)
+        url = urllib.parse.urljoin(str(base_url), url_path.as_posix())
         suffix = _get_path_timestamp_suffix(path)
-        modules[module_name] = url_path.as_posix() + suffix
+        modules[module_name] = url + suffix
 
     return modules
 
-def get_resources():
+def _get_resources(base_url):
     build = Build()
 
     results = {}
@@ -78,14 +80,27 @@ def get_resources():
             path = path.with_suffix('.css')
 
         url = PurePosixPath('/client') / PurePosixPath(path)
-        results[name] = url.as_posix() + suffix
+        url = urllib.parse.urljoin(str(base_url), url.as_posix())
+
+        results[name] = url + suffix
 
     return results
 
 def handle_init(request):
+    # The startup script is included with init data to simplify bootstrapping.
+    startup_path = Path('web/vview/app-startup.js')
+    with startup_path.open('rt', encoding='utf-8') as startup_file:
+        startup_script = startup_file.read()
+
+        # Add a source URL.
+        url = urllib.parse.urljoin(str(request.url), startup_path.relative_to('web').as_posix())
+        startup_script += f'\n//# sourceURL={url}\n'
+
     init = {
-        'modules': get_modules(),
-        'resources': get_resources(),
+        'modules': _get_modules(request.url),
+        'resources': _get_resources(request.url),
+        'startup': startup_script,
+        'version': 'native',
     }
     source_files_json = json.dumps(init, indent=4) + '\n'
 
@@ -103,7 +118,7 @@ def handle_client(request):
     path = Path(path)
 
     cache_control = 'public, immutable'
-    if path in (Path('startup/bootstrap.js'), Path('startup/bootstrap-native.js')):
+    if path == Path('startup/bootstrap.js'):
         # Don't cache these.  They're loaded before URL cache busting is available.
         cache_control = 'no-store'
 
@@ -125,19 +140,25 @@ def handle_client(request):
         'Cache-Control': cache_control,
     }
     
+    with open(path, 'rb') as f:
+        data = f.read()
+
+    mime_type, encoding = mimetypes.guess_type(path.name)
+
     if as_data_url:
-        with open(path, 'rb') as f:
-            data = f.read()
-            
-        mime_type = misc.mime_type(path.name) or 'application/octet-stream'
         data = base64.b64encode(data).decode('ascii')
         data = f'data:{mime_type};base64,' + data
-        headers['Content-Type'] = 'text/plain'
-        response = aiohttp.web.Response(body=data, headers=headers)
-        response.last_modified = os.stat(path).st_mtime
+        response = aiohttp.web.Response(body=data, headers=headers, charset='text/plain')
     else:
-        response = aiohttp.web.FileResponse(path, headers=headers)
+        # Bake a source URL into the response.  This is needed to prevent browsers from showing
+        # query strings in the console log, which makes it hard to read.
+        if mime_type == 'application/javascript':
+            url = request.url.with_query('')
+            data += b'\n//# sourceURL=%s\n' % str(url).encode('utf-8')
 
+        response = aiohttp.web.Response(body=data, headers=headers, content_type=mime_type, charset=encoding)
+
+    response.last_modified = os.stat(path).st_mtime
     return response
 
 def handle_css(request):

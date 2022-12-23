@@ -1,10 +1,14 @@
-import argparse, base64, collections, errno, glob, hashlib, json, io, os, random, re, sys, string, subprocess, tempfile
+import argparse, base64, collections, errno, glob, hashlib, mimetypes, json, io, os, random, re, sys, string, subprocess, tempfile
 from pathlib import Path
 from pprint import pprint
 
 # This builds a user script that imports each filename directly from the build
 # tree.  This can be used during development: you can edit files and refresh a
 # page without having to build the script or install it.
+
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/scss', '.scss')
+mimetypes.add_type('application/x-font-woff', '.woff')
 
 _git_tag = None
 def get_git_tag():
@@ -87,12 +91,11 @@ class Build(object):
         cls().build_with_settings(is_release=is_release, git_tag=git_tag, deploy=args.deploy, latest=args.latest,
             debug_server_url=args.url)
 
-    def build_with_settings(self, *, is_release=False, git_tag='devel', deploy=False, latest=False, debug_server_url='http://127.0.0.1:8235'):
+    def build_with_settings(self, *, is_release=False, git_tag='devel', deploy=False, latest=False, debug_server_url=None):
         self.is_release = is_release
         self.git_tag = git_tag
         self.distribution_url = f'{self.distribution_root}/builds/{get_git_tag()}'
 
-        self.resources = self.build_resources()
         self.build_release()
         self.build_debug(debug_server_url)
         if deploy:
@@ -176,7 +179,10 @@ class Build(object):
         with open(output_loader_file, 'w+b') as output_file:
             output_file.write(data)
 
-    def build_debug(self, debug_server_url):
+    def build_debug(self, debug_server_url=None):
+        if debug_server_url is None:
+            debug_server_url = 'http://127.0.0.1:8235'
+
         output_file = 'output/ppixiv-debug.user.js'
         print('Building: %s' % output_file)
 
@@ -193,20 +199,14 @@ class Build(object):
     if(window.top != window.self)
         return;
 
-    window.vviewURL = %(url)s;
-
-    // Load NativeLoader.
-    let xhr = new XMLHttpRequest();
-    xhr.open("GET", `${window.vviewURL}/client/startup/bootstrap_native.js`, false);
-    xhr.send();
-    eval(xhr.responseText);
+    let rootUrl = %(url)s;
 
     xhr = new XMLHttpRequest();
-    xhr.open("GET", `${window.vviewURL}/client/startup/bootstrap.js`, false);
+    xhr.open("GET", `${rootUrl}/client/startup/bootstrap.js`, false);
     xhr.send();
     eval(xhr.responseText);
 
-    Bootstrap(null, NativeLoader);
+    Bootstrap({rootUrl});
 })();
         ''' % { 'url': json.dumps(debug_server_url) })
 
@@ -354,40 +354,6 @@ class Build(object):
 
         return data
 
-    def build_resources(self):
-        """
-        Build all resources, returning a dictionary of resource names to data.
-        """
-        # Collect resources into an OrderedDict, so we always output data in the same order.
-        # This prevents the output from changing.
-        resources = collections.OrderedDict()
-
-        for fn, path in self.get_resource_list().items():
-            fn = fn.replace('\\', '/')
-            ext = path.suffix
-            if ext == '.scss':
-                data = self.build_css(path)
-            elif ext in ('.png', '.woff'):
-                mime_types = {
-                    '.png': 'image/png',
-                    '.woff': 'font/woff',
-                }
-
-                data = open(fn, 'rb').read()
-
-                ext = os.path.splitext(fn)[1]
-                mime_type = mime_types.get(ext, 'application/octet-stream')
-
-                data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
-            else:
-                data = open(fn, 'rt', encoding='utf-8').read()
-
-            # JSON makes these text resources hard to read.  Instead, put them in backticks, escaping
-            # the contents.
-            resources[fn] = to_javascript_string(data)
-
-        return resources
-
     def build_header(self, for_debug):
         result = []
         with open('web/startup/header.js', 'rt', encoding='utf-8') as input_file:
@@ -434,6 +400,12 @@ class Build(object):
 
                 # web/vview/module/path.js -> vview/module/path.js
                 path = Path(root) / file
+
+                # Don't include app-startup.js as a module.  It's the entry point that loads
+                # the modules.
+                if path.as_posix() == 'web/vview/app-startup.js':
+                    continue
+
                 relative_path = path.relative_to(modules_top)
                 module_name = 'vview' / relative_path
                 modules[module_name.as_posix()] = path
@@ -444,9 +416,6 @@ class Build(object):
         result = self.build_header(for_debug=False)
         result.append(f'// ==/UserScript==')
 
-        # All resources that we include in the script.
-        all_resources = []
-
         # Encapsulate the script.
         result.append('(function() {\n')
 
@@ -454,49 +423,72 @@ class Build(object):
         result.append(f'env.version = "{self.get_release_version()}";')
         result.append('env.resources = {};\n')
 
-        output_resources = collections.OrderedDict()
-
         # Find modules, and add their contents as resources.
         modules = self.get_modules()
 
+        # Add source modules.
+        result.append('env.modules = {')
         for module_name, path in modules.items():
             with path.open('rt', encoding='utf-8') as input_file:
                 script = input_file.read()
 
+                # app-startup is inside the application, but it's not a module.  It'll be added
+                # separately below.
+                # XXX remove
+                if module_name == 'vview/app-startup.js':
+                    continue
+
                 script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), path.as_posix())
                 script = to_javascript_string(script)
-                output_resources[module_name] = script
 
-                modules[module_name] = module_name
+                # "name": loadBlob("mime type", "source"),
+                result.append(f'    {json.dumps(module_name)}: loadBlob({json.dumps("application/javascript")},\n{script}),')
 
-        # Add the list of source files to resources, so bootstrap.js knows what to load.
-        init = {
-        }
+        result.append('};\n')
 
-        # Add resources.  These are already encoded as JavaScript strings, including quotes
-        # around the string), so just add them directly.
-        for fn, data in self.resources.items():
-            output_resources[fn] = data
+        # Add resources.
+        for fn, path in self.get_resource_list().items():
+            fn = fn.replace('\\', '/')
+            mime_type, encoding = mimetypes.guess_type(fn)
+            if mime_type is None:
+                raise Exception(f'{fn}: MIME type unknown')
 
-        for fn in all_resources:
-            with open(fn, 'rt', encoding='utf-8') as input_file:
-                script = input_file.read()
-                output_resources[fn] = script
+            if mime_type in ('image/png', 'application/x-font-woff', 'application/octet-stream'):
+                # Encode binary files as data: URLs.
+                data = open(fn, 'rb').read()
+                data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
+                result.append('''env.resources["%s"] = "%s";''' % (fn, data))
+                continue
 
-        result.append(f'env.init = {json.dumps(init, indent=4)};\n')
-        result.append(f'env.modules = {json.dumps(modules, indent=4)};\n')
+            if path.suffix == '.scss':
+                data = self.build_css(path)
+            else:
+                data = open(fn, 'rt', encoding='utf-8').read()
 
-        # Output resources.  We do it this way instead of just putting everything in a dictionary
-        # and JSON-encoding the dictionary so that source files are output in a readable format.  If
-        # we JSON-encode them, they'll end up on one long line with JSON newline escapes instead.
-        for fn, data in output_resources.items():
-            data = '''env.resources["%s"] = %s;''' % (fn, data)
-            result.append(data)
+            # Avoid base64-encoding text files, so we keep the script readable, and use
+            # to_javascript_string instead of JSON to avoid ugly escaping.
+            string = to_javascript_string(data)
+
+            result.append(f'''env.resources["{fn}"] = loadBlob("{mime_type}", {string});''')
+
+        # Add app-startup directly without loading it into a blob.
+        path = Path('web/vview/app-startup.js')
+        with path.open('rt', encoding='utf-8') as input_file:
+            script = input_file.read()
+            script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), path.as_posix())
+            script = to_javascript_string(script)
+            result.append(f'env.startup =\n{script};')
+
+        result.append('env.init = { };\n')
+        result.append(f'' +
+'function loadBlob(type, data) {\n' +
+'    return URL.createObjectURL(new Blob([data], { type }))\n'
+'}\n')
 
         # Add the bootstrap code directly.
-        bootstrap = open('client/startup/bootstrap.js', 'rt', encoding='utf-8').read()
+        bootstrap = open('web/startup/bootstrap.js', 'rt', encoding='utf-8').read()
         result.append(bootstrap)
-        result.append('Bootstrap(env);\n')
+        result.append('Bootstrap({env});\n')
 
         result.append('})();\n')
 

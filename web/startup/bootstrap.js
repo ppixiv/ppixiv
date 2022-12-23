@@ -1,14 +1,11 @@
-// This is the main entry point.
+// This is the entry point when running as a user script.
 //
-// There are three major modes of operation:
+// A regular, production build will have all of our scripts and resources bundled together,
+// and they'll be passed to us as env.  A development script can instead pass a development
+// server URL for us to fetch the environment from.
 //
-// - Running as a packaged user script (ppixiv).  env contains our packaged sources and
-// other files, which are packaged by build_ppixiv.py into ppixiv.user.js.
-// - Running standalone, loaded from index.html (vview).  env is null, and window.NativeLoader
-// can be used to load it from the server.
-// - Running as a debug user script (ppixiv-debug.user.js).  This works the same as standalone,
-// but we're running in a user script and may be sandboxed.
-async function Bootstrap(env)
+// When running natively for vview, app-startup.js is launched directly and this isn't used.
+async function Bootstrap({env, rootUrl}={})
 {
     // If this is an iframe, don't do anything, so we don't try to load in Pixiv iframes.
     if(window.top != window.self)
@@ -35,21 +32,6 @@ async function Bootstrap(env)
 
     document.documentElement.dataset.ppixivLoaded = "1";
 
-    // native is true if we're running in our native environment, or false if we're running on
-    // Pixiv.
-    let native = location.hostname != "pixiv.net" && location.hostname != "www.pixiv.net";
-    let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
-    let android = navigator.userAgent.indexOf('Android') != -1;
-
-    // When running as a user script, env is packaged into the script.  If we don't have it, we're
-    // either running natively for vview or in development mode for ppixiv, and we need to load it
-    // from the local server.  Note that if env is set and we're running in the user script, NativeLoader
-    // won't exist.
-    if(env == null)
-        env = await NativeLoader.load(native, ios);
-
-    console.log(`${native? "vview":"ppixiv"} ${env.version} bootstrap`);
-
     // If we're running in a user script and we have access to GM.xmlHttpRequest, give access to
     // it to support saving image files to disk.  Since we may be sandboxed, we do this through
     // a MessagePort.  We have to send this to the page, since the page has no way to send messages
@@ -60,11 +42,11 @@ async function Bootstrap(env)
     window.MessagePort.prototype.xhrServerPostMessage = window.MessagePort.prototype.postMessage;
     function createXhrHandler()
     {
-        let { port1: client_port, port2: server_port }  = new MessageChannel();
-        window.postMessage({ cmd: "download-setup" }, "*", [client_port]);
+        let { port1: clientPort, port2: serverPort }  = new MessageChannel();
+        window.postMessage({ cmd: "download-setup" }, "*", [clientPort]);
 
-        server_port.onmessage = (e) => {
-            let response_port = e.ports[0];
+        serverPort.onmessage = (e) => {
+            let responsePort = e.ports[0];
             let { url } = e.data;
 
             console.log("GM.xmlHttpRequest request for:", url);
@@ -74,7 +56,7 @@ async function Bootstrap(env)
             url = new URL(url);
             if(url.hostname != "i.pximg.net" && url.hostname != "i-cf.pximg.net")
             {
-                response_port.xhrServerPostMessage({ success: false, error: `Unexpected ppdownload URL: ${url}` });
+                responsePort.xhrServerPostMessage({ success: false, error: `Unexpected ppdownload URL: ${url}` });
                 return;
             }
 
@@ -85,9 +67,9 @@ async function Bootstrap(env)
                 // convert to a string.
                 url: url.toString(),
 
-                onload: (result) => response_port.xhrServerPostMessage({ success: true, response: result.response }),
+                onload: (result) => responsePort.xhrServerPostMessage({ success: true, response: result.response }),
                 onerror: (e) => {
-                    response_port.xhrServerPostMessage({ success: false, error: e.error });
+                    responsePort.xhrServerPostMessage({ success: false, error: e.error });
                 },
             });
         };
@@ -99,55 +81,42 @@ async function Bootstrap(env)
         createXhrHandler();
     });
 
-    let showedError = false;
     function runScript(source)
     {
         let script = document.createElement("script");
-
-        // For some reason script.onerror isn't called, and we have to do this on window.onerror.
-        let success = true;
-        let onerror = (e) => {
-            success = false;
-            if(showedError)
-                return;
-            showedError = true;
-            alert(`Error loading ppixiv:\n\n${e.message}`);
-        };
-
-        // For now, don't use this on iOS.  For some reason this sometimes picks up random errors
-        // from Pixiv that don't affect us and pops up an alert dialog.  It's not obvious why, since
-        // inserting a script node shouldn't be causing other script nodes to be run synchronously.
-        if(ios)
-            onerror = null;
-
-        window.addEventListener("error", onerror);
         script.textContent = source;
         document.documentElement.appendChild(script);
-        window.removeEventListener("error", onerror);
         script.remove();
-
-        return success;
     }
 
-    // Pull app-startup out of the module list.  It's the main entry point and not a module.
-    // This is where we exit the script sandbox, if any.
-    let startupPath = env.modules["vview/app-startup.js"];
-    let appStartup = env.resources[startupPath];
-    delete env.modules["vview/app-startup.js"];
-    delete env.resources[startupPath];
+    // When running as a user script, env is packaged into the script.  If we don't have it, we're
+    // either running natively for vview or in development mode for ppixiv, and we need to load it
+    // from rootUrl.
+    if(env == null)
+    {
+        if(rootUrl == null)
+        {
+            alert("Unexpected error: no environment or root URL");
+            return;
+        }
 
-    // Run AppStartup.  Make sure the contents of appStartup are on the first line of the
-    // script node, so line numbers match up and the sourceURL works.
-    let args = {
-        modules: env.modules,
-        resources: env.resources,
-        version: env.version,
-        native,
-        ios,
-        android,
-        mobile: ios || android,
-    };
-    runScript(`${appStartup}
-        new AppStartup(${JSON.stringify(args)});
+        // Use sync XHR to try to mimic the regular environment as closely as possible, so we avoid
+        // going async and letting page scripts run.
+        let url = new URL("/client/init.js", rootUrl);
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", url, false);
+        xhr.send();
+        let result = xhr.response;
+
+        env = JSON.parse(result);
+    }
+
+    // Run AppStartup, passing it the environment we loaded.  Make sure its script contents are on
+    // the first line of the script node so sourceURL lines up.
+    let { startup } = env;
+    delete env.startup;
+
+    runScript(`${startup}
+        new AppStartup(${JSON.stringify({ env }) });
     `);
 }

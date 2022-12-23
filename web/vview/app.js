@@ -983,17 +983,29 @@ export default class App
     // place they're used.
     async loadResourceBlobs()
     {
-        // Load data URLs into blobs.
-        for(let [name, dataURL] of Object.entries(ppixiv.resources))
+        // ppixiv.resources maps from resource names to URLs.  Fetch text resources like
+        // HTML and SVG, and leave binaries as URLs.  Unless we're running natively or
+        // in debug, these are all blob URLs.
+        let fetches = [];
+        for(let [path, url] of Object.entries(ppixiv.resources))
         {
-            if(!dataURL.startsWith || !dataURL.startsWith("data:") || !dataURL.startsWith("blob:"))
+            let filename = (new URL(path, ppixiv.plocation)).pathname;
+            let binary = filename.endsWith(".png") || filename.endsWith(".woff");
+            if(binary)
                 continue;
 
-            let result = await realFetch(dataURL);
-            let blob = await result.blob(); 
+            fetches[path] = realFetch(url);
+        }
+        await Promise.all(Object.values(fetches));
 
-            let blobURL = URL.createObjectURL(blob);
-            ppixiv.resources[name] = blobURL;
+        for(let path of Object.keys(ppixiv.resources))
+        {
+            if(fetches[path] == null)
+                continue;
+
+            let data = await fetches[path];
+            let text = await data.text();
+            ppixiv.resources[path] = text;
         }
     }
 
