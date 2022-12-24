@@ -152,7 +152,7 @@ class AppStartup
                 </style>
 
                 <a href="#ppixiv">
-                    <img src=${this.ppixivIcon}>
+                    <img src=${ppixiv.resources['resources/activate-icon.png']}>
                 </a>
             </div>
         `;
@@ -610,60 +610,6 @@ class AppStartup
             }
         }, true);
     }
-
-    // This is activate-icon.png.  It's stored here so we can access it without needing
-    // access to our script resources.
-    ppixivIcon = 
-        'data:image/png;base64,' +
-        'iVBORw0KGgoAAAANSUhEUgAAAC4AAAAsCAYAAAAacYo8AAAACXBIWXMAAC4jAAAuIwF4pT92AAAG' + 
-        'U2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0w' + 
-        'TXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRh' + 
-        'LyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxNDIgNzkuMTYwOTI0LCAyMDE3LzA3LzEz' + 
-        'LTAxOjA2OjM5ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3Jn' + 
-        'LzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0i' + 
-        'IiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRw' + 
-        'Oi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMu' + 
-        'YWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNv' + 
-        'bS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9z' + 
-        'VHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ0Mg' + 
-        'KFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAxOC0wNi0yN1QwMjoyMjoyOS0wNTowMCIgeG1w' + 
-        'Ok1vZGlmeURhdGU9IjIwMTgtMDYtMjdUMDI6MjY6MjAtMDU6MDAiIHhtcDpNZXRhZGF0YURhdGU9' + 
-        'IjIwMTgtMDYtMjdUMDI6MjY6MjAtMDU6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3No' + 
-        'b3A6Q29sb3JNb2RlPSIzIiBwaG90b3Nob3A6SUNDUHJvZmlsZT0ic1JHQiBJRUM2MTk2Ni0yLjEi' + 
-        'IHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6MWU4MmI3MjgtOTVjNi1mNzQyLWJjOWQtMjIwMTM5' + 
-        'NzJkNDBlIiB4bXBNTTpEb2N1bWVudElEPSJhZG9iZTpkb2NpZDpwaG90b3Nob3A6N2ZkYzUwY2It' + 
-        'YjgzMy1hNzQzLTllMjYtNzQ1NmM4NDFlNjM0IiB4bXBNTTpPcmlnaW5hbERvY3VtZW50SUQ9Inht' + 
-        'cC5kaWQ6MzMyMzRmNjktNjk2OS1jNjQ1LWI0MjgtYmM1NDUwYTM3NDAzIj4gPHhtcE1NOkhpc3Rv' + 
-        'cnk+IDxyZGY6U2VxPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0iY3JlYXRlZCIgc3RFdnQ6aW5zdGFu' + 
-        'Y2VJRD0ieG1wLmlpZDozMzIzNGY2OS02OTY5LWM2NDUtYjQyOC1iYzU0NTBhMzc0MDMiIHN0RXZ0' + 
-        'OndoZW49IjIwMTgtMDYtMjdUMDI6MjI6MjktMDU6MDAiIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkFk' + 
-        'b2JlIFBob3Rvc2hvcCBDQyAoV2luZG93cykiLz4gPHJkZjpsaSBzdEV2dDphY3Rpb249ImNvbnZl' + 
-        'cnRlZCIgc3RFdnQ6cGFyYW1ldGVycz0iZnJvbSBhcHBsaWNhdGlvbi92bmQuYWRvYmUucGhvdG9z' + 
-        'aG9wIHRvIGltYWdlL3BuZyIvPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0ic2F2ZWQiIHN0RXZ0Omlu' + 
-        'c3RhbmNlSUQ9InhtcC5paWQ6MWU4MmI3MjgtOTVjNi1mNzQyLWJjOWQtMjIwMTM5NzJkNDBlIiBz' + 
-        'dEV2dDp3aGVuPSIyMDE4LTA2LTI3VDAyOjI2OjIwLTA1OjAwIiBzdEV2dDpzb2Z0d2FyZUFnZW50' + 
-        'PSJBZG9iZSBQaG90b3Nob3AgQ0MgKFdpbmRvd3MpIiBzdEV2dDpjaGFuZ2VkPSIvIi8+IDwvcmRm' + 
-        'OlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6' + 
-        'eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PmQ/KUAAAAQhSURBVFiF7ZlNTxtHGMd/s/aaGGqD' + 
-        'HRRLwQergko+lJhW4pJDqdQLpzSfoOHqU/sJGj5By8VXkk8QcuqlUtxjckBWLxxaqVYFVQnCdWiD' + 
-        'Yy/e6WG8Zr07a68X8xIpfwmtZp6Z2d8+fuaZF4SUkvdRxnUDRNV7Cx4HEEJMbsRKpwTMAc7TUb33' + 
-        '16ScqEUd3gltIaW8GHil8zXwBbCGgg2rKvAc2KGcqIftdDHwSmcN+AZ4NF7HQO0AW5QT1VENo4FX' + 
-        'Oo+A74GCzizaDWg3EN1TOGsNGuNJZOI2cioL8eSwD9ignGhOBnwIsGgdIt4dIlqvwbaGj+O8fCqL' + 
-        'TC+pj/Cr2YPfiQ6uJtoPqPj1ARtv9vyeHUMymcPOfAqGqTNvUE488fUZCV7pPEZ52SfRbmAcvYwM' + 
-        'PKB4Evv2Z0gzrbP64IPBK5054BkaLzsKAy6TOWR60Qek7WuYdO/cD4r9FXf6dMDjA01UaLxgMP82' + 
-        'PeXhwDML2JnlfvnjuzESpqBjSQ6ObNpk6ebXVagd76pGtoVxvIudu68bchtY8Vaer5xqAnqha8BG' + 
-        'WOhufh07s0wmZbBaNFktmszPGqSnBfOzBvcW46wWVTzLZA45s9DvK6wTxH913bClHpsGXBm2PdA7' + 
-        'lBMrKI8PB777Fd38er+8lI8Nbe/A25nlAS8bJ78HdfHNNcfj2576GiE93c2vg2EiWodhmvf1+Sc9' + 
-        'z7vngG0h3h7omhd6K3RfDvimq64JPBy2CPjUi9FxFHP9KO45Id4FOuCBu+CA/4jaAAFUx9k7GEcv' + 
-        'Eda/YZtrNRDr7UZQs9LAewF63nVCY26cl040p4NaffUrcMldOM8qaoOzCTydHEVIeVbfML/gYB4v' + 
-        'Jx5PkiesjDd74RqqdaYG13gCerWnwkG0G+EzkmsFvRZwBxrb0s4PaaZGjhEf2SKCXu1ZTN8SLMwb' + 
-        'ZFLnvvnzsMvfDbtfjv31s7+zYQbtFuvuwqWAG//8yulskd/2TaDrtx/vBoaHTN4JGrbqLlwKuHh7' + 
-        'QEy/Ao6UnM4HmZ67CzfqekJOZYNORXXviehSwN0brnEk54pBpk1vxURDJbb/U+S+dmY56BRU1R3h' + 
-        'bkSoyI8KA/sVl5rAQ53hUiZnaBkm9mxxGPSXQbvUSODSTGGnlzBO9yOf8uXMAnZqKeicWUdtrWtB' + 
-        '/aN53DCR6UW66UWEdQKt1+p51lLPINiprDqy3cpd6FIoOrgbxkyDmcZ7yy6sE7DPem1SQauhW3Xg' + 
-        'u6CLIK+igteALdSpZA3NHj4gQ+i0AzwNC+woKnizl6KeAM4laAm4h7qmK6E/kDRRH10DfkGlumYU' + 
-        'gMlkFXUIqU5krJC6EXk8ij6AX7WGg6sL0AcaS6E3Ia9Nozz+B/Ctpr4AvKDS0dmuRKOyytYIe21C' + 
-        'HGNLfPjP8hXrf5SZd4NRInfBAAAAAElFTkSuQmCC';
 }
 
 // This loads a dictionary of modules:
