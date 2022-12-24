@@ -336,7 +336,10 @@ export default class ViewerImages extends Viewer
         // too, but it doesn't support AbortSignal.
         if(!this._imageContainer.complete)
         {
-            let result = await helpers.waitForImageLoad(this._imageContainer.mainImage, signal);
+            // Don't pass our abort signal to waitForImageLoad, since it'll clear the image on
+            // cancellation.  We don't want that here, since it'll interfere if we're just refreshing
+            // and we'll clear the image ourselves when we're actually shut down.
+            let result = await helpers.waitForImageLoad(this._imageContainer.mainImage);
             if(result != null)
                 return;
 
