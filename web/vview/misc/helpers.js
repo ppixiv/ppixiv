@@ -2077,20 +2077,19 @@ export class helpers
                 return;
             }
 
-            let remove_listeners_signal = new AbortController();
+            let removeListenersSignal = new AbortController();
 
             node.addEventListener(name, (e) => {
-                remove_listeners_signal.abort();
+                removeListenersSignal.abort();
                 resolve(e);
-            }, { signal: remove_listeners_signal.signal });
+            }, { signal: removeListenersSignal.signal });
 
             if(abort_signal)
             {
                 abort_signal.addEventListener("abort",(e) => {
-                    img.src = helpers.blankImage;
-                    remove_listeners_signal.abort();
+                    removeListenersSignal.abort();
                     resolve("aborted");
-                }, { signal: remove_listeners_signal.signal });
+                }, { signal: removeListenersSignal.signal });
             }
         });
     }
@@ -2105,7 +2104,7 @@ export class helpers
     // the image will load anyway.  This is a little invasive, but it's what we
     // need to do any time we have a cancellable image load, so we might as well
     // do it in one place.
-    static waitForImageLoad(img, abort_signal)
+    static waitForImageLoad(img, signal)
     {
         return new Promise((resolve, reject) => {
             let src = img.src;
@@ -2117,7 +2116,7 @@ export class helpers
                 return;
             }
 
-            if(abort_signal && abort_signal.aborted)
+            if(signal && signal.aborted)
             {
                 img.src = helpers.blankImage;
                 resolve("aborted");
@@ -2125,28 +2124,28 @@ export class helpers
             }
 
             // Cancelling this controller will remove all of our event listeners.
-            let remove_listeners_signal = new AbortController();
+            let removeListenersSignal = new AbortController();
 
             img.addEventListener("error", (e) => {
                 // We kept a reference to src in case in changes, so this log should
                 // always point to the right URL.
                 console.log("Error loading image:", src);
-                remove_listeners_signal.abort();
+                removeListenersSignal.abort();
                 resolve("failed");
-            }, { signal: remove_listeners_signal.signal });
+            }, { signal: removeListenersSignal.signal });
 
             img.addEventListener("load", (e) => {
-                remove_listeners_signal.abort();
+                removeListenersSignal.abort();
                 resolve(null);
-            }, { signal: remove_listeners_signal.signal });
+            }, { signal: removeListenersSignal.signal });
 
-            if(abort_signal)
+            if(signal)
             {
-                abort_signal.addEventListener("abort",(e) => {
+                signal.addEventListener("abort",(e) => {
                     img.src = helpers.blankImage;
-                    remove_listeners_signal.abort();
+                    removeListenersSignal.abort();
                     resolve("aborted");
-                }, { signal: remove_listeners_signal.signal });
+                }, { signal: removeListenersSignal.signal });
             }
         });
     }
