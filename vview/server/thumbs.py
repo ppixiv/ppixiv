@@ -295,10 +295,7 @@ async def handle_thumb(request, mode='thumb'):
         if absolute_path is None:
             if mode == 'thumb':
                 # The directory exists, but we don't have an image to use as a thumbnail.
-                folder = resource_path / 'folder.svg'
-                return aiohttp.web.FileResponse(folder, headers={
-                    'Cache-Control': 'public, immutable',
-                })
+                raise aiohttp.web.HTTPFound('/vview/resources/folder.svg')
             elif mode == 'tree-thumb':
                 # This is a thumbnail used when hovering over the sidebar.  If we don't have a
                 # thumbnail, return an empty image instead of the folder image.
