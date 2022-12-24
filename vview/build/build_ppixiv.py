@@ -242,12 +242,13 @@ class Build(object):
 
     def get_resource_list(self):
         results = collections.OrderedDict()
-        files = list(glob.glob('resources/*'))
+        resource_path = Path('web/resources')
+        files = list(resource_path.glob('**/*'))
         files.sort()
         for path in files:
-            name = path.replace('\\', '/')
-            _, ext = os.path.splitext(name)
-            results[name] = Path(path)
+            path = Path(path)
+            name = path.relative_to(resource_path)
+            results['resources/' + name.as_posix()] = path
 
         return results
 
@@ -455,7 +456,7 @@ class Build(object):
 
             if mime_type in ('image/png', 'application/x-font-woff', 'application/octet-stream'):
                 # Encode binary files as data: URLs.
-                data = open(fn, 'rb').read()
+                data = path.open('rb').read()
                 data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
                 result.append('''env.resources["%s"] = "%s";''' % (fn, data))
                 continue
@@ -463,7 +464,7 @@ class Build(object):
             if path.suffix == '.scss':
                 data = self.build_css(path)
             else:
-                data = open(fn, 'rt', encoding='utf-8').read()
+                data = path.open('rt', encoding='utf-8').read()
 
             # Avoid base64-encoding text files, so we keep the script readable, and use
             # to_javascript_string instead of JSON to avoid ugly escaping.

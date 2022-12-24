@@ -210,7 +210,7 @@ export default class App
         `);
 
         // Add the main stylesheet.
-        let mainStylesheet = ppixiv.resources['resources/main.scss'];
+        let mainStylesheet = ppixiv.resources['resources/main.css'];
         document.head.appendChild(helpers.createStyle(mainStylesheet, { id: "main" }));
 
         // If we're running natively, index.html included an initial stylesheet to set the background

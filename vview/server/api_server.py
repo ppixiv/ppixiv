@@ -271,7 +271,7 @@ class APIServer:
             return
 
         # Allow unauthenticated requests to the authentication interface.
-        if request.path == '/api/auth/login' or request.path == '/web/auth.html':
+        if request.path == '/api/auth/login' or request.path == '/vview/auth.html':
             log.debug('Request to login API is guest')
             request['user'] = auth.get_guest()
             return

@@ -3263,7 +3263,7 @@ svg.heart-image .delete {
         
         // Fade the background to black when we're active.
         background-color: rgba(0, 0, 0,
-            scale_value(var(--illust-hidden), .3, 1, 1, 0));
+            scale_value(var(--illust-hidden), .1, 1, 1, 0));
     }
 
     // Transitions for the viewer.  Don't move the container itself, since the background

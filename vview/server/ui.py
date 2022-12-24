@@ -21,9 +21,9 @@ mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/scss', '.scss')
 
 def add_routes(router):
-    router.add_get('/web/init.js', handle_init)
-    router.add_get('/web/{path:.*\.css}', handle_css)
-    router.add_get('/web/{path:.*}', handle_client)
+    router.add_get('/vview/init.js', handle_init)
+    router.add_get('/vview/{path:.*\.css}', handle_css)
+    router.add_get('/vview/{path:.*}', handle_client)
 
     router.add_get('/', handle_resource('resources/index.html'))
     router.add_get('/similar', handle_resource('resources/index.html'))
@@ -36,7 +36,7 @@ def handle_resource(path):
     """
     Handle returning a specific file inside resources.
     """
-    path = root_dir / path
+    path = root_dir / 'web' / path
 
     def handle_file(request):
         if not path.exists():
@@ -59,7 +59,7 @@ def _get_modules(base_url):
 
     # Replace the module path with the API path, and add a cache timestamp.
     for module_name, path in modules.items():
-        url_path = '/web/' / PurePosixPath(module_name)
+        url_path = '/' / PurePosixPath(module_name)
         url = urllib.parse.urljoin(str(base_url), url_path.as_posix())
         suffix = _get_path_timestamp_suffix(path)
         modules[module_name] = url + suffix
@@ -76,11 +76,11 @@ def _get_resources(base_url):
         # Replace the path to .CSS files with their source .SCSS.  They'll be
         # compiled by handle_css.
         if path.suffix == '.scss':
-            path = path.with_suffix('.css')
+            name = PurePosixPath(name)
+            name = name.with_suffix('.css')
+            name = name.as_posix()
 
-        url = PurePosixPath('/web') / PurePosixPath(path)
-        url = urllib.parse.urljoin(str(base_url), url.as_posix())
-
+        url = urllib.parse.urljoin(str(base_url), name)
         results[name] = url + suffix
 
     return results
@@ -121,11 +121,12 @@ def handle_client(request):
         # Don't cache these.  They're loaded before URL cache busting is available.
         cache_control = 'no-store'
 
-    if path.parts[0] == 'resources':
-        # OK
-        pass
-    else:
+    if path.parts[0] in ('resources', 'startup'):
+        # (/vview)/resources/path -> /web/resources/path
         path = 'web' / path
+    else:
+        # (/vview)/path -> /web/vview/path
+        path = 'web/vview' / path
     
     path = root_dir / path
     path = path.resolve()
@@ -164,7 +165,7 @@ def handle_css(request):
     path = request.match_info['path']
 
     path = Path(path)
-    path = root_dir / path
+    path = root_dir / 'web' / path
     path = path.with_suffix('.scss')
     path = path.resolve()
     assert path.relative_to(root_dir)
@@ -189,7 +190,7 @@ def handle_css(request):
     # loaded into the user script and a relative domain will resolve to that domain instead
     # of ours.
     base_url = '%s://%s:%i' % (request.url.scheme, request.url.host, request.url.port)
-    data = build.build_css(path.path, embed_source_root=f'{base_url}/web')
+    data = build.build_css(path.path, embed_source_root=f'{base_url}/vview')
 
     response = aiohttp.web.Response(body=data, headers={
         'Cache-Control': 'public, immutable',

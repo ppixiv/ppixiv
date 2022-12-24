@@ -612,7 +612,7 @@ class AccessLogger(aiohttp.abc.AbstractAccessLogger):
         path = urllib.parse.unquote(request.path)
         message = ''
         level = self.logger.info
-        if isinstance(response, aiohttp.web.FileResponse) or request.path.startswith('/thumb/') or request.path.startswith('/web/resources/'):
+        if isinstance(response, aiohttp.web.FileResponse) or request.path.startswith('/thumb/') or request.path.startswith('/vview/resources/'):
             # This is a file being served directly from disk.  This also includes thumbs and
             # CSS, which don't come directly from disk but are logged like files.
             message += 'File: '
