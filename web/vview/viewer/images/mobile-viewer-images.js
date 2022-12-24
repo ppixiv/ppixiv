@@ -209,7 +209,7 @@ export default class ViewerImagesMobile extends ViewerImages
         let zoomOutLevel = 0;
         let coverZoomRatio = 1 / this.zoomLevelToZoomFactor(0);
         if(coverZoomRatio > 1.5)
-            zoomInLevel = this.__zoomLevelCover;
+            zoomInLevel = this._zoomLevelCover;
         else
         {
             let scaledZoomFactor = this._zoomFactorCover*2;
