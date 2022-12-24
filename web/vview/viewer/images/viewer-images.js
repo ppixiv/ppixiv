@@ -1,4 +1,3 @@
-// A helper that holds all of the images that we display together.
 import Widget from 'vview/widgets/widget.js';
 import Viewer from 'vview/viewer/viewer.js';
 import ImageEditor from 'vview/viewer/images/editing.js';
@@ -8,6 +7,11 @@ import LocalAPI from 'vview/misc/local-api.js';
 import DirectAnimation from 'vview/actors/direct-animation.js';
 import { helpers, FixedDOMRect, OpenWidgets, SentinelGuard } from 'vview/misc/helpers.js';
 
+// A helper that holds all of the images that we display together.
+//
+// Beware of a Firefox bug: if we set the image to helpers.blankImage to prevent it
+// from being shown as a broken image initially, image.decode() breaks and always resolves
+// immediately for the new image.
 class ImagesContainer extends Widget
 {
     constructor({
@@ -17,7 +21,7 @@ class ImagesContainer extends Widget
         super({...options, template: `
             <div class=inner-image-container>
                 <img class="filtering displayed-image main-image" hidden>
-                <img class="filtering displayed-image inpaint-image">
+                <img class="filtering displayed-image inpaint-image" hidden>
                 <img class="filtering displayed-image low-res-preview" hidden>
             </div>
         `});
@@ -25,9 +29,6 @@ class ImagesContainer extends Widget
         this.mainImage = this.container.querySelector(".main-image");
         this.inpaintImage = this.container.querySelector(".inpaint-image");
         this.previewImage = this.container.querySelector(".low-res-preview");
-
-        // Set the images to blank, so they don't show as broken images until they're set up.
-        this.setImageUrls(null, null, null);
     }
 
     shutdown()
@@ -53,17 +54,13 @@ class ImagesContainer extends Widget
 
     setImageUrls(imageUrl, inpaintUrl, previewUrl)
     {
-        this.imageSrc = imageUrl ?? helpers.blankImage;
-        this.inpaintSrc = inpaintUrl ?? helpers.blankImage;
-        this.previewImage.src = previewUrl || helpers.blankImage;
+        if(imageUrl)
+            this.mainImage.src = imageUrl;
+        if(inpaintUrl)
+            this.inpaintImage.src = inpaintUrl;
+        if(previewUrl)
+            this.previewImage.src = previewUrl;
     }
-
-    // Set the image URLs.  If set to null, use a blank image instead so we don't trigger
-    // load errors.
-    get imageSrc() { return this.mainImage.src; }
-    set imageSrc(value) { this.mainImage.src = value || helpers.blankImage; }
-    get inpaintSrc() { return this.inpaintImage.src; }
-    set inpaintSrc(value) { this.inpaintImage.src = value || helpers.blankImage; }
 
     get complete()
     {
@@ -72,7 +69,12 @@ class ImagesContainer extends Widget
 
     decode()
     {
-        return Promise.all([this.mainImage.decode(), this.inpaintImage.decode()]);
+        let promises = [];
+        if(this.mainImage.src)
+            promises.push(this.mainImage.decode());
+        if(this.inpaintImage.src)
+            promises.push(this.inpaintImage.decode());
+        return Promise.all(promises);
     }
 
     get width() { return this.mainImage.width; }
@@ -451,6 +453,7 @@ export default class ViewerImages extends Viewer
     set _displayedImage(displayedImage)
     {
         this._imageContainer.mainImage.hidden = displayedImage != "main";
+        this._imageContainer.inpaintImage.hidden = displayedImage != "main" && this._imageContainer.inpaintImage.src;
         this._imageContainer.previewImage.hidden = displayedImage != "preview";
     }
 
