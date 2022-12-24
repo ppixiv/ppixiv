@@ -7,88 +7,6 @@ import LocalAPI from 'vview/misc/local-api.js';
 import DirectAnimation from 'vview/actors/direct-animation.js';
 import { helpers, FixedDOMRect, OpenWidgets, SentinelGuard } from 'vview/misc/helpers.js';
 
-// A helper that holds all of the images that we display together.
-//
-// Beware of a Firefox bug: if we set the image to helpers.blankImage to prevent it
-// from being shown as a broken image initially, image.decode() breaks and always resolves
-// immediately for the new image.
-class ImagesContainer extends Widget
-{
-    constructor({
-        ...options
-    })
-    {
-        super({...options, template: `
-            <div class=inner-image-container>
-                <img class="filtering displayed-image main-image" hidden>
-                <img class="filtering displayed-image inpaint-image" hidden>
-                <img class="filtering displayed-image low-res-preview" hidden>
-            </div>
-        `});
-
-        this.mainImage = this.container.querySelector(".main-image");
-        this.inpaintImage = this.container.querySelector(".inpaint-image");
-        this.previewImage = this.container.querySelector(".low-res-preview");
-    }
-
-    shutdown()
-    {
-        // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
-        // help Chrome with GC delays.
-        if(this.mainImage)
-        {
-            this.mainImage.src = helpers.blankImage;
-            this.mainImage.remove();
-            this.mainImage = null;
-        }
-
-        if(this.previewImage)
-        {
-            this.previewImage.src = helpers.blankImage;
-            this.previewImage.remove();
-            this.previewImage = null;
-        }
-
-        super.shutdown();
-    }
-
-    setImageUrls(imageUrl, inpaintUrl, previewUrl)
-    {
-        if(imageUrl)
-            this.mainImage.src = imageUrl;
-        if(inpaintUrl)
-            this.inpaintImage.src = inpaintUrl;
-        if(previewUrl)
-            this.previewImage.src = previewUrl;
-    }
-
-    get complete()
-    {
-        return this.mainImage.complete && this.inpaintImage.complete;
-    }
-
-    decode()
-    {
-        let promises = [];
-        if(this.mainImage.src)
-            promises.push(this.mainImage.decode());
-        if(this.inpaintImage.src)
-            promises.push(this.inpaintImage.decode());
-        return Promise.all(promises);
-    }
-
-    get width() { return this.mainImage.width; }
-    get height() { return this.mainImage.height; }
-    get naturalWidth() { return this.mainImage.naturalWidth; }
-    get naturalHeight() { return this.mainImage.naturalHeight; }
-
-    get hideInpaint() { return this.inpaintImage.style.opacity == 0; }
-    set hideInpaint(value)
-    {
-        this.inpaintImage.style.opacity = value? 0:1;
-    }
-}
-
 // This is the viewer for static images.
 //
 // The base class for the main low-level image viewer.  This handles loading images,
@@ -1601,5 +1519,87 @@ export default class ViewerImages extends Viewer
 
         this.setImagePosition([x, y], center);
         this._reposition();        
+    }
+}
+
+// A helper that holds all of the images that we display together.
+//
+// Beware of a Firefox bug: if we set the image to helpers.blankImage to prevent it
+// from being shown as a broken image initially, image.decode() breaks and always resolves
+// immediately for the new image.
+class ImagesContainer extends Widget
+{
+    constructor({
+        ...options
+    })
+    {
+        super({...options, template: `
+            <div class=inner-image-container>
+                <img class="filtering displayed-image main-image" hidden>
+                <img class="filtering displayed-image inpaint-image" hidden>
+                <img class="filtering displayed-image low-res-preview" hidden>
+            </div>
+        `});
+
+        this.mainImage = this.container.querySelector(".main-image");
+        this.inpaintImage = this.container.querySelector(".inpaint-image");
+        this.previewImage = this.container.querySelector(".low-res-preview");
+    }
+
+    shutdown()
+    {
+        // Clear the image URLs when we remove them, so any loads are cancelled.  This seems to
+        // help Chrome with GC delays.
+        if(this.mainImage)
+        {
+            this.mainImage.src = helpers.blankImage;
+            this.mainImage.remove();
+            this.mainImage = null;
+        }
+
+        if(this.previewImage)
+        {
+            this.previewImage.src = helpers.blankImage;
+            this.previewImage.remove();
+            this.previewImage = null;
+        }
+
+        super.shutdown();
+    }
+
+    setImageUrls(imageUrl, inpaintUrl, previewUrl)
+    {
+        if(imageUrl)
+            this.mainImage.src = imageUrl;
+        if(inpaintUrl)
+            this.inpaintImage.src = inpaintUrl;
+        if(previewUrl)
+            this.previewImage.src = previewUrl;
+    }
+
+    get complete()
+    {
+        return this.mainImage.complete && this.inpaintImage.complete;
+    }
+
+    decode()
+    {
+        let promises = [];
+        if(this.mainImage.src)
+            promises.push(this.mainImage.decode());
+        if(this.inpaintImage.src)
+            promises.push(this.inpaintImage.decode());
+        return Promise.all(promises);
+    }
+
+    get width() { return this.mainImage.width; }
+    get height() { return this.mainImage.height; }
+    get naturalWidth() { return this.mainImage.naturalWidth; }
+    get naturalHeight() { return this.mainImage.naturalHeight; }
+
+    get hideInpaint() { return this.inpaintImage.style.opacity == 0; }
+    set hideInpaint(value)
+    {
+        this.inpaintImage.style.opacity = value? 0:1;
     }
 }
