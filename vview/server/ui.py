@@ -21,7 +21,7 @@ mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/scss', '.scss')
 
 def add_routes(router):
-    router.add_get('/client/init.js', handle_init)
+    router.add_get('/web/init.js', handle_init)
     router.add_get('/client/{path:.*\.css}', handle_css)
     router.add_get('/client/{path:.*}', handle_client)
     router.add_get('/web/{path:.*}', handle_client)
