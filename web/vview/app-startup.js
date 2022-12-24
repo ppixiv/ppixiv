@@ -39,7 +39,7 @@ class AppStartup
             // natively, just fetch it normally.  If we're running as a user script (this is used
             // for debugging), use a sync XHR to try to mimic the regular environment as closely
             // as possible.  This avoids going async and letting page scripts run.
-            let url = new URL("/web/init.js", rootUrl);
+            let url = new URL("/vview/init.js", rootUrl);
             let request = await fetch(url);
             env = await request.json();
         }

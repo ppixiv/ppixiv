@@ -226,7 +226,7 @@ class APIServer:
 
         # Allow the main page to load without authentication, as well as our static scripts and
         # resources.
-        requires_auth = request.path != '/' and not request.path.startswith('/client/')
+        requires_auth = request.path != '/' and not request.path.startswith('/web/')
         if requires_auth and request['user'] is None:
             if request.path.startswith('/api/'):
                 result = { 'success': False, 'code': 'access-denied', 'reason': 'Authentication required' }
@@ -271,7 +271,7 @@ class APIServer:
             return
 
         # Allow unauthenticated requests to the authentication interface.
-        if request.path == '/api/auth/login' or request.path == '/client/auth.html':
+        if request.path == '/api/auth/login' or request.path == '/web/auth.html':
             log.debug('Request to login API is guest')
             request['user'] = auth.get_guest()
             return

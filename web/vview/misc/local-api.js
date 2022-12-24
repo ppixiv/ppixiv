@@ -402,7 +402,7 @@ export default class LocalAPI
         // Replace the current history entry.  This pushes any history state to the
         // login page.  It'll preserve it after logging in and redirecting back here,
         // so we'll try to retain it.
-        let loginUrl = "/client/resources/auth.html?" + query.toString();
+        let loginUrl = "/web/resources/auth.html?" + query.toString();
         window.history.replaceState(history.state, "", loginUrl.toString());
         document.location.reload();
     }

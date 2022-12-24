@@ -102,7 +102,7 @@ async function Bootstrap({env, rootUrl}={})
 
         // Use sync XHR to try to mimic the regular environment as closely as possible, so we avoid
         // going async and letting page scripts run.
-        let url = new URL("/web/init.js", rootUrl);
+        let url = new URL("/vview/init.js", rootUrl);
         let xhr = new XMLHttpRequest();
         xhr.open("GET", url, false);
         xhr.send();

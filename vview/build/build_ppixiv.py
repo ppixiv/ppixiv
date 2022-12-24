@@ -202,7 +202,7 @@ class Build(object):
     let rootUrl = %(url)s;
 
     xhr = new XMLHttpRequest();
-    xhr.open("GET", `${rootUrl}/web/startup/bootstrap.js`, false);
+    xhr.open("GET", `${rootUrl}/vview/startup/bootstrap.js`, false);
     xhr.send();
     eval(xhr.responseText);
 

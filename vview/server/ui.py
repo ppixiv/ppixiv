@@ -22,8 +22,7 @@ mimetypes.add_type('text/scss', '.scss')
 
 def add_routes(router):
     router.add_get('/web/init.js', handle_init)
-    router.add_get('/client/{path:.*\.css}', handle_css)
-    router.add_get('/client/{path:.*}', handle_client)
+    router.add_get('/web/{path:.*\.css}', handle_css)
     router.add_get('/web/{path:.*}', handle_client)
 
     router.add_get('/', handle_resource('resources/index.html'))
@@ -79,7 +78,7 @@ def _get_resources(base_url):
         if path.suffix == '.scss':
             path = path.with_suffix('.css')
 
-        url = PurePosixPath('/client') / PurePosixPath(path)
+        url = PurePosixPath('/web') / PurePosixPath(path)
         url = urllib.parse.urljoin(str(base_url), url.as_posix())
 
         results[name] = url + suffix
@@ -190,7 +189,7 @@ def handle_css(request):
     # loaded into the user script and a relative domain will resolve to that domain instead
     # of ours.
     base_url = '%s://%s:%i' % (request.url.scheme, request.url.host, request.url.port)
-    data = build.build_css(path.path, embed_source_root=f'{base_url}/client')
+    data = build.build_css(path.path, embed_source_root=f'{base_url}/web')
 
     response = aiohttp.web.Response(body=data, headers={
         'Cache-Control': 'public, immutable',
