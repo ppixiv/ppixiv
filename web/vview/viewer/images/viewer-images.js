@@ -262,7 +262,7 @@ export default class ViewerImages extends Viewer
 
         // If the main image is already displayed, the image was already displayed and we're just
         // refreshing.
-        if(this._displayedImage == "main")
+        if(this._imageContainer.displayedImage == "main")
             return;
 
         // Wait until the preview image (if we have one) is ready.  This will finish quickly
@@ -307,7 +307,7 @@ export default class ViewerImages extends Viewer
         }
 
         // If the main image is already ready, show it.  Otherwise, show the preview image.
-        this._displayedImage = imageReady? "main":"preview";
+        this._imageContainer.displayedImage = imageReady? "main":"preview";
 
         // Let our caller know that we're showing something.
         this.ready.accept(true);
@@ -316,7 +316,7 @@ export default class ViewerImages extends Viewer
         this._refreshAnimation();
 
         // If the main image is already being displayed, we're done.
-        if(this._displayedImage == "main")
+        if(this._imageContainer.displayedImage == "main")
         {
             // XXX: awkward special case
             this.pauseAnimation = false;
@@ -367,25 +367,7 @@ export default class ViewerImages extends Viewer
         // If we paused an animation, resume it.
         this.pauseAnimation = false;
 
-        this._displayedImage = "main";
-    }
-
-    // Set whether the main image or preview image are visible.
-    set _displayedImage(displayedImage)
-    {
-        this._imageContainer.mainImage.hidden = displayedImage != "main";
-        this._imageContainer.inpaintImage.hidden = displayedImage != "main" && this._imageContainer.inpaintImage.src;
-        this._imageContainer.previewImage.hidden = displayedImage != "preview";
-    }
-
-    get _displayedImage()
-    {
-        if(!this._imageContainer.mainImage.hidden)
-            return "main";
-        else if(!this._imageContainer.previewImage.hidden)
-            return "preview";
-        else
-            return null;
+        this._imageContainer.displayedImage = "main";
     }
 
     async _decodeImage(img)
@@ -1572,12 +1554,23 @@ class ImagesContainer extends Widget
 
     setImageUrls(imageUrl, inpaintUrl, previewUrl)
     {
-        if(imageUrl)
-            this.mainImage.src = imageUrl;
-        if(inpaintUrl)
-            this.inpaintImage.src = inpaintUrl;
-        if(previewUrl)
-            this.previewImage.src = previewUrl;
+        // Work around an ancient legacy browser mess: img.src is "" by default (no image), but if
+        // you set it back to "", it ends up being resolved as an empty URL and getting set to window.location,
+        // and causing bogus network requests and errors.  We have to manually remove the attribute
+        // instead to work around this.
+        function setImageSource(img, src)
+        {
+            if(src)
+                img.src = src;
+            else
+                img.removeAttribute("src");
+        }
+
+        setImageSource(this.mainImage, imageUrl);
+        setImageSource(this.inpaintImage, inpaintUrl);
+        setImageSource(this.previewImage, previewUrl);
+
+        this._refreshInpaintVisibility();
     }
 
     get complete()
@@ -1593,6 +1586,30 @@ class ImagesContainer extends Widget
         if(this.inpaintImage.src)
             promises.push(this.inpaintImage.decode());
         return Promise.all(promises);
+    }
+
+    // Set whether the main image or preview image are visible.
+    set displayedImage(displayedImage)
+    {
+        this.mainImage.hidden = displayedImage != "main";
+        this.previewImage.hidden = displayedImage != "preview";
+        this._refreshInpaintVisibility();
+    }
+
+    get displayedImage()
+    {
+        if(!this.mainImage.hidden)
+            return "main";
+        else if(!this.previewImage.hidden)
+            return "preview";
+        else
+            return null;
+    }
+
+    // inpaintImage is visible when the main image is, but only if it has an image.
+    _refreshInpaintVisibility()
+    {
+        this.inpaintImage.hidden = this.mainImage.hidden || !this.inpaintImage.src;
     }
 
     get width() { return this.mainImage.width; }

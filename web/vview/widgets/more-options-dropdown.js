@@ -323,12 +323,12 @@ export default class MoreOptionsDropdown extends IllustWidget
                     ...sharedOptions,
                     label: "Image editing",
                     icon: "mat:brush",
-                    setting: "imageEditing",
+                    setting: "image_editing",
                     requiresImage: true,
 
                     onclick: () => {
                         // When editing is turned off, clear the editing mode too.
-                        let enabled = ppixiv.settings.get("imageEditing");
+                        let enabled = ppixiv.settings.get("image_editing");
                         if(!enabled)
                             ppixiv.settings.set("image_editing_mode", null);
                     },
