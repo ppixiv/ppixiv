@@ -3247,7 +3247,7 @@ svg.heart-image .delete {
             &.hidden-widget
             {
                 display: unset;
-                visibility: none;
+                visibility: hidden;
                 pointer-events: none;
             }
         }
