@@ -54,7 +54,7 @@ export default class DataSource_Follows extends DataSource
         };
         if(queryArgs.get("tag"))
             args.tag = queryArgs.get("tag");
-        let result = await helpers.getRequest(url, args);
+        let result = await helpers.pixivRequest.get(url, args);
 
         // Store following tags.
         this.followTags = result.body.followUserTags;

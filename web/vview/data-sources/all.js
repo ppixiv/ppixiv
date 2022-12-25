@@ -51,7 +51,7 @@ export function getDataSourceForUrl(url)
 {
     // url is usually document.location, which for some reason doesn't have .searchParams.
     url = new URL(url);
-    url = helpers.getUrlWithoutLanguage(url);
+    url = helpers.pixiv.getUrlWithoutLanguage(url);
 
     if(ppixiv.native)
     {
@@ -62,7 +62,7 @@ export function getDataSourceForUrl(url)
             return allDataSources.VView;
     }
 
-    let firstPart = helpers.getPageTypeFromUrl(url);
+    let firstPart = helpers.pixiv.getPageTypeFromUrl(url);
     if(firstPart == "artworks")
     {
         let args = new helpers.args(url);

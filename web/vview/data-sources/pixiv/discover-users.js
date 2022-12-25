@@ -53,14 +53,14 @@ export default class DataSource_DiscoverUsers extends DataSource
         let result;
         if(this.showingUserId != null)
         {
-            result = await helpers.getRequest(`/ajax/user/${this.showingUserId}/recommends`, {
+            result = await helpers.pixivRequest.get(`/ajax/user/${this.showingUserId}/recommends`, {
                 userNum: this.usersPerPage,
                 workNum: 8,
                 isR18: true,
                 lang: "en"
             });
         } else {
-            result = await helpers.getRequest("/ajax/discovery/users", {
+            result = await helpers.pixivRequest.get("/ajax/discovery/users", {
                 limit: this.usersPerPage,
                 lang: "en",
             });

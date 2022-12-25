@@ -49,7 +49,7 @@ export default class DataSources_Artist extends DataSource
         // instead of having a link to page 2, it only has "See all", which goes to /artworks and shows you
         // page 1 again.  That's pointless, so we treat the top page as /artworks the same.  /illustrations
         // and /manga filter those types.
-        let url = helpers.getUrlWithoutLanguage(this.url);
+        let url = helpers.pixiv.getUrlWithoutLanguage(this.url);
         let parts = url.pathname.split("/");
         return parts[3] || "artworks";
     }
@@ -111,7 +111,7 @@ export default class DataSources_Artist extends DataSource
                 "manga";
 
             let requestUrl = "/ajax/user/" + this.viewingUserId + "/" + typeForUrl + "/tag";
-            let result = await helpers.getRequest(requestUrl, {
+            let result = await helpers.pixivRequest.get(requestUrl, {
                 tag: tag,
                 offset: (page-1)*48,
                 limit: 48,
@@ -159,7 +159,7 @@ export default class DataSources_Artist extends DataSource
     {
         let type = this.viewingType;
 
-        let result = await helpers.getRequest("/ajax/user/" + this.viewingUserId + "/profile/all", {});
+        let result = await helpers.pixivRequest.get("/ajax/user/" + this.viewingUserId + "/profile/all", {});
 
         // Remember if this user is accepting requests, so we can add a link.
         this.acceptingRequests = result.body.request.showRequestTab;
@@ -205,7 +205,7 @@ export default class DataSources_Artist extends DataSource
 
     async loadBooth()
     {
-        let bootRequest = await helpers.getRequest("https://api.booth.pm/pixiv/shops/show.json", {
+        let bootRequest = await helpers.pixivRequest.get("https://api.booth.pm/pixiv/shops/show.json", {
             pixiv_user_id: this.viewingUserId,
             adult: "include",
             limit: 24,
@@ -278,7 +278,7 @@ export default class DataSources_Artist extends DataSource
         if(userInfo.frequentTags)
             return Array.from(userInfo.frequentTags);
 
-        let result = await helpers.getRequest("/ajax/user/" + userInfo.userId + "/illustmanga/tags", {});
+        let result = await helpers.pixivRequest.get("/ajax/user/" + userInfo.userId + "/illustmanga/tags", {});
         if(result.error)
         {
             console.error("Error fetching tags for user " + userInfo.userId + ": " + result.error);

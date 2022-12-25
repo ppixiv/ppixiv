@@ -259,9 +259,9 @@ export default class MediaCache extends EventTarget
         let startLoading = (illustType, pageCount) => {
             // If we know the illust type and haven't started loading other data yet, start them.
             if(pageCount != null && pageCount > 1 && mangaPromise == null && mediaInfo?.mangaPages == null)
-                mangaPromise = helpers.getRequest(`/ajax/illust/${illustId}/pages`, {});
+                mangaPromise = helpers.pixivRequest.get(`/ajax/illust/${illustId}/pages`, {});
             if(illustType == 2 && ugoiraPromise == null && (mediaInfo == null || mediaInfo.ugoiraMetadata == null))
-                ugoiraPromise = helpers.getRequest(`/ajax/illust/${illustId}/ugoira_meta`);
+                ugoiraPromise = helpers.pixivRequest.get(`/ajax/illust/${illustId}/ugoira_meta`);
         };
 
         // If we already had partial info, we can start loading other metadata immediately instead
@@ -273,7 +273,7 @@ export default class MediaCache extends EventTarget
         // If we don't have illust data, block while it loads.
         if(mediaInfo == null)
         {
-            let illustResultPromise = helpers.getRequest(`/ajax/illust/${illustId}`, {});
+            let illustResultPromise = helpers.pixivRequest.get(`/ajax/illust/${illustId}`, {});
             let illustResult = await illustResultPromise;
             if(illustResult == null || illustResult.error)
             {
@@ -487,7 +487,7 @@ export default class MediaCache extends EventTarget
         if(userId != null)
         {
             let url = `/ajax/user/${userId}/profile/illusts`;
-            let result = await helpers.getRequest(url, {
+            let result = await helpers.pixivRequest.get(url, {
                 "ids[]": illustIds,
                 work_category: "illustManga",
                 is_first_page: "0",
@@ -503,7 +503,7 @@ export default class MediaCache extends EventTarget
             // do: it's missing the AI flag, and only has a boolean value for "bookmarked" and no
             // bookmark data.  However, it seems to be the only API available that can batch
             // load info for a list of unrelated illusts.
-            let result = await helpers.rpcGetRequest("/rpc/illust_list.php", {
+            let result = await helpers.pixivRequest.get("/rpc/illust_list.php", {
                 illustIds: illustIds.join(","),
 
                 // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150

@@ -519,7 +519,7 @@ class ImageInfoWidget extends IllustWidget
                 </a>
             `});
 
-            entry.href = helpers.pixiv.getArgsForTagSearch(tag, ppixiv.plocation);
+            entry.href = helpers.getArgsForTagSearch(tag, ppixiv.plocation);
             entry.querySelector(".tag-name").innerText = tag;
             tagWidget.appendChild(entry);
         }

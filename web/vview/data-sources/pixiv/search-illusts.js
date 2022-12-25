@@ -77,7 +77,7 @@ export default class DataSource_Search extends DataSource
     get _searchType()
     {
         // ["", "tags", tag list, type]
-        let url = helpers.getUrlWithoutLanguage(this.url);
+        let url = helpers.pixiv.getUrlWithoutLanguage(this.url);
         let parts = url.pathname.split("/");
         if(parts.length >= 4)
             return parts[3];
@@ -181,7 +181,7 @@ export default class DataSource_Search extends DataSource
 
         let url = "/ajax/search/" + apiSearchType + "/" + encodeURIComponent(tag);
 
-        let result = await helpers.getRequest(url, args);
+        let result = await helpers.pixivRequest.get(url, args);
         let body = result.body;
 
         // Store related tags.  Only do this the first time and don't change it when we read
@@ -260,7 +260,7 @@ export default class DataSource_Search extends DataSource
     setUrlSearchMode(url, mode)
     {
         url = new URL(url);
-        url = helpers.getUrlWithoutLanguage(url);
+        url = helpers.pixiv.getUrlWithoutLanguage(url);
 
         // Only "ugoira" searches use type in the query.  It causes an error in other modes, so remove it.
         if(mode == "illust")

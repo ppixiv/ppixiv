@@ -162,7 +162,7 @@ export default class App
             // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
             // directly and the page will reload on every click.  Do this before we create any of our
             // UI, so our links inherit the hash.
-            if(!helpers.isPPixivUrl(newURL))
+            if(!helpers.args.isPPixivUrl(newURL))
             {
                 // Don't create a new history state.
                 newURL.hash = "#ppixiv";
@@ -729,7 +729,7 @@ export default class App
 
         // If this isn't a #ppixiv URL, let it run normally.
         let url = new URL(a.href, document.href);
-        if(!helpers.isPPixivUrl(url))
+        if(!helpers.args.isPPixivUrl(url))
             return;
 
         // Stop all handling for this link.
@@ -751,7 +751,7 @@ export default class App
         // If this is a link to an image (usually /artworks/#), navigate to the image directly.
         // This way, we actually use the URL for the illustration on this data source instead of
         // switching to /artworks.  This also applies to local image IDs, but not folders.
-        url = helpers.getUrlWithoutLanguage(url);
+        url = helpers.pixiv.getUrlWithoutLanguage(url);
         let { mediaId } = this.getMediaIdAtElement(a);
         if(mediaId)
         {
@@ -779,7 +779,7 @@ export default class App
         // Use the requests page to get init data.  This is handy since it works even if the
         // site thinks we're mobile, so it still works if we're testing with DevTools set to
         // mobile mode.
-        let result = await helpers.fetchDocument("/request");
+        let result = await helpers.pixivRequest.fetchDocument("/request");
 
         console.log("Finished loading init data");
         if(this._loadGlobalInfoFromDocument(result))
@@ -894,13 +894,14 @@ export default class App
         }
 
         ppixiv.pixivInfo = {
-            // Store the token for XHR requests.
-            csrfToken,
             userId,
             include_r18: contentMode >= 1,
             include_r18g: contentMode >= 2,
             premium: premium,
         };
+
+        // Give pixivRequest the CSRF token and user ID.
+        helpers.pixivRequest.setPixivRequestInfo({csrfToken, userId, fetch: window.realFetch.bind(window)});
     };
 
     // Redirect keyboard events that didn't go into the active screen.
@@ -1082,7 +1083,7 @@ export default class App
 
             // Only look at "/tags/TAG" URLs.
             let url = new URL(e.target.href);
-            url = helpers.getUrlWithoutLanguage(url);
+            url = helpers.pixiv.getUrlWithoutLanguage(url);
 
             let parts = url.pathname.split("/");
             let firstPart = parts[1];

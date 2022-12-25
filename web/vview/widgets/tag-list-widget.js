@@ -12,7 +12,7 @@ export default class TagListWidget extends Widget
 
     formatTagLink(tag)
     {
-        return helpers.pixiv.getArgsForTagSearch(tag, ppixiv.plocation);
+        return helpers.getArgsForTagSearch(tag, ppixiv.plocation);
     };
 
     async set(tags)

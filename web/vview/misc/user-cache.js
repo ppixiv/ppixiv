@@ -122,7 +122,7 @@ export default class UserCache extends EventTarget
             return null;
 
         // console.log("Fetch user", userId);
-        let result = await helpers.getRequest(`/ajax/user/${userId}`, {full:1});
+        let result = await helpers.pixivRequest.get(`/ajax/user/${userId}`, {full:1});
         if(result == null || result.error)
         {
             let message = result?.message || "Error loading user";
@@ -248,7 +248,7 @@ export default class UserCache extends EventTarget
             return this._userFollowInfo[userId];
         }
 
-        this._followInfoLoads[userId] = helpers.getRequest("/ajax/following/user/details", {
+        this._followInfoLoads[userId] = helpers.pixivRequest.get("/ajax/following/user/details", {
             user_id: userId,
             lang: "en",
         });
@@ -305,7 +305,7 @@ export default class UserCache extends EventTarget
 
         // The only ways to get this list seem to be from looking at an already-followed
         // user, or looking at the follow list.
-        this._userFollowTagsLoad = helpers.getRequest(`/ajax/user/${ppixiv.pixivInfo.userId}/following`, {
+        this._userFollowTagsLoad = helpers.pixivRequest.get(`/ajax/user/${ppixiv.pixivInfo.userId}/following`, {
             offset: 0,
             limit: 1,
             rest: "show",

@@ -1,262 +1,13 @@
 import * as math from 'vview/util/math.js';
 import * as strings from 'vview/util/strings.js';
 import * as html from 'vview/util/html.js';
+import args from 'vview/util/args.js';
 import * as mediaId from 'vview/util/media-id.js';
 import * as pixiv from 'vview/util/pixiv.js';
-
-// XXX
-export class Args
-{
-    constructor(url)
-    {
-        if(url == null)
-            throw ValueError("url must not be null");
-
-        url = new URL(url, ppixiv.plocation);
-
-        this.path = url.pathname;
-        this.query = url.searchParams;
-        let { path: hashPath, query: hash_query } = Args.getHashArgs(url);
-        this.hash = hash_query;
-        this.hashPath = hashPath;
-
-        // History state is only available when we come from the current history state,
-        // since URLs don't have state.
-        this.state = { };
-    }
-
-    static getHashArgs(url)
-    {
-        if(!helpers.isPPixivUrl(url))
-            return { path: "", query: new URLSearchParams() };
-
-        // The hash looks like:
-        //
-        // #ppixiv/a/b/c?foo&bar
-        //
-        // /a/b/c is the hash path.  foo&bar are the hash args.
-        // Parse the hash of the current page as a path.  For example, if
-        // the hash is #ppixiv/foo/bar?baz, parse it as /ppixiv/foo/bar?baz.
-        // The pathname portion of this (with /ppixiv removed) is the hash path,
-        // and the query portion is the hash args.
-        //
-        // If the hash is #ppixiv/abcd, the hash path is "/abcd".
-        // Remove #ppixiv:
-        let hashPath = url.hash;
-        if(hashPath.startsWith("#ppixiv"))
-            hashPath = hashPath.substr(7);
-        else if(hashPath.startsWith("#"))
-            hashPath = hashPath.substr(1);
-
-        // See if we have hash args.
-        let idx = hashPath.indexOf('?');
-        let query = null;
-        if(idx != -1)
-        {
-            query = hashPath.substr(idx+1);
-            hashPath = hashPath.substr(0, idx);
-        }
-
-        // We encode spaces as + in the URL, but decodeURIComponent doesn't, so decode
-        // that first.  Actual '+' is always escaped as %2B.
-        hashPath = hashPath.replace(/\+/g, " ");
-        hashPath = decodeURIComponent(hashPath);
-
-        if(query == null)
-            return { path: hashPath, query: new URLSearchParams() };
-        else
-            return { path: hashPath, query: new URLSearchParams(query) };
-    }
-
-    static encodeURLPart(regex, part)
-    {
-        return part.replace(regex, (c) => {
-            // encodeURIComponent(sic) encodes non-ASCII characters.  We don't need to.
-            let ord = c.charCodeAt(0);
-            if(ord >= 128)
-                return c;
-
-            // Regular URL escaping wants to escape spaces as %20, which is silly since
-            // it's such a common character in filenames.  Escape them as + instead, like
-            // things like AWS do.  The escaping is different, but it's still a perfectly
-            // valid URL.  Note that the API doesn't decode these, we only use it in the UI.
-            if(c == " ")
-                return "+";
-
-            let hex = ord.toString(16).padStart('0', 2);
-            return "%" + hex;
-        });
-    }
-
-    // Both "encodeURI" and "encodeURIComponent" are wrong for encoding hashes.
-    // The first doesn't escape ?, and the second escapes lots of things we
-    // don't want to, like forward slash.
-    static encodeURLHash(hash)
-    {
-        return Args.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^#=&]/g, hash);
-    }
-
-    // This one escapes keys in hash parameters.  This is the same as encodeURLHash,
-    // except it also encodes = and &.
-    static encodeHashParam(param)
-    {
-        return Args.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^#]/g, param);
-    }
-
-    // Encode a URLSearchParams for hash parameters.
-    //
-    // We can use URLSearchParams.toString(), but that escapes overaggressively and
-    // gives us nasty, hard to read URLs.  There's no reason to escape forward slash
-    // in query parameters.
-    static encodeHashParams(params)
-    {
-        let values = [];
-        for(let key of params.keys())
-        {
-            let key_values = params.getAll(key);
-            for(let value of key_values)
-            {
-                key = Args.encodeHashParam(key);
-                value = Args.encodeHashParam(value);
-                values.push(key + "=" + value);
-            }
-        }
-
-        return values.join("&");
-    }
-
-    // Return the args for the current page.
-    static get location()
-    {
-        let result = new this(ppixiv.plocation);
-
-        // Include history state as well.  Make a deep copy, so changing this doesn't
-        // modify history.state.
-        result.state = JSON.parse(JSON.stringify(ppixiv.phistory.state)) || { };
-
-        return result;
-    }
-
-    get url()
-    {
-        let url = new URL(ppixiv.plocation);
-        url.pathname = this.path;
-        url.search = this.query.toString();
-
-        // Set the hash portion of url to args, as a ppixiv url.
-        //
-        // For example, if this.hashPath is "a/b/c" and this.hash is { a: "1", b: "2" },
-        // set the hash to #ppixiv/a/b/c?a=1&b=2.
-        url.hash = ppixiv.native? "#":"#ppixiv";
-        if(this.hashPath != "")
-        {
-            if(!this.hashPath.startsWith("/"))
-                url.hash += "/";
-            url.hash += Args.encodeURLHash(this.hashPath);
-        }
-
-        let hash_string = Args.encodeHashParams(this.hash);
-        if(hash_string != "")
-            url.hash += "?" + hash_string;
-
-        return url;
-    }
-
-    toString() { return this.url.toString(); }
-
-    // Helpers to get and set arguments which can be in either the query,
-    // the hash or the path.  Examples:
-    //
-    // get("page")        - get the query parameter "page"
-    // get("#page")       - get the hash parameter "page"
-    // get("/1")          - get the first path parameter
-    // set("page", 10)    - set the query parameter "page" to "10"
-    // set("#page", 10)   - set the hash parameter "page" to "10"
-    // set("/1", 10)      - set the first path parameter to "10"
-    // set("page", null)  - remove the query parameter "page"
-    get(key)
-    {
-        let hash = key.startsWith("#");
-        let path = key.startsWith("/");
-        if(hash || path)
-            key = key.substr(1);
-
-        if(path)
-            return this.getPathnameSegment(parseInt(key));
-
-        let params = hash? this.hash:this.query;
-        return params.get(key);
-    }
-
-    set(key, value)
-    {
-        let hash = key.startsWith("#");
-        let path = key.startsWith("/");
-        if(hash || path)
-            key = key.substr(1);
-            
-        if(path)
-        {
-            this.set_pathname_segment(parseInt(key), value);
-            return;
-        }
-
-        let params = hash? this.hash:this.query;
-        if(value != null)
-            params.set(key, value);
-        else
-            params.delete(key);
-    }
-
-    // Return the pathname segment with the given index.  If the path is "/abc/def", "abc" is
-    // segment 0.  If idx is past the end, return null.
-    getPathnameSegment(idx)
-    {
-        // The first pathname segment is always empty, since the path always starts with a slash.
-        idx++;
-        let parts = this.path.split("/");
-        if(idx >= parts.length)
-            return null;
-
-        return decodeURIComponent(parts[idx]);
-    }
-
-    // Set the pathname segment with the given index.  If the path is "/abc/def", setting
-    // segment 0 to "ghi" results in "/ghi/def".
-    //
-    // If idx is at the end, a new segment will be added.  If it's more than one beyond the
-    // end a warning will be printed, since this usually shouldn't result in pathnames with
-    // empty segments.  If value is null, remove the segment instead.
-    set_pathname_segment(idx, value)
-    {
-        idx++;
-        let parts = this.path.split("/");
-        if(value != null)
-        {
-            value = encodeURIComponent(value);
-
-            if(idx < parts.length)
-                parts[idx] = value;
-            else if(idx == parts.length)
-                parts.push(value);
-            else
-                console.warn(`Can't set pathname segment ${idx} to ${value} past the end: ${this.toString()}`);
-        } else {
-            if(idx == parts.length-1)
-                parts.pop();
-            else if(idx < parts.length-1)
-                console.warn(`Can't remove pathname segment ${idx} in the middle: ${this.toString()}`);
-        }
-
-        this.path = parts.join("/");
-    }
-}
+import * as pixivRequest from 'vview/util/pixiv-request.js';
 
 export class helpers 
 {
-    // XXX: compat
-    static args = Args;
-
     static blankImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     static xmlns = "http://www.w3.org/2000/svg";
     
@@ -550,41 +301,6 @@ export class helpers
         return array;
     }
 
-    // Binary search between start and end looking for target.  get_value(position) returns the
-    // value at that position.
-    static binary_search(start, end, target, get_value, max_error=1)
-    {
-        let start_value = get_value(start);
-        let end_value = get_value(end);
-
-        // If end is before start, swap the ends.
-        if(start_value > end_value)
-        {
-            [start, end] = [end, start];
-            [start_value, end_value] = [end_value, start_value];
-        }
-
-        while(true)
-        {
-            let guess = (start + end) / 2;
-            let value = get_value(guess);
-
-            if(target > value)
-            {
-                start = guess;
-                start_value = value;
-            }
-            else
-            {
-                end = guess;
-                end_value = value;
-            }
-
-            if(Math.abs(start-end) < max_error)
-                return guess;
-        }          
-    }
-
     static defer(func)
     {
         return Promise.resolve().then(() => {
@@ -840,198 +556,6 @@ export class helpers
         return event.clientX < width || event.clientX > window.innerWidth - width;
     }
 
-    static encode_query(data) {
-        let str = [];
-        for(let key in data)
-        {
-            if(!data.hasOwnProperty(key))
-                continue;
-            str.push(encodeURIComponent(key) + "=" + encodeURIComponent(data[key]));
-        }    
-        return str.join("&");
-    }
-
-    static async send_request(options)
-    {
-        if(options == null)
-            options = {};
-
-        // Usually we'll use helpers.fetch, but fall back on window.fetch in case we haven't
-        // called block_network_requests yet.  This happens if App.setup needs to fetch the page.
-        let fetch = window.realFetch ?? window.fetch;
-
-        let data = { };
-        data.method = options.method || "GET";
-        data.signal = options.signal;
-        data.cache = options.cache ?? "default";
-        if(options.data)
-            data.body = options.data 
-
-        // Convert options.headers to a Headers object.
-        if(options.headers)
-        {
-            let headers = new Headers();
-            for(let key in options.headers)
-                headers.append(key, options.headers[key]);
-            data.headers = headers;
-        }
-
-        try {
-            return await fetch(options.url, data);
-        } catch(e) {
-            // Don't log an error if we were intentionally aborted.
-            if(data.signal && data.signal.aborted)
-                return null;
-                
-            console.error("Error loading %s", options.url, e);
-            if(options.data)
-                console.error("Data:", options.data);
-            return null;
-        }
-    }
-
-    // Send a request with the referer, cookie and CSRF token filled in.
-    static async sendPixivRequest({...options})
-    {
-        options.headers ??= {};
-
-        // Only set x-csrf-token for requests to www.pixiv.net.  It's only needed for API
-        // calls (not things like ugoira ZIPs), and the request will fail if we're in XHR
-        // mode and set headers, since it'll trigger CORS.
-        let hostname = new URL(options.url, ppixiv.plocation).hostname;
-        if(hostname == "www.pixiv.net" && ppixiv.pixivInfo)
-        {
-            options.headers["x-csrf-token"] = ppixiv.pixivInfo.csrfToken;
-            options.headers["x-user-id"] = ppixiv.pixivInfo.user_id;
-        }
-
-        let result = await this.send_request(options);
-        if(result == null)
-            return null;
-
-        // Return the requested type.  If we don't know the type, just return the
-        // request promise itself.
-        if(options.responseType == "json")
-            return await result.json();
-
-        if(options.responseType == "document")
-        {
-            let text = await result.text();
-            return new DOMParser().parseFromString(text, 'text/html');
-        }
-
-        return result;
-    }
-
-    // Why does Pixiv have 300 APIs?
-    static async rpcPostRequest(url, data)
-    {
-        let result = await this.sendPixivRequest({
-            "method": "POST",
-            "url": url,
-
-            "data": this.encode_query(data),
-            "responseType": "json",
-
-            "headers": {
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
-            },
-        });
-
-        return result;
-    }
-
-    static async rpcGetRequest(url, data, options)
-    {
-        if(options == null)
-            options = {};
-
-        let params = new URLSearchParams();
-        for(let key in data)
-            params.set(key, data[key]);
-        let query = params.toString();
-        if(query != "")
-            url += "?" + query;
-        
-        let result = await this.sendPixivRequest({
-            "method": "GET",
-            "url": url,
-            "responseType": "json",
-            "signal": options.signal,
-
-            "headers": {
-                "Accept": "application/json",
-            },
-        });
-
-        return result;
-    }
-
-    static async postRequest(url, data)
-    {
-        let result = await this.sendPixivRequest({
-            "method": "POST",
-            "url": url,
-            "responseType": "json",
-
-            "data" :JSON.stringify(data),
-
-            "headers": {
-                "Accept": "application/json",
-                "Content-Type": "application/json; charset=utf-8",
-            },
-        });        
-
-        return result;
-    }
-
-    static create_search_params(data)
-    {
-        let params = new URLSearchParams();
-        for(let key in data)
-        {
-            // If this is an array, add each entry separately.  This is used by
-            // /ajax/user/#/profile/illusts.
-            let value = data[key];
-            if(Array.isArray(value))
-            {
-                for(let item of value)
-                    params.append(key, item);
-            }
-            else
-                params.append(key, value);
-        }
-        return params;
-    }
-
-    static async getRequest(url, data, options)
-    {
-        let params = this.create_search_params(data);
-
-        let query = params.toString();
-        if(query != "")
-            url += "?" + query;
-
-        let result = await this.sendPixivRequest({
-            method: "GET",
-            url: url,
-            responseType: "json",
-            signal: options?.signal,
-            cache: options?.cache,
-
-            headers: {
-                Accept: "application/json",
-            },
-        });
-
-        // If the result isn't valid JSON, we'll get a null result.
-        if(result == null)
-            result = { error: true, message: "Invalid response" };
-
-        return result;
-    }
-
     _download_port = null;
 
     // GM.xmlHttpRequest is handled by the sandboxed side of the user script, which lives in
@@ -1137,19 +661,6 @@ export class helpers
         }
 
         return results;
-    }
-
-    // Load a URL as a document.
-    static async fetchDocument(url, headers={}, options={})
-    {
-        return await this.sendPixivRequest({
-            method: "GET",
-            url: url,
-            responseType: "document",
-            cache: options.cache,
-            headers,
-            ...options,
-        });
     }
 
     static async hide_body_during_request(func)
@@ -1269,43 +780,17 @@ export class helpers
             return ["", tag];
     }
 
-
-    // Some of Pixiv's URLs have languages prefixed and some don't.  Ignore these and remove
-    // them to make them simpler to parse.
-    static getPathWithoutLanguage(path)
-    {
-        if(/^\/..\//.exec(path))
-            return path.substr(3);
-        else        
-            return path;
-    }
-
-    static getUrlWithoutLanguage(url)
-    {
-        url.pathname = this.getPathWithoutLanguage(url.pathname);
-        return url;
-    }
-
     // Return true if url1 and url2 are the same, ignoring any language prefix on the URLs.
     static areUrlsEquivalent(url1, url2)
     {
         if(url1 == null || url2 == null)
             return false;
 
-        url1 = this.getUrlWithoutLanguage(url1);
-        url2 = this.getUrlWithoutLanguage(url2);
+        url1 = helpers.pixiv.getUrlWithoutLanguage(url1);
+        url2 = helpers.pixiv.getUrlWithoutLanguage(url2);
         return url1.toString() == url2.toString();
     }
 
-    // From a URL like "/en/tags/abcd", return "tags".
-    static getPageTypeFromUrl(url)
-    {
-        url = new URL(url);
-        url = this.getUrlWithoutLanguage(url);
-        let parts = url.pathname.split("/");
-        return parts[1];
-    }
-    
     static setPageTitle(title)
     {
         let title_element = document.querySelector("title");
@@ -1331,6 +816,30 @@ export class helpers
         document.querySelector("link[rel='icon']").href = url;
     }
 
+    // Given a list of tags, return the URL to use to search for them.  This differs
+    // depending on the current page.
+    static getArgsForTagSearch(tags, url)
+    {
+        url = helpers.pixiv.getUrlWithoutLanguage(url);
+
+        let type = helpers.pixiv.getPageTypeFromUrl(url);
+        if(type == "tags")
+        {
+            // If we're on search already, just change the search tag, so we preserve other settings.
+            // /tags/tag/artworks -> /tag/new tag/artworks
+            let parts = url.pathname.split("/");
+            parts[2] = encodeURIComponent(tags);
+            url.pathname = parts.join("/");
+        } else {
+            // If we're not, change to search and remove the rest of the URL.
+            url = new URL("/tags/" + encodeURIComponent(tags) + "/artworks#ppixiv", url);
+        }
+        
+        // Don't include things like the current page in the URL.
+        let args = helpers.getCanonicalUrl(url);
+        return args;
+    }
+
 
     // Return a canonical URL for a data source.  If the canonical URL is the same,
     // the same instance of the data source should be used.
@@ -1350,8 +859,9 @@ export class helpers
         url = new URL(url);
 
         // Remove /en from the URL if it's present.
-        url = helpers.getUrlWithoutLanguage(url);
+        url = helpers.pixiv.getUrlWithoutLanguage(url);
 
+        
         let args = new helpers.args(url);
 
         // Remove parts of the URL that don't affect which data source instance is used.
@@ -1409,16 +919,6 @@ export class helpers
             if(e.key == "Enter")
                 submit(e);
         });
-    }
-
-    // Return true if url is one of ours.
-    static isPPixivUrl(url)
-    {
-        // If we're native, all URLs on this origin are ours.
-        if(ppixiv.native)
-            return new URL(url).origin == document.location.origin;
-        else
-            return url.hash.startsWith("#ppixiv");
     }
 
     // Given a URLSearchParams, return a new URLSearchParams with keys sorted alphabetically.
@@ -2851,5 +2351,7 @@ export class OpenWidgets extends EventTarget
 helpers.math = math;
 helpers.strings = strings;
 helpers.html = html;
+helpers.args = args;
 helpers.mediaId = mediaId;
 helpers.pixiv = pixiv;
+helpers.pixivRequest = pixivRequest;

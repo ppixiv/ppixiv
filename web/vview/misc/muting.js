@@ -203,7 +203,7 @@ export default class Muting extends EventTarget
     async fetchMutes()
     {
         // Load the real mute list.
-        let data = await helpers.getRequest(`/touch/ajax/user/self/status?lang=en`);
+        let data = await helpers.pixivRequest.get(`/touch/ajax/user/self/status?lang=en`);
         if(data.error)
         {
             console.log("Error loading user info:", data.message);
@@ -277,7 +277,7 @@ export default class Muting extends EventTarget
 
         // Note that this doesn't return an error if the mute list is full.  It returns success
         // and silently does nothing.
-        let result = await helpers.rpcPostRequest("/ajax/mute/items/add", {
+        let result = await helpers.pixivRequest.rpcPost("/ajax/mute/items/add", {
             context: "illust",
             type: type,
             value: value,
@@ -315,7 +315,7 @@ export default class Muting extends EventTarget
         if(type == "user")
             label = (await ppixiv.userCache.getUserInfo(value)).name;
 
-        let result = await helpers.rpcPostRequest("/ajax/mute/items/delete", {
+        let result = await helpers.pixivRequest.rpcPost("/ajax/mute/items/delete", {
             context: "illust",
             type: type,
             value: value,

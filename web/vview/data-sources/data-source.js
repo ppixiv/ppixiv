@@ -485,7 +485,7 @@ export default class DataSource extends EventTarget
     }={})
     {
         // Ignore the language prefix on the URL if any, so it doesn't affect urlFormat.
-        args.path = helpers.getPathWithoutLanguage(args.path);
+        args.path = helpers.pixiv.getPathWithoutLanguage(args.path);
 
         // If urlParts is provided, create a map from "/segment" to a segment number like "/1" that
         // args.set uses.
@@ -596,7 +596,7 @@ export default class DataSource extends EventTarget
 
         // Adjust the URL for this button.
         let url = new URL(this.url);
-        url = helpers.getUrlWithoutLanguage(url);
+        url = helpers.pixiv.getUrlWithoutLanguage(url);
 
         // Don't include the page number in search buttons, so clicking a filter goes
         // back to page 1.
@@ -735,7 +735,7 @@ export class DataSourceFromPage extends DataSource
 
         console.log("Loading:", url.toString());
 
-        let doc = await helpers.fetchDocument(url);
+        let doc = await helpers.pixivRequest.fetchDocument(url);
 
         let mediaIds = this.parseDocument(doc);
         if(mediaIds == null)

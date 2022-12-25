@@ -90,7 +90,7 @@ export default class ZipImageDownloader
 
     async start()
     {
-        let response = await helpers.sendPixivRequest({
+        let response = await helpers.pixivRequest.sendPixivRequest({
             method: "GET",
             url: this.url,
             responseType: "arraybuffer",

@@ -380,7 +380,7 @@ class FetchResourceLoader extends ResourceLoader
         if(this.url == null)
             return;
 
-        let request = helpers.sendPixivRequest({
+        let request = helpers.pixivRequest.sendPixivRequest({
             url: this.url,
             method: "GET",
             signal: this.abortController.signal,

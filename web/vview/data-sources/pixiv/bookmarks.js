@@ -56,7 +56,7 @@ export class DataSource_BookmarksBase extends DataSource
 
     get displayingTag()
     {
-        let url = helpers.getUrlWithoutLanguage(this.url);
+        let url = helpers.pixiv.getUrlWithoutLanguage(this.url);
         let parts = url.pathname.split("/");
         if(parts.length < 6)
             return null;
@@ -82,7 +82,7 @@ export class DataSource_BookmarksBase extends DataSource
         
         // Fetch bookmark tags.  We can do this in parallel with everything else.
         let url = "/ajax/user/" + this.viewingUserId + "/illusts/bookmark/tags";
-        let result = await helpers.getRequest(url, {});
+        let result = await helpers.pixivRequest.get(url, {});
 
         // Cache this if we're viewing our own bookmarks, so we can display them while
         // navigating bookmarks.  We'll still refresh it as each page loads.
@@ -187,7 +187,7 @@ export class DataSource_BookmarksBase extends DataSource
     {
         let data = this.getBookmarkQueryParams(page, rest);
         let url = `/ajax/user/${this.viewingUserId}/illusts/bookmarks`;
-        let result = await helpers.getRequest(url, data);
+        let result = await helpers.pixivRequest.get(url, data);
 
         if(this.viewingOwnBookmarks())
         {

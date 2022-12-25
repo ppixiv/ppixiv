@@ -47,7 +47,7 @@ export default class DataSource_Rankings extends DataSource
         if(date)
             data.date = date;
 
-        let result = await helpers.getRequest("/touch/ajax/ranking/illust", data);
+        let result = await helpers.pixivRequest.get("/touch/ajax/ranking/illust", data);
         let thisDate = result.body.rankingDate;
 
         function formatDate(date)
@@ -96,7 +96,7 @@ export default class DataSource_Rankings extends DataSource
         if(date)
             data.date = date;
 
-        let result = await helpers.getRequest("/ranking.php", data);
+        let result = await helpers.pixivRequest.get("/ranking.php", data);
         let thisDate = result.date;
 
         let nextDate = result.next_date;

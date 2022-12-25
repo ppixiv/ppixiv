@@ -127,7 +127,7 @@ export class TagSearchBoxWidget extends widget
         }
         
         // Run the search.
-        let args = helpers.pixiv.getArgsForTagSearch(tags, ppixiv.plocation);
+        let args = helpers.getArgsForTagSearch(tags, ppixiv.plocation);
         helpers.navigate(args);
     }
 }
@@ -752,7 +752,7 @@ class TagSearchDropdownWidget extends widget
         let result = null;
         try {
             this._abortAutocomplete = new AbortController();
-            result = await helpers.rpcGetRequest("/rpc/cps.php", {
+            result = await helpers.pixivRequest.get("/rpc/cps.php", {
                 keyword,
             }, {
                 signal: this._abortAutocomplete.signal,
@@ -882,7 +882,7 @@ class TagSearchDropdownWidget extends widget
             tagContainer.appendChild(span);
         }
 
-        let url = helpers.pixiv.getArgsForTagSearch(targetTags, ppixiv.plocation);
+        let url = helpers.getArgsForTagSearch(targetTags, ppixiv.plocation);
         entry.href = url;
         return entry;
     }

@@ -31,7 +31,7 @@ export default class LocalAPI
             throw Error("Local API isn't enabled");
 
         url.pathname = encodeURI(pathname);
-        let result = await helpers.sendPixivRequest({
+        let result = await helpers.pixivRequest.sendPixivRequest({
             method: "POST",
             url: url.toString(),
             responseType: "json",

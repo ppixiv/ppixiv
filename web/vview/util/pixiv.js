@@ -1,3 +1,4 @@
+import Args from 'vview/util/args.js';
 
 
 // Return true if the given illust_data.tags contains the pixel art (ドット絵) tag.
@@ -11,6 +12,22 @@ export function tagsContainDot(tagList)
             return true;
 
     return false;
+}
+
+// Some of Pixiv's URLs have languages prefixed and some don't.  Ignore these and remove
+// them to make them simpler to parse.
+export function getPathWithoutLanguage(path)
+{
+    if(/^\/..\//.exec(path))
+        return path.substr(3);
+    else        
+        return path;
+}
+
+export function getUrlWithoutLanguage(url)
+{
+    url.pathname = getPathWithoutLanguage(url.pathname);
+    return url;
 }
 
 // Split a Pixiv tag search into a list of tags.
@@ -86,7 +103,7 @@ export function makePixivLinksInternal(root)
 // Get the search tags from an "/en/tags/TAG" search URL.
 export function getSearchTagsFromUrl(url)
 {
-    url = this.getUrlWithoutLanguage(url);
+    url = getUrlWithoutLanguage(url);
     let parts = url.pathname.split("/");
 
     // ["", "tags", tag string, "search type"]
@@ -94,35 +111,21 @@ export function getSearchTagsFromUrl(url)
     return decodeURIComponent(tags);
 }
 
-// Given a list of tags, return the URL to use to search for them.  This differs
-// depending on the current page.
-export function getArgsForTagSearch(tags, url)
+// From a URL like "/en/tags/abcd", return "tags".
+export function getPageTypeFromUrl(url)
 {
-    url = this.getUrlWithoutLanguage(url);
-
-    let type = helpers.getPageTypeFromUrl(url);
-    if(type == "tags")
-    {
-        // If we're on search already, just change the search tag, so we preserve other settings.
-        // /tags/tag/artworks -> /tag/new tag/artworks
-        let parts = url.pathname.split("/");
-        parts[2] = encodeURIComponent(tags);
-        url.pathname = parts.join("/");
-    } else {
-        // If we're not, change to search and remove the rest of the URL.
-        url = new URL("/tags/" + encodeURIComponent(tags) + "/artworks#ppixiv", url);
-    }
-    
-    // Don't include things like the current page in the URL.
-    let args = helpers.getCanonicalUrl(url);
-    return args;
+    url = new URL(url);
+    url = getUrlWithoutLanguage(url);
+    let parts = url.pathname.split("/");
+    return parts[1];
 }
+    
 
 // The inverse of getArgsForTagSearch:
 export function getTagSearchFromArgs(url)
 {
-    url = helpers.getUrlWithoutLanguage(url);
-    let type = helpers.getPageTypeFromUrl(url);
+    url = getUrlWithoutLanguage(url);
+    let type = getPageTypeFromUrl(url);
     if(type != "tags")
         return null;
 

@@ -42,7 +42,7 @@ export default class DataSource_NewPostsByEveryone extends DataSource
         console.log("Assuming page", page, "starts at", this.lastId);
 
         let url = "/ajax/illust/new";
-        let result = await helpers.getRequest(url, {
+        let result = await helpers.pixivRequest.get(url, {
             limit: 20,
             type: type,
             r18: r18,

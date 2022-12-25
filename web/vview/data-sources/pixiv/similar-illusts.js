@@ -46,7 +46,7 @@ export default class DataSource_SimilarIllusts extends DataSource
 
         // Get "mode" from the URL.  If it's not present, use "all".
         let mode = this.url.searchParams.get("mode") || "all";
-        let result = await helpers.getRequest("/ajax/discovery/artworks", {
+        let result = await helpers.pixivRequest.get("/ajax/discovery/artworks", {
             sampleIllustId: this.url.searchParams.get("illust_id"),
             mode: mode,
             limit: this.estimatedItemsPerPage,

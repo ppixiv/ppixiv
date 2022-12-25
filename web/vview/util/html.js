@@ -13,7 +13,7 @@ export function moveChildren(parent, newParent)
 // Remove all of parent's children.
 export function removeElements(parent)
 {
-    for(child of parent.children)
+    for(let child of parent.children)
         child.remove();
 }
 

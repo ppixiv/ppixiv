@@ -310,7 +310,7 @@ class AppStartup
         return this._urlSupported(window.location);
     }
 
-    // helpers.getPathWithoutLanguage:
+    // helpers.pixiv.getPathWithoutLanguage:
     _getPathWithoutLanguage(path)
     {
         if(/^\/..\//.exec(path))
@@ -332,7 +332,7 @@ class AppStartup
         let pathname = this._getPathWithoutLanguage(url.pathname);
 
         let parts = pathname.split("/");
-        let firstPart = parts[1]; // helpers.getPageTypeFromUrl
+        let firstPart = parts[1]; // helpers.pixiv.getPageTypeFromUrl
         if(firstPart == "artworks")
             return true; // manga, current_illust
         else if(firstPart == "users")

@@ -17,7 +17,7 @@ export default class DataSource_SearchUsers extends DataSource
         // Use the mobile API for this.  THe desktop site has no API and has to be scraped, and if
         // we're on mobile we can't access the desktop page, but the mobile site's API works either
         // way.
-        let result = await helpers.getRequest("/touch/ajax/search/users", {
+        let result = await helpers.pixivRequest.get("/touch/ajax/search/users", {
             nick: this.username,
             s_mode: "s_usr",
             p: page,

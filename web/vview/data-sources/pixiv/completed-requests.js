@@ -17,7 +17,7 @@ export default class DataSources_CompletedRequests extends DataSource
         let mode = args.get("mode") || "all";
         let type = args.getPathnameSegment(2); // "illust" in "request/complete/illust"
 
-        let result = await helpers.getRequest(`/ajax/commission/page/request/complete/${type}`, {
+        let result = await helpers.pixivRequest.get(`/ajax/commission/page/request/complete/${type}`, {
             mode,
             p: page,
             lang: "en",

@@ -49,7 +49,7 @@ export default class ExtraCache
             return [...this._bookmarkedImageTags[mediaId]]; 
 
         let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
-        let bookmarkPage = await helpers.fetchDocument("/bookmark_add.php?type=illust&illust_id=" + illustId);
+        let bookmarkPage = await helpers.pixivRequest.fetchDocument("/bookmark_add.php?type=illust&illust_id=" + illustId);
         
         let tags = bookmarkPage.querySelector(".bookmark-detail-unit form input[name='tag']").value;
         tags = tags.split(" ");

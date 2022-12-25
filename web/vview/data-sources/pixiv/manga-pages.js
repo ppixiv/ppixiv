@@ -13,7 +13,7 @@ export default class DataSource_MangaPages extends DataSource
 
         // /artworks/#
         url = new URL(url);
-        url = helpers.getUrlWithoutLanguage(url);
+        url = helpers.pixiv.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
         let illustId = parts[2];
         this.mediaId = helpers.mediaId.fromIllustId(illustId);

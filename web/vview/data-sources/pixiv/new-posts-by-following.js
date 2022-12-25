@@ -23,7 +23,7 @@ export default class DataSource_NewPostsByFollowing extends DataSource
     {
         let currentTag = this.url.searchParams.get("tag") || "";
         let r18 = this.url.pathname == "/bookmark_new_illust_r18.php";
-        let result = await helpers.getRequest("/ajax/follow_latest/illust", {
+        let result = await helpers.pixivRequest.get("/ajax/follow_latest/illust", {
             p: page,
             tag: currentTag,
             mode: r18? "r18":"all",

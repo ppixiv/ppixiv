@@ -37,7 +37,7 @@ export default class DataSource_Illust extends DataSource
         //
         // The page (if any) is stored in the hash.
         let url = args.url;
-        url = helpers.getUrlWithoutLanguage(url);
+        url = helpers.pixiv.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
         let illust_id = parts[2];
 

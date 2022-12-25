@@ -253,7 +253,7 @@ export class EditMutedTagsWidget extends Widget
     {
         // Users muted with Pixiv.  We already have the list, but we need to make an API
         // request to get usernames to actually display.
-        let result = await helpers.rpcGetRequest("/ajax/mute/items", { context: "setting" });
+        let result = await helpers.pixivRequest.get("/ajax/mute/items", { context: "setting" });
         if(result.error)
         {
             ppixiv.message.show(result.message);

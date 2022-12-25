@@ -34,7 +34,7 @@ export default class Actions
             "tags": options.tags || [],
             "restrict": options.private? 1:0,
         }
-        let result = await helpers.postRequest("/ajax/illusts/bookmarks/add", request);
+        let result = await helpers.pixivRequest.post("/ajax/illusts/bookmarks/add", request);
 
         // If this is a new bookmark, last_bookmark_id is the new bookmark ID.
         // If we're editing an existing bookmark, last_bookmark_id is null and the
@@ -187,7 +187,7 @@ export default class Actions
         
         console.log("Remove bookmark", bookmarkId);
         
-        let result = await helpers.postRequest("/ajax/illusts/bookmarks/remove", {
+        let result = await helpers.pixivRequest.post("/ajax/illusts/bookmarks/remove", {
             bookmarkIds: [bookmarkId],
         });
 
@@ -286,7 +286,7 @@ export default class Actions
 
         let bookmarkId = mediaInfo.bookmarkData.id;
         
-        let result = await helpers.postRequest("/ajax/illusts/bookmarks/edit_restrict", {
+        let result = await helpers.pixivRequest.post("/ajax/illusts/bookmarks/edit_restrict", {
             bookmarkIds: [bookmarkId],
             bookmarkRestrict: private_bookmark? "private":"public",
         });
@@ -363,7 +363,7 @@ export default class Actions
             return;
         }
         
-        let result = await helpers.postRequest("/ajax/illusts/like", {
+        let result = await helpers.pixivRequest.post("/ajax/illusts/like", {
             "illust_id": illust_id,
         });
 
@@ -426,7 +426,7 @@ export default class Actions
             followPrivately = true;
 
         // This doesn't return any data (not even an error flag).
-        await helpers.rpcPostRequest("/bookmark_add.php", {
+        await helpers.pixivRequest.rpcPost("/bookmark_add.php", {
             mode: "add",
             type: "user",
             user_id: userId,
@@ -459,7 +459,7 @@ export default class Actions
     // Change the privacy status of a user we're already following.
     static async changeFollowPrivacy(userId, followPrivately)
     {
-        let data = await helpers.rpcPostRequest("/ajax/following/user/restrict_change", {
+        let data = await helpers.pixivRequest.rpcPost("/ajax/following/user/restrict_change", {
             user_id: userId,
             restrict: followPrivately? 1:0,
         });
@@ -488,7 +488,7 @@ export default class Actions
     // editing one tag per call.
     static async changeFollowTags(userId, {tag, add})
     {
-        let data = await helpers.rpcPostRequest(add? "/ajax/following/user/tag_add":"/ajax/following/user/tag_delete", {
+        let data = await helpers.pixivRequest.rpcPost(add? "/ajax/following/user/tag_add":"/ajax/following/user/tag_delete", {
             user_id: userId,
             tag,
         });
@@ -530,7 +530,7 @@ export default class Actions
         if(userId == -1)
             return;
 
-        let result = await helpers.rpcPostRequest("/rpc_group_setting.php", {
+        let result = await helpers.pixivRequest.rpcPost("/rpc_group_setting.php", {
             mode: "del",
             type: "bookuser",
             id: userId,
@@ -655,7 +655,7 @@ export default class Actions
             return await LocalAPI.loadRecentBookmarkTags();
 
         let url = "/ajax/user/" + ppixiv.pixivInfo.userId + "/illusts/bookmark/tags";
-        let result = await helpers.getRequest(url, {});
+        let result = await helpers.pixivRequest.get(url, {});
         let bookmarkTags = [];
         let addTag = (tag) => {
             // Ignore "untagged".
