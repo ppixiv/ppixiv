@@ -504,7 +504,7 @@ export default class MediaCache extends EventTarget
             // bookmark data.  However, it seems to be the only API available that can batch
             // load info for a list of unrelated illusts.
             let result = await helpers.pixivRequest.get("/rpc/illust_list.php", {
-                illustIds: illustIds.join(","),
+                illust_ids: illustIds.join(","),
 
                 // Specifying this gives us 240x240 thumbs, which we want, rather than the 150x150
                 // ones we'll get if we don't (though changing the URL is easy enough too).
