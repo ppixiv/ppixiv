@@ -19,8 +19,8 @@ export default class ViewerVideo extends ViewerVideoBase
         this.video.controls = false;
         this.video.preload = "auto";
         this.video.playsInline = true; // prevents iOS taking over the video on long press
-        this.video.volume = settings.get("volume");
-        this.video.muted = settings.get("mute");
+        this.video.volume = ppixiv.settings.get("volume");
+        this.video.muted = ppixiv.settings.get("mute");
 
         // Set the video inert to work around an iOS bug: after PIP is activated on a video and
         // then deactivated, the shadow controls for the "this video is playing in picture in
@@ -30,8 +30,8 @@ export default class ViewerVideo extends ViewerVideoBase
 
         // Store changes to volume.
         this.video.addEventListener("volumechange", (e) => {
-            settings.set("volume", this.video.volume);
-            settings.set("mute", this.video.muted);
+            ppixiv.settings.set("volume", this.video.volume);
+            ppixiv.settings.set("mute", this.video.muted);
         });
 
         this.video.autoplay = true;
