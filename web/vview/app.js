@@ -901,7 +901,7 @@ export default class App
         };
 
         // Give pixivRequest the CSRF token and user ID.
-        helpers.pixivRequest.setPixivRequestInfo({csrfToken, userId, fetch: window.realFetch.bind(window)});
+        helpers.pixivRequest.setPixivRequestInfo({csrfToken, userId});
     };
 
     // Redirect keyboard events that didn't go into the active screen.

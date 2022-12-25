@@ -5,17 +5,13 @@
 let requestInfo = {
     csrfToken: null,
     userId: null,
-
-    // The fetch() API to use.
-    fetch: window.fetch.bind(window),
 }
 
 // Set the request info to use for future Pixiv API calls.
-export function setPixivRequestInfo({csrfToken, userId, fetch})
+export function setPixivRequestInfo({csrfToken, userId})
 {
     requestInfo.csrfToken = csrfToken;
     requestInfo.userId = userId;
-    requestInfo.fetch = fetch;
 }
 
 export async function get(url, data, options)
@@ -168,8 +164,10 @@ async function sendRequest(options)
         data.headers = headers;
     }
 
+    let fetch = window.realFetch ?? window.fetch;
+
     try {
-        return await requestInfo.fetch(options.url, data);
+        return await fetch(options.url, data);
     } catch(e) {
         // Don't log an error if we were intentionally aborted.
         if(data.signal && data.signal.aborted)
