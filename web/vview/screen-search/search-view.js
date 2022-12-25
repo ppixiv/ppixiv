@@ -67,13 +67,13 @@ export default class SearchView extends Widget
         this.expandedMediaIds = new Map();
 
         // Refresh the "load previous page" link when the URL changes.
-        window.addEventListener("pp:statechange", (e) => this._refreshLoadPreviousButton(), { signal: this.shutdownSignal.signal });
+        window.addEventListener("pp:statechange", (e) => this._refreshLoadPreviousButton(), this._signal);
 
         // This caches the results of isMediaIdExpanded.
         this._mediaIdExpandedCache = null;
         ppixiv.muting.addEventListener("mutes-changed", () => this._mediaIdExpandedCache = null, this._signal);
 
-        ppixiv.mediaCache.addEventListener("infoloaded", this.mediaInfoLoaded);
+        ppixiv.mediaCache.addEventListener("infoloaded", () => this.mediaInfoLoaded(), this._signal);
         new ResizeObserver(() => this.refreshImages()).observe(this.container);
 
         // The scroll position may not make sense when if scroller changes size (eg. the window was resized
@@ -86,7 +86,7 @@ export default class SearchView extends Widget
         }).observe(this.scrollContainer);
 
         // When a bookmark is modified, refresh the heart icon.
-        ppixiv.mediaCache.addEventListener("mediamodified", this.refreshThumbnail, { signal: this.shutdownSignal.signal });
+        ppixiv.mediaCache.addEventListener("mediamodified", (e) => this.refreshThumbnail(e.mediaId), this._signal);
 
         this.container.addEventListener("load", (e) => {
             if(e.target.classList.contains("thumb"))
@@ -197,17 +197,17 @@ export default class SearchView extends Widget
             rootMargin: ppixiv.mobile? "400%":"150%",
         }));
 
-        ppixiv.settings.addEventListener("thumbnail-size", this.updateFromSettings, { signal: this.shutdownSignal.signal });
-        ppixiv.settings.addEventListener("manga-thumbnail-size", this.updateFromSettings, { signal: this.shutdownSignal.signal });
-        ppixiv.settings.addEventListener("disable_thumbnail_zooming", this.updateFromSettings, { signal: this.shutdownSignal.signal });
-        ppixiv.settings.addEventListener("disable_thumbnail_panning", this.updateFromSettings, { signal: this.shutdownSignal.signal });
-        ppixiv.settings.addEventListener("expand_manga_thumbnails", this.updateFromSettings, { signal: this.shutdownSignal.signal });
-        ppixiv.muting.addEventListener("mutes-changed", this.refreshAfterMuteChange);
+        ppixiv.settings.addEventListener("thumbnail-size", () => this.updateFromSettings(), this._signal);
+        ppixiv.settings.addEventListener("manga-thumbnail-size", () => this.updateFromSettings(), this._signal);
+        ppixiv.settings.addEventListener("disable_thumbnail_zooming", () => this.updateFromSettings(), this._signal);
+        ppixiv.settings.addEventListener("disable_thumbnail_panning", () => this.updateFromSettings(), this._signal);
+        ppixiv.settings.addEventListener("expand_manga_thumbnails", () => this.updateFromSettings(), this._signal);
+        ppixiv.muting.addEventListener("mutes-changed", () => this.refreshAfterMuteChange(), this._signal);
 
         this.updateFromSettings();
     }
 
-    updateFromSettings = () =>
+    updateFromSettings()
     {
         this.refreshExpandedThumbAll();
         this.loadExpandedMediaIds(); // in case expand_manga_thumbnails has changed
@@ -1331,10 +1331,8 @@ export default class SearchView extends Widget
     // Refresh the thumbnail for mediaId.
     //
     // This is used to refresh the bookmark icon when changing a bookmark.
-    refreshThumbnail = (e) =>
+    refreshThumbnail(mediaId)
     {
-        let mediaId = e.mediaId;
-
         // If this is a manga post, refresh all thumbs for this media ID, since bookmarking
         // a manga post is shown on all pages if it's expanded.
         let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
@@ -1383,7 +1381,7 @@ export default class SearchView extends Widget
     }
 
     // Force all thumbnails to refresh after the mute list changes, to refresh mutes.
-    refreshAfterMuteChange = () =>
+    refreshAfterMuteChange()
     {
         // Force the update to refresh thumbs that have already been created.
         this.setVisibleThumbs({force: true});
@@ -1633,7 +1631,7 @@ export default class SearchView extends Widget
     }
 
     // This is called when MediaCache has loaded more image info.
-    mediaInfoLoaded = (e) =>
+    mediaInfoLoaded()
     {
         // New media info is available, so we might be able to fill in thumbnails that we couldn't
         // before.
