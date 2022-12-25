@@ -835,6 +835,7 @@ class ModuleImporter_Compat extends ModuleImporter
         script.src = url;
         script.dataset.modulePath = path;
         document.head.append(script);
+        script.remove();
 
         // We can't get errors from the script node directly.  Import the script so we receive
         // any errors that the module raised.  These errors will usually be logged to the console
