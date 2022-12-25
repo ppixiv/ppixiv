@@ -740,6 +740,12 @@ class ModuleImporter_Compat extends ModuleImporter
 
             for(let depPath of moduleDeps)
             {
+                if(sources[depPath] == null)
+                {
+                    console.error(`${path} imports nonexistant module: ${depPath}`);
+                    return false;
+                }
+
                 let success = await this._createScript(depPath, { sources, scriptUrls, stack });
                 if(!success)
                     return false;
