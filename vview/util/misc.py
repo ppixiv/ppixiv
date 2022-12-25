@@ -1,6 +1,7 @@
 # Helpers that don't have dependancies on our other modules.
 import asyncio, concurrent, os, io, struct, logging, os, re, threading, time, traceback, sys, queue
 from contextlib import contextmanager
+from pathlib import Path
 from PIL import Image, ImageFile, ExifTags
 from pprint import pprint
 import urllib.parse
@@ -80,6 +81,15 @@ class Error(Exception):
             'reason': self.reason,
         }
 
+def root_dir():
+    """
+    Return the installation root.
+    """
+    # top/vview/util/misc.py -> top
+    path = Path(__file__) / '..' / '..' / '..'
+    path = path.resolve()
+    return path
+    
 exif_tag_ids = { value: key for key, value in ExifTags.TAGS.items() }
 
 def read_metadata(f, mime_type):

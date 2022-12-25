@@ -8,8 +8,7 @@ from ..util import misc
 from ..util.paths import open_path
 from ..build.build_ppixiv import Build
 
-root_dir = Path(__file__) / '..' / '..' / '..' # XXX gross
-root_dir = root_dir.resolve()
+root_dir = misc.root_dir()
 
 # Work around a bug in the Python mimetypes module: it imports MIME types from
 # the Windows registry, allowing them to override the built-in MIME types.  That's

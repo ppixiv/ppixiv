@@ -1,4 +1,5 @@
 import asyncio, aiohttp, json, logging, ssl, traceback, urllib, time, io
+from pathlib import PurePosixPath
 from aiohttp import web
 from pprint import pprint
 import urllib.parse
@@ -79,7 +80,7 @@ class APIServer:
         """
         Create a web.Application for running our HTTP server.
         """
-        app = web.Application(middlewares=[self.register_request_middleware, self.auth_middleware])
+        app = web.Application(middlewares=[self.register_request_middleware, self.auth_middleware, self.file_timestamp_middleware])
 
         # Store the server on the app so it can be accessed from requests.
         app['server'] = self.server
@@ -235,6 +236,26 @@ class APIServer:
                 raise aiohttp.web.HTTPUnauthorized()
 
         return await handler(request)
+
+    @web.middleware
+    async def file_timestamp_middleware(self, request, handler):
+        """
+        Add cache timestamps to redirects inside vview/resources.
+        """
+        try:
+            return await handler(request)
+        except Exception as e:
+            if not isinstance(e, aiohttp.web.HTTPFound):
+                raise
+
+            target = PurePosixPath(e.location)
+            if not target.is_relative_to('/vview/resources'):
+                raise
+
+            fs_path = misc.root_dir() / 'web' / target.relative_to('/vview')
+            mtime = fs_path.stat().st_mtime
+
+            raise aiohttp.web.HTTPFound(f'{e.location}?{mtime}')
 
     def is_trusted_local_request(self, request):
         """
