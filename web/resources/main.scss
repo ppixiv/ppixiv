@@ -3438,7 +3438,7 @@ svg.heart-image .delete {
         }
 
         // If this isn't the root node, add padding to the left of our children.
-        &:not(.root) > .items {
+        &:not(.root-item) > .items {
             margin-left: 1em;
         }
 
@@ -3471,7 +3471,7 @@ svg.heart-image .delete {
                 white-space: nowrap;
             }
         
-            &.root
+            &.root-item
             {
                 display: none;
             }

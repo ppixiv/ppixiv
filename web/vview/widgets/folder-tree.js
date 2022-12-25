@@ -35,51 +35,51 @@ class TreeWidget extends Widget
         // Create the root item.  This is TreeWidgetItem or a subclass.
         if(addRoot)
         {
-            let root = new TreeWidgetItem({
+            let rootItem = new TreeWidgetItem({
                 parent: this,
                 label: "root",
-                root: true,
+                rootItem: true,
             });
 
-            this.setRoot(root);
+            this.setRootItem(rootItem);
         }
     }
 
     _mediaModified = (e) =>
     {
-        if(this.root == null)
+        if(this.rootItem == null)
             return;
 
-        for(let node of Object.values(this.root.nodes))
+        for(let node of Object.values(this.rootItem.nodes))
         {
             if(node.illustChanged)
                 node.illustChanged(e.mediaId);
         }
     }
     
-    setRoot(root)
+    setRootItem(rootItem)
     {
-        if(this.root == root)
+        if(this.rootItem == rootItem)
             return;
 
         // If we have another root, remove it from this.items.
-        if(this.root)
+        if(this.rootItem)
         {
-            this.root.container.remove();
-            this.root = null;
+            this.rootItem.container.remove();
+            this.rootItem = null;
         }
 
-        this.root = root;
+        this.rootItem = rootItem;
 
         // Add the new root to this.items.
-        if(root.container.parentNode != this.items)
+        if(rootItem.container.parentNode != this.items)
         {
-            console.assert(root.parentNode == null);
-            this.items.appendChild(root.container);
+            console.assert(rootItem.parentNode == null);
+            this.items.appendChild(rootItem.container);
         }
 
         // Root nodes are always expanded.
-        root.expanded = "user";
+        rootItem.expanded = "user";
     }
 
     setSelectedItem(item)
@@ -164,9 +164,9 @@ class TreeWidget extends Widget
 
             // Don't show a thumb for roots.  Searches don't have thumbnails, and it's not useful
             // for most others.
-            img.hidden = item.isRoot;
+            img.hidden = item.isRootItem;
             img.crossOriginMode = "use-credentials";
-            if(!item.isRoot)
+            if(!item.isRootItem)
             {
                 // Use /tree-thumb for these thumbnails.  They're the same as the regular thumbs,
                 // but it won't give us a folder image if there's no thumb.
@@ -194,17 +194,17 @@ class TreeWidget extends Widget
 
 class TreeWidgetItem extends Widget
 {
-    // If root is true, this is the root item being created by a TreeWidget.  Our
+    // If rootItem is true, this is the root item being created by a TreeWidget.  Our
     // parent is the TreeWidget and our container is TreeWidget.items.
     //
-    // If root is false (all items created by the user) and parent is a TreeWidget, our
+    // If rootItem is false (all items created by the user) and parent is a TreeWidget, our
     // real parent is the TreeWidget's root item.  Otherwise, parent is always another
     // TreeWidgetItem.
     constructor({
         parent,
         label,
 
-        root=false,
+        rootItem=false,
 
         // If true, this item might have children.  The first time the user expands
         // it, onexpand() will be called to populate it.
@@ -215,8 +215,8 @@ class TreeWidgetItem extends Widget
     {
         // If this isn't a root node and parent is a TreeWidget, use the TreeWidget's
         // root node as our parent instead of the tree widget itself.
-        if(!root && parent instanceof TreeWidget)
-            parent = parent.root;
+        if(!rootItem && parent instanceof TreeWidget)
+            parent = parent.rootItem;
 
         super({...options,
             // The container is our parent node's item list.
@@ -240,32 +240,32 @@ class TreeWidgetItem extends Widget
             </div>
         `});
 
-        // If this is the root node, hide .self, and add .root so our children
+        // If this is the root node, hide .self, and add .rootItem so our children
         // aren't indented.
-        if(root)
+        if(rootItem)
         {
             this.container.querySelector(".self").hidden = true;
-            this.container.classList.add("root");
+            this.container.classList.add("root-item");
         }
 
         // If our parent is the root node, we're a top-level node.
-        helpers.html.setClass(this.container, "top", !root && parent.root);
-        helpers.html.setClass(this.container, "child", !root && !parent.root);
+        helpers.html.setClass(this.container, "top", !rootItem && parent.rootItem);
+        helpers.html.setClass(this.container, "child", !rootItem && !parent.rootItem);
 
         this.items = this.container.querySelector(".items");
         this.expander = this.container.querySelector(".expander");
-        this.isRoot = root;
+        this.isRootItem = rootItem;
         this._expandable = expandable;
         this._expanded = false;
         this._pending = pending;
         this._label = label;
 
         // Our root node:
-        this.rootNode = root? this:this.parent.rootNode;
+        this.rootNode = rootItem? this:this.parent.rootNode;
 
         // If we're the root node, the tree is our parent.  Otherwise, copy the tree from
         // our parent.
-        this.tree = root? this.parent:this.parent.tree;
+        this.tree = rootItem? this.parent:this.parent.tree;
 
         this.expander.addEventListener("click", (e) => {
             this.expanded = this.expanded? false:"user";
@@ -334,7 +334,7 @@ class TreeWidgetItem extends Widget
             return;
 
         // Don't unexpand the root.
-        if(!value && this.isRoot)
+        if(!value && this.isRootItem)
             return;
 
         this._expanded = value;
@@ -456,7 +456,7 @@ class TreeWidgetItem extends Widget
     _commitUserExpanded()
     {
         let widget = this;
-        while(widget != null && !widget.isRoot)
+        while(widget != null && !widget.isRootItem)
         {
             if(widget.expanded)
                 widget.expanded = "user";
@@ -478,7 +478,7 @@ class TreeWidgetItem extends Widget
             stopNodes.add(node);
 
         let widget = this;
-        while(widget != null && !widget.isRoot)
+        while(widget != null && !widget.isRootItem)
         {
             // Stop if we've reached a shared ancestor.
             if(stopNodes.has(widget))
@@ -579,7 +579,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         if(!isLibrary)
             this.container.dataset.mediaId = this.path;
 
-        if(options.root)
+        if(options.rootItem)
         {
             // As we load nodes in this tree, we'll index them by ID here.
             this.nodes = {};
@@ -733,26 +733,26 @@ export default class LocalNavigationTreeWidget extends TreeWidget
             this._root = new LocalNavigationWidgetItem({
                 parent: this,
                 label: "/",
-                root: true,
+                rootItem: true,
                 path: "folder:/",
             });
         }
 
-        this.setRoot(this._root);
+        this.setRootItem(this._root);
     }
 
-    setRoot(root)
+    setRootItem(rootItem)
     {
-        super.setRoot(root);
+        super.setRootItem(rootItem);
         
         // Make sure the new root is loaded.
-        root.load();
+        rootItem.load();
     }
 
     // If a search is active, select its item.
     async refreshSelection({user=false}={})
     {
-        if(this.root == null)
+        if(this.rootItem == null)
             return;
 
         // If we're not on a /local/ search, just deselect.
@@ -781,11 +781,11 @@ export default class LocalNavigationTreeWidget extends TreeWidget
     async loadPath(signal, { args, user=false }={})
     {
         // Stop if we don't have a root yet.
-        if(this.root == null)
+        if(this.rootItem == null)
             return;
 
         // Wait until the root is loaded, if needed.
-        await this.root.load();
+        await this.rootItem.load();
         signal.check();
 
         let mediaId = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
@@ -816,7 +816,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
             currentPath += part;
 
             // If this directory exists in the tree, it'll be in nodes by now.
-            node = this.root.nodes[currentPath];
+            node = this.rootItem.nodes[currentPath];
             if(node == null)
             {
                 // console.log("Path doesn't exist:", currentPath);
@@ -832,7 +832,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
             signal.check();
         }
 
-        return this.root.nodes[mediaId];
+        return this.rootItem.nodes[mediaId];
     }
 
     // Navigate to mediaId, which should be an entry in the current tree.
