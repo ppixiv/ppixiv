@@ -421,7 +421,7 @@ export class SettingsDialog extends DialogWidget
             `
         });
 
-        this.phone = helpers.is_phone();
+        this.phone = helpers.other.isPhone();
         helpers.html.setClass(this.container, "phone", this.phone);
         this._pageButtons = {};
 

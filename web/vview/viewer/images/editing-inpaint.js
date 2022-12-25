@@ -262,7 +262,7 @@ export default class InpaintEditor extends Widget
             // Otherwise, we'll be stuck looking at the low-res preview while it generates.
             let img = new realImage();
             img.src = mediaInfo.urls.inpaint;
-            await helpers.waitForImageLoad(img);
+            await helpers.other.waitForImageLoad(img);
         }
 
         return true;
@@ -671,7 +671,7 @@ class LineEditorSegment extends Widget
     {
         // Templates don't work, because it doesn't create the <g> as an SVG
         // element.  Is there a way to make that work?
-        let contents = document.createElementNS(helpers.xmlns, "g");
+        let contents = document.createElementNS(helpers.other.xmlns, "g");
         contents.setAttribute("class", "inpaint-segment");
         container.appendChild(contents);
 
@@ -710,7 +710,7 @@ class LineEditorSegment extends Widget
 
     createEditPoint()
     {
-        let point = document.createElementNS(helpers.xmlns, "ellipse");
+        let point = document.createElementNS(helpers.other.xmlns, "ellipse");
         point.setAttribute("class", "inpaint-handle");
         point.setAttribute("cx", "100");
         point.setAttribute("cy", "100");
@@ -731,7 +731,7 @@ class LineEditorSegment extends Widget
 
         if(!this.polyline)
         {
-            this.polyline = document.createElementNS(helpers.xmlns, "polyline");
+            this.polyline = document.createElementNS(helpers.other.xmlns, "polyline");
             this.polyline.setAttribute("class", "inpaint-line");
             this.container.appendChild(this.polyline);
         }
@@ -741,7 +741,7 @@ class LineEditorSegment extends Widget
         {
             // Use a rect for the lines.  It doesn't join as cleanly as a polyline,
             // but it lets us set both the fill and the stroke.
-            let line = document.createElementNS(helpers.xmlns, "rect");
+            let line = document.createElementNS(helpers.other.xmlns, "rect");
             line.setAttribute("class", "inpaint-line");
             line.dataset.idx = idx;
 

@@ -53,7 +53,7 @@ export default class StopAnimationAfter
             let stop_at_animation_time = null;
             while(1)
             {
-                let success = await helpers.vsync({signal: this.abort.signal});
+                let success = await helpers.other.vsync({signal: this.abort.signal});
                 if(!success)
                     break;
 

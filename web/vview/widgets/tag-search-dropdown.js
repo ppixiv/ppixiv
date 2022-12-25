@@ -870,7 +870,7 @@ class TagSearchDropdownWidget extends widget
                 span.classList.add("tag");
 
             // Split off - prefixes to look up the translation, then add it back.
-            let prefixAndTag = helpers.splitTagPrefixes(tag);
+            let prefixAndTag = helpers.pixiv.splitTagPrefixes(tag);
             let translatedTag = this.translatedTags[prefixAndTag[1]];
             if(translatedTag)
                 translatedTag = prefixAndTag[0] + translatedTag;
@@ -1074,7 +1074,7 @@ class TagSearchDropdownWidget extends widget
         {
             for(let tag of helpers.pixiv.splitSearchTags(tagSearch))
             {
-                tag = helpers.splitTagPrefixes(tag)[1];
+                tag = helpers.pixiv.splitTagPrefixes(tag)[1];
                 allTags[tag] = true;
             }
         }

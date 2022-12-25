@@ -13,7 +13,6 @@ let requestInfo = {
 // Set the request info to use for future Pixiv API calls.
 export function setPixivRequestInfo({csrfToken, userId, fetch})
 {
-    console.log(csrfToken, userId);
     requestInfo.csrfToken = csrfToken;
     requestInfo.userId = userId;
     requestInfo.fetch = fetch;

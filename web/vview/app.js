@@ -1,4 +1,3 @@
-import { VirtualHistory } from 'vview/misc/helpers.js';
 import InstallPolyfills from 'vview/misc/polyfills.js';
 import WhatsNew from 'vview/widgets/whats-new.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
@@ -21,6 +20,7 @@ import GuessImageURL from 'vview/misc/guess-image-url.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import PointerListener from 'vview/actors/pointer-listener.js';
 import { getUrlForMediaId } from 'vview/misc/media-ids.js'
+import VirtualHistory from 'vview/util/virtual-history.js';
 import * as DataSources from 'vview/data-sources/all.js';
 
 // This is the main top-level app controller.
@@ -42,13 +42,13 @@ export default class App
             this._temporarilyHideDocument();
 
         // Wait for DOMContentLoaded.
-        await helpers.waitForContentLoaded();
+        await helpers.other.waitForContentLoaded();
 
         // Install polyfills.
         InstallPolyfills();
 
         // Create singletons.
-        ppixiv.phistory = new VirtualHistory();
+        ppixiv.phistory = new VirtualHistory({ permanent: ppixiv.mobile });
         ppixiv.settings = new Settings();
         ppixiv.mediaCache = new MediaCache();
         ppixiv.userCache = new UserCache();
@@ -317,7 +317,7 @@ export default class App
         helpers.html.setClass(document.documentElement, "mobile", ppixiv.mobile);
         helpers.html.setClass(document.documentElement, "ios", ppixiv.ios);
         helpers.html.setClass(document.documentElement, "android", ppixiv.android);
-        helpers.html.setClass(document.documentElement, "phone", helpers.is_phone());
+        helpers.html.setClass(document.documentElement, "phone", helpers.other.isPhone());
         document.documentElement.dataset.orientation = window.orientation ?? "0";
         helpers.html.setDataSet(document.documentElement.dataset, "hasBottomInset", insets.bottom > 0);
 

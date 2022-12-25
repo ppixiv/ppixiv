@@ -160,7 +160,7 @@ export default class VideoUI extends Widget
     _setSeekBarPos()
     {
         // Insert the seek bar into the correct container.
-        let top = ppixiv.mobile || !helpers.is_fullscreen();
+        let top = ppixiv.mobile || !helpers.isFullscreen();
         this.seekBar.container.remove();
         let seekBarContainer = top? ".seek-bar-container-top":".seek-bar-container-bottom";
         this.container.querySelector(seekBarContainer).appendChild(this.seekBar.container);

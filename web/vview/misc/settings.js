@@ -91,7 +91,7 @@ export default class Settings extends EventTarget
 
         this._clearCacheQueued = true;
         try {
-            await helpers.sleep(0);
+            await helpers.other.sleep(0);
             this.cache = {};
         } finally {
             this._clearCacheQueued = false;

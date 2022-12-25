@@ -89,15 +89,15 @@ export default class FixChromeClicks
         if(this.pressedNode == null)
             return;
 
-        var pressedNode = this.pressedNode;
+        let pressedNode = this.pressedNode;
 
         // The button was released.  Unregister our temporary event listeners.
         this.stopWaitingForRelease();
 
         // console.log("released:", e.target.id, "after click on", pressedNode.id);
 
-        var releasedNode = e.target;
-        var clickTarget = null;
+        let releasedNode = e.target;
+        let clickTarget = null;
         if(helpers.html.isAbove(releasedNode, pressedNode))
             clickTarget = releasedNode;
         else if(helpers.html.isAbove(pressedNode, releasedNode))
@@ -153,7 +153,7 @@ export default class FixChromeClicks
 
     sendClickEvent(target, sourceEvent)
     {
-        var e = new MouseEvent("click", sourceEvent);
+        let e = new MouseEvent("click", sourceEvent);
         e.synthetic = true;
         target.dispatchEvent(e);
     }

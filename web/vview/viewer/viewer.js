@@ -17,7 +17,7 @@ export default class Viewer extends Widget
         // This promise will be fulfilled with true once the viewer is displaying something,
         // so any previous viewer can be removed without flashing a blank screen.  It'll be
         // fulfilled with false if we're shut down before that happens.
-        this.ready = helpers.makePromise();
+        this.ready = helpers.other.makePromise();
     }
 
     shutdown()

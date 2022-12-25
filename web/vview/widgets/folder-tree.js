@@ -128,7 +128,7 @@ class TreeWidget extends Widget
         {
             // Remove the hover, and clear the image so it doesn't flicker the next time
             // we display it.
-            img.src = helpers.blankImage;
+            img.src = helpers.other.blankImage;
             this._labelPopup.remove();
             this._thumbPopup.remove();
             return;

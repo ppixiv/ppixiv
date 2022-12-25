@@ -117,7 +117,7 @@ export default class PropertyAnimation
         let startTime = Date.now();
         while(1)
         {
-            await helpers.vsync();
+            await helpers.other.vsync();
 
             // Stop if the animation state changed while we were async.
             if(token !== this._playToken)

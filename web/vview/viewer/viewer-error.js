@@ -44,7 +44,7 @@ export default class ViewerError extends Viewer
         if(slideshow && onnextimage)
         {
             let slideshowTimer = this._slideshowTimer = (async() => {
-                await helpers.sleep(2000);
+                await helpers.other.sleep(2000);
                 if(slideshowTimer != this._slideshowTimer)
                     return;
 

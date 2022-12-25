@@ -359,7 +359,7 @@ class ImgResourceLoader extends ResourceLoader
         let img = document.createElement("img");
         img.src = this.url;
 
-        let result = await helpers.waitForImageLoad(img, this.abortController.signal);
+        let result = await helpers.other.waitForImageLoad(img, this.abortController.signal);
         if(result == "failed" && this.onerror)
             this.onerror();
     }

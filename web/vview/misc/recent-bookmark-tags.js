@@ -20,7 +20,7 @@ export default class RecentBookmarkTags
     {
         // Move the tags we're using to the top of the recent bookmark tag list.
         let recentBookmarkTags = this.getRecentBookmarkTags();
-        for(var i = 0; i < tagList.length; ++i)
+        for(let i = 0; i < tagList.length; ++i)
         {
             let idx = recentBookmarkTags.indexOf(tagList[i]);
             if(idx != -1)

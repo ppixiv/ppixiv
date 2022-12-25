@@ -359,7 +359,7 @@ export class Bookmarks extends DataSource_BookmarksBase
                 for(let p = 1; p <= this.totalPages; ++p)
                     this.shuffledPages.push(p);
 
-                helpers.shuffleArray(this.shuffledPages);
+                helpers.other.shuffleArray(this.shuffledPages);
             }
 
             if(page < this.shuffledPages.length)
@@ -374,7 +374,7 @@ export class Bookmarks extends DataSource_BookmarksBase
 
         // If we're shuffling, shuffle the individual illustrations too.
         if(this.shuffle)
-            helpers.shuffleArray(mediaIds);
+            helpers.other.shuffleArray(mediaIds);
         
         await ppixiv.mediaCache.addMediaInfosPartial(result.works, "normal");
 

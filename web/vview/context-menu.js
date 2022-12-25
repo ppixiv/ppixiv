@@ -1174,7 +1174,7 @@ export default class ContextMenu extends Widget
 
         this._buttonViewManga.dataset.popup = "View manga pages";
         helpers.html.setClass(this._buttonViewManga, "enabled", info?.pageCount > 1);
-        helpers.html.setClass(this._buttonFullscreen, "selected", helpers.is_fullscreen());
+        helpers.html.setClass(this._buttonFullscreen, "selected", helpers.isFullscreen());
 
         this._refreshTooltip();
 

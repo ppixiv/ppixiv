@@ -381,7 +381,7 @@ export default class DataSource extends EventTarget
         this.idList.addPage(page, mediaIds, {...options});
 
         // Send pageadded asynchronously to let listeners know we added the page.
-        helpers.defer(() => this.dispatchEvent(new Event("pageadded")));
+        helpers.other.defer(() => this.dispatchEvent(new Event("pageadded")));
     }
 
     // Send the "updated" event when we want to tell our parent that something has changed.

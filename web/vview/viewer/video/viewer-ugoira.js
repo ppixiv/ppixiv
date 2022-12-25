@@ -58,7 +58,7 @@ export default class ViewerUgoira extends ViewerVideoBase
         }
 
         // Fire this.ready when either preview finishes loading.
-        helpers.waitForAnyImageLoad([this.previewImage1, this.previewImage2]).then(() => this.ready.accept(true));
+        helpers.other.waitForAnyImageLoad([this.previewImage1, this.previewImage2]).then(() => this.ready.accept(true));
 
         // Load full data.
         let { slideshow=false, onnextimage=null } = this.options;
@@ -196,7 +196,7 @@ export default class ViewerUgoira extends ViewerVideoBase
 
             // Wait for the high-res image to finish loading.
             let img1 = this.previewImage1;
-            helpers.waitForImageLoad(img2).then(() => {
+            helpers.other.waitForImageLoad(img2).then(() => {
                 // Remove the low-res preview image when the high-res one finishes loading.
                 img1.remove();
             });

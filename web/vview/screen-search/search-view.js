@@ -107,7 +107,7 @@ export default class SearchView extends Widget
             if(e.button != 0)
                 return;
 
-            var a = e.target.closest("a.thumbnail-link");
+            let a = e.target.closest("a.thumbnail-link");
             if(a == null)
                 return;
 
@@ -538,8 +538,8 @@ export default class SearchView extends Widget
             // Skip this if the result is too far apart, so if the new results aren't similar
             // to the old ones, we won't try to load thousands of results.  This can happen on
             // shuffled searches.
-            let firstIdx = helpers.findFirstIdx(args.state.scroll.nearbyMediaIds, allMediaIds);
-            let lastIdx = helpers.findLastIdx(args.state.scroll.nearbyMediaIds, allMediaIds);
+            let firstIdx = helpers.other.findFirstIdx(args.state.scroll.nearbyMediaIds, allMediaIds);
+            let lastIdx = helpers.other.findLastIdx(args.state.scroll.nearbyMediaIds, allMediaIds);
             if(firstIdx != -1 && lastIdx != -1 && Math.abs(firstIdx - lastIdx) < 100)
             {
                 startIdx = firstIdx;
@@ -746,7 +746,7 @@ export default class SearchView extends Widget
         let desiredSize = ppixiv.settings.get(isMangaView? "manga-thumbnail-size":"thumbnail-size", 4);
         desiredSize = MenuOptionsThumbnailSizeSlider.thumbnailSizeForValue(desiredSize);
 
-        let {columns, padding, thumbWidth, thumbHeight, containerWidth} = helpers.makeThumbnailSizingStyle({
+        let {columns, padding, thumbWidth, thumbHeight, containerWidth} = SearchView.makeThumbnailSizingStyle({
             container: this.thumbnailBox,
             desiredSize,
             ratio: this.dataSource.getThumbnailAspectRatio(),
@@ -917,6 +917,87 @@ export default class SearchView extends Widget
         // this.sanityCheckThumbList();
     }
 
+    // Based on the dimensions of the container and a desired pixel size of thumbnails,
+    // figure out how many columns to display to bring us as close as possible to the
+    // desired size.  Return the corresponding CSS style attributes.
+    //
+    // container is the containing block (eg. ul.thumbnails).
+    static makeThumbnailSizingStyle({
+        container,
+        minPadding,
+        desiredSize=300,
+        ratio=null,
+        maxColumns=5,
+    }={})
+    {
+        // The total pixel size we want each thumbnail to have:
+        ratio ??= 1;
+
+        let desiredPixels = desiredSize*desiredSize;
+
+        // The container might have a fractional size, and clientWidth will round it, which is
+        // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
+        // won't actually fit.  Get the bounding box instead, which isn't rounded.
+        // let containerWidth = container.parentNode.clientWidth;
+        let containerWidth = Math.floor(container.parentNode.getBoundingClientRect().width);
+        let padding = minPadding;
+        
+        let closestErrorToDesiredPixels = -1;
+        let bestSize = [0,0];
+        let bestColumns = 0;
+
+        // Find the greatest number of columns we can fit in the available width.
+        for(let columns = maxColumns; columns >= 1; --columns)
+        {
+            // The amount of space in the container remaining for images, after subtracting
+            // the padding around each image.  Padding is the flex gap, so this doesn't include
+            // padding at the left and right edge.
+            let remainingWidth = containerWidth - padding*(columns-1);
+            let maxWidth = remainingWidth / columns;
+
+            let maxHeight = maxWidth;
+            if(ratio < 1)
+                maxWidth *= ratio;
+            else if(ratio > 1)
+                maxHeight /= ratio;
+
+            maxWidth = Math.floor(maxWidth);
+            maxHeight = Math.floor(maxHeight);
+
+            let pixels = maxWidth * maxHeight;
+            let error = Math.abs(pixels - desiredPixels);
+            if(closestErrorToDesiredPixels == -1 || error < closestErrorToDesiredPixels)
+            {
+                closestErrorToDesiredPixels = error;
+                bestSize = [maxWidth, maxHeight];
+                bestColumns = columns;
+            }
+        }
+
+        let [thumbWidth, thumbHeight] = bestSize;
+
+        // If we want a smaller thumbnail size than we can reach within the max column
+        // count, we won't have reached desiredPixels.  In this case, just clamp to it.
+        // This will cause us to use too many columns, which we'll correct below with
+        // containerWidth.
+        //
+        // On mobile, just allow the thumbnails to be bigger, so we prefer to fill the
+        // screen and not waste screen space.
+        if(!ppixiv.mobile && thumbWidth * thumbHeight > desiredPixels)
+        {
+            thumbHeight = thumbWidth = Math.round(Math.sqrt(desiredPixels));
+
+            if(ratio < 1)
+                thumbWidth *= ratio;
+            else if(ratio > 1)
+                thumbHeight /= ratio;
+        }
+
+        // Clamp the width of the container to the number of columns we expect.
+        containerWidth = bestColumns*thumbWidth + (bestColumns-1)*padding;
+        return {columns: bestColumns, padding, thumbWidth, thumbHeight, containerWidth};
+    }
+    
     sanityCheckThumbList()
     {
         let actual = [];
@@ -1274,7 +1355,88 @@ export default class SearchView extends Widget
         let thumbAspectRatio = this.dataSource.getThumbnailAspectRatio() ?? 1;
 
         // console.log(`Thumbnail ${mediaId} loaded at ${cause}: ${width} ${height} ${thumb.src}`);
-        helpers.createThumbnailAnimation(thumb, width, height, thumbAspectRatio);
+        SearchView.createThumbnailAnimation(thumb, width, height, thumbAspectRatio);
+    }
+
+    // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
+    // If the aspect ratio is portrait, use vertical panning.
+    // If the aspect ratio is landscape, use horizontal panning.
+    //
+    // If it's in between, don't pan at all, since we don't have anywhere to move and it can just
+    // make the thumbnail jitter in place.
+    //
+    // Don't pan muted images.
+    //
+    // containerAspectRatio is the aspect ratio of the box the thumbnail is in.  If the
+    // thumb is in a 2:1 landscape box, we'll adjust the min and max aspect ratio accordingly.
+    static getThumbnailPanningDirection(thumb, width, height, containerAspectRatio)
+    {
+        // Disable panning if we don't have the image size.  Local directory thumbnails
+        // don't tell us the dimensions in advance.
+        if(width == null || height == null)
+        {
+            helpers.html.setClass(thumb, "vertical-panning", false);
+            helpers.html.setClass(thumb, "horizontal-panning", false);
+            return null;
+        }
+
+        let aspectRatio = width / height;
+        aspectRatio /= containerAspectRatio;
+        let minAspectForPan = 1.1;
+        let maxAspectForPan = 4;
+        if(aspectRatio > (1/maxAspectForPan) && aspectRatio < 1/minAspectForPan)
+            return "vertical";
+        else if(aspectRatio > minAspectForPan && aspectRatio < maxAspectForPan)
+            return "horizontal";
+        else
+            return null;
+    }
+
+    static createThumbnailAnimation(thumb, width, height, containerAspectRatio)
+    {
+        if(ppixiv.mobile)
+            return null;
+
+        // Create the animation, or update it in-place if it already exists, probably due to the
+        // window being resized.  total_time won't be updated when we do this.
+        let direction = this.getThumbnailPanningDirection(thumb, width, height, containerAspectRatio);
+        if(thumb.panAnimation != null || direction == null)
+            return null;
+
+        let keyframes = direction == "horizontal"?
+        [
+            // This starts in the middle, pans left, pauses, pans right, pauses, returns to the
+            // middle, then pauses again.
+            { offset: 0.0, easing: "ease-in-out", objectPosition: "left top" }, // left
+            { offset: 0.4, easing: "ease-in-out", objectPosition: "right top" }, // pan right
+            { offset: 0.5, easing: "ease-in-out", objectPosition: "right top" }, // pause
+            { offset: 0.9, easing: "ease-in-out", objectPosition: "left top" }, // pan left
+            { offset: 1.0, easing: "ease-in-out", objectPosition: "left top" }, // pause
+        ]:
+        [
+            // This starts at the top, pans down, pauses, pans back up, then pauses again.
+            { offset: 0.0, easing: "ease-in-out", objectPosition: "center top" },
+            { offset: 0.4, easing: "ease-in-out", objectPosition: "center bottom" },
+            { offset: 0.5, easing: "ease-in-out", objectPosition: "center bottom" },
+            { offset: 0.9, easing: "ease-in-out", objectPosition: "center top" },
+            { offset: 1.0, easing: "ease-in-out", objectPosition: "center top" },
+        ];
+    
+        let animation = new Animation(new KeyframeEffect(thumb, keyframes, {
+            duration: 4000,
+            iterations: Infinity,
+            
+            // The full animation is 4 seconds, and we want to start 20% in, at the halfway
+            // point of the first left-right pan, where the pan is exactly in the center where
+            // we are before any animation.  This is different from vertical panning, since it
+            // pans from the top, which is already where we start (top center).
+            delay: direction == "horizontal"? -800:0,
+        }));
+
+        animation.id = direction == "horizontal"? "horizontal-pan":"vertical-pan";
+        thumb.panAnimation = animation;
+
+        return animation;
     }
 
     // element is a thumbnail element.  On mouseover, start the pan animation, and create
@@ -1360,7 +1522,7 @@ export default class SearchView extends Widget
         if(this.dataSource && this.dataSource.name == "manga")
             return;
 
-        var mediaId = thumbnailElement.dataset.id;
+        let mediaId = thumbnailElement.dataset.id;
         if(mediaId == null)
             return;
 

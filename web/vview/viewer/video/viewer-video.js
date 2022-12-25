@@ -101,7 +101,7 @@ export default class ViewerVideo extends ViewerVideoBase
         let img = document.createElement("img");
         img.src = this.video.poster;
         let decode = img.decode();
-        let canplay = helpers.waitForEvent(this.video, "loadeddata");
+        let canplay = helpers.other.waitForEvent(this.video, "loadeddata");
 
         // Wait for at least one to complete.
         await Promise.any([canplay, decode]);
@@ -176,7 +176,7 @@ export default class ViewerVideo extends ViewerVideoBase
             if(!this.video)
                 return;
 
-            var speed;
+            let speed;
             switch(e.code)
             {
             case "Digit1": speed = 0.10; break;

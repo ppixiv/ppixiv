@@ -96,7 +96,7 @@ export default class Widget extends Actor
         this._visible = visible;
         this.applyVisibility();
 
-        helpers.defer(() => {
+        helpers.other.defer(() => {
             this.visibilityChanged();
             this.refresh();
         });

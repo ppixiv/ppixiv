@@ -62,7 +62,7 @@ export default class SendImage
 
         // Make a new ID, and save it to the session.  This helps us keep the same ID
         // when we're reloaded.
-        storage.ppixivTabId = helpers.createUuid();
+        storage.ppixivTabId = helpers.other.createUuid();
         return storage.ppixivTabId;
     }
 
@@ -402,7 +402,7 @@ export class LinkTabsPopup extends Widget
             return;
         }
 
-        helpers.interval(this.sendLinkTabMessage, 1000, this.visibilityAbort.signal);
+        helpers.other.interval(this.sendLinkTabMessage, 1000, this.visibilityAbort.signal);
 
         // Refresh the "unlink all tabs" button on other tabs when the linked tab list changes.
         ppixiv.settings.addEventListener("linked_tabs", this.sendLinkTabMessage, { signal: this.visibilityAbort.signal });
@@ -546,7 +546,7 @@ export class SendImagePopup extends DialogWidget
 
         // Periodically send show-send-image to tell other tabs to show SendHerePopup.
         // If they're clicked, they'll send take-image.
-        helpers.interval(() => {
+        helpers.other.interval(() => {
             // We should always be visible when this is called.
             console.assert(this.visible);
 

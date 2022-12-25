@@ -253,7 +253,7 @@ export default class DialogWidget extends Widget
 
     refreshFullscreen = () =>
     {
-        helpers.html.setClass(this.container, "fullscreen", helpers.is_phone() && !this.small);
+        helpers.html.setClass(this.container, "fullscreen", helpers.other.isPhone() && !this.small);
     }
 
     visibilityChanged()

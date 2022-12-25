@@ -301,7 +301,7 @@ export default class ViewerImages extends Viewer
                 decodePromise = this._decodeImage(this._imageContainer);
 
                 // See if it finishes quickly.
-                imageReady = await helpers.awaitWithTimeout(decodePromise, 50) != "timed-out";
+                imageReady = await helpers.other.awaitWithTimeout(decodePromise, 50) != "timed-out";
             }
             signal.check();
         }
@@ -339,7 +339,7 @@ export default class ViewerImages extends Viewer
             // Don't pass our abort signal to waitForImageLoad, since it'll clear the image on
             // cancellation.  We don't want that here, since it'll interfere if we're just refreshing
             // and we'll clear the image ourselves when we're actually shut down.
-            let result = await helpers.waitForImageLoad(this._imageContainer.mainImage);
+            let result = await helpers.other.waitForImageLoad(this._imageContainer.mainImage);
             if(result != null)
                 return;
 
@@ -1509,7 +1509,7 @@ export default class ViewerImages extends Viewer
 
 // A helper that holds all of the images that we display together.
 //
-// Beware of a Firefox bug: if we set the image to helpers.blankImage to prevent it
+// Beware of a Firefox bug: if we set the image to helpers.other.blankImage to prevent it
 // from being shown as a broken image initially, image.decode() breaks and always resolves
 // immediately for the new image.
 class ImagesContainer extends Widget
@@ -1537,14 +1537,14 @@ class ImagesContainer extends Widget
         // help Chrome with GC delays.
         if(this.mainImage)
         {
-            this.mainImage.src = helpers.blankImage;
+            this.mainImage.src = helpers.other.blankImage;
             this.mainImage.remove();
             this.mainImage = null;
         }
 
         if(this.previewImage)
         {
-            this.previewImage.src = helpers.blankImage;
+            this.previewImage.src = helpers.other.blankImage;
             this.previewImage.remove();
             this.previewImage = null;
         }

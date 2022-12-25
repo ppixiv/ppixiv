@@ -57,7 +57,7 @@ export default class PixivUgoiraDownloader
         let firstFrameURL = URL.createObjectURL(blob);
         img.src = firstFrameURL;
 
-        await helpers.waitForImageLoad(img);
+        await helpers.other.waitForImageLoad(img);
 
         URL.revokeObjectURL(firstFrameURL);
         let width = img.naturalWidth;

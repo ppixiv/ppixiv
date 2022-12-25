@@ -714,7 +714,7 @@ export default class MediaCache extends EventTarget
             return;
 
         this.userProfileUrls[userId] = url;
-        helpers.preloadImages([url]);
+        helpers.other.preloadImages([url]);
     }
 
     // Helpers

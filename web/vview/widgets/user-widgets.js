@@ -133,7 +133,7 @@ export class AvatarWidget extends Widget
             // Set the avatar image to a blank image, so it doesn't flash the previous image
             // the next time we display it.  It should never do this, since we set a new image
             // before displaying it, but Chrome doesn't do this correctly at least with canvas.
-            this.img.src = helpers.blankImage;
+            this.img.src = helpers.other.blankImage;
             return;
         }
 
@@ -171,7 +171,7 @@ export class AvatarWidget extends Widget
         if(this.userData[key])
             this.img.src = this.userData[key];
         else
-            this.img.src = helpers.blankImage;
+            this.img.src = helpers.other.blankImage;
     }
 };
 
@@ -219,7 +219,7 @@ class ImageCanvasFilter
     clear()
     {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this._currentUrl = helpers.blankImage;
+        this._currentUrl = helpers.other.blankImage;
     }
 
     _updateCanvas = () =>
@@ -228,7 +228,7 @@ class ImageCanvasFilter
         // URL instead, since we're just going to clear.
         let currentUrl = this.img.src;
         if(!this.img.complete)
-            currentUrl = helpers.blankImage;
+            currentUrl = helpers.other.blankImage;
 
         if(currentUrl == this._currentUrl)
             return;
@@ -242,7 +242,7 @@ class ImageCanvasFilter
         this._currentUrl = currentUrl;
 
         // If we're rendering the blank image (or an incomplete image), stop.
-        if(currentUrl == helpers.blankImage)
+        if(currentUrl == helpers.other.blankImage)
             return;
 
         // Draw the image onto the canvas.

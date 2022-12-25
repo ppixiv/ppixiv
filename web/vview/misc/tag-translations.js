@@ -160,7 +160,7 @@ export default class TagTranslations
         let tagList = [];
         for(let tag of splitTags)
         {
-            let [prefix, unprefixedTag] = helpers.splitTagPrefixes(tag);
+            let [prefix, unprefixedTag] = helpers.pixiv.splitTagPrefixes(tag);
             tagList.push(unprefixedTag);
         }
 
@@ -171,7 +171,7 @@ export default class TagTranslations
         let result = [];
         for(let oneTag of splitTags)
         {
-            let prefixAndTag = helpers.splitTagPrefixes(oneTag);
+            let prefixAndTag = helpers.pixiv.splitTagPrefixes(oneTag);
             let prefix = prefixAndTag[0];
             let tag = prefixAndTag[1];
             if(translatedTags[tag])

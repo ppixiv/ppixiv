@@ -247,7 +247,7 @@ export default class TouchScroller
         let previousTime = Date.now() / 1000;
         while(this._state == "animating")
         {
-            let success = await helpers.vsync({ signal });
+            let success = await helpers.other.vsync({ signal });
             if(!success)
                 return;
 

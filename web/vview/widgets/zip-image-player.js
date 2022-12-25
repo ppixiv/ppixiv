@@ -202,7 +202,7 @@ export default class ZipImagePlayer
             let image = document.createElement("img");
             image.src = url;
 
-            await helpers.waitForImageLoad(image);
+            await helpers.other.waitForImageLoad(image);
 
             URL.revokeObjectURL(url);
 

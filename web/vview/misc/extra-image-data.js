@@ -68,7 +68,7 @@ export default class ExtraImageData
                 if(data)
                     promises[mediaId] = data;
             }
-            return await helpers.awaitMap(promises);
+            return await helpers.other.awaitMap(promises);
         }) ?? {};
     }
 
@@ -121,7 +121,7 @@ export default class ExtraImageData
                 })();
             }
 
-            return await helpers.awaitMap(promises);
+            return await helpers.other.awaitMap(promises);
         }) ?? {};
     }
 

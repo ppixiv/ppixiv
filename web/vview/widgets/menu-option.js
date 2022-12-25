@@ -229,7 +229,7 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
     {
         super.refresh();
 
-        var value = this.value;
+        let value = this.value;
         if(this.options.invertDisplay)
             value = !value;
 

@@ -22,7 +22,7 @@ export default class DesktopSearchUI extends Widget
 
                 <a href=# class=image-for-suggestions>
                     <!-- A blank image, so we don't load anything: -->
-                    <img src="${helpers.blankImage}">
+                    <img src="${helpers.other.blankImage}">
                 </a>
 
                 <div class=title-with-button-row-container>
@@ -195,7 +195,7 @@ export default class DesktopSearchUI extends Widget
             this.imageForSuggestions.href = imageLinkUrl ?? "#";
 
             let img = this.imageForSuggestions.querySelector(".image-for-suggestions > img");
-            img.src = imageUrl ?? helpers.blankImage;
+            img.src = imageUrl ?? helpers.other.blankImage;
 
             this.avatarWidget.visible = userId != null;
             this.avatarWidget.setUserId(userId);

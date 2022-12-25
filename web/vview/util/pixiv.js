@@ -1,6 +1,3 @@
-import Args from 'vview/util/args.js';
-
-
 // Return true if the given illust_data.tags contains the pixel art (ドット絵) tag.
 export function tagsContainDot(tagList)
 {
@@ -12,6 +9,16 @@ export function tagsContainDot(tagList)
             return true;
 
     return false;
+}
+
+// If a tag has a modifier, return [modifier, tag].  -tag seems to be the only one, so
+// we return ["-", "tag"].
+export function splitTagPrefixes(tag)
+{
+    if(tag[0] == "-")
+        return ["-", tag.substr(1)];
+    else
+        return ["", tag];
 }
 
 // Some of Pixiv's URLs have languages prefixed and some don't.  Ignore these and remove
@@ -119,7 +126,6 @@ export function getPageTypeFromUrl(url)
     let parts = url.pathname.split("/");
     return parts[1];
 }
-    
 
 // The inverse of getArgsForTagSearch:
 export function getTagSearchFromArgs(url)

@@ -55,7 +55,7 @@ export default class DirectAnimation
         // If we're exiting finished, create a new finished promise.
         if(this.finished == null || this._playState == "finished")
         {
-            this.finished = helpers.makePromise();
+            this.finished = helpers.other.makePromise();
 
             // Catch this promise by default, so errors aren't logged to the console every time
             // an animation is cancelled.
@@ -137,7 +137,7 @@ export default class DirectAnimation
             let delta;
             while(1)
             {
-                await helpers.vsync();
+                await helpers.other.vsync();
 
                 // Stop if the animation state changed while we were async.
                 if(token !== this._playToken)
