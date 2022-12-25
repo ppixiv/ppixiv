@@ -21,7 +21,7 @@ import ImagePreloader from "vview/misc/image-preloader.js";
 import IsolatedTapHandler from 'vview/actors/isolated-tap-handler.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import MobileDoubleTapHandler from 'vview/actors/mobile-double-tap-handler.js';
-import { HideMouseCursorOnIdle } from "vview/util/hide-mouse-cursor-on-idle.js";
+import { HideMouseCursorOnIdle } from "vview/misc/hide-mouse-cursor-on-idle.js";
 import { helpers } from 'vview/misc/helpers.js';
 
 // The main UI.  This handles creating the viewers and the global UI.

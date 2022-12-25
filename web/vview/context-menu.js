@@ -10,7 +10,7 @@
 
 import Widget from 'vview/widgets/widget.js';
 import { BookmarkButtonWidget, BookmarkCountWidget, LikeButtonWidget, LikeCountWidget } from 'vview/widgets/illust-widgets.js';
-import { HideMouseCursorOnIdle } from 'vview/util/hide-mouse-cursor-on-idle.js';
+import { HideMouseCursorOnIdle } from 'vview/misc/hide-mouse-cursor-on-idle.js';
 import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
