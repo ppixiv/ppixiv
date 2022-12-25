@@ -216,13 +216,13 @@ export default class Actor extends EventTarget
     // along with the parent.
     get visibleRecursively()
     {
-        for(let node of this.ancestors({includeSelf: true}))
-        {
-            if(!node.visible)
-                return false;
-        }
+        if(!this.visible)
+            return false;
 
-        return true;
+        if(this.parent == null)
+            return true;
+        
+        return this.parent.visibleRecursively;
     }
 
     // Call visibleRecursivelyChanged on the hierarchy.
