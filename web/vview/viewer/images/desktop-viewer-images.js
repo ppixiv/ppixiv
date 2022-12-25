@@ -1,6 +1,6 @@
 import ViewerImages from 'vview/viewer/images/viewer-images.js';
 import PointerListener from 'vview/actors/pointer-listener.js';
-import { TrackMouseMovement } from 'vview/util/hide-mouse-cursor-on-idle.js';
+import { HideMouseCursorOnIdle } from 'vview/util/hide-mouse-cursor-on-idle.js';
 import { ClassFlags } from 'vview/misc/helpers.js';
 
 // This subclass implements our desktop pan/zoom UI.
@@ -75,7 +75,7 @@ export default class ViewerImagesDesktop extends ViewerImages
             // Tell HideMouseCursorOnIdle that the mouse cursor should be hidden, even though the
             // cursor may have just been moved.  This prevents the cursor from appearing briefly and
             // disappearing every time a zoom is released.
-            TrackMouseMovement.singleton.simulateInactivity();
+            HideMouseCursorOnIdle.simulateInactivity();
            
             this.stopDragging();
         }

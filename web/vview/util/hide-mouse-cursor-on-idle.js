@@ -5,8 +5,7 @@
 
 import { helpers } from 'vview/misc/helpers.js';
 
-// XXX: don't need to expose this
-export class TrackMouseMovement
+class TrackMouseMovement
 {
     constructor()
     {
@@ -121,6 +120,12 @@ export class TrackMouseMovement
 export class HideMouseCursorOnIdle
 {
     static instances = new Set();
+
+    static simulateInactivity()
+    {
+        TrackMouseMovement.singleton.simulateInactivity();
+    }
+
     constructor(element)
     {
         if(ppixiv.mobile)
