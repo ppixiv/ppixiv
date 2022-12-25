@@ -200,24 +200,6 @@ export function waitForImageLoad(img, signal)
     });
 }
 
-// Wait for any image in images to finish loading.  If images is empty, return
-// immediately.
-export async function waitForAnyImageLoad(images, signal)
-{
-    let promises = [];
-    for(let image of images)
-    {
-        if(image == null)
-            continue;
-        promises.push(waitForImageLoad(image, signal));
-    }
-
-    if(promises.length == 0)
-        return null;
-
-    await Promise.race([...promises]);
-}
-
 // Wait until img.naturalWidth/naturalHeight are available.
 //
 // There's no event to tell us that img.naturalWidth/naturalHeight are

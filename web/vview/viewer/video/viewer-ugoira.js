@@ -34,31 +34,29 @@ export default class ViewerUgoira extends ViewerVideoBase
     {
         // Show a static image while we're waiting for the video to load, like ViewerImages.
         //
-        // Pixiv gives us two usable images: the search thumbnail (previewUrls[0] + urls.small),
-        // and urls.original, which is a full-size frame of the first frame.  We'll show the
-        // thumbnail immediately if we have early illust data to avoid flickering a black screen,
-        // then switch to urls.original once we have it to get away from the blurry thumbnail.
-        //
         // Vview has two types of image for videos: thumbs (urls.small) and posters (urls.poster).
         // The thumbnail is a few seconds into the video to avoid completely black thumbs, so we
         // don't want to use it here.  Only use the poster image, so it matches up with the start
         // of the video.
         //
-        // First, show the thumbnail if we're on Pixiv:
+        // Load partial media info if available to show the low-res preview quickly.  This is a
+        // simpler version of what ViewerImages does.
         let local = helpers.mediaId.isLocal(this.mediaId);
-        if(!local)
+        let partialMediaInfo = await ppixiv.mediaCache.getMediaInfoSync(this.mediaId, { full: false });
+        if(partialMediaInfo)
         {
-            // Load early data to show the low-res preview quickly.  This is a simpler version of
-            // what ViewerImages does.
-            let loadSentinel = this._loadSentinel = new Object();
-            let partialMediaInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId, { full: false });
-            if(loadSentinel !== this._loadSentinel)
-                return;
-            this._createPreviewImages(partialMediaInfo.previewUrls[0], null);
-        }
+            if(local)
+                this._createPreviewImage(this.mediaInfo.urls.poster, null);
+            else
+                this._createPreviewImage(partialMediaInfo.previewUrls[0], null);
 
-        // Fire this.ready when either preview finishes loading.
-        helpers.other.waitForAnyImageLoad([this.previewImage1, this.previewImage2]).then(() => this.ready.accept(true));
+            // Fire this.ready when the preview finishes loading.
+            helpers.other.waitForImageLoad(this.previewImage).then(() => this.ready.accept(true));
+        }
+        else
+        {
+            this.ready.accept(true);
+        }
 
         // Load full data.
         let { slideshow=false, onnextimage=null } = this.options;
@@ -68,12 +66,6 @@ export default class ViewerUgoira extends ViewerVideoBase
         });
         if(loadSentinel !== this._loadSentinel)
             return;
-
-        // Now show the poster if we're local, or change to the original image on Pixiv.
-        if(local)
-            this._createPreviewImages(this.mediaInfo.urls.poster, null);
-        else
-            this._createPreviewImages(this.mediaInfo.previewUrls[0], this.mediaInfo.urls.original);
 
         // This can be used to abort ZipImagePlayer's download.
         this.abortController = new AbortController;
@@ -134,72 +126,40 @@ export default class ViewerUgoira extends ViewerVideoBase
             this.player = null;
         }
 
-        if(this.previewImage1)
+        if(this.previewImage)
         {
-            this.previewImage1.remove();
-            this.previewImage1 = null;
-        }
-        if(this.previewImage2)
-        {
-            this.previewImage2.remove();
-            this.previewImage2 = null;
+            this.previewImage.remove();
+            this.previewImage = null;
         }
     }
 
-    async _createPreviewImages(url1, url2)
+    async _createPreviewImage(url)
     {
-        if(this.previewImage1)
+        if(this.previewImage)
         {
-            this.previewImage1.remove();
-            this.previewImage1 = null;
-        }
-
-        if(this.previewImage2)
-        {
-            this.previewImage2.remove();
-            this.previewImage2 = null;
+            this.previewImage.remove();
+            this.previewImage = null;
         }
         
         // Create an image to display the static image while we load.
         //
         // Like static image viewing, load the thumbnail, then the main image on top, since
         // the thumbnail will often be visible immediately.
-        if(url1)
+        if(url)
         {
-            let img1 = document.createElement("img");
-            img1.classList.add("low-res-preview");
-            img1.style.position = "absolute";
-            img1.style.width = "100%";
-            img1.style.height = "100%";
-            img1.style.objectFit = "contain";
-            img1.src = url1;
-            this.videoContainer.appendChild(img1);
-            this.previewImage1 = img1;
+            let img = document.createElement("img");
+            img.classList.add("low-res-preview");
+            img.style.position = "absolute";
+            img.style.width = "100%";
+            img.style.height = "100%";
+            img.style.objectFit = "contain";
+            img.src = url;
+            this.videoContainer.appendChild(img);
+            this.previewImage = img;
 
             // Allow clicking the previews too, so if you click to pause the video before it has enough
             // data to start playing, it'll still toggle to paused.
-            img1.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
-        }
-
-        if(url2)
-        {
-            let img2 = document.createElement("img");
-            img2.style.position = "absolute";
-            img2.className = "filtering";
-            img2.style.width = "100%";
-            img2.style.height = "100%";
-            img2.style.objectFit = "contain";
-            img2.src = url2;
-            this.videoContainer.appendChild(img2);
-            img2.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
-            this.previewImage2 = img2;
-
-            // Wait for the high-res image to finish loading.
-            let img1 = this.previewImage1;
-            helpers.other.waitForImageLoad(img2).then(() => {
-                // Remove the low-res preview image when the high-res one finishes loading.
-                img1.remove();
-            });
+            img.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
         }
     }
 
@@ -225,10 +185,8 @@ export default class ViewerUgoira extends ViewerVideoBase
     // flicker when the first frame is drawn.
     ontimeupdate = () =>
     {
-        if(this.previewImage1)
-            this.previewImage1.hidden = true;
-        if(this.previewImage2)
-            this.previewImage2.hidden = true;
+        if(this.previewImage)
+            this.previewImage.hidden = true;
         this.video.hidden = false;
 
         this.updateSeekBar();
