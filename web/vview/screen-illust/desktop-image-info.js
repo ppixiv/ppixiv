@@ -84,15 +84,10 @@ export default class DesktopImageInfo extends Widget
 
             <div class=button-container>
                 <!-- position: relative positions the bookmark count. -->
-                <div class="button icon-button button-bookmark public popup" data-bookmark-type=public style="position: relative;">
-                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                    <div class=count></div>
-                </div>
+                <vv-container class=bookmark-button-container data-bookmark-type=public></vv-container>
             </div>
 
-            <div class="button icon-button button-bookmark private popup button-container" data-bookmark-type=private>
-                <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-            </div>
+            <vv-container class="bookmark-button-container button-container" data-bookmark-type=private></vv-container>
             
             <div style="position: relative;">
                 <div class="button icon-button button-bookmark-tags popup" data-popup="Bookmark tags">
@@ -103,11 +98,7 @@ export default class DesktopImageInfo extends Widget
                 </div>
             </div>
 
-            <div class="button icon-button button-like enabled popup button-container" style="position: relative;">
-                <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
-
-                <div class=count></div>
-            </div>
+            <vv-container class="button-like-container button-container"></vv-container>
 
             <a class="similar-illusts-button popup pixiv-only" data-popup="Similar illustrations" href=#>
                 <div class=icon-button>
@@ -140,8 +131,9 @@ export default class DesktopImageInfo extends Widget
             <div class=ugoira-duration hidden></div>
             <div class=ugoira-frames hidden></div>
         </div>
-        
-        <div class="tag-list box-button-row"></div>
+
+        <vv-container class=tag-list-container></vv-container>
+
         <div class=description></div>
 
         <div class=manga-page-bar hidden></div>
@@ -162,19 +154,21 @@ export default class DesktopImageInfo extends Widget
         });
 
         this.tagListWidget = new TagListWidget({
-            contents: this.container.querySelector(".tag-list"),
+            container: this.container.querySelector(".tag-list-container")
         });
 
         ppixiv.mediaCache.addEventListener("mediamodified", this.refresh, { signal: this.shutdownSignal.signal });
         
         this.likeButton = new LikeButtonWidget({
-            contents: this.container.querySelector(".button-like"),
+            container: this.container.querySelector(".button-like-container"),
+            template: `
+                <div class="button icon-button button-like enabled popup button-container" style="position: relative;">
+                    <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
+                </div>
+            `
         });
         this.likeCountWidget = new LikeCountWidget({
-            contents: this.container.querySelector(".button-like .count"),
-        });
-        this.bookmarkCountWidget = new BookmarkCountWidget({
-            contents: this.container.querySelector(".button-bookmark .count"),
+            container: this.container.querySelector(".button-like"),
         });
         this.mangaPageBar = this.querySelector(".manga-page-bar");
 
@@ -182,9 +176,18 @@ export default class DesktopImageInfo extends Widget
         this.bookmarkButtons = [];
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
             this.bookmarkButtons.push(new BookmarkButtonWidget({
-                contents: a,
+                container: a,
+                template: `
+                    <div class="button icon-button button-bookmark popup ${a.dataset.bookmarkType}" style="position: relative;">
+                        <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                    </div>
+                `,
                 bookmarkType: a.dataset.bookmarkType,
             }));
+
+        this.bookmarkCountWidget = new BookmarkCountWidget({
+            container: this.container.querySelector(".button-bookmark"),
+        });
 
         let bookmarkTagsButton = this.container.querySelector(".button-bookmark-tags");
         this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({

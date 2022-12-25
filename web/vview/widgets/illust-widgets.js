@@ -80,6 +80,9 @@ export class BookmarkButtonWidget extends IllustWidget
     get neededData() { return "partial"; }
 
     constructor({
+        // The caller provides the template.
+        template=null,
+
         // "public", "private" or "delete"
         bookmarkType,
 
@@ -95,7 +98,11 @@ export class BookmarkButtonWidget extends IllustWidget
 
         ...options})
     {
-        super({...options});
+        console.assert(template != null),
+        super({
+            template,
+            ...options,
+        });
 
         this.bookmarkType = bookmarkType;
         this.toggleBookmark = toggleBookmark;
@@ -233,24 +240,18 @@ export class BookmarkButtonWidget extends IllustWidget
     }
 }
 
-// A trivial version of BookmarkButtonWidget that just displays if the image is bookmarked.
-export class ImageBookmarkedWidget extends IllustWidget
-{
-    get neededData() { return "partial"; }
-
-    refreshInternal({ mediaInfo })
-    {
-        let bookmarked = mediaInfo?.bookmarkData != null;
-        let privateBookmark = mediaInfo?.bookmarkData?.private;
-
-        helpers.html.setClass(this.container,  "enabled",     mediaInfo != null);
-        helpers.html.setClass(this.container,  "bookmarked",  bookmarked);
-        helpers.html.setClass(this.container,  "public",      !privateBookmark);
-    }
-}
-
 export class BookmarkCountWidget extends IllustWidget
 {
+    constructor({ ...options })
+    {
+        super({
+            ...options,
+            template: `
+                <div class=count></div>
+            `
+        });
+    }
+    
     refreshInternal({ mediaId, mediaInfo })
     {
         let text = "";
@@ -264,9 +265,17 @@ export class LikeButtonWidget extends IllustWidget
 {
     get neededData() { return "mediaId"; }
 
-    constructor(options)
+    constructor({
+        // The caller provides the template.
+        template=null,
+        ...options
+    })
     {
-        super(options);
+        console.assert(template != null),
+        super({
+            template,
+            ...options,
+        })
 
         this.container.addEventListener("click", this.clickedLike);
     }
@@ -296,6 +305,16 @@ export class LikeButtonWidget extends IllustWidget
 
 export class LikeCountWidget extends IllustWidget
 {
+    constructor({ ...options })
+    {
+        super({
+            ...options,
+            template: `
+                <div class=count></div>
+            `
+        });
+    }
+    
     async refreshInternal({ mediaId, mediaInfo })
     {
         let text = "";

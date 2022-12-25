@@ -1,7 +1,7 @@
 // The image UI for mobile.
 
 import Widget from 'vview/widgets/widget.js';
-import { BookmarkButtonWidget, ImageBookmarkedWidget } from 'vview/widgets/illust-widgets.js';
+import { BookmarkButtonWidget } from 'vview/widgets/illust-widgets.js';
 import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
 import { BookmarkTagListWidget } from 'vview/widgets/bookmark-tag-list.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
@@ -188,10 +188,7 @@ class IllustBottomMenuBar extends Widget
                     <span class=label>Loop</span>
                 </div>
 
-                <div class="item button-bookmark">
-                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                    <span class=label>Bookmark</span>
-                </div>
+                <vv-container class="bookmark-button-container"></vv-container>
 
                 <div class="item button-similar enabled">
                     ${ helpers.createIcon("ppixiv:suggestions") }
@@ -236,10 +233,8 @@ class IllustBottomMenuBar extends Widget
             this.parent.hide();
         });
 
-        this.buttonBookmark = this.container.querySelector(".button-bookmark");
-        this.bookmarkButtonWidget = new ImageBookmarkedWidget({
-            contents: this.buttonBookmark,
-        });
+        this.buttonBookmark = this.container.querySelector(".bookmark-button-container");
+        this.bookmarkButtonWidget = new ImageBookmarkedWidget({ container: this.buttonBookmark });
 
         this.buttonSlider = this.container.querySelector(".button-similar");
         this.buttonSlider.hidden = ppixiv.native;
@@ -349,23 +344,46 @@ class IllustBottomMenuBar extends Widget
     }
 }
 
+// IllustBottomMenuBar's bookmark button.
+class ImageBookmarkedWidget extends IllustWidget
+{
+    constructor({ ...options })
+    {
+        super({
+            ...options,
+            template: `
+                <div class="item button-bookmark public">
+                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                
+                    <vv-container class="button-bookmark-icon"></vv-container>
+                    <span class=label>Bookmark</span>
+                </div>
+            `
+        });
+    }
+
+    get neededData() { return "partial"; }
+
+    refreshInternal({ mediaInfo })
+    {
+        let bookmarked = mediaInfo?.bookmarkData != null;
+        let privateBookmark = mediaInfo?.bookmarkData?.private;
+
+        helpers.html.setClass(this.container,  "enabled",     mediaInfo != null);
+        helpers.html.setClass(this.container,  "bookmarked",  bookmarked);
+        helpers.html.setClass(this.container,  "public",      !privateBookmark);
+    }
+}
+
 class BookmarkTagDialog extends DialogWidget
 {
     constructor({mediaId, ...options})
     {
         super({...options, dialogClass: "mobile-tag-list", header: "Bookmark illustration", template: `
             <div class=menu-bar>
-                <div class="item button-bookmark public">
-                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                </div>
-
-                <div class="item button-bookmark private button-container">
-                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                </div>
-
-                <div class="button-bookmark item button-remove-bookmark icon-button">
-                    ${ helpers.createIcon("mat:delete") }
-                </div>
+                <vv-container class=public-bookmark></vv-container>
+                <vv-container class=private-bookmark></vv-container>
+                <vv-container class=remove-bookmark></vv-container>
             </div>
         `});
 
@@ -375,7 +393,13 @@ class BookmarkTagDialog extends DialogWidget
         });
 
         this.publicBookmark = new BookmarkButtonWidget({
-            contents: this.container.querySelector(".public"),
+            container: this.container.querySelector(".public-bookmark"),
+            template: `
+                <div class="button-bookmark public item">
+                    <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                </div>
+            `,
+
             bookmarkType: "public",
 
             // Instead of deleting the bookmark, save tag changes when these bookmark buttons
@@ -387,12 +411,17 @@ class BookmarkTagDialog extends DialogWidget
         });
         this.publicBookmark.addEventListener("bookmarkedited", () => this.visible = false);
 
-        let privateBookmark = this.container.querySelector(".private");
+        let privateBookmark = this.container.querySelector(".private-bookmark");
         privateBookmark.hidden = ppixiv.native;
         if(!ppixiv.native)
         {
             this.privateBookmark = new BookmarkButtonWidget({
-                contents: privateBookmark,
+                container: privateBookmark,
+                template: `
+                    <div class="button-bookmark private item">
+                        <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                    </div>
+                `,
                 bookmarkType: "private",
                 toggleBookmark: false,
                 bookmarkTagListWidget: this.tagListWidget,
@@ -400,9 +429,15 @@ class BookmarkTagDialog extends DialogWidget
             this.privateBookmark.addEventListener("bookmarkedited", () => this.visible = false);
         }
 
-        let deleteBookmark = this.container.querySelector(".button-remove-bookmark");
+        let deleteBookmark = this.container.querySelector(".remove-bookmark");
         this.deleteBookmark = new BookmarkButtonWidget({
-            contents: deleteBookmark,
+            container: deleteBookmark,
+            template: `
+                <div class="button-bookmark private item icon-button">
+                    ${ helpers.createIcon("mat:delete") }
+                </div>
+            `,
+
             bookmarkType: "delete",
             bookmarkTagListWidget: this.tagListWidget,
         });

@@ -258,7 +258,14 @@ export class ViewInExplorerWidget extends IllustWidget
 {
     constructor({...options})
     {
-        super({...options});
+        super({
+            ...options,
+            template: `
+                <a href=# class="button private popup local-link">
+                    ${ helpers.createIcon("description") }
+                </a>
+            `
+        });
 
         this.enabled = false;
 
@@ -274,12 +281,9 @@ export class ViewInExplorerWidget extends IllustWidget
 
     refreshInternal({ mediaId, mediaInfo })
     {
-        // Hide the button if we're not on a local image.
-        this.container.closest(".button-container").hidden = !helpers.mediaId.isLocal(mediaId);
-        
         let path = mediaInfo?.localPath;
         this.enabled = mediaInfo?.localPath != null;
-        helpers.html.setClass(this.container.querySelector("A.button"), "enabled", this.enabled);
+        helpers.html.setClass(this.container, "enabled", this.enabled);
         if(path == null)
             return;
 
@@ -294,7 +298,7 @@ export class ViewInExplorerWidget extends IllustWidget
         url = url.toString();
         url = url.replace("file:", "vviewinexplorer:")
 
-        let a = this.container.querySelector("A.local-link");
+        let a = this.container;
         a.href = url;
 
         // Set the popup for the type of ID.

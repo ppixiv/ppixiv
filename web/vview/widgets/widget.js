@@ -28,7 +28,6 @@ export default class Widget extends Actor
     constructor({
         container,
         template=null,
-        contents=null,
         visible=true,
         parent=null,
 
@@ -45,8 +44,6 @@ export default class Widget extends Actor
         if(parent == null)
         {
             let parentSearchNode = container;
-            if(contents)
-                parentSearchNode = contents.parentNode;
             if(parentSearchNode == null && parent == null)
                 console.warn("Can't search for parent");
             if(parentSearchNode)
@@ -64,26 +61,13 @@ export default class Widget extends Actor
 
         super({container, parent, ...options});
 
-        // We must have either a template or contents.
-        if(template)
+        this.container = this.createTemplate({html: template});
+        if(container != null)
         {
-            console.assert(contents == null);
-            this.container = this.createTemplate({html: template});
-            if(container != null)
-            {
-                if(containerPosition == "replace")
-                    container.replaceWith(this.container);
-                else
-                    container.insertAdjacentElement(containerPosition, this.container);
-            }
-        }
-        else
-        {
-            // contents is a widget that's already created.  The container is always
-            // the parent of contents, so container shouldn't be specified in this mode.
-            console.assert(container == null);
-            console.assert(contents != null);
-            this.container = contents;
+            if(containerPosition == "replace")
+                container.replaceWith(this.container);
+            else
+                container.insertAdjacentElement(containerPosition, this.container);
         }
 
         this.container.classList.add("widget");

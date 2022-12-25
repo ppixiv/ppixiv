@@ -2667,7 +2667,7 @@ a.box-link, span.box-link
 
 /* Nudge the public heart icon up a bit to make room for the bookmark count. 
  * Only do this on the popup menu, not image-ui. */
-.popup-context-menu .button.button-bookmark.public.has-like-count > svg
+.popup-context-menu .button-bookmark[data-bookmark-type="public"] .has-like-count > svg
 {
     margin-top: -10px;
 }
@@ -3141,8 +3141,8 @@ svg.heart-image .delete {
         -webkit-backdrop-filter: blur(10px);
 
         // Nudge the bookmark icons down a bit, since they're offset vertically.
-        .button-bookmark.public,
-        .button-bookmark.private
+        .public-bookmark,
+        .private-bookmark
         {
             margin-top: .25em;
         }

@@ -7,7 +7,12 @@ export default class TagListWidget extends Widget
 {
     constructor({...options})
     {
-        super({...options});
+        super({
+            ...options,
+            template: `
+                <div class="tag-list box-button-row"></div>
+            `
+        });
     };
 
     formatTagLink(tag)

@@ -30,7 +30,6 @@
 // ignore this and treat it like "artworks".
 import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
-import TagListWidget from 'vview/widgets/tag-list-widget.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
 import { TagSearchBoxWidget } from 'vview/widgets/tag-search-dropdown.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
@@ -315,21 +314,51 @@ class UI extends Widget
 
         class RelatedTagDropdown extends TagDropdownWidget
         {
-            constructor({...options})
+            async refreshTags()
             {
-                super({...options});
+                let tags = this.dataSource.relatedTags;
+                if(tags == null)
+                    return;
 
-                this.relatedTagWidget = new TagListWidget({
-                    contents: this.container,
-                });
+                // Short circuit if the tag list isn't changing, since IndexedDB is really slow.
+                if(this._currentTags != null && JSON.stringify(this._currentTags) == JSON.stringify(tags))
+                    return;
 
-                this.refreshTags();
+                // Look up tag translations.
+                let tagList = tags;
+                let translatedTags = await ppixiv.tagTranslations.getTranslations(tagList, "en");
+                
+                // Stop if the tag list changed while we were reading tag translations.
+                if(tagList != tags)
+                    return;
+
+                this._currentTags = tags;
+
+                // Remove any old tag list and create a new one.
+                helpers.html.removeElements(this.container);
+
+                for(let tag of tagList)
+                {
+                    let translatedTag = tag;
+                    if(translatedTags[tag])
+                        translatedTag = translatedTags[tag];
+
+                    let a = helpers.createBoxLink({
+                        label: translatedTag,
+                        classes: ["tag-entry"],
+                        link: this.formatTagLink(tag),
+                        asElement: true,
+                    });
+
+                    this.container.appendChild(a);
+
+                    a.dataset.tag = tag;
+                }
             }
 
-            refreshTags()
+            formatTagLink(tag)
             {
-                if(this.dataSource.relatedTags && this.relatedTagWidget)
-                    this.relatedTagWidget.set(this.dataSource.relatedTags);
+                return helpers.getArgsForTagSearch(tag, ppixiv.plocation);
             }
         };
 

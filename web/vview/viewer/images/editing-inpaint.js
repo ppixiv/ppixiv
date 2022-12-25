@@ -422,7 +422,10 @@ export default class InpaintEditor extends Widget
 
     _getControlPointFromElement(node)
     {
-        let inpaintSegment = node.closest(".inpaint-segment")?.widget;
+        let inpaintSegment = node.closest(".inpaint-segment");
+        if(inpaintSegment)
+            inpaintSegment = Widget.fromNode(inpaintSegment);
+
         let controlPoint = node.closest("[data-type='control-point']");
         let inpaintLine = node.closest(".inpaint-line");
         if(inpaintSegment == null)
@@ -667,20 +670,22 @@ export default class InpaintEditor extends Widget
 
 class LineEditorSegment extends Widget
 {
-    constructor({container, ...options})
+    constructor({...options})
     {
-        // Templates don't work, because it doesn't create the <g> as an SVG
-        // element.  Is there a way to make that work?
-        let contents = document.createElementNS(helpers.other.xmlns, "g");
-        contents.setAttribute("class", "inpaint-segment");
-        container.appendChild(contents);
-
-        super({...options, contents: contents});
+        super({
+            ...options,
+            template: `
+                <svg>
+                    <g class=inpaint-segment></g>
+                </svg>
+            `
+        });
 
         this._editPoints = [];
         this._thickness = 15;
         this.segments = [];
         this.segmentLines = [];
+        this.segmentContainer = this.querySelector(".inpaint-segment");
 
         this.createEditPoints();
     }
@@ -733,7 +738,7 @@ class LineEditorSegment extends Widget
         {
             this.polyline = document.createElementNS(helpers.other.xmlns, "polyline");
             this.polyline.setAttribute("class", "inpaint-line");
-            this.container.appendChild(this.polyline);
+            this.segmentContainer.appendChild(this.polyline);
         }
 
         if(0)
@@ -745,7 +750,7 @@ class LineEditorSegment extends Widget
             line.setAttribute("class", "inpaint-line");
             line.dataset.idx = idx;
 
-            this.container.appendChild(line);
+            this.segmentContainer.appendChild(line);
             this.segmentLines.push(line);
         }
 
@@ -755,7 +760,7 @@ class LineEditorSegment extends Widget
             point.dataset.type = "control-point";
             point.dataset.idx = idx;
             this._editPoints.push(point);
-            this.container.appendChild(point);
+            this.segmentContainer.appendChild(point);
         }
         
         this.updateSegment();

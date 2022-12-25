@@ -85,25 +85,14 @@ export default class ContextMenu extends Widget
                         </div>
                     </div>
 
-                    <div class="button-block view-in-explorer button-container" hidden>
-                        <a href=# class="button private popup local-link">
-                            ${ helpers.createIcon("description") }
-                        </a>
+                    <div class="button-block button-container view-in-explorer"></div>
+
+                    <div class="button-block button-container">
+                        <vv-container class=button-bookmark data-bookmark-type=public></vv-container>
                     </div>
 
                     <div class="button-block button-container">
-                        <!-- position: relative positions the bookmark count. -->
-                        <div class="button button-bookmark public" data-bookmark-type=public style="position: relative;">
-                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-
-                            <div class=count></div>
-                        </div>
-                    </div>
-
-                    <div class="button-block button-container">
-                        <div class="button button-bookmark private" data-bookmark-type=private>
-                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                        </div>
+                        <vv-container class=button-bookmark data-bookmark-type=private></vv-container>
                     </div>
                     
                     <div class=button-block>
@@ -113,11 +102,7 @@ export default class ContextMenu extends Widget
                     </div>
 
                     <div class="button-block button-container">
-                        <div class="button button-like enabled" style="position: relative;">
-                            <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
-
-                            <div class=count></div>
-                        </div>
+                        <vv-container class=button-like-container></vv-container>
                     </div>
                 </div>
 
@@ -221,36 +206,54 @@ export default class ContextMenu extends Widget
         this.illustWidgets = [
             this.avatarWidget,
             new LikeButtonWidget({
-                contents: this.container.querySelector(".button-like"),
+                container: this.container.querySelector(".button-like-container"),
+                template: `
+                    <div class="button button-like enabled" style="position: relative;">
+                        <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
+                    </div>
+                `
             }),
             new LikeCountWidget({
-                contents: this.container.querySelector(".button-like .count"),
+                container: this.container.querySelector(".button-like"),
             }),
             new ImageInfoWidget({
                 container: this.container.querySelector(".context-menu-image-info-container"),
             }),
-            new BookmarkCountWidget({
-                contents: this.container.querySelector(".button-bookmark.public .count")
-            }),
         ];
 
-        this.illustWidgets.push(new ViewInExplorerWidget({
-            contents: this.container.querySelector(".view-in-explorer"),
-        }));
+        if(ppixiv.native)
+        {
+            this.illustWidgets.push(new ViewInExplorerWidget({
+                container: this.container.querySelector(".view-in-explorer"),
+            }));
+        }
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmarkButtons = [];
         for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
         {
+            
             // The bookmark buttons, and clicks in the tag dropdown:
             let bookmarkWidget = new BookmarkButtonWidget({
-                contents: a,
+                container: a,
+                // position: relative positions the bookmark count.
+                template: `
+                    <div class="button button-bookmark ${a.dataset.bookmarkType}" style="position: relative;">
+                        <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                    </div>
+                `,
                 bookmarkType: a.dataset.bookmarkType,
             });
 
             this.bookmarkButtons.push(bookmarkWidget);
             this.illustWidgets.push(bookmarkWidget);
         }
+
+        this.illustWidgets.push(
+            new BookmarkCountWidget({
+                container: this.container.querySelector(".button-bookmark.public")
+            })            
+        );
 
         // Set up the bookmark tags dropdown.
         this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({
