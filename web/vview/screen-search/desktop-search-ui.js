@@ -212,7 +212,7 @@ export default class DesktopSearchUI extends Widget
         if(this.toggleLocalNavigationButton)
         {
             this.toggleLocalNavigationButton.hidden = this.parent._localNavigationTree == null || !this.parent.canShowLocalNavigation;
-            this.toggleLocalNavigationButton.querySelector(".font-icon").innerText = this.local_navigation_visible?
+            this.toggleLocalNavigationButton.querySelector(".font-icon").innerText = this.parent._localNavigationVisible?
                 "keyboard_double_arrow_left":"keyboard_double_arrow_right";
         }
 
