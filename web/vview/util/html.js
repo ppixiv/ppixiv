@@ -3,7 +3,7 @@
 // Move all children of parent to newParent.
 export function moveChildren(parent, newParent)
 {
-    for(let child of parent.children)
+    for(let child of Array.from(parent.children))
     {
         child.remove();
         newParent.appendChild(child);
@@ -13,7 +13,7 @@ export function moveChildren(parent, newParent)
 // Remove all of parent's children.
 export function removeElements(parent)
 {
-    for(let child of parent.children)
+    for(let child of Array.from(parent.children))
         child.remove();
 }
 
