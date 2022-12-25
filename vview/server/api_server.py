@@ -115,6 +115,9 @@ class APIServer:
         handler = self.create_handler_for_command(self.handle_unknown_api_call)
         app.router.add_view('/api/{name:.*}', handler)
 
+        # For some reason, aiohttp is returning 405 Method Not Allowed by default instead of 404.
+        app.router.add_route('GET', '/{all:.*}', self._not_found)
+
         return app
 
     @web.middleware
@@ -135,6 +138,9 @@ class APIServer:
         This always returns success, and is just here to return CORS headers.
         """
         return web.Response(status=200)
+
+    def _not_found(self, request):
+        raise aiohttp.web.HTTPNotFound()
 
     async def shutdown_requests(self, app):
         """
@@ -292,7 +298,7 @@ class APIServer:
             return
 
         # Allow unauthenticated requests to the authentication interface.
-        if request.path == '/api/auth/login' or request.path == '/vview/auth.html':
+        if request.path == '/api/auth/login' or request.path == '/web/resources/auth.html':
             log.debug('Request to login API is guest')
             request['user'] = auth.get_guest()
             return
