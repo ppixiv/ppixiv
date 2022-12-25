@@ -36,7 +36,7 @@ export default class ScreenSearch extends Screen
         // Add the top search UI if we're on desktop.
         if(!ppixiv.mobile)
         {
-            let topUiBox = this.container.querySelector(".top-ui-box");
+            let topUiBox = this.root.querySelector(".top-ui-box");
             topUiBox.hidden = false;
 
             this.desktopSearchUi = new DesktopSearchUI({
@@ -80,13 +80,13 @@ export default class ScreenSearch extends Screen
 
                 applyVisibility()
                 {
-                    helpers.html.setClass(this.container, "shown", this._visible);
+                    helpers.html.setClass(this.root, "shown", this._visible);
                 }
             }({
-                container: this.container.querySelector(".title-bar-container"),
+                container: this.root.querySelector(".title-bar-container"),
             });
 
-            let navigationBarContainer = this.container.querySelector(".mobile-navigation-bar-container");
+            let navigationBarContainer = this.root.querySelector(".mobile-navigation-bar-container");
             this.thumbnailUiMobile = new MobileSearchUI({
                 container: navigationBarContainer,
             });
@@ -94,11 +94,11 @@ export default class ScreenSearch extends Screen
             // Set the height on the nav bar and title for transitions to use.
             helpers.html.setHeightAsProperty(this.querySelector(".title-bar"), "--title-height", {
                 ...this._signal,
-                target: this.container,
+                target: this.root,
             });
-            helpers.html.setHeightAsProperty(this.thumbnailUiMobile.container, "--nav-bar-height", {
+            helpers.html.setHeightAsProperty(this.thumbnailUiMobile.root, "--nav-bar-height", {
                 ...this._signal,
-                target: this.container,
+                target: this.root,
             });
     
             let onchange = () =>
@@ -121,7 +121,7 @@ export default class ScreenSearch extends Screen
         ppixiv.muting.addEventListener("mutes-changed", this.refreshUiForUserId);
 
         // Zoom the thumbnails on ctrl-mousewheel:
-        this.container.addEventListener("wheel", (e) => {
+        this.root.addEventListener("wheel", (e) => {
             if(!e.ctrlKey)
                 return;
     
@@ -132,7 +132,7 @@ export default class ScreenSearch extends Screen
             ppixiv.settings.adjustZoom(mangaView? "manga-thumbnail-size":"thumbnail-size", e.deltaY > 0);
         }, { passive: false });
 
-        this.container.addEventListener("keydown", (e) => {
+        this.root.addEventListener("keydown", (e) => {
             let zoom = helpers.isZoomHotkey(e);
             if(zoom != null)
             {
@@ -150,7 +150,7 @@ export default class ScreenSearch extends Screen
         // it, and it causes thumbnails to flicker while scrolling for some reason.
         if(LocalAPI.isEnabled() && !LocalAPI.localInfo.bookmark_tag_searches_only && !ppixiv.mobile)
         {
-            let localNavigationBox = this.container.querySelector(".local-navigation-box");
+            let localNavigationBox = this.root.querySelector(".local-navigation-box");
 
             // False if the user has hidden the navigation tree.  Default to false on mobile, since
             // it takes up a lot of screen space.  Also default to false if we were initially opened
@@ -170,7 +170,7 @@ export default class ScreenSearch extends Screen
         }
 
         this.searchView = new SearchView({
-            container: this.container.querySelector(".thumbnail-container-box"),
+            container: this.root.querySelector(".thumbnail-container-box"),
         });
     }
 
@@ -243,7 +243,7 @@ export default class ScreenSearch extends Screen
         {
             if(this.dataSource.ui)
             {
-                let dataSourceUiContainer = this.container.querySelector(".title-bar .data-source-ui");
+                let dataSourceUiContainer = this.root.querySelector(".title-bar .data-source-ui");
                 this._currentDataSourceUi = new this.dataSource.ui({
                     dataSource: this.dataSource,
                     container: dataSourceUiContainer,
@@ -278,7 +278,7 @@ export default class ScreenSearch extends Screen
             if(this.dataSource?.getDisplayingText != null)
             {
                 let text = this.dataSource?.getDisplayingText();
-                this.titleBarWidget.container.querySelector(".title").replaceChildren(text);
+                this.titleBarWidget.root.querySelector(".title").replaceChildren(text);
             }
         }
 
@@ -294,7 +294,7 @@ export default class ScreenSearch extends Screen
         helpers.setPageTitle(this.dataSource.pageTitle || "Loading...");
         
         // Refresh whether we're showing the local navigation widget and toggle button.
-        helpers.html.setDataSet(this.container.dataset, "showNavigation", this.canShowLocalNavigation && this._localNavigationVisible);
+        helpers.html.setDataSet(this.root.dataset, "showNavigation", this.canShowLocalNavigation && this._localNavigationVisible);
 
         this.refreshUiForUserId();
     };
@@ -349,7 +349,7 @@ export default class ScreenSearch extends Screen
             // Pressing ^F while on the local search focuses the search box.
             if(e.code == "KeyF" && e.ctrlKey)
             {
-                this.container.querySelector(".local-tag-search-box input").focus();
+                this.root.querySelector(".local-tag-search-box input").focus();
                 e.preventDefault();
                 e.stopPropagation();
             }
@@ -360,7 +360,7 @@ export default class ScreenSearch extends Screen
             if(e.code == "KeyV" && e.ctrlKey)
             {
                 let text = await navigator.clipboard.readText();
-                let input = this.container.querySelector(".local-tag-search-box input");
+                let input = this.root.querySelector(".local-tag-search-box input");
                 input.value = text;
                 LocalAPI.navigateToTagSearch(text, {addToHistory: false});
             }

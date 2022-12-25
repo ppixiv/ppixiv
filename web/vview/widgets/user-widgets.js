@@ -36,12 +36,12 @@ export class AvatarWidget extends Widget
         if(this.options.mode != "dropdown" && this.options.mode != "overlay")
             throw "Invalid avatar widget mode";
 
-        helpers.html.setClass(this.container, "big", big);
+        helpers.html.setClass(this.root, "big", big);
 
         ppixiv.userCache.addEventListener("usermodified", this._userChanged, { signal: this.shutdownSignal.signal });
 
-        let avatarElement = this.container.querySelector(".avatar");
-        let avatarLink = this.container.querySelector(".avatar-link");
+        let avatarElement = this.root.querySelector(".avatar");
+        let avatarLink = this.root.querySelector(".avatar-link");
 
         if(interactive)
         {
@@ -82,10 +82,10 @@ export class AvatarWidget extends Widget
         this.img = document.createElement("img");
         this._baseFilter = new ImageCanvasFilter(this.img, avatarElement);
         
-        this.container.dataset.mode = this.options.mode;
+        this.root.dataset.mode = this.options.mode;
 
         // Show the favorite UI when hovering over the avatar icon.
-        let avatarPopup = this.container; //container.querySelector(".avatar-popup");
+        let avatarPopup = this.root; //container.querySelector(".avatar-popup");
         if(this.options.mode == "dropdown")
         {
             avatarPopup.addEventListener("mouseover", (e) => { helpers.html.setClass(avatarPopup, "popup-visible", true); });
@@ -93,7 +93,7 @@ export class AvatarWidget extends Widget
         }
 
         new CreepyEyeWidget({
-            container: this.container.querySelector(".follow-icon .eye-image")
+            container: this.root.querySelector(".follow-icon .eye-image")
         });
     }
 
@@ -128,7 +128,7 @@ export class AvatarWidget extends Widget
         if(this.userId == null || this.userId == -1)
         {
             this.userData = null;
-            this.container.classList.add("loading");
+            this.root.classList.add("loading");
 
             // Set the avatar image to a blank image, so it doesn't flash the previous image
             // the next time we display it.  It should never do this, since we set a new image
@@ -144,26 +144,26 @@ export class AvatarWidget extends Widget
             this.img.src = cachedProfileUrl;
 
         // Set up stuff that we don't need user info for.
-        this.container.querySelector(".avatar-link").href = `/users/${this.userId}/artworks#ppixiv`;
+        this.root.querySelector(".avatar-link").href = `/users/${this.userId}/artworks#ppixiv`;
 
         // Hide the popup in dropdown mode, since it covers the dropdown.
         if(this.options.mode == "dropdown")
-            this.container.querySelector(".avatar").classList.remove("popup");
+            this.root.querySelector(".avatar").classList.remove("popup");
 
         // Clear stuff we need user info for, so we don't show old data while loading.
-        helpers.html.setClass(this.container, "followed", false);
-        this.container.querySelector(".avatar").dataset.popup = "";
+        helpers.html.setClass(this.root, "followed", false);
+        this.root.querySelector(".avatar").dataset.popup = "";
 
-        this.container.classList.remove("loading");
-        this.container.querySelector(".follow-icon").hidden = true;
+        this.root.classList.remove("loading");
+        this.root.querySelector(".follow-icon").hidden = true;
 
         let userData = await ppixiv.userCache.getUserInfo(this.userId);
         this.userData = userData;
         if(userData == null)
             return;
 
-        this.container.querySelector(".follow-icon").hidden = !this.userData.isFollowed;
-        this.container.querySelector(".avatar").dataset.popup = this.userData.name;
+        this.root.querySelector(".follow-icon").hidden = !this.userData.isFollowed;
+        this.root.querySelector(".avatar").dataset.popup = this.userData.name;
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
@@ -278,9 +278,9 @@ class CreepyEyeWidget extends Widget
             <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
         `});
 
-        this.container.addEventListener("mouseenter", this.onevent);
-        this.container.addEventListener("mouseleave", this.onevent);
-        this.container.addEventListener("mousemove", this.onevent);
+        this.root.addEventListener("mouseenter", this.onevent);
+        this.root.addEventListener("mouseleave", this.onevent);
+        this.root.addEventListener("mousemove", this.onevent);
     }
 
     onevent = (e) =>
@@ -290,7 +290,7 @@ class CreepyEyeWidget extends Widget
         if(e.type == "mouseleave")
             this.hover = false;
 
-        let eyeMiddle = this.container.querySelector(".middle");
+        let eyeMiddle = this.root.querySelector(".middle");
 
         if(!this.hover)
         {
@@ -299,7 +299,7 @@ class CreepyEyeWidget extends Widget
         }
         let mouse = [e.clientX, e.clientY];
 
-        let bounds = this.container.getBoundingClientRect();
+        let bounds = this.root.getBoundingClientRect();
         let eye = [bounds.x + bounds.width/2, bounds.y + bounds.height/2];
 
         let vectorLength = (vec) =>Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
@@ -397,12 +397,12 @@ class FollowWidget extends Widget
 
         this._userId = userId;
 
-        this.container.querySelector(".follow-button-public").addEventListener("click", (e) => this._clickedFollow(false));
-        this.container.querySelector(".follow-button-private").addEventListener("click", (e) => this._clickedFollow(true));
-        this.container.querySelector(".toggle-follow-button-public").addEventListener("click", (e) => this._clickedFollow(false));
-        this.container.querySelector(".toggle-follow-button-private").addEventListener("click", (e) => this._clickedFollow(true));
-        this.container.querySelector(".unfollow-button").addEventListener("click", (e) => this._clickedUnfollow());
-        this.container.querySelector(".add-follow-tag").addEventListener("click", (e) => this._addFollowTag());
+        this.root.querySelector(".follow-button-public").addEventListener("click", (e) => this._clickedFollow(false));
+        this.root.querySelector(".follow-button-private").addEventListener("click", (e) => this._clickedFollow(true));
+        this.root.querySelector(".toggle-follow-button-public").addEventListener("click", (e) => this._clickedFollow(false));
+        this.root.querySelector(".toggle-follow-button-private").addEventListener("click", (e) => this._clickedFollow(true));
+        this.root.querySelector(".unfollow-button").addEventListener("click", (e) => this._clickedUnfollow());
+        this.root.querySelector(".add-follow-tag").addEventListener("click", (e) => this._addFollowTag());
 
         // Refresh if the user we're displaying changes.
         ppixiv.userCache.addEventListener("usermodified", this._userChanged, this._signal);
@@ -482,17 +482,17 @@ class FollowWidget extends Widget
         if(!this.visible)
             return;
 
-        this.container.querySelector(".follow-button-public").hidden = true;
-        this.container.querySelector(".follow-button-private").hidden = true;
-        this.container.querySelector(".toggle-follow-button-public").hidden = true;
-        this.container.querySelector(".toggle-follow-button-private").hidden = true;
-        this.container.querySelector(".unfollow-button").hidden = true;
-        this.container.querySelector(".add-follow-tag").hidden = true;
-        this.container.querySelector(".separator").hidden = true;
+        this.root.querySelector(".follow-button-public").hidden = true;
+        this.root.querySelector(".follow-button-private").hidden = true;
+        this.root.querySelector(".toggle-follow-button-public").hidden = true;
+        this.root.querySelector(".toggle-follow-button-private").hidden = true;
+        this.root.querySelector(".unfollow-button").hidden = true;
+        this.root.querySelector(".add-follow-tag").hidden = true;
+        this.root.querySelector(".separator").hidden = true;
         
         let viewText = userInfo != null? `View ${userInfo.name}'s posts`:`View posts`;
-        this.container.querySelector(".view-posts .label").innerText = viewText;
-        this.container.querySelector(".view-posts").href = `/users/${this._userId}/artworks#ppixiv`;
+        this.root.querySelector(".view-posts .label").innerText = viewText;
+        this.root.querySelector(".view-posts").href = `/users/${this._userId}/artworks#ppixiv`;
 
         // If following is null, we're still waiting for the initial user data request
         // and we don't have any data yet.  
@@ -506,27 +506,27 @@ class FollowWidget extends Widget
             // unfollow.
             if(followingPrivately != null)
             {
-                this.container.querySelector(".toggle-follow-button-public").hidden = !followingPrivately;
-                this.container.querySelector(".toggle-follow-button-private").hidden = followingPrivately;
+                this.root.querySelector(".toggle-follow-button-public").hidden = !followingPrivately;
+                this.root.querySelector(".toggle-follow-button-private").hidden = followingPrivately;
             }
 
-            this.container.querySelector(".unfollow-button").hidden = false;
+            this.root.querySelector(".unfollow-button").hidden = false;
         }
         else
         {
-            this.container.querySelector(".follow-button-public").hidden = false;
-            this.container.querySelector(".follow-button-private").hidden = false;
+            this.root.querySelector(".follow-button-public").hidden = false;
+            this.root.querySelector(".follow-button-private").hidden = false;
         }
 
         // If we've loaded follow tags, fill in the list.
-        for(let element of this.container.querySelectorAll(".follow-tag"))
+        for(let element of this.root.querySelectorAll(".follow-tag"))
             element.remove();
 
         if(allTags != null)
         {
             // Show the separator and "add tag" button once we have the tag list.
-            this.container.querySelector(".add-follow-tag").hidden = false;
-            this.container.querySelector(".separator").hidden = false;
+            this.root.querySelector(".add-follow-tag").hidden = false;
+            this.root.querySelector(".separator").hidden = false;
 
             allTags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
             for(let tag of allTags)
@@ -542,7 +542,7 @@ class FollowWidget extends Widget
                 let selected = selectedTags.has(tag);
                 helpers.html.setClass(button, "selected", selected);
 
-                this.container.appendChild(button);
+                this.root.appendChild(button);
 
                 button.addEventListener("click", (e) => {
                     this._toggleFollowTag(tag);

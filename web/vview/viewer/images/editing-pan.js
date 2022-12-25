@@ -70,13 +70,13 @@ export default class PanEditor extends Widget
         this.editing = "start"; // "start" or "end"
         this._editingAnchor = false;
 
-        this.ui = this.container.querySelector(".editor-buttons");
-        this._monitorPreviewBox = this.container.querySelector(".monitor-preview-box");
+        this.ui = this.root.querySelector(".editor-buttons");
+        this._monitorPreviewBox = this.root.querySelector(".monitor-preview-box");
 
         // Remove .pan-editor-overlay.  It's inserted into the image overlay when we
         // have one, so it pans and zooms with the image.
-        this._editorOverlay = this.container.querySelector(".pan-editor-overlay");
-        this._editorCropRegion = this.container.querySelector(".pan-editor-crop-region");
+        this._editorOverlay = this.root.querySelector(".pan-editor-overlay");
+        this._editorCropRegion = this.root.querySelector(".pan-editor-crop-region");
         this._editorOverlay.remove();
         this._handle = this._editorOverlay.querySelector(".handle");
 
@@ -104,7 +104,7 @@ export default class PanEditor extends Widget
             this.refresh();
         });
 
-        this._aspectRatioSwitchButton = this.container.querySelector(".rotate-aspect-ratio");
+        this._aspectRatioSwitchButton = this.root.querySelector(".rotate-aspect-ratio");
         this._aspectRatioSwitchButton.addEventListener("click", (e) => {
             e.stopPropagation();
 

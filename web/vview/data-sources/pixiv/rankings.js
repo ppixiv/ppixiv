@@ -401,7 +401,7 @@ class UI extends Widget
                         popup,
                         asElement: true,
                     });
-                    dropdown.container.appendChild(button);
+                    dropdown.root.appendChild(button);
 
                     dataSource.setItem(button, {
                         fields: {mode},

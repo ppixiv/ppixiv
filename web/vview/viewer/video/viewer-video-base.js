@@ -16,11 +16,11 @@ export default class ViewerVideoBase extends Viewer
             </div>
         `});
 
-        this.videoContainer = this.container.querySelector(".video-container");
+        this.videoContainer = this.root.querySelector(".video-container");
 
         // Create the video UI.
         this.videoUi = new VideoUI({
-            container: this.container.querySelector(".video-ui-container"),
+            container: this.root.querySelector(".video-ui-container"),
         });
 
         this.videoUi.seekBar.setCurrentTime(0);
@@ -32,19 +32,19 @@ export default class ViewerVideoBase extends Viewer
             // it's not obscured by the user's hand, and drags with a DragHandler similar to TouchScroller's
             // dragging.  The seek bar itself doesn't trigger seeks here.
             this.topSeekBar = new SeekBar({
-                container: this.container.querySelector(".top-seek-bar"),
+                container: this.root.querySelector(".top-seek-bar"),
             });
     
             this.seekDragger = new DragHandler({
                 name: "seek-dragger",
-                element: this.container,
+                element: this.root,
                 deferDelayMs: 30,
                 ...this._signal,
 
                 ondragstart: () => {
                     this.seekCallback(true, null);
                     this.dragRemainder = 0;
-                    helpers.html.setClass(this.topSeekBar.container, "dragging", true);
+                    helpers.html.setClass(this.topSeekBar.root, "dragging", true);
                     return true;
                 },
                 ondrag: ({movementX}) => {
@@ -64,7 +64,7 @@ export default class ViewerVideoBase extends Viewer
                     this.dragRemainder = newPosition - this._currentTime;
                 },
                 ondragend: () => {
-                    helpers.html.setClass(this.topSeekBar.container, "dragging", false);
+                    helpers.html.setClass(this.topSeekBar.root, "dragging", false);
                     this.seekCallback(false, null);
                 },
             });

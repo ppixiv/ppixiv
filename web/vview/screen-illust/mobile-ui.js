@@ -33,18 +33,18 @@ export default class MobileImageUI extends Widget
         this.transitionTarget = transitionTarget;
 
         this.infoWidget = new ImageInfoWidget({
-            container: this.container.querySelector(".context-menu-image-info-container"),
+            container: this.root.querySelector(".context-menu-image-info-container"),
         });
 
         this.page = new IllustBottomMenuBar({
-            container: this.container,
+            container: this.root,
         });
         
         this.dragger = new WidgetDragger({
             name: "menu-dragger",
             // Put the --menu-bar-pos property up high, since the video UI also uses it.
             node: [this.transitionTarget],
-            dragNode: this.container.parentNode,
+            dragNode: this.root.parentNode,
             size: () => 150,
             animatedProperty: "--menu-bar-pos",
             direction: "down",
@@ -119,13 +119,13 @@ export default class MobileImageUI extends Widget
 
         // Only hide if we're actually not visible, so we're hidden if we're offscreen but
         // visible for transitions.
-        this.container.hidden = !visible;
+        this.root.hidden = !visible;
 
         helpers.html.setClass(document.documentElement, "illust-menu-visible", visible);
 
         // This enables pointer-events only when the animation is finished.  This avoids problems
         // with iOS sending clicks to the button when it wasn't pressable when the touch started.
-        helpers.html.setClass(this.container, "fully-visible", visible && !this.dragger.isAnimationPlaying);
+        helpers.html.setClass(this.root, "fully-visible", visible && !this.dragger.isAnimationPlaying);
 
         this.refresh();
     }
@@ -209,23 +209,23 @@ class IllustBottomMenuBar extends Widget
 
         this._mediaId = null;
 
-        this.container.querySelector(".button-view-manga").addEventListener("click", this.clickedViewManga);
+        this.root.querySelector(".button-view-manga").addEventListener("click", this.clickedViewManga);
 
-        this.toggleSlideshowButton = this.container.querySelector(".button-toggle-slideshow");
+        this.toggleSlideshowButton = this.root.querySelector(".button-toggle-slideshow");
         this.toggleSlideshowButton.addEventListener("click", (e) => {
             ppixiv.app.toggleSlideshow();
             this.parent.hide();
             this.refresh();
         });
 
-        this.toggleLoopButton = this.container.querySelector(".button-toggle-loop");
+        this.toggleLoopButton = this.root.querySelector(".button-toggle-loop");
         this.toggleLoopButton.addEventListener("click", (e) => {
             ppixiv.app.loopSlideshow();
             this.parent.hide();
             this.refresh();
         });
         
-        this.container.querySelector(".button-more").addEventListener("click", (e) => {
+        this.root.querySelector(".button-more").addEventListener("click", (e) => {
             new MoreOptionsDialog({
                 mediaId: this._mediaId
             });
@@ -233,10 +233,10 @@ class IllustBottomMenuBar extends Widget
             this.parent.hide();
         });
 
-        this.buttonBookmark = this.container.querySelector(".bookmark-button-container");
+        this.buttonBookmark = this.root.querySelector(".bookmark-button-container");
         this.bookmarkButtonWidget = new ImageBookmarkedWidget({ container: this.buttonBookmark });
 
-        this.buttonSlider = this.container.querySelector(".button-similar");
+        this.buttonSlider = this.root.querySelector(".button-similar");
         this.buttonSlider.hidden = ppixiv.native;
         this.buttonSlider.addEventListener("click", (e) => {
             let [illustId] = helpers.mediaId.toIllustIdAndPage(this._mediaId);
@@ -253,7 +253,7 @@ class IllustBottomMenuBar extends Widget
         });
 
         // This tells widgets that want to be above us how tall we are.
-        helpers.html.setHeightAsProperty(this.container, "--menu-bar-height", {
+        helpers.html.setHeightAsProperty(this.root, "--menu-bar-height", {
             target: this.closest(".screen"),
             ...this._signal
         });
@@ -289,13 +289,13 @@ class IllustBottomMenuBar extends Widget
         if(!this.visible && this._mediaId != null)
             return
 
-        let buttonViewManga = this.container.querySelector(".button-view-manga");
+        let buttonViewManga = this.root.querySelector(".button-view-manga");
         buttonViewManga.dataset.popup = "View manga pages";
         buttonViewManga.hidden = !ppixiv.app.navigateOutEnabled;
 
         helpers.html.setClass(this.toggleSlideshowButton, "selected", ppixiv.app.slideshowMode == "1");
         helpers.html.setClass(this.toggleLoopButton, "selected", ppixiv.app.slideshowMode == "loop");
-        helpers.html.setClass(this.container.querySelector(".button-bookmark"), "enabled", true);
+        helpers.html.setClass(this.root.querySelector(".button-bookmark"), "enabled", true);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
         // they don't load data unnecessarily.  Don't set these back to null if we're hidden, so they
@@ -369,9 +369,9 @@ class ImageBookmarkedWidget extends IllustWidget
         let bookmarked = mediaInfo?.bookmarkData != null;
         let privateBookmark = mediaInfo?.bookmarkData?.private;
 
-        helpers.html.setClass(this.container,  "enabled",     mediaInfo != null);
-        helpers.html.setClass(this.container,  "bookmarked",  bookmarked);
-        helpers.html.setClass(this.container,  "public",      !privateBookmark);
+        helpers.html.setClass(this.root,  "enabled",     mediaInfo != null);
+        helpers.html.setClass(this.root,  "bookmarked",  bookmarked);
+        helpers.html.setClass(this.root,  "public",      !privateBookmark);
     }
 }
 
@@ -388,12 +388,12 @@ class BookmarkTagDialog extends DialogWidget
         `});
 
         this.tagListWidget = new BookmarkTagListWidget({
-            container: this.container.querySelector(".scroll"),
+            container: this.root.querySelector(".scroll"),
             containerPosition: "afterbegin",
         });
 
         this.publicBookmark = new BookmarkButtonWidget({
-            container: this.container.querySelector(".public-bookmark"),
+            container: this.root.querySelector(".public-bookmark"),
             template: `
                 <div class="button-bookmark public item">
                     <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
@@ -411,7 +411,7 @@ class BookmarkTagDialog extends DialogWidget
         });
         this.publicBookmark.addEventListener("bookmarkedited", () => this.visible = false);
 
-        let privateBookmark = this.container.querySelector(".private-bookmark");
+        let privateBookmark = this.root.querySelector(".private-bookmark");
         privateBookmark.hidden = ppixiv.native;
         if(!ppixiv.native)
         {
@@ -429,7 +429,7 @@ class BookmarkTagDialog extends DialogWidget
             this.privateBookmark.addEventListener("bookmarkedited", () => this.visible = false);
         }
 
-        let deleteBookmark = this.container.querySelector(".remove-bookmark");
+        let deleteBookmark = this.root.querySelector(".remove-bookmark");
         this.deleteBookmark = new BookmarkButtonWidget({
             container: deleteBookmark,
             template: `
@@ -469,7 +469,7 @@ class MoreOptionsDialog extends DialogWidget
         `});
 
         this.moreOptionsWidget = new MoreOptionsDropdown({
-            container: this.container.querySelector(".box"),
+            container: this.root.querySelector(".box"),
         });
         this.moreOptionsWidget.setMediaId(mediaId);
     }
@@ -508,11 +508,11 @@ class ImageInfoWidget extends IllustWidget
         `});
 
         this.avatarWidget = new AvatarWidget({
-            container: this.container.querySelector(".avatar"),
+            container: this.root.querySelector(".avatar"),
             mode: "dropdown",
             interactive: false,
         });
-        this.container.querySelector(".avatar").hidden = ppixiv.native;
+        this.root.querySelector(".avatar").hidden = ppixiv.native;
     }
 
     get neededData()
@@ -533,13 +533,13 @@ class ImageInfoWidget extends IllustWidget
 
     refreshInternal({ mediaId, mediaInfo })
     {
-        this.container.hidden = mediaInfo == null;
-        if(this.container.hidden)
+        this.root.hidden = mediaInfo == null;
+        if(this.root.hidden)
             return;
 
         this.avatarWidget.setUserId(mediaInfo?.userId);
 
-        let tagWidget = this.container.querySelector(".bookmark-tags");
+        let tagWidget = this.root.querySelector(".bookmark-tags");
         helpers.html.removeElements(tagWidget);
 
         let isLocal = helpers.mediaId.isLocal(this._mediaId);
@@ -561,7 +561,7 @@ class ImageInfoWidget extends IllustWidget
 
         let setInfo = (query, text) =>
         {
-            let node = this.container.querySelector(query);
+            let node = this.root.querySelector(query);
             node.innerText = text;
             node.hidden = text == "";
         };
@@ -596,11 +596,11 @@ class ImageInfoWidget extends IllustWidget
         setInfo(".title", mediaInfo.illustTitle);
     
         let showFolder = helpers.mediaId.isLocal(this._mediaId);
-        this.container.querySelector(".folder-block").hidden = !showFolder;
+        this.root.querySelector(".folder-block").hidden = !showFolder;
         if(showFolder)
         {
             let {id} = helpers.mediaId.parse(this._mediaId);
-            this.container.querySelector(".folder-text").innerText = helpers.strings.getPathSuffix(id, 1, 1); // parent directory
+            this.root.querySelector(".folder-text").innerText = helpers.strings.getPathSuffix(id, 1, 1); // parent directory
         }
 
         // If we're on the first page then we only requested early info, and we can use the dimensions
@@ -616,7 +616,7 @@ class ImageInfoWidget extends IllustWidget
 
         let secondsOld = (new Date() - new Date(mediaInfo.createDate)) / 1000;
         let age = helpers.strings.ageToString(secondsOld);
-        this.container.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
+        this.root.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
         setInfo(".post-age", age);
     }
 

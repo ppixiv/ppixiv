@@ -143,10 +143,10 @@ export default class DesktopImageInfo extends Widget
 
         // ui-box is the real container.  THe outer div is just so hover-sphere isn't inside
         // the scroller.
-        this.ui_box = this.container.querySelector(".ui-box");
+        this.ui_box = this.root.querySelector(".ui-box");
 
         this.avatarWidget = new AvatarWidget({
-            container: this.container.querySelector(".avatar-popup"),
+            container: this.root.querySelector(".avatar-popup"),
             mode: "dropdown",
             dropdownvisibilitychanged: () => {
                 this.refreshOverlayUiVisibility();
@@ -154,13 +154,13 @@ export default class DesktopImageInfo extends Widget
         });
 
         this.tagListWidget = new TagListWidget({
-            container: this.container.querySelector(".tag-list-container")
+            container: this.root.querySelector(".tag-list-container")
         });
 
         ppixiv.mediaCache.addEventListener("mediamodified", this.refresh, { signal: this.shutdownSignal.signal });
         
         this.likeButton = new LikeButtonWidget({
-            container: this.container.querySelector(".button-like-container"),
+            container: this.root.querySelector(".button-like-container"),
             template: `
                 <div class="button icon-button button-like enabled popup button-container" style="position: relative;">
                     <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
@@ -168,13 +168,13 @@ export default class DesktopImageInfo extends Widget
             `
         });
         this.likeCountWidget = new LikeCountWidget({
-            container: this.container.querySelector(".button-like"),
+            container: this.root.querySelector(".button-like"),
         });
         this.mangaPageBar = this.querySelector(".manga-page-bar");
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmarkButtons = [];
-        for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
+        for(let a of this.root.querySelectorAll("[data-bookmark-type]"))
             this.bookmarkButtons.push(new BookmarkButtonWidget({
                 container: a,
                 template: `
@@ -186,10 +186,10 @@ export default class DesktopImageInfo extends Widget
             }));
 
         this.bookmarkCountWidget = new BookmarkCountWidget({
-            container: this.container.querySelector(".button-bookmark"),
+            container: this.root.querySelector(".button-bookmark"),
         });
 
-        let bookmarkTagsButton = this.container.querySelector(".button-bookmark-tags");
+        let bookmarkTagsButton = this.root.querySelector(".button-bookmark-tags");
         this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({
             parent: this,
             bookmarkTagsButton,
@@ -201,10 +201,10 @@ export default class DesktopImageInfo extends Widget
             },
         });
 
-        for(let button of this.container.querySelectorAll(".download-button"))
+        for(let button of this.root.querySelectorAll(".download-button"))
             button.addEventListener("click", this.clickedDownload);
-        this.container.querySelector(".download-manga-button").addEventListener("click", this.clickedDownload);
-        this.container.querySelector(".view-manga-button").addEventListener("click", (e) => ppixiv.app.navigateOut());
+        this.root.querySelector(".download-manga-button").addEventListener("click", this.clickedDownload);
+        this.root.querySelector(".view-manga-button").addEventListener("click", (e) => ppixiv.app.navigateOut());
 
         // Don't propagate wheel events if the contents can scroll, so moving the scroller doesn't change the
         // image.  Most of the time the contents will fit, so allow changing the page if there's no need to
@@ -214,7 +214,7 @@ export default class DesktopImageInfo extends Widget
                 e.stopPropagation();
         }, { passive: false });
 
-        this.container.querySelector(".preferences-button").addEventListener("click", (e) => {
+        this.root.querySelector(".preferences-button").addEventListener("click", (e) => {
             new SettingsDialog();
         });
 
@@ -255,12 +255,12 @@ export default class DesktopImageInfo extends Widget
 
         // Hide the UI's container too when we're editing, so the hover boxes don't get in
         // the way.
-        this.container.hidden = editing || ppixiv.mobile;
+        this.root.hidden = editing || ppixiv.mobile;
     }
 
     applyVisibility()
     {
-        helpers.html.setClass(this.container.querySelector(".ui-box"), "ui-hidden", this._visible);
+        helpers.html.setClass(this.root.querySelector(".ui-box"), "ui-hidden", this._visible);
     }
 
     visibilityChanged()
@@ -305,7 +305,7 @@ export default class DesktopImageInfo extends Widget
 
     refresh = async() =>
     {
-        helpers.html.setClass(this.container, "disabled", !this.visible);
+        helpers.html.setClass(this.root, "disabled", !this.visible);
 
         // Don't do anything if we're not visible.
         if(!this.visible)
@@ -356,12 +356,12 @@ export default class DesktopImageInfo extends Widget
         this.avatarWidget.setUserId(userId);
         this.tagListWidget.set(mediaInfo.tagList);
 
-        let elementTitle = this.container.querySelector(".title");
+        let elementTitle = this.root.querySelector(".title");
         elementTitle.textContent = mediaInfo.illustTitle;
         elementTitle.href = getUrlForMediaId(this._mediaId).url;
 
         // Show the folder if we're viewing a local image.
-        let folderTextElement = this.container.querySelector(".folder-text");
+        let folderTextElement = this.root.querySelector(".folder-text");
         let showFolder = helpers.mediaId.isLocal(this._mediaId);
         if(showFolder)
         {
@@ -375,23 +375,23 @@ export default class DesktopImageInfo extends Widget
         }
 
         // If the author name or folder are empty, hide it instead of leaving it empty.
-        this.container.querySelector(".author-block").hidden = mediaInfo.userName == "";
-        this.container.querySelector(".folder-block").hidden = !showFolder;
+        this.root.querySelector(".author-block").hidden = mediaInfo.userName == "";
+        this.root.querySelector(".folder-block").hidden = !showFolder;
 
-        let elementAuthor = this.container.querySelector(".author");
+        let elementAuthor = this.root.querySelector(".author");
         elementAuthor.href = `/users/${userId}#ppixiv`;
         if(mediaInfo.userName != "")
             elementAuthor.textContent = mediaInfo.userName;
         
-        this.container.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illustId + "#ppixiv?recommendations=1";
-        this.container.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + userId;
-        this.container.querySelector(".similar-bookmarks-button").href = "/bookmark_detail.php?illust_id=" + illustId + "#ppixiv";
+        this.root.querySelector(".similar-illusts-button").href = "/bookmark_detail.php?illust_id=" + illustId + "#ppixiv?recommendations=1";
+        this.root.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + userId;
+        this.root.querySelector(".similar-bookmarks-button").href = "/bookmark_detail.php?illust_id=" + illustId + "#ppixiv";
 
         // Fill in the post info text.
-        this.setPostInfo(this.container.querySelector(".post-info"));
+        this.setPostInfo(this.root.querySelector(".post-info"));
 
         // The comment (description) can contain HTML.
-        let elementComment = this.container.querySelector(".description");
+        let elementComment = this.root.querySelector(".description");
         elementComment.hidden = mediaInfo.illustComment == "";
         elementComment.innerHTML = mediaInfo.illustComment;
         helpers.pixiv.fixPixivLinks(elementComment);
@@ -399,13 +399,13 @@ export default class DesktopImageInfo extends Widget
             helpers.pixiv.makePixivLinksInternal(elementComment);
 
         // Set the download button popup text.
-        let downloadImageButton = this.container.querySelector(".download-image-button");
+        let downloadImageButton = this.root.querySelector(".download-image-button");
         downloadImageButton.hidden = !Actions.isDownloadTypeAvailable("image", mediaInfo);
 
-        let downloadMangaButton = this.container.querySelector(".download-manga-button");
+        let downloadMangaButton = this.root.querySelector(".download-manga-button");
         downloadMangaButton.hidden = !Actions.isDownloadTypeAvailable("ZIP", mediaInfo);
 
-        let downloadVideoButton = this.container.querySelector(".download-video-button");
+        let downloadVideoButton = this.root.querySelector(".download-video-button");
         downloadVideoButton.hidden = !Actions.isDownloadTypeAvailable("MKV", mediaInfo);
     }
 

@@ -50,8 +50,8 @@ class UI extends Widget
             </div>
         `});
 
-        dataSource.setItem(this.container, { type: "all", fields: {mode: "all"}, defaults: {mode: "all"} });
-        dataSource.setItem(this.container, { type: "safe", fields: {mode: "safe"}, defaults: {mode: "all"} });
-        dataSource.setItem(this.container, { type: "r18", fields: {mode: "r18"}, defaults: {mode: "all"} });
+        dataSource.setItem(this.root, { type: "all", fields: {mode: "all"}, defaults: {mode: "all"} });
+        dataSource.setItem(this.root, { type: "safe", fields: {mode: "safe"}, defaults: {mode: "all"} });
+        dataSource.setItem(this.root, { type: "r18", fields: {mode: "r18"}, defaults: {mode: "all"} });
     }
 }

@@ -29,22 +29,22 @@ export class LocalSearchBoxWidget extends Widget
             `
         });
 
-        this.inputElement = this.container.querySelector(".input-field-container > input");
+        this.inputElement = this.root.querySelector(".input-field-container > input");
 
         this.dropdownOpener = new DropdownBoxOpener({
             button: this.inputElement,
 
             createBox: ({...options}) => {
                 return new LocalSearchDropdownWidget({
-                    inputElement: this.container,
-                    focusParent: this.container,
+                    inputElement: this.root,
+                    focusParent: this.root,
                     ...options,
                 });
             },
 
             shouldCloseForClick: (e) => {
                 // Ignore clicks inside our container.
-                if(helpers.html.isAbove(this.container, e.target))
+                if(helpers.html.isAbove(this.root, e.target))
                     return false;
 
                 return true;
@@ -62,12 +62,12 @@ export class LocalSearchBoxWidget extends Widget
 
         this.inputElement.addEventListener("focus", () => this.dropdownOpener.visible = true);
         this.inputElement.addEventListener("submit", this.submitSearch);
-        this.clearSearchButton = this.container.querySelector(".clear-local-search-button");
+        this.clearSearchButton = this.root.querySelector(".clear-local-search-button");
         this.clearSearchButton.addEventListener("click", (e) => {
             this.inputElement.value = "";
             this.inputElement.dispatchEvent(new Event("submit"));
         });
-        this.container.querySelector(".submit-local-search-button").addEventListener("click", (e) => {
+        this.root.querySelector(".submit-local-search-button").addEventListener("click", (e) => {
             this.inputElement.dispatchEvent(new Event("submit"));
         });
 
@@ -140,10 +140,10 @@ class LocalSearchDropdownWidget extends Widget
         // Refresh the dropdown when the search history changes.
         window.addEventListener("recent-local-searches-changed", this._populateDropdown);
 
-        this.container.addEventListener("click", this.dropdownClick);
+        this.root.addEventListener("click", this.dropdownClick);
 
         // input-dropdown is resizable.  Save the size when the user drags it.
-        this._inputDropdown = this.container.querySelector(".input-dropdown-list");
+        this._inputDropdown = this.root.querySelector(".input-dropdown-list");
 
         // Restore input-dropdown's width.
         let refreshDropdownWidth = () => {
@@ -151,7 +151,7 @@ class LocalSearchDropdownWidget extends Widget
             width = parseInt(width);
             if(isNaN(width))
                 width = 400;
-            this.container.style.setProperty('--width', `${width}px`);
+            this.root.style.setProperty('--width', `${width}px`);
         };
 
         let observer = new MutationObserver((mutations) => {
@@ -239,7 +239,7 @@ class LocalSearchDropdownWidget extends Widget
         let tagSearches = ppixiv.settings.get("local_searches") || [];
         tagSearches.sort();
 
-        let list = this.container.querySelector(".input-dropdown-list");
+        let list = this.root.querySelector(".input-dropdown-list");
         helpers.html.removeElements(list);
 
         for(let tag of tagSearches)
@@ -270,7 +270,7 @@ export class ViewInExplorerWidget extends IllustWidget
         this.enabled = false;
 
         // Ignore clicks on the button if it's disabled.
-        this.container.addEventListener("click", (e) => {
+        this.root.addEventListener("click", (e) => {
             if(this.enabled)
                 return;
 
@@ -283,7 +283,7 @@ export class ViewInExplorerWidget extends IllustWidget
     {
         let path = mediaInfo?.localPath;
         this.enabled = mediaInfo?.localPath != null;
-        helpers.html.setClass(this.container, "enabled", this.enabled);
+        helpers.html.setClass(this.root, "enabled", this.enabled);
         if(path == null)
             return;
 
@@ -298,7 +298,7 @@ export class ViewInExplorerWidget extends IllustWidget
         url = url.toString();
         url = url.replace("file:", "vviewinexplorer:")
 
-        let a = this.container;
+        let a = this.root;
         a.href = url;
 
         // Set the popup for the type of ID.

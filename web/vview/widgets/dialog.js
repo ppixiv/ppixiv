@@ -48,7 +48,7 @@ export default class DialogWidget extends Widget
         window.addEventListener("touchmove", (e) => {
             // Block this movement if it's not inside the topmost open dialog.
             let topDialog = DialogWidget.topDialog;
-            let dialog = topDialog.container.querySelector(".dialog");
+            let dialog = topDialog.root.querySelector(".dialog");
             if(!helpers.html.isAbove(dialog, e.target))
                 e.preventDefault();
         }, { capture: true, passive: false, signal: this._removeTouchScrollerEvents.signal });
@@ -141,8 +141,8 @@ export default class DialogWidget extends Widget
             throw new Error("Dialog shouldn't be hidden");
 
         this.small = small;
-        helpers.html.setClass(this.container, "small", this.small);
-        helpers.html.setClass(this.container, "large", !this.small);
+        helpers.html.setClass(this.root, "small", this.small);
+        helpers.html.setClass(this.root, "large", !this.small);
 
         this.refreshFullscreen();
         window.addEventListener("resize", this.refreshFullscreen, { signal: this.shutdownSignal.signal });
@@ -158,8 +158,8 @@ export default class DialogWidget extends Widget
 
             this._dialogDragger = new WidgetDragger({
                 name: "close-dialog",
-                node: this.container,
-                dragNode: this.container,
+                node: this.root,
+                dragNode: this.root,
                 visible: false,
                 size: 150,
                 animatedProperty: "--dialog-visible",
@@ -177,8 +177,8 @@ export default class DialogWidget extends Widget
                 },
 
                 // Set dragging while dragging the dialog to disable the scroller.
-                onactive: () => this.container.classList.add("dragging-dialog"),
-                oninactive: () => this.container.classList.remove("dragging-dialog"),
+                onactive: () => this.root.classList.add("dragging-dialog"),
+                oninactive: () => this.root.classList.remove("dragging-dialog"),
             });
         
             this._dialogDragger.show();
@@ -192,7 +192,7 @@ export default class DialogWidget extends Widget
         // If we're not the first dialog on the stack, make the previous dialog inert, so it'll ignore inputs.
         let oldTopDialog = DialogWidget.topDialog;
         if(oldTopDialog)
-            oldTopDialog.container.inert = true;
+            oldTopDialog.root.inert = true;
 
         // Add ourself to the stack.
         DialogWidget.activeDialogs.push(this);
@@ -202,10 +202,10 @@ export default class DialogWidget extends Widget
         OpenWidgets.singleton.set(this, true);
 
         if(!header && !showCloseButton)
-            this.container.querySelector(".header").hidden = true;
+            this.root.querySelector(".header").hidden = true;
 
         this.allowClose = allowClose;
-        this.container.querySelector(".close-button").hidden = !allowClose || !showCloseButton;
+        this.root.querySelector(".close-button").hidden = !allowClose || !showCloseButton;
         this.header = header;
 
         window.addEventListener("keydown", this._onkeypress.bind(this), { signal: this.shutdownSignal.signal });
@@ -213,14 +213,14 @@ export default class DialogWidget extends Widget
         if(this.allowClose)
         {
             // Close if the container is clicked, but not if something inside the container is clicked.
-            this.container.addEventListener("click", (e) => {
-                if(e.target != this.container)
+            this.root.addEventListener("click", (e) => {
+                if(e.target != this.root)
                     return;
 
                 this.visible = false;
             });
 
-            let closeButton = this.container.querySelector(".close-button");
+            let closeButton = this.root.querySelector(".close-button");
             if(closeButton)
                 closeButton.addEventListener("click", (e) => { this.visible = false; });
 
@@ -248,12 +248,12 @@ export default class DialogWidget extends Widget
 
     set header(value)
     {
-        this.container.querySelector(".header-text").textContent = value ?? "";
+        this.root.querySelector(".header-text").textContent = value ?? "";
     }
 
     refreshFullscreen = () =>
     {
-        helpers.html.setClass(this.container, "fullscreen", helpers.other.isPhone() && !this.small);
+        helpers.html.setClass(this.root, "fullscreen", helpers.other.isPhone() && !this.small);
     }
 
     visibilityChanged()
@@ -339,7 +339,7 @@ export default class DialogWidget extends Widget
         // If we were covering another dialog, unset inert on the previous dialog.
         let newTopDialog = DialogWidget.topDialog;
         if(newTopDialog)
-            newTopDialog.container.inert = false;
+            newTopDialog.root.inert = false;
 
         super.shutdown();
     }

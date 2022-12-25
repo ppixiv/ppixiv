@@ -22,9 +22,9 @@ export default class ImageEditingOverlayContainer extends Widget
             </div>
         `});
 
-        this._inpaintEditorOverlayContainer = this.container.querySelector(".inpaint-editor-overlay-container");
-        this._cropEditorOverlayContainer = this.container.querySelector(".crop-editor-overlay-container");
-        this._panEditorOverlayContainer = this.container.querySelector(".pan-editor-overlay-container");
+        this._inpaintEditorOverlayContainer = this.root.querySelector(".inpaint-editor-overlay-container");
+        this._cropEditorOverlayContainer = this.root.querySelector(".crop-editor-overlay-container");
+        this._panEditorOverlayContainer = this.root.querySelector(".pan-editor-overlay-container");
     }
 
     set inpaintEditorOverlay(node)

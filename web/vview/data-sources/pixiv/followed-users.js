@@ -163,9 +163,9 @@ class UI extends Widget
         let publicPrivateButtonContainer = this.querySelector(".follows-public-private");
         publicPrivateButtonContainer.hidden = !dataSource.viewingSelf;
 
-        dataSource.setItem(this.container, { type: "public-follows", fields: {rest: "show"}, defaults: {rest: "show"} });
-        dataSource.setItem(this.container, { type: "private-follows", fields: {rest: "hide"}, defaults: {rest: "show"} });
-        dataSource.setItem(this.container, { type: "accepting-requests", toggle: true, fields: {acceptingRequests: "1"}, defaults: {acceptingRequests: "0"}});
+        dataSource.setItem(this.root, { type: "public-follows", fields: {rest: "show"}, defaults: {rest: "show"} });
+        dataSource.setItem(this.root, { type: "private-follows", fields: {rest: "hide"}, defaults: {rest: "show"} });
+        dataSource.setItem(this.root, { type: "accepting-requests", toggle: true, fields: {acceptingRequests: "1"}, defaults: {acceptingRequests: "0"}});
 
         class FollowTabDropdown extends Widget
         {
@@ -182,7 +182,7 @@ class UI extends Widget
 
             refreshFollowingTags()
             {
-                let tagList = this.container;
+                let tagList = this.root;
                 for(let tag of tagList.querySelectorAll(".tag-entry"))
                     tag.remove();
 

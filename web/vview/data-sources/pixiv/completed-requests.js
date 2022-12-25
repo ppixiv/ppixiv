@@ -87,16 +87,16 @@ class UI extends Widget
             </div>
         `});
 
-        dataSource.setItem(this.container, { type: "completed-requests-latest", fields: {type: "latest"}, defaults: {type: "latest"}});
-        dataSource.setItem(this.container, { type: "completed-requests-recommended", fields: {type: "recommended"}, defaults: {type: "latest"}});
+        dataSource.setItem(this.root, { type: "completed-requests-latest", fields: {type: "latest"}, defaults: {type: "latest"}});
+        dataSource.setItem(this.root, { type: "completed-requests-recommended", fields: {type: "recommended"}, defaults: {type: "latest"}});
 
-        dataSource.setItem(this.container, { type: "completed-requests-all", fields: {mode: "all"}, defaults: {mode: "all"}});
-        dataSource.setItem(this.container, { type: "completed-requests-safe", fields: {mode: "safe"}, defaults: {mode: "all"}});
-        dataSource.setItem(this.container, { type: "completed-requests-r18", fields: {mode: "r18"}, defaults: {mode: "all"}});
+        dataSource.setItem(this.root, { type: "completed-requests-all", fields: {mode: "all"}, defaults: {mode: "all"}});
+        dataSource.setItem(this.root, { type: "completed-requests-safe", fields: {mode: "safe"}, defaults: {mode: "all"}});
+        dataSource.setItem(this.root, { type: "completed-requests-r18", fields: {mode: "r18"}, defaults: {mode: "all"}});
 
         let urlFormat = "request/complete/type";
-        dataSource.setItem(this.container, { urlFormat: urlFormat, type: "completed-requests-illust", fields: {"/type": "illust"} });
-        dataSource.setItem(this.container, { urlFormat: urlFormat, type: "completed-requests-ugoira", fields: {"/type": "ugoira"} });
-        dataSource.setItem(this.container, { urlFormat: urlFormat, type: "completed-requests-manga", fields: {"/type": "manga"} });
+        dataSource.setItem(this.root, { urlFormat: urlFormat, type: "completed-requests-illust", fields: {"/type": "illust"} });
+        dataSource.setItem(this.root, { urlFormat: urlFormat, type: "completed-requests-ugoira", fields: {"/type": "ugoira"} });
+        dataSource.setItem(this.root, { urlFormat: urlFormat, type: "completed-requests-manga", fields: {"/type": "manga"} });
     }
 }

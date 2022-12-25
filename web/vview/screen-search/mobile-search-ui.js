@@ -41,12 +41,12 @@ export default class MobileSearchUI extends Widget
             </div>
         `});
 
-        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
-        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new SettingsDialog());
-        this.container.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(ppixiv.app.slideshowURL));
-        this.container.querySelector(".menu").addEventListener("click", (e) => new MobileEditSearchDialog());
+        this.root.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
+        this.root.querySelector(".preferences-button").addEventListener("click", (e) => new SettingsDialog());
+        this.root.querySelector(".slideshow").addEventListener("click", (e) => helpers.navigate(ppixiv.app.slideshowURL));
+        this.root.querySelector(".menu").addEventListener("click", (e) => new MobileEditSearchDialog());
 
-        this.container.querySelector(".back-button").addEventListener("click", () => {
+        this.root.querySelector(".back-button").addEventListener("click", () => {
             if(ppixiv.native)
             {
                 if(this.parent.displayedMediaId == null)
@@ -67,14 +67,14 @@ export default class MobileSearchUI extends Widget
 
     applyVisibility()
     {
-        helpers.html.setClass(this.container, "shown", this._visible);
+        helpers.html.setClass(this.root, "shown", this._visible);
     }
 
     refreshUi()
     {
         // The back button navigate to parent locally, otherwise it's browser back if we're in
         // permanent history mode.
-        let backButton = this.container.querySelector(".back-button");
+        let backButton = this.root.querySelector(".back-button");
         let showBackButton;
         if(ppixiv.native)
             showBackButton = LocalAPI.getParentFolder(this.parent.displayedMediaId) != null;
@@ -99,10 +99,10 @@ class MobileEditSearchDialog extends DialogWidget
         });
 
         // Create the menu items.  This is the same as the dropdown list for desktop.
-        let optionBox = this.container.querySelector(".search-selection");
+        let optionBox = this.root.querySelector(".search-selection");
         CreateSearchMenu(optionBox);
 
-        this.container.addEventListener("click", (e) => {
+        this.root.addEventListener("click", (e) => {
             let a = e.target.closest("A");
             if(a == null)
                 return;
@@ -126,7 +126,7 @@ class MobileEditSearchDialog extends DialogWidget
         // The active row is the one who would load a data source of the same class as the current one.
         let currentDataSource = this.dataSource;
 
-        for(let button of this.container.querySelectorAll(".navigation-button"))
+        for(let button of this.root.querySelectorAll(".navigation-button"))
         {
             let url = new URL(button.href);
             let dataSourceClass = DataSource.getDataSourceForUrl(url);
@@ -147,7 +147,7 @@ class MobileEditSearchDialog extends DialogWidget
     refresh()
     {
         let activeRow = this.activeRow;
-        for(let button of this.container.querySelectorAll(".navigation-button"))
+        for(let button of this.root.querySelectorAll(".navigation-button"))
             helpers.html.setClass(button, "selected", button == activeRow);
 
         // Show this row if it's hidden.  Some rows are only displayed while they're in use.

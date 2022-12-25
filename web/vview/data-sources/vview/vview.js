@@ -353,7 +353,7 @@ class UI extends Widget
             refreshTags()
             {
                 // Clear the tag list.
-                for(let tag of this.container.querySelectorAll(".following-tag"))
+                for(let tag of this.root.querySelectorAll(".following-tag"))
                     tag.remove();
 
                 // Stop if we don't have the tag list yet.
@@ -408,7 +408,7 @@ class UI extends Widget
                     fields: {"#bookmark-tag": tag},
                 });
 
-                this.container.appendChild(a);
+                this.root.appendChild(a);
             }
         }
 
@@ -445,7 +445,7 @@ class UI extends Widget
         // Hide the "copy local path" button if we don't have one.
         this.querySelector(".copy-local-path").hidden = dataSource.localPath == null;
 
-        dataSource.setItem(this.container, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true,
+        dataSource.setItem(this.root, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true,
             adjustUrl: (args) => {
                 // If the button is exiting bookmarks, remove bookmark-tag too.
                 if(!args.hash.has("bookmarks"))

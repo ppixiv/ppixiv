@@ -13,7 +13,7 @@ export class MenuOption extends Widget
     {
         super(options);
         for(let className of classes)
-            this.container.classList.add(className);
+            this.root.classList.add(className);
 
         this.onrefresh = refresh;
     }
@@ -36,7 +36,7 @@ export class MenuOption extends Widget
         if(typeof(text) == "function")
             text = text();
 
-        let explanation = this.container.querySelector(".explanation");
+        let explanation = this.root.querySelector(".explanation");
         if(explanation == null)
             return;
 
@@ -60,7 +60,7 @@ export class MenuOptionRow extends MenuOption
 
         if(label != null)
         {
-            let span = this.container.querySelector(".label-box");
+            let span = this.root.querySelector(".label-box");
             span.hidden = false;
             span.innerText = label;
         }
@@ -92,7 +92,7 @@ export class MenuOptionButton extends MenuOption
         `});
 
         // Set the box-link label to flex, to push buttons to the right:
-        this.container.querySelector(".label-box").style.flex = "1";
+        this.root.querySelector(".label-box").style.flex = "1";
 
         this._clickHandler = onclick;
         this._enabled = true;
@@ -101,10 +101,10 @@ export class MenuOptionButton extends MenuOption
         this.getLabel = getLabel;
 
         if(this._clickHandler != null)
-            this.container.classList.add("clickable");
+            this.root.classList.add("clickable");
 
-        this.container.querySelector(".label").innerText = label;
-        this.container.addEventListener("click", this.onclick);
+        this.root.querySelector(".label").innerText = label;
+        this.root.addEventListener("click", this.onclick);
     }
 
     refresh()
@@ -112,12 +112,12 @@ export class MenuOptionButton extends MenuOption
         super.refresh();
 
         if(this.getLabel)
-            this.container.querySelector(".label").innerText = this.getLabel();
+            this.root.querySelector(".label").innerText = this.getLabel();
     }
 
     set enabled(value)
     {
-        helpers.html.setClass(this.container, "disabled", !value);
+        helpers.html.setClass(this.root, "disabled", !value);
         this._enabled = value;
     }
 
@@ -159,8 +159,8 @@ export class MenuOptionNestedButton extends MenuOption
     {
         super({...options, template: helpers.createBoxLink({label: "",   classes: ["clickable"] })});
 
-        this.container.querySelector(".label").innerText = label;
-        this.container.addEventListener("click", (e) => {
+        this.root.querySelector(".label").innerText = label;
+        this.root.addEventListener("click", (e) => {
             e.stopPropagation();
             e.preventDefault();
     
@@ -178,7 +178,7 @@ export class MenuOptionToggle extends MenuOptionButton
     {
         super({...options});
 
-        this.checkbox = new CheckboxWidget({ container: this.container });
+        this.checkbox = new CheckboxWidget({ container: this.root });
         this.checkbox.checked = checked;
     }
 
@@ -267,10 +267,10 @@ export class MenuOptionSlider extends MenuOption
 
         this.list = list;
 
-        this.container.addEventListener("input", this.oninput);
-        this.container.addEventListener("click", (e) => { e.stopPropagation(); });
+        this.root.addEventListener("input", this.oninput);
+        this.root.addEventListener("click", (e) => { e.stopPropagation(); });
 
-        this.slider = this.container.querySelector("input");
+        this.slider = this.root.querySelector("input");
         if(this.list != null)
         {
             this.slider.min = 0;
@@ -398,7 +398,7 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
         this.setting = setting;
         this.values = values;
         this.slider = new MenuOptionSliderSetting({
-            container: this.container,
+            container: this.root,
             label: "xxx",
             setting: setting,
             min: 0,
@@ -411,7 +411,7 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
         });
     
 
-        this.container.querySelector(".slider").style.flexGrow = .25;        
+        this.root.querySelector(".slider").style.flexGrow = .25;        
     }
 
     get explanationText()

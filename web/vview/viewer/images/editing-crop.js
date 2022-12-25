@@ -34,7 +34,7 @@ export default class CropEditor extends Widget
         this.width = 1;
         this.height = 1;
 
-        this._editorOverlay = this.container.querySelector(".crop-editor-overlay");
+        this._editorOverlay = this.root.querySelector(".crop-editor-overlay");
         this._editorOverlay.remove();
         this._currentCrop = null;
 

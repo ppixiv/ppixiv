@@ -22,7 +22,7 @@ export default class FixChromeClicks
         if(!this.enabled)
             return;
 
-        this.container = container;
+        this.root = container;
         this.pressedNode = null;
 
         // Since the pointer events API is ridiculous and doesn't send separate pointerdown
@@ -30,11 +30,11 @@ export default class FixChromeClicks
         // to find out if button 0 is pressed.  If the user presses button 2 outside of our
         // container we still want to know about button 0, but that button 0 event might happen
         // in another element that we don't care about.
-        this.container.addEventListener("pointerdown", this.onpointer, true);
-        this.container.addEventListener("pointerup", this.onpointer, true);
-        this.container.addEventListener("pointermove", this.onpointer, true);
-        this.container.addEventListener("contextmenu", this.oncontextmenu);
-        this.container.addEventListener("click", this.onclick, true);
+        this.root.addEventListener("pointerdown", this.onpointer, true);
+        this.root.addEventListener("pointerup", this.onpointer, true);
+        this.root.addEventListener("pointermove", this.onpointer, true);
+        this.root.addEventListener("contextmenu", this.oncontextmenu);
+        this.root.addEventListener("click", this.onclick, true);
     }
 
     // We have to listen on window as well as our container for events, since a
@@ -110,7 +110,7 @@ export default class FixChromeClicks
         }
 
         // If the click target is above our container, stop.
-        if(helpers.html.isAbove(clickTarget, this.container))
+        if(helpers.html.isAbove(clickTarget, this.root))
             return;
 
         // Why is cancelling the event not preventing mouse events and click events?
@@ -166,11 +166,11 @@ export default class FixChromeClicks
         this.stopWaitingForRelease();
         this.pressedNode = null;
 
-        this.container.removeEventListener("pointerup", this.onpointer, true);
-        this.container.removeEventListener("pointerdown", this.onpointer, true);
-        this.container.removeEventListener("pointermove", this.onpointer, true);
-        this.container.removeEventListener("contextmenu", this.oncontextmenu);
-        this.container.removeEventListener("click", this.onclick, true);
+        this.root.removeEventListener("pointerup", this.onpointer, true);
+        this.root.removeEventListener("pointerdown", this.onpointer, true);
+        this.root.removeEventListener("pointermove", this.onpointer, true);
+        this.root.removeEventListener("contextmenu", this.oncontextmenu);
+        this.root.removeEventListener("click", this.onclick, true);
     }
 }
 

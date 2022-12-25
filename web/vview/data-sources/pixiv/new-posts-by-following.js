@@ -73,7 +73,7 @@ class UI extends Widget
                 // Refresh the bookmark tag list.
                 let currentTag = dataSource.url.searchParams.get("tag") || "All tags";
 
-                for(let tag of this.container.querySelectorAll(".tag-entry"))
+                for(let tag of this.root.querySelectorAll(".tag-entry"))
                     tag.remove();
 
                 this.addTagLink("All tags");
@@ -109,7 +109,7 @@ class UI extends Widget
 
                 dataSource.setItem(a, { fields: {"tag": tag} });
 
-                this.container.appendChild(a);
+                this.root.appendChild(a);
             };
         };
         
@@ -119,7 +119,7 @@ class UI extends Widget
             createBox: ({...options}) => new FollowTagDropdown({dataSource, ...options}),
         });
 
-        dataSource.setItem(this.container, {
+        dataSource.setItem(this.root, {
             type: "bookmarks-new-illust-ages-r18",
             toggle: true,
             urlFormat: "path",

@@ -537,8 +537,8 @@ export class SendImagePopup extends DialogWidget
         `});
 
         // Close if the container is clicked, but not if something inside the container is clicked.
-        this.container.addEventListener("click", (e) => {
-            if(e.target != this.container)
+        this.root.addEventListener("click", (e) => {
+            if(e.target != this.root)
                 return;
 
             this.visible = false;

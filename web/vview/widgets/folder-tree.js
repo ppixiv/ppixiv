@@ -27,7 +27,7 @@ class TreeWidget extends Widget
             </div>
         `});
 
-        this.items = this.container.querySelector(".items");
+        this.items = this.root.querySelector(".items");
 
         // Listen to illust changes so we can refresh nodes.
         ppixiv.mediaCache.addEventListener("mediamodified", this._mediaModified, { signal: this.shutdownSignal.signal });
@@ -65,17 +65,17 @@ class TreeWidget extends Widget
         // If we have another root, remove it from this.items.
         if(this.rootItem)
         {
-            this.rootItem.container.remove();
+            this.rootItem.root.remove();
             this.rootItem = null;
         }
 
         this.rootItem = rootItem;
 
         // Add the new root to this.items.
-        if(rootItem.container.parentNode != this.items)
+        if(rootItem.root.parentNode != this.items)
         {
             console.assert(rootItem.parentNode == null);
-            this.items.appendChild(rootItem.container);
+            this.items.appendChild(rootItem.root);
         }
 
         // Root nodes are always expanded.
@@ -88,7 +88,7 @@ class TreeWidget extends Widget
             return;
 
         this.selectedItem = item;
-        for(let node of this.container.querySelectorAll(".tree-item.selected"))
+        for(let node of this.root.querySelectorAll(".tree-item.selected"))
         {
             node.classList.remove("selected");
 
@@ -100,15 +100,15 @@ class TreeWidget extends Widget
 
         if(item != null)
         {
-            item.container.classList.add("selected");
+            item.root.classList.add("selected");
 
             // If the item isn't visible, center it.
             //
             // Bizarrely, while there's a full options dict for scrollIntoView and you
             // can control horizontal and vertical scrolling separately, there's no "none"
             // option so you can scroll vertically and not horizontally.
-            let scrollContainer = this.container;
-            let label = item.container.querySelector(".label");
+            let scrollContainer = this.root;
+            let label = item.root.querySelector(".label");
 
             let oldScrollLeft = scrollContainer.scrollLeft;
 
@@ -134,13 +134,13 @@ class TreeWidget extends Widget
             return;
         }
 
-        let label = item.container.querySelector(".label");
+        let label = item.root.querySelector(".label");
         let {top, left, bottom, height} = label.getBoundingClientRect();
 
         // Set up thumbPopup.
         if(item.path)
         {
-            let {right} = this.container.getBoundingClientRect();
+            let {right} = this.root.getBoundingClientRect();
             this._thumbPopup.style.left = `${right}px`;
 
             // If the label is above halfway down the screen, position the preview image
@@ -244,16 +244,16 @@ class TreeWidgetItem extends Widget
         // aren't indented.
         if(rootItem)
         {
-            this.container.querySelector(".self").hidden = true;
-            this.container.classList.add("root-item");
+            this.root.querySelector(".self").hidden = true;
+            this.root.classList.add("root-item");
         }
 
         // If our parent is the root node, we're a top-level node.
-        helpers.html.setClass(this.container, "top", !rootItem && parent.rootItem);
-        helpers.html.setClass(this.container, "child", !rootItem && !parent.rootItem);
+        helpers.html.setClass(this.root, "top", !rootItem && parent.rootItem);
+        helpers.html.setClass(this.root, "child", !rootItem && !parent.rootItem);
 
-        this.items = this.container.querySelector(".items");
-        this.expander = this.container.querySelector(".expander");
+        this.items = this.root.querySelector(".items");
+        this.expander = this.root.querySelector(".expander");
         this.isRootItem = rootItem;
         this._expandable = expandable;
         this._expanded = false;
@@ -271,7 +271,7 @@ class TreeWidgetItem extends Widget
             this.expanded = this.expanded? false:"user";
         });
 
-        let labelElement = this.container.querySelector(".label");
+        let labelElement = this.root.querySelector(".label");
         labelElement.addEventListener("dblclick", this.ondblclick);
 
         labelElement.addEventListener("mousedown", (e) => {
@@ -312,7 +312,7 @@ class TreeWidgetItem extends Widget
 
     refresh()
     {
-        let label = this.container.querySelector(".label");
+        let label = this.root.querySelector(".label");
         label.innerText = this.label;
     }
 
@@ -436,7 +436,7 @@ class TreeWidgetItem extends Widget
         this.expander.dataset.mode = this.displayedExpandMode;
         this.expander.dataset.pending = this._pending;
         this.items.hidden = !this._expanded || this._pending;
-        helpers.html.setClass(this.container, "allow-content-visibility", this.displayedExpandMode != "expanded");
+        helpers.html.setClass(this.root, "allow-content-visibility", this.displayedExpandMode != "expanded");
     }
 
     // user is true if the item is being selected by the user, so it shouldn't be automatically
@@ -493,7 +493,7 @@ class TreeWidgetItem extends Widget
 
     focus()
     {
-        this.container.querySelector(".self").focus();
+        this.root.querySelector(".self").focus();
     }
 
     remove()
@@ -501,7 +501,7 @@ class TreeWidgetItem extends Widget
         if(this.parent == null)
             return;
 
-        this.parent.items.remove(this.container);
+        this.parent.items.remove(this.root);
 
         // Refresh the parent in case we're the last child.
         this.parent._refreshExpandMode();
@@ -577,7 +577,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         let { id } = helpers.mediaId.parse(this.path);
         let isLibrary = id.indexOf("/", 1) == -1;
         if(!isLibrary)
-            this.container.dataset.mediaId = this.path;
+            this.root.dataset.mediaId = this.path;
 
         if(options.rootItem)
         {
@@ -604,12 +604,12 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         // Show or hide the bookmark icon.
         let info = ppixiv.mediaCache.getMediaInfoSync(this.path, { full: false });
         let bookmarked = info?.bookmarkData != null;
-        this.container.querySelector(".button-bookmark").hidden = !bookmarked;
+        this.root.querySelector(".button-bookmark").hidden = !bookmarked;
 
         // This is useful, but the pointless browser URL popup covering the UI is really annoying...
         /* if(this.path)
         {
-            let label = this.container.querySelector(".label");
+            let label = this.root.querySelector(".label");
             let args = helpers.args.location;
             LocalAPI.getArgsForId(this.path, args);
             // label.href = args.url.toString();

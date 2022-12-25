@@ -32,7 +32,7 @@ export default class UserInfoLinks extends Widget
         let extraLinks = this.getExtraLinks({ userInfo, dataSource });
 
         // Remove any extra buttons that we added earlier.
-        let row = this.container;
+        let row = this.root;
         for(let div of row.querySelectorAll(".extra-profile-link-button"))
             div.remove();
         

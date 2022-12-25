@@ -62,23 +62,23 @@ export default class InpaintEditor extends Widget
         this._dragStart = null;
         this._selectedLineIdx = -1;
 
-        this.ui = this.container.querySelector(".editor-buttons");
+        this.ui = this.root.querySelector(".editor-buttons");
 
         // Remove .inpaint-editor-overlay.  It's inserted into the image overlay when we
         // have one, so it pans and zooms with the image.
-        this._editorOverlay = this.container.querySelector(".inpaint-editor-overlay");
+        this._editorOverlay = this.root.querySelector(".inpaint-editor-overlay");
         this._editorOverlay.remove();
         this._svg = this._editorOverlay.querySelector(".inpaint-container");
 
-        this._createLinesButton = this.container.querySelector(".create-lines");
+        this._createLinesButton = this.root.querySelector(".create-lines");
         this._createLinesButton.addEventListener("click", (e) => {
             e.stopPropagation();
             this.createLines = !this._createLines;
         });
 
         // Update the selected line's thickness when the thickness slider changes.
-        this._lineWidthSlider = this.container.querySelector(".inpaint-line-width");
-        this._lineWidthSliderBox = this.container.querySelector(".inpaint-line-width-box");
+        this._lineWidthSlider = this.root.querySelector(".inpaint-line-width");
+        this._lineWidthSliderBox = this.root.querySelector(".inpaint-line-width-box");
         this._lineWidthSlider.addEventListener("input", (e) => {
             if(this._selectedLine == null)
                 return;
@@ -94,19 +94,19 @@ export default class InpaintEditor extends Widget
             },
         });
 
-        this._downscaleSlider = this.container.querySelector(".inpaint-downscale");
+        this._downscaleSlider = this.root.querySelector(".inpaint-downscale");
         this._downscaleSlider.addEventListener("change", (e) => {
             this.parent.saveUndo();
             this.downscaleRatio = parseFloat(this._downscaleSlider.value);
         }, { signal: this.shutdownSignal.signal });
 
-        this._blurSlider = this.container.querySelector(".inpaint-blur");
+        this._blurSlider = this.root.querySelector(".inpaint-blur");
         this._blurSlider.addEventListener("change", (e) => {
             this.parent.saveUndo();
             this.blur = parseFloat(this._blurSlider.value);
         }, { signal: this.shutdownSignal.signal });
         
-        let viewInpaintButton = this.container.querySelector(".view-inpaint");
+        let viewInpaintButton = this.root.querySelector(".view-inpaint");
         new PointerListener({
             element: viewInpaintButton,
             callback: (e) => {
@@ -116,7 +116,7 @@ export default class InpaintEditor extends Widget
         });
 
         // "Save default" buttons:
-        this.container.querySelector(".save-default-thickness").addEventListener("click", (e) => {
+        this.root.querySelector(".save-default-thickness").addEventListener("click", (e) => {
             e.stopPropagation();
 
             let value = parseInt(this._lineWidthSlider.value);
@@ -124,7 +124,7 @@ export default class InpaintEditor extends Widget
             console.log("Saved default line thickness:", value);
         }, { signal: this.shutdownSignal.signal });
 
-        this.container.querySelector(".save-default-downscale").addEventListener("click", (e) => {
+        this.root.querySelector(".save-default-downscale").addEventListener("click", (e) => {
             e.stopPropagation();
 
             let value = parseFloat(this._downscaleSlider.value);
@@ -132,7 +132,7 @@ export default class InpaintEditor extends Widget
             console.log("Saved default downscale:", value);
         }, { signal: this.shutdownSignal.signal });
 
-        this.container.querySelector(".save-default-soften").addEventListener("click", (e) => {
+        this.root.querySelector(".save-default-soften").addEventListener("click", (e) => {
             e.stopPropagation();
 
             let value = parseFloat(this._blurSlider.value);
@@ -615,7 +615,7 @@ export default class InpaintEditor extends Widget
 
     removeLine(line)
     {
-        line.container.remove();
+        line.root.remove();
 
         let idx = this.lines.indexOf(line);
         console.assert(idx != -1);
@@ -654,9 +654,9 @@ export default class InpaintEditor extends Widget
         {
             let line = this.lines[idx];
             if(idx == this._selectedLineIdx)
-                line.container.classList.add("selected");
+                line.root.classList.add("selected");
             else
-                line.container.classList.remove("selected");
+                line.root.classList.remove("selected");
         }
     }
 

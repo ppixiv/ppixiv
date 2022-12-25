@@ -50,7 +50,7 @@ export default class ScreenIllust extends Screen
         this.latestNavigationDirectionDown = true;
 
         // Create a UI box and put it in its container.
-        let uiContainer = this.container.querySelector(".ui");
+        let uiContainer = this.root.querySelector(".ui");
         if(!ppixiv.mobile)
             this.desktopUi = new DesktopImageInfo({ container: uiContainer });
         
@@ -62,10 +62,10 @@ export default class ScreenIllust extends Screen
         ppixiv.mediaCache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdownSignal.signal });
         ppixiv.settings.addEventListener("recent-bookmark-tags", this.refreshUi, { signal: this.shutdownSignal.signal });
 
-        this.viewContainer = this.container.querySelector(".view-container");
+        this.viewContainer = this.root.querySelector(".view-container");
 
         // Remove the "flash" class when the page change indicator's animation finishes.
-        let pageChangeIndicator = this.container.querySelector(".page-change-indicator");
+        let pageChangeIndicator = this.root.querySelector(".page-change-indicator");
         pageChangeIndicator.addEventListener("animationend", (e) => {
             pageChangeIndicator.classList.remove("flash");
         });
@@ -78,9 +78,9 @@ export default class ScreenIllust extends Screen
                 helpers.toggleFullscreen();
             });
 
-            new HideMouseCursorOnIdle(this.container.querySelector(".mouse-hidden-box"));
+            new HideMouseCursorOnIdle(this.root.querySelector(".mouse-hidden-box"));
 
-            this.container.addEventListener("wheel", this.onwheel, { passive: false });
+            this.root.addEventListener("wheel", this.onwheel, { passive: false });
         }
 
         // Mobile UI:
@@ -91,12 +91,12 @@ export default class ScreenIllust extends Screen
             this.mobileImageChanger = new MobileImageChanger({ parent: this });
 
             this.mobileIllustUi = new MobileUI({
-                container: this.container,
-                transitionTarget: this.container,
+                container: this.root,
+                transitionTarget: this.root,
             });
 
             // Toggle zoom on double-tap.
-            this.container.addEventListener("dblclick", (e) => this.viewer.toggleZoom(e), this._signal);
+            this.root.addEventListener("dblclick", (e) => this.viewer.toggleZoom(e), this._signal);
 
             new IsolatedTapHandler({
                 node: this.viewContainer,
@@ -682,7 +682,7 @@ export default class ScreenIllust extends Screen
 
     flashEndIndicator(down, icon)
     {
-        let indicator = this.container.querySelector(".page-change-indicator");
+        let indicator = this.root.querySelector(".page-change-indicator");
         indicator.dataset.icon = icon;
         indicator.dataset.side = down? "right":"left";
         indicator.classList.remove("flash");

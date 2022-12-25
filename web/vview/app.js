@@ -918,13 +918,13 @@ export default class App
             return;
 
         // If the event is going to an element inside the screen already, just let it continue.
-        if(helpers.html.isAbove(screen.container, e.target))
+        if(helpers.html.isAbove(screen.root, e.target))
             return;
 
         // If the keyboard input didn't go to an element inside the screen, redirect
-        // it to the screen's container.
+        // it to the screen.
         let e2 = new e.constructor(e.type, e);
-        if(!screen.container.dispatchEvent(e2))
+        if(!screen.root.dispatchEvent(e2))
         {
             e.preventDefault();
             e.stopImmediatePropagation();

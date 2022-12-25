@@ -13,7 +13,7 @@ export default class ViewerImagesDesktop extends ViewerImages
         window.addEventListener("blur", (e) => this.stopDragging(), this._signal);
 
         this._pointerListener = new PointerListener({
-            element: this.container,
+            element: this.root,
             buttonMask: 1,
             signal: this.shutdownSignal.signal,
             callback: this._pointerevent,
@@ -29,7 +29,7 @@ export default class ViewerImagesDesktop extends ViewerImages
         {
             e.preventDefault();
 
-            this.container.style.cursor = "none";
+            this.root.style.cursor = "none";
 
             // Don't show the UI if the mouse hovers over it while dragging.
             ClassFlags.get.set("hide-ui", true);
@@ -56,8 +56,8 @@ export default class ViewerImagesDesktop extends ViewerImages
             this._dragMovement = [0,0];
 
             this.capturedPointerId = e.pointerId;
-            this.container.setPointerCapture(this.capturedPointerId);
-            this.container.addEventListener("lostpointercapture", this._lostPointerCapture, this._signal);
+            this.root.setPointerCapture(this.capturedPointerId);
+            this.root.addEventListener("lostpointercapture", this._lostPointerCapture, this._signal);
 
             // If this is a click-zoom, align the zoom to the point on the image that
             // was clicked.
@@ -67,7 +67,7 @@ export default class ViewerImagesDesktop extends ViewerImages
             this._reposition();
 
             // Only listen to pointermove while we're dragging.
-            this.container.addEventListener("pointermove", this._pointermove, this._signal);
+            this.root.addEventListener("pointermove", this._pointermove, this._signal);
         } else {
             if(this.capturedPointerId == null || e.pointerId != this.capturedPointerId)
                 return;
@@ -93,19 +93,19 @@ export default class ViewerImagesDesktop extends ViewerImages
         // Save our history state on mouseup.
         this._saveToHistory();
            
-        if(this.container != null)
+        if(this.root != null)
         {
-            this.container.removeEventListener("pointermove", this._pointermove);
-            this.container.style.cursor = "";
+            this.root.removeEventListener("pointermove", this._pointermove);
+            this.root.style.cursor = "";
         }
 
         if(this.capturedPointerId != null)
         {
-            this.container.releasePointerCapture(this.capturedPointerId);
+            this.root.releasePointerCapture(this.capturedPointerId);
             this.capturedPointerId = null;
         }
        
-        this.container.removeEventListener("lostpointercapture", this._lostPointerCapture);
+        this.root.removeEventListener("lostpointercapture", this._lostPointerCapture);
 
         ClassFlags.get.set("hide-ui", false);
         

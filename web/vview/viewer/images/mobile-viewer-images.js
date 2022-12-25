@@ -9,7 +9,7 @@ export default class ViewerImagesMobile extends ViewerImages
     {
         super(options);
 
-        this.container.addEventListener("pointerdown", (e) => {
+        this.root.addEventListener("pointerdown", (e) => {
             if(this._slideshowMode || !this._animationsRunning)
                 return;
 
@@ -22,7 +22,7 @@ export default class ViewerImagesMobile extends ViewerImages
     
         this._touchScroller = new TouchScroller({
             ...this._signal,
-            container: this.container,
+            container: this.root,
 
             onactive: () => {
                 // Stop pan animations if the touch scroller becomes active.

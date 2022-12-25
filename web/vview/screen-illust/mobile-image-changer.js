@@ -30,7 +30,7 @@ export default class DragImageChanger
 
         this.dragger = new DragHandler({
             name: "image-changer",
-            element: this.container,
+            element: this.parent.root,
             confirmDrag: ({event}) => {
                 // Stop if there's no image, if the screen wasn't able to load one.
                 if(this.mainViewer == null)
@@ -65,8 +65,6 @@ export default class DragImageChanger
     {
         return 25;
     }
-
-    get container() { return this.parent.container; }
 
     // The main viewer is the one active in the screen.  this.dragDistance is relative to
     // it, and it's always in this.viewers during drags.
@@ -119,7 +117,7 @@ export default class DragImageChanger
         // the drag to where the animation was.
         if(this.dragDistance != null && this.mainViewer)
         {
-            let mainTransform = new DOMMatrix(getComputedStyle(this.mainViewer.container).transform);
+            let mainTransform = new DOMMatrix(getComputedStyle(this.mainViewer.root).transform);
             this.dragDistance = mainTransform.e; // X translation
             this.refreshDragPosition();
         }
@@ -179,7 +177,7 @@ export default class DragImageChanger
             let viewer = this.viewers[idx];
 
             let x = this.getViewerX(idx);
-            viewer.container.style.transform = `translateX(${x}px)`;
+            viewer.root.style.transform = `translateX(${x}px)`;
             viewer.visible = true;
         }
     }
@@ -424,7 +422,7 @@ export default class DragImageChanger
             let thisIdxd = idx - mainViewerIndex;
 
             // The animation starts at the current translateX.
-            let startX = new DOMMatrix(getComputedStyle(viewer.container).transform).e;
+            let startX = new DOMMatrix(getComputedStyle(viewer.root).transform).e;
             //let startX = this.getViewerX(idx);
 
             // Animate everything to their default positions relative to the main image.
@@ -443,8 +441,8 @@ export default class DragImageChanger
             if((endX > startX) != (recentVelocity > 0))
                 easing = "ease-out";
 
-            let animation = new DirectAnimation(new KeyframeEffect(viewer.container, [
-                { transform: viewer.container.style.transform },
+            let animation = new DirectAnimation(new KeyframeEffect(viewer.root, [
+                { transform: viewer.root.style.transform },
                 { transform: `translateX(${endX}px)` },
             ], {
                 duration,

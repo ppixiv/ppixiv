@@ -85,10 +85,10 @@ class UI extends Widget
             </div>
         `});
 
-        dataSource.setItem(this.container, { type: "new-illust-type-illust", fields: {type: null} });
-        dataSource.setItem(this.container, { type: "new-illust-type-manga", fields: {type: "manga"} });
+        dataSource.setItem(this.root, { type: "new-illust-type-illust", fields: {type: null} });
+        dataSource.setItem(this.root, { type: "new-illust-type-manga", fields: {type: "manga"} });
 
-        dataSource.setItem(this.container, { type: "new-illust-ages-r18", toggle: true, urlFormat: "path",
+        dataSource.setItem(this.root, { type: "new-illust-ages-r18", toggle: true, urlFormat: "path",
             fields: {"/path": "new_illust_r18.php"},
             defaults: {"/path": "new_illust.php"},
         });

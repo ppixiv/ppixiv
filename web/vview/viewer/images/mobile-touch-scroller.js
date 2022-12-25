@@ -40,7 +40,7 @@ export default class TouchScroller
         signal,
     })
     {
-        this.container = container;
+        this.root = container;
         this.shutdownSignal = signal;
         this.options = {
             getPosition,

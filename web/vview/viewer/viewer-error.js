@@ -20,14 +20,14 @@ export default class ViewerError extends Viewer
             </div>
         `});
 
-        this.container.querySelector(".view-muted-image").addEventListener("click", (e) => {
+        this.root.querySelector(".view-muted-image").addEventListener("click", (e) => {
             // Add view-muted to the URL to override the mute for this image.
             let args = helpers.args.location;
             args.hash.set("view-muted", "1");
             helpers.navigate(args, { addToHistory: false, cause: "override-mute" });
         });
 
-        this.errorText = this.container.querySelector(".error-text");
+        this.errorText = this.root.querySelector(".error-text");
 
         // Just fire onready immediately for this viewer.
         this.ready.accept(true);
@@ -65,15 +65,15 @@ export default class ViewerError extends Viewer
         let userInfo = await ppixiv.userCache.getUserInfo(mediaInfo.userId);
         if(userInfo)
         {
-            let img = this.container.querySelector(".muted-image");
+            let img = this.root.querySelector(".muted-image");
             img.src = userInfo.imageBig;
         }
 
         let mutedTag = ppixiv.muting.anyTagMuted(mediaInfo.tagList);
         let mutedUser = ppixiv.muting.isUserIdMuted(mediaInfo.userId);
 
-        this.container.querySelector(".muted-label").hidden = false;
-        this.container.querySelector(".view-muted-image").hidden = false;
+        this.root.querySelector(".muted-label").hidden = false;
+        this.root.querySelector(".view-muted-image").hidden = false;
 
         if(mutedTag)
         {

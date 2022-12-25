@@ -390,7 +390,7 @@ export default class WhatsNew extends widget
             </div>
         `});
 
-        this.container.addEventListener("click", this.onclick);
+        this.root.addEventListener("click", this.onclick);
         ppixiv.settings.set("whats-new-last-viewed-version", WhatsNew.latestHistoryRevision());
 
         this.refresh();
@@ -404,14 +404,14 @@ export default class WhatsNew extends widget
             e.preventDefault();
             e.stopPropagation();
             let name = e.target.dataset.explanation;
-            let target = this.container.querySelector(`.${name}`);
+            let target = this.root.querySelector(`.${name}`);
             target.hidden = false;
         }
     }
 
     refresh()
     {
-        let itemsBox = this.container.querySelector(".contents");
+        let itemsBox = this.root.querySelector(".contents");
         for(let node of itemsBox.querySelectorAll(".item"))
             node.remove();
 

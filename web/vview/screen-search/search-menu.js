@@ -92,7 +92,7 @@ export default function CreateSearchMenu(container)
 
                 createOption({
                     ...suboption,
-                    container: row.container,
+                    container: row.root,
                 });
 
                 if(first)
@@ -100,7 +100,7 @@ export default function CreateSearchMenu(container)
                     first = false;
                     let div = document.createElement("div");
                     div.style.flex = "1";
-                    row.container.appendChild(div);
+                    row.root.appendChild(div);
                 }
             }
         }

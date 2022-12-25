@@ -43,8 +43,8 @@ export default class ViewerImages extends Viewer
 
         this._waitForTransitions = waitForTransitions;
 
-        this._imageBox = this.container.querySelector(".image-box");
-        this._cropBox = this.container.querySelector(".crop-box");
+        this._imageBox = this.root.querySelector(".image-box");
+        this._cropBox = this.root.querySelector(".crop-box");
 
         this._refreshImage = new SentinelGuard(this._refreshImage, this);
 
@@ -72,11 +72,11 @@ export default class ViewerImages extends Viewer
 
         // Use a ResizeObserver to update our size and position if the window size changes.
         let resizeObserver = new ResizeObserver(this._onresize);
-        resizeObserver.observe(this.container);
+        resizeObserver.observe(this.root);
         this.shutdownSignal.signal.addEventListener("abort", () => resizeObserver.disconnect());
 
-        this.container.addEventListener("dragstart", (e) => e.preventDefault(), this._signal);
-        this.container.addEventListener("selectstart", (e) => e.preventDefault(), this._signal);
+        this.root.addEventListener("dragstart", (e) => e.preventDefault(), this._signal);
+        this.root.addEventListener("selectstart", (e) => e.preventDefault(), this._signal);
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
         ppixiv.settings.addEventListener("auto_pan", () => {
@@ -100,7 +100,7 @@ export default class ViewerImages extends Viewer
         if(!ppixiv.mobile)
         {
             this._imageEditor = new ImageEditor({
-                container: this.container,
+                container: this.root,
                 parent: this,
                 overlayContainer: this._editingContainer,
                 onvisibilitychanged: () => { this.refresh(); }, // refresh when crop editing is changed
@@ -775,8 +775,8 @@ export default class ViewerImages extends Viewer
     get currentHeight() { return this.height * this._zoomFactorCurrent; }
 
     // The dimensions of the image viewport.  This can be 0 if the view is hidden.
-    get viewWidth() { return this.container.offsetWidth || 1; }
-    get viewHeight() { return this.container.offsetHeight || 1; }
+    get viewWidth() { return this.root.offsetWidth || 1; }
+    get viewHeight() { return this.root.offsetHeight || 1; }
 
     get _currentZoomPos()
     {
@@ -790,7 +790,7 @@ export default class ViewerImages extends Viewer
     // give us client coordinates.
     clientToViewCoords([x,y])
     {
-        let { top, left } = this.container.getBoundingClientRect();
+        let { top, left } = this.root.getBoundingClientRect();
         x -= left;
         y -= top;
         return [x,y];
@@ -798,7 +798,7 @@ export default class ViewerImages extends Viewer
 
     viewToClientCoords([x,y])
     {
-        let { top, left } = this.container.getBoundingClientRect();
+        let { top, left } = this.root.getBoundingClientRect();
         x += left;
         y += top;
         return [x,y];
@@ -837,7 +837,7 @@ export default class ViewerImages extends Viewer
 
         // Stop if we're being called after being disabled, or if we have no container
         // (our parent has been removed and we're being shut down).
-        if(this.container == null || this.viewWidth == 0)
+        if(this.root == null || this.viewWidth == 0)
             return;
 
         // Update the rounding box with the new position.
@@ -1129,10 +1129,10 @@ export default class ViewerImages extends Viewer
         else
             return { };
 
-        // Sanity check: this.container should always have a size.  If this is 0, the container
+        // Sanity check: this.root should always have a size.  If this is 0, the container
         // isn't visible and we don't know anything about how big we are, so we can't set up
         // the slideshow.  This is this.viewWidth below.
-        if(this.container.offsetHeight == 0)
+        if(this.root.offsetHeight == 0)
             console.warn("Image container has no size");
 
         let slideshow = new Slideshow({
@@ -1526,9 +1526,9 @@ class ImagesContainer extends Widget
             </div>
         `});
 
-        this.mainImage = this.container.querySelector(".main-image");
-        this.inpaintImage = this.container.querySelector(".inpaint-image");
-        this.previewImage = this.container.querySelector(".low-res-preview");
+        this.mainImage = this.root.querySelector(".main-image");
+        this.inpaintImage = this.root.querySelector(".inpaint-image");
+        this.previewImage = this.root.querySelector(".low-res-preview");
     }
 
     shutdown()

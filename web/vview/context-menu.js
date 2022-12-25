@@ -138,10 +138,10 @@ export default class ContextMenu extends Widget
         new KeyListener("Control", this._ctrlWasPressed);
 
         // Work around glitchiness in Chrome's click behavior (if we're in Chrome).
-        new FixChromeClicks(this.container);
+        new FixChromeClicks(this.root);
 
-        this.container.addEventListener("mouseover", this.onmouseover, true);
-        this.container.addEventListener("mouseout", this.onmouseout, true);
+        this.root.addEventListener("mouseover", this.onmouseover, true);
+        this.root.addEventListener("mouseout", this.onmouseout, true);
 
         // If the page is navigated while the popup menu is open, clear the ID the
         // user clicked on, so we refresh and show the default.
@@ -152,33 +152,33 @@ export default class ContextMenu extends Widget
             this._setTemporaryIllust(null);
         });
 
-        this._buttonViewManga = this.container.querySelector(".button-view-manga");
+        this._buttonViewManga = this.root.querySelector(".button-view-manga");
         this._buttonViewManga.addEventListener("click", this._clickedViewManga);
 
-        this._buttonFullscreen = this.container.querySelector(".button-fullscreen");
+        this._buttonFullscreen = this.root.querySelector(".button-fullscreen");
         this._buttonFullscreen.addEventListener("click", this._clickedFullscreen);
 
-        this.container.querySelector(".button-zoom").addEventListener("click", this._clickedToggleZoom);
-        this.container.querySelector(".button-browser-back").addEventListener("click", (e) => {
+        this.root.querySelector(".button-zoom").addEventListener("click", this._clickedToggleZoom);
+        this.root.querySelector(".button-browser-back").addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
 
             ppixiv.phistory.back();
         });
 
-        this.container.addEventListener("click", this._handleLinkClick);
-        this.container.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent);
+        this.root.addEventListener("click", this._handleLinkClick);
+        this.root.querySelector(".button-parent-folder").addEventListener("click", this.clicked_go_to_parent);
 
-        for(let button of this.container.querySelectorAll(".button-zoom-level"))
+        for(let button of this.root.querySelectorAll(".button-zoom-level"))
             button.addEventListener("click", this._clickedZoomLevel);
 
         this.avatarWidget = new AvatarWidget({
-            container: this.container.querySelector(".avatar-widget-container"),
+            container: this.root.querySelector(".avatar-widget-container"),
             mode: "overlay",
         });
 
         // Set up the more options dropdown.
-        let moreOptionsButton = this.container.querySelector(".button-more");
+        let moreOptionsButton = this.root.querySelector(".button-more");
         this._moreOptionsDropdownOpener = new DropdownBoxOpener({
             button: moreOptionsButton,
 
@@ -189,7 +189,7 @@ export default class ContextMenu extends Widget
                     showExtra: this.altPressed,
                 });
 
-                dropdown.container.classList.add("popup-more-options-dropdown");
+                dropdown.root.classList.add("popup-more-options-dropdown");
                 dropdown.setMediaId(this._effectiveMediaId);
                 dropdown.setUserId(this._effectiveUserId);
 
@@ -206,7 +206,7 @@ export default class ContextMenu extends Widget
         this.illustWidgets = [
             this.avatarWidget,
             new LikeButtonWidget({
-                container: this.container.querySelector(".button-like-container"),
+                container: this.root.querySelector(".button-like-container"),
                 template: `
                     <div class="button button-like enabled" style="position: relative;">
                         <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
@@ -214,23 +214,23 @@ export default class ContextMenu extends Widget
                 `
             }),
             new LikeCountWidget({
-                container: this.container.querySelector(".button-like"),
+                container: this.root.querySelector(".button-like"),
             }),
             new ImageInfoWidget({
-                container: this.container.querySelector(".context-menu-image-info-container"),
+                container: this.root.querySelector(".context-menu-image-info-container"),
             }),
         ];
 
         if(ppixiv.native)
         {
             this.illustWidgets.push(new ViewInExplorerWidget({
-                container: this.container.querySelector(".view-in-explorer"),
+                container: this.root.querySelector(".view-in-explorer"),
             }));
         }
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmarkButtons = [];
-        for(let a of this.container.querySelectorAll("[data-bookmark-type]"))
+        for(let a of this.root.querySelectorAll("[data-bookmark-type]"))
         {
             
             // The bookmark buttons, and clicks in the tag dropdown:
@@ -251,14 +251,14 @@ export default class ContextMenu extends Widget
 
         this.illustWidgets.push(
             new BookmarkCountWidget({
-                container: this.container.querySelector(".button-bookmark.public")
+                container: this.root.querySelector(".button-bookmark.public")
             })            
         );
 
         // Set up the bookmark tags dropdown.
         this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({
             parent: this,
-            bookmarkTagsButton: this.container.querySelector(".button-bookmark-tags"),
+            bookmarkTagsButton: this.root.querySelector(".button-bookmark-tags"),
             bookmarkButtons: this.bookmarkButtons,
         });
         this.illustWidgets.push(this.bookmarkTagsDropdownOpener);
@@ -441,7 +441,7 @@ export default class ContextMenu extends Widget
 
         this.pointerListener.checkMissedClicks();
 
-        this.displayedMenu = this.container;
+        this.displayedMenu = this.root;
         this.visible = true;
         this.applyVisibility();
 
@@ -458,7 +458,7 @@ export default class ContextMenu extends Widget
         // In toggle mode, close the popup if anything outside is clicked.
         if(this.toggleMode && this.clickOutsideListener == null)
         {
-            this.clickOutsideListener = new ClickOutsideListener([this.container], () => {
+            this.clickOutsideListener = new ClickOutsideListener([this.root], () => {
                 this.hide();
             });
         }
@@ -622,9 +622,9 @@ export default class ContextMenu extends Widget
         let element = this._tooltipElement;
         if(element != null)
             element = element.closest("[data-popup]");
-        this.container.querySelector(".tooltip-display").hidden = element == null;
+        this.root.querySelector(".tooltip-display").hidden = element == null;
         if(element != null)
-            this.container.querySelector(".tooltip-display-text").dataset.popup = element.dataset.popup;
+            this.root.querySelector(".tooltip-display-text").dataset.popup = element.dataset.popup;
     }
 
     onmouseover = (e) =>
@@ -665,8 +665,8 @@ export default class ContextMenu extends Widget
     applyVisibility()
     {
         let visible = this.actuallyVisible;
-        helpers.html.setClass(this.container, "hidden-widget", !visible);
-        helpers.html.setClass(this.container, "visible", visible);
+        helpers.html.setClass(this.root, "hidden-widget", !visible);
+        helpers.html.setClass(this.root, "visible", visible);
     }
 
     hide()
@@ -1182,7 +1182,7 @@ export default class ContextMenu extends Widget
         this._refreshTooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an ViewerImages.
-        for(let element of this.container.querySelectorAll(".button.requires-zoom"))
+        for(let element of this.root.querySelectorAll(".button.requires-zoom"))
             helpers.html.setClass(element, "enabled", this._isZoomUiEnabled);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
@@ -1210,8 +1210,8 @@ export default class ContextMenu extends Widget
             //
             // If we don't have an illust ID, see if the data source has a folder ID, so this
             // works when right-clicking outside thumbs on search pages.
-            let folderButton = this.container.querySelector(".button-parent-folder");
-            let authorButton = this.container.querySelector(".avatar-widget-container");
+            let folderButton = this.root.querySelector(".button-parent-folder");
+            let authorButton = this.root.querySelector(".avatar-widget-container");
 
             let isLocal = helpers.mediaId.isLocal(this._folderIdForParent);
             folderButton.hidden = !isLocal;
@@ -1221,10 +1221,10 @@ export default class ContextMenu extends Widget
 
         if(this._isZoomUiEnabled)
         {
-            helpers.html.setClass(this.container.querySelector(".button-zoom"), "selected", this._currentViewer.getLockedZoom());
+            helpers.html.setClass(this.root.querySelector(".button-zoom"), "selected", this._currentViewer.getLockedZoom());
 
             let zoomLevel = this._currentViewer.getZoomLevel();
-            for(let button of this.container.querySelectorAll(".button-zoom-level"))
+            for(let button of this.root.querySelectorAll(".button-zoom-level"))
                 helpers.html.setClass(button, "selected", this._currentViewer.getLockedZoom() && button.dataset.level == zoomLevel);
         }
     }
@@ -1358,13 +1358,13 @@ class ImageInfoWidget extends IllustWidget
 
     refreshInternal({ mediaId, mediaInfo })
     {
-        this.container.hidden = mediaInfo == null;
-        if(this.container.hidden)
+        this.root.hidden = mediaInfo == null;
+        if(this.root.hidden)
             return;
 
         let setInfo = (query, text) =>
         {
-            let node = this.container.querySelector(query);
+            let node = this.root.querySelector(query);
             node.innerText = text;
             node.hidden = text == "";
         };
@@ -1401,11 +1401,11 @@ class ImageInfoWidget extends IllustWidget
             setInfo(".title", mediaInfo.illustTitle);
         
             let showFolder = helpers.mediaId.isLocal(this._mediaId);
-            this.container.querySelector(".folder-block").hidden = !showFolder;
+            this.root.querySelector(".folder-block").hidden = !showFolder;
             if(showFolder)
             {
                 let {id} = helpers.mediaId.parse(this._mediaId);
-                this.container.querySelector(".folder-text").innerText = helpers.strings.getPathSuffix(id, 1, 1); // parent directory
+                this.root.querySelector(".folder-text").innerText = helpers.strings.getPathSuffix(id, 1, 1); // parent directory
             }
         }
 
@@ -1421,7 +1421,7 @@ class ImageInfoWidget extends IllustWidget
 
         let secondsOld = (new Date() - new Date(mediaInfo.createDate)) / 1000;
         let age = helpers.strings.ageToString(secondsOld);
-        this.container.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
+        this.root.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
         setInfo(".post-age", age);
     }
 

@@ -35,14 +35,14 @@ export default class MoreOptionsDropdown extends IllustWidget
 
     _createMenuOptions()
     {
-        let optionBox = this.container.querySelector(".options");
+        let optionBox = this.root.querySelector(".options");
         let sharedOptions = {
             container: optionBox,
             parent: this,
         };
 
         for(let item of this._menuOptions)
-            item.container.remove();
+            item.root.remove();
 
         let menuOptions = {
             similarIllustrations: () => {
@@ -300,7 +300,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                 });
                 
                 new MenuOptionButton({
-                    container: widget.container.querySelector(".checkbox"),
+                    container: widget.root.querySelector(".checkbox"),
                     containerPosition: "beforebegin",
                     label: "Edit",
                     classes: ["small-font"],
@@ -450,7 +450,7 @@ export default class MoreOptionsDropdown extends IllustWidget
             // Some options are hidden when they're unavailable, because they clutter
             // the menu too much.
             if(option.options.hideIfUnavailable)
-                option.container.hidden = !enable;
+                option.root.hidden = !enable;
         }
     }
 }

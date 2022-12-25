@@ -511,8 +511,8 @@ class UI extends Widget
         // Set up the public and private buttons.  The "all" button also removes shuffle, since it's not
         // supported there.
         this.dataSource.setItem(publicPrivateButtonContainer, { type: "all", fields: {"#show-all": 1, "#shuffle": null}, defaults: {"#show-all": 1} });
-        this.dataSource.setItem(this.container, { type: "public", fields: {rest: null, "#show-all": 0}, defaults: {"#show-all": 1} });
-        this.dataSource.setItem(this.container, { type: "private", fields: {rest: "hide", "#show-all": 0}, defaults: {"#show-all": 1} });
+        this.dataSource.setItem(this.root, { type: "public", fields: {rest: null, "#show-all": 0}, defaults: {"#show-all": 1} });
+        this.dataSource.setItem(this.root, { type: "private", fields: {rest: "hide", "#show-all": 0}, defaults: {"#show-all": 1} });
 
         // Shuffle isn't supported for merged bookmarks.  If we're on #show-all, make the shuffle button
         // also switch to public bookmarks.  This is easier than graying it out and trying to explain it
@@ -520,13 +520,13 @@ class UI extends Widget
         let args = new helpers.args(this.dataSource.url);
         let showAll = args.hash.get("show-all") != "0";
         let setPublic = showAll? { rest: null, "#show-all": 0 }:{};
-        this.dataSource.setItem(this.container, {type: "order-shuffle", fields: {"#shuffle": 1, ...setPublic}, toggle: true, defaults: {"#shuffle": null, "#show-all": 1}});
+        this.dataSource.setItem(this.root, {type: "order-shuffle", fields: {"#shuffle": 1, ...setPublic}, toggle: true, defaults: {"#shuffle": null, "#show-all": 1}});
 
         class BookmarkTagsDropdown extends TagDropdownWidget
         {
             refreshTags()
             {
-                for(let tag of this.container.querySelectorAll(".tag-entry"))
+                for(let tag of this.root.querySelectorAll(".tag-entry"))
                     tag.remove();
 
                 this.addTagLink(null); // All
@@ -577,7 +577,7 @@ class UI extends Widget
                     fields: {"/tag": tag},
                 });
 
-                this.container.appendChild(a);
+                this.root.appendChild(a);
             };
         };
 

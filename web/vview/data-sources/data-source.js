@@ -431,7 +431,7 @@ export default class DataSource extends EventTarget
                 });
 
                 for(let {createOptions, setupOptions} of items)
-                    this.createAndSetButton(dropdown.container, createOptions, setupOptions);
+                    this.createAndSetButton(dropdown.root, createOptions, setupOptions);
 
                 return dropdown;
             },

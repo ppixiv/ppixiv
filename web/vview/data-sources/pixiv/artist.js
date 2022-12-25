@@ -353,15 +353,15 @@ class UI extends Widget
             this.tagDropdown.setButtonPopupHighlight();
         }, this._signal);
 
-        dataSource.setPathItem(this.container, "artist-works", 2, "artworks");
-        dataSource.setPathItem(this.container, "artist-illust", 2, "illustrations");
-        dataSource.setPathItem(this.container, "artist-manga", 2, "manga");
+        dataSource.setPathItem(this.root, "artist-works", 2, "artworks");
+        dataSource.setPathItem(this.root, "artist-illust", 2, "illustrations");
+        dataSource.setPathItem(this.root, "artist-manga", 2, "manga");
 
         // On mobile, create our own avatar display for the search popup.
         if(ppixiv.mobile)
         {
             let avatarWidget = new AvatarWidget({
-                container: this.container.querySelector(".avatar-container"),
+                container: this.root.querySelector(".avatar-container"),
                 big: true,
                 mode: "dropdown",
             });
@@ -373,7 +373,7 @@ class UI extends Widget
             refreshTags()
             {
                 // Refresh the post tag list.
-                helpers.html.removeElements(this.container);
+                helpers.html.removeElements(this.root);
 
                 if(dataSource.postTags != null)
                 {
@@ -387,7 +387,7 @@ class UI extends Widget
                     // If a tag is selected, fill in just that tag so the button text works.
                     let span = document.createElement("span");
                     span.innerText = "Loading...";
-                    this.container.appendChild(span);
+                    this.root.appendChild(span);
 
                     this.addTagLink({ tag: "All" });
 
@@ -431,7 +431,7 @@ class UI extends Widget
                 if(tag == "All")
                     a.dataset["default"] = 1;
 
-                this.container.appendChild(a);
+                this.root.appendChild(a);
             };
         };
 

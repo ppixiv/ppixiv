@@ -46,7 +46,7 @@ export default class TagListWidget extends Widget
         this._currentTags = this.tags;
 
         // Remove any old tag list and create a new one.
-        helpers.html.removeElements(this.container);
+        helpers.html.removeElements(this.root);
 
         for(let tag of tagList)
         {
@@ -61,7 +61,7 @@ export default class TagListWidget extends Widget
                 asElement: true,
             });
 
-            this.container.appendChild(a);
+            this.root.appendChild(a);
 
             a.dataset.tag = tag;
         }

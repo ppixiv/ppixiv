@@ -20,7 +20,7 @@ export class BookmarkTagListWidget extends IllustWidget
         `});
 
         this.displayingMediaId = null;
-        this.container.addEventListener("click", this._clickedBookmarkTag, true);
+        this.root.addEventListener("click", this._clickedBookmarkTag, true);
         this.deactivated = false;
 
         ppixiv.settings.addEventListener("recent-bookmark-tags", this.refresh.bind(this));
@@ -47,7 +47,7 @@ export class BookmarkTagListWidget extends IllustWidget
     get selectedTags()
     {
         let tagList = [];
-        let bookmarkTags = this.container;
+        let bookmarkTags = this.root;
         for(let entry of bookmarkTags.querySelectorAll(".popup-bookmark-tag-entry"))
         {
             if(!entry.classList.contains("selected"))
@@ -99,7 +99,7 @@ export class BookmarkTagListWidget extends IllustWidget
     {
         // Make a copy of children when iterating, since it doesn't handle items being deleted
         // while iterating cleanly.
-        let bookmarkTags = this.container.querySelector(".tag-list");
+        let bookmarkTags = this.root.querySelector(".tag-list");
         for(let element of [...bookmarkTags.children])
         {
             if(element.classList.contains("dynamic") || element.classList.contains("loading"))
@@ -118,7 +118,7 @@ export class BookmarkTagListWidget extends IllustWidget
 
         this.displayingMediaId = null;
 
-        let bookmarkTags = this.container.querySelector(".tag-list");
+        let bookmarkTags = this.root.querySelector(".tag-list");
         this._clearTagList();
 
         if(mediaId == null || !this.visible)
@@ -287,7 +287,7 @@ class BookmarkTagListDropdownWidget extends BookmarkTagListWidget
             ...options
         });
 
-        this.container.classList.add("popup-bookmark-tag-dropdown");
+        this.root.classList.add("popup-bookmark-tag-dropdown");
 
         this.bookmarkButtons = bookmarkButtons;
 
@@ -361,7 +361,7 @@ export class BookmarkTagDropdownOpener extends Actor
             {
                 for(let button of this.bookmarkButtons)
                 {
-                    if(helpers.html.isAbove(button.container, e.target))
+                    if(helpers.html.isAbove(button.root, e.target))
                         return false;
                 }
 

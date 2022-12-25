@@ -86,13 +86,13 @@ export default class DesktopSearchUI extends Widget
 
         // Create the search menu dropdown.
         new DropdownMenuOpener({
-            button: this.container.querySelector(".main-search-menu-button"),
+            button: this.root.querySelector(".main-search-menu-button"),
             createBox: ({...options}) => {
                 let dropdown = this.bookmarkTagsDropdown = new Widget({
                     ...options,
                     template: `<div class="vertical-list"></div>`,
                 });
-                CreateSearchMenu(dropdown.container);
+                CreateSearchMenu(dropdown.root);
 
                 return dropdown;
             },
@@ -102,14 +102,14 @@ export default class DesktopSearchUI extends Widget
             container: this.querySelector(".user-links"),
         });
 
-        this.container.querySelector(".refresh-search-from-page-button").addEventListener("click", () => this.parent.refreshSearchFromPage());
-        this.container.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
+        this.root.querySelector(".refresh-search-from-page-button").addEventListener("click", () => this.parent.refreshSearchFromPage());
+        this.root.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
             this.parent.searchView.toggleExpandingMediaIdsByDefault();
         });
 
-        this.container.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
+        this.root.querySelector(".refresh-search-button").addEventListener("click", () => this.parent.refreshSearch());
 
-        this.toggleLocalNavigationButton = this.container.querySelector(".toggle-local-navigation-button");
+        this.toggleLocalNavigationButton = this.root.querySelector(".toggle-local-navigation-button");
         this.toggleLocalNavigationButton.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -117,7 +117,7 @@ export default class DesktopSearchUI extends Widget
             this.parent.refreshUi();
         });        
 
-        this.container.querySelector(".preferences-button").addEventListener("click", (e) => new SettingsDialog());
+        this.root.querySelector(".preferences-button").addEventListener("click", (e) => new SettingsDialog());
 
         // Refresh the "Refresh search from page" tooltip if the page in the URL changes.  Use statechange
         // rather than popstate for this, so it responds to all URL changes.
@@ -138,10 +138,10 @@ export default class DesktopSearchUI extends Widget
         if(ppixiv.native)
         {
             let { logged_in, local } = LocalAPI.localInfo;
-            this.container.querySelector(".login-button").hidden = local || logged_in;
-            this.container.querySelector(".logout-button").hidden = local || !logged_in;
-            this.container.querySelector(".login-button").addEventListener("click", () => LocalAPI.redirectToLogin());
-            this.container.querySelector(".logout-button").addEventListener("click", () => {
+            this.root.querySelector(".login-button").hidden = local || logged_in;
+            this.root.querySelector(".logout-button").hidden = local || !logged_in;
+            this.root.querySelector(".login-button").addEventListener("click", () => LocalAPI.redirectToLogin());
+            this.root.querySelector(".logout-button").addEventListener("click", () => {
                 if(confirm("Log out?"))
                     LocalAPI.logout();
             });
@@ -171,7 +171,7 @@ export default class DesktopSearchUI extends Widget
         // Create the new data source's UI.
         if(this.dataSource.ui)
         {
-            let dataSourceUiContainer = this.container.querySelector(".data-source-ui");
+            let dataSourceUiContainer = this.root.querySelector(".data-source-ui");
             this.currentDataSourceUi = new this.dataSource.ui({
                 dataSource: this.dataSource,
                 container: dataSourceUiContainer,
@@ -186,7 +186,7 @@ export default class DesktopSearchUI extends Widget
 
     refreshUi()
     {
-        this.container.querySelector(".refresh-search-from-page-button").hidden = !this.dataSource.supportsStartPage;
+        this.root.querySelector(".refresh-search-from-page-button").hidden = !this.dataSource.supportsStartPage;
         if(this.dataSource)
         {
             let { userId, imageUrl, imageLinkUrl } = this.dataSource.uiInfo;
@@ -201,7 +201,7 @@ export default class DesktopSearchUI extends Widget
             this.avatarWidget.setUserId(userId);
         }
 
-        let elementDisplaying = this.container.querySelector(".displaying");
+        let elementDisplaying = this.root.querySelector(".displaying");
         elementDisplaying.hidden = this.dataSource?.getDisplayingText == null;
         if(this.dataSource?.getDisplayingText != null)
         {
@@ -224,7 +224,7 @@ export default class DesktopSearchUI extends Widget
     // Refresh the slideshow button.
     refreshSlideshowButton()
     {
-        let node = this.container.querySelector("A.slideshow");
+        let node = this.root.querySelector("A.slideshow");
         node.href = ppixiv.app.slideshowURL.url;
     }
 
@@ -232,7 +232,7 @@ export default class DesktopSearchUI extends Widget
     refreshExpandMangaPostsButton()
     {
         let enabled = this.parent.searchView.mediaIdsExpandedByDefault;
-        let button = this.container.querySelector(".expand-manga-posts");
+        let button = this.root.querySelector(".expand-manga-posts");
         button.dataset.popup = enabled? "Collapse manga posts":"Expand manga posts";
         button.querySelector(".font-icon").innerText = enabled? "close_fullscreen":"open_in_full";
         
@@ -249,6 +249,6 @@ export default class DesktopSearchUI extends Widget
         // Refresh the "refresh from page #" button popup.  This is updated by searchView
         // as the user scrolls.
         let startPage = this.dataSource.getStartPage(helpers.args.location);
-        this.container.querySelector(".refresh-search-from-page-button").dataset.popup = `Refresh search from page ${startPage}`;
+        this.root.querySelector(".refresh-search-from-page-button").dataset.popup = `Refresh search from page ${startPage}`;
     }
 }

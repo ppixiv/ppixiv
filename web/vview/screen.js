@@ -15,19 +15,19 @@ export default class Screen extends Widget
     // visibleRecursively works.
     applyVisibility() { }
 
-    get active() { return !this.container.inert; }
+    get active() { return !this.root.inert; }
 
     // The screen is becoming active.  This is async, since it may load data.
     async activate()
     {
-        this.container.inert = false;
+        this.root.inert = false;
     }
 
     // The screen is becoming inactive.  This is sync, since we never need to stop to
     // load data in order to deactivate.
     deactivate()
     {
-        this.container.inert = true;
+        this.root.inert = true;
     }
 }
 

@@ -21,14 +21,14 @@ function createSettingsWidget({ globalOptions })
             });
 
             new MenuOptionsThumbnailSizeSlider({
-                container: button.container,
+                container: button.root,
                 setting: "thumbnail-size",
                 classes: ["size-slider"],
                 min: 0,
                 max: 7,
             }),
     
-            button.container.querySelector(".size-slider").style.flexGrow = .25;
+            button.root.querySelector(".size-slider").style.flexGrow = .25;
         },
 
         mangaThumbnailSize: () => {
@@ -38,14 +38,14 @@ function createSettingsWidget({ globalOptions })
             });
 
             new MenuOptionsThumbnailSizeSlider({
-                container: button.container,
+                container: button.root,
                 setting: "manga-thumbnail-size",
                 classes: ["size-slider"],
                 min: 0,
                 max: 7,
             }),
     
-            button.container.querySelector(".size-slider").style.flexGrow = .25;
+            button.root.querySelector(".size-slider").style.flexGrow = .25;
         },
 
         disabledByDefault: () => {
@@ -183,14 +183,14 @@ function createSettingsWidget({ globalOptions })
             new MenuOptionButton({
                 icon: "file_upload",
                 label: "Import",
-                container: widget.container,
+                container: widget.root,
                 onclick: () => ppixiv.extraImageData.import(),
             });
 
             new MenuOptionButton({
                 icon: "file_download",
                 label: "Export",
-                container: widget.container,
+                container: widget.root,
                 onclick: () => ppixiv.extraImageData.export(),
             });
             return widget;
@@ -205,7 +205,7 @@ function createSettingsWidget({ globalOptions })
             new MenuOptionButton({
                 icon: "wallpaper",
                 label: "Go",
-                container: widget.container,
+                container: widget.root,
                 onclick: () => {
                     // Close the settings dialog.
                     globalOptions.closeSettings();
@@ -265,7 +265,7 @@ function createSettingsWidget({ globalOptions })
                 refresh: () => button.refresh(),
             });
 
-            button.container.querySelector(".size-slider").style.flexGrow = .25;
+            button.root.querySelector(".size-slider").style.flexGrow = .25;
     
             return button;
         },
@@ -290,7 +290,7 @@ function createSettingsWidget({ globalOptions })
                 refresh: () => { button.refresh(); },
             });
 
-            button.container.querySelector(".size-slider").style.flexGrow = .25;
+            button.root.querySelector(".size-slider").style.flexGrow = .25;
         },
 
         slideshowDefaultAnimation: () => {
@@ -422,12 +422,12 @@ export class SettingsDialog extends DialogWidget
         });
 
         this.phone = helpers.other.isPhone();
-        helpers.html.setClass(this.container, "phone", this.phone);
+        helpers.html.setClass(this.root, "phone", this.phone);
         this._pageButtons = {};
 
         // If we're using a phone UI, we're showing items by opening a separate dialog.  The
         // page contents block will be empty, so hide it to let the options center.
-        this.container.querySelector(".items").hidden = this.phone;
+        this.root.querySelector(".items").hidden = this.phone;
 
         this.addPages();
 
@@ -469,7 +469,7 @@ export class SettingsDialog extends DialogWidget
         pageButton.addEventListener("click", (e) => {
             this.showPage(name);
         });
-        this.container.querySelector(".sections").appendChild(pageButton);
+        this.root.querySelector(".sections").appendChild(pageButton);
         this._pageButtons[name] = pageButton;
 
         return pageButton;
@@ -509,7 +509,7 @@ export class SettingsDialog extends DialogWidget
             return new SettingsPageDialog({ settingsPage });
 
         let pageWidget = new Widget({
-            container: this.container.querySelector(".items"),
+            container: this.root.querySelector(".items"),
             template: `
                 <div class=settings-page></div>
             `
@@ -518,7 +518,7 @@ export class SettingsDialog extends DialogWidget
         SettingsDialog._fillPage({
             settingsPage,
             pageWidget,
-            pageContainer: pageWidget.container,
+            pageContainer: pageWidget.root,
         });
 
         return pageWidget;

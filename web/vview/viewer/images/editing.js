@@ -44,21 +44,21 @@ export default class ImageEditor extends IllustWidget
             </div>
         `});
 
-        this.container.querySelector(".spinner").hidden = true;
+        this.root.querySelector(".spinner").hidden = true;
 
         let cropEditor = new CropEditor({
-            container: this.container,
+            container: this.root,
             mode: "crop",
             visible: false,
         });
 
         let panEditor = new PanEditor({
-            container: this.container,
+            container: this.root,
             visible: false,
         });
 
         let inpaintEditor = new InpaintEditor({
-            container: this.container,
+            container: this.root,
             visible: false,
         });
 
@@ -74,23 +74,23 @@ export default class ImageEditor extends IllustWidget
         this._undoStack = [];
         this._redoStack = [];
 
-        this._topButtonRow = this.container.querySelector(".image-editor-buttons.top");
+        this._topButtonRow = this.root.querySelector(".image-editor-buttons.top");
 
-        this._showCrop = this.container.querySelector(".show-crop");
+        this._showCrop = this.root.querySelector(".show-crop");
         this._showCrop.addEventListener("click", (e) => {
             e.stopPropagation();
 
             this.activeEditorName = this.activeEditorName == "crop"? null:"crop";
         });
 
-        this._showPan = this.container.querySelector(".show-pan");
+        this._showPan = this.root.querySelector(".show-pan");
         this._showPan.addEventListener("click", (e) => {
             e.stopPropagation();
 
             this.activeEditorName = this.activeEditorName == "pan"? null:"pan";
         });
 
-        this._showInpaint = this.container.querySelector(".show-inpaint");
+        this._showInpaint = this.root.querySelector(".show-inpaint");
         this._showInpaint.hidden = true;
         this._showInpaint.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -143,28 +143,28 @@ export default class ImageEditor extends IllustWidget
 
         // Stop propagation of pointerdown at the container, so clicks inside the UI don't
         // move the image.
-        this.container.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
+        this.root.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
 
         // Prevent fullscreen doubleclicks on UI buttons.
-        this.container.addEventListener("dblclick", (e) => {
+        this.root.addEventListener("dblclick", (e) => {
             e.stopPropagation();
         });
 
-        this._saveEdits = this.container.querySelector(".save-edits");
+        this._saveEdits = this.root.querySelector(".save-edits");
         this._saveEdits.addEventListener("click", async (e) => {
             e.stopPropagation();
             this.save();
         }, { signal: this.shutdownSignal.signal });
 
-        this._closeEditor = this.container.querySelector(".close-editor");
+        this._closeEditor = this.root.querySelector(".close-editor");
         this._closeEditor.addEventListener("click", async (e) => {
             e.stopPropagation();
             ppixiv.settings.set("image_editing", null);
             ppixiv.settings.set("image_editing_mode", null);
         }, { signal: this.shutdownSignal.signal });
 
-        this._undoButton = this.container.querySelector(".undo");
-        this._redoButton = this.container.querySelector(".redo");
+        this._undoButton = this.root.querySelector(".undo");
+        this._redoButton = this.root.querySelector(".redo");
         this._undoButton.addEventListener("click", async (e) => {
             e.stopPropagation();
             this.undo();            
@@ -210,7 +210,7 @@ export default class ImageEditor extends IllustWidget
         // Hide while the UI is open.  This is only needed on mobile, where our buttons
         // overlap the hover UI.
         let hidden = ppixiv.mobile && !OpenWidgets.singleton.empty;
-        helpers.html.setClass(this.container, "temporarily-hidden", hidden);
+        helpers.html.setClass(this.root, "temporarily-hidden", hidden);
     }
 
     visibilityChanged()
@@ -399,7 +399,7 @@ export default class ImageEditor extends IllustWidget
         // it back to true if there's an error saving.
         this.dirty = false;
 
-        let spinner = this.container.querySelector(".spinner");
+        let spinner = this.root.querySelector(".spinner");
         this._saveEdits.hidden = true;
         spinner.hidden = false;
         try {

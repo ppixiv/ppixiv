@@ -11,10 +11,10 @@ export default class MobileImageDismiss
         this.dragger = new WidgetDragger({
             name: "drag-to-exit",
             node: [
-                this.parent.container,
+                this.parent.root,
                 this.parent.querySelector(".fade-search"),
             ],
-            dragNode: this.parent.container,
+            dragNode: this.parent.root,
             size: () => this._dragDistance,
 
             animatedProperty: "--illust-hidden",
@@ -81,9 +81,9 @@ export default class MobileImageDismiss
 
         // If the view container is hidden, it may have transforms from the previous transition.
         // Unset the animation properties so this doesn't affect our calculations here.
-        this.parent.container.style.setProperty("--animation-x", `0px`);
-        this.parent.container.style.setProperty("--animation-y", `0px`);
-        this.parent.container.style.setProperty("--animation-scale", "1");
+        this.parent.root.style.setProperty("--animation-x", `0px`);
+        this.parent.root.style.setProperty("--animation-y", `0px`);
+        this.parent.root.style.setProperty("--animation-scale", "1");
 
         // This gives us the portion of the viewer which actually contains an image.  We'll
         // transition that region, so empty space is ignored by the transition.  If the viewer
@@ -92,11 +92,11 @@ export default class MobileImageDismiss
         if(viewPosition)
         {
             // Move the view position to where the view actually is on the screen.
-            let { left, top } = this.parent.viewer.container.getBoundingClientRect();
+            let { left, top } = this.parent.viewer.root.getBoundingClientRect();
             viewPosition.x += left;
             viewPosition.y += top;
         }
-        viewPosition ??= this.parent.container.getBoundingClientRect();
+        viewPosition ??= this.parent.root.getBoundingClientRect();
 
         // Try to position the animation to move towards the search thumbnail.
         let thumbRect = this._animationTargetRect;
@@ -129,9 +129,9 @@ export default class MobileImageDismiss
         animationX += thumbRect.x + thumbRect.width / 2;
         animationY += thumbRect.y + thumbRect.height / 2;
 
-        this.parent.container.style.setProperty("--animation-x", `${animationX}px`);
-        this.parent.container.style.setProperty("--animation-y", `${animationY}px`);
-        this.parent.container.style.setProperty("--animation-scale", scale);
+        this.parent.root.style.setProperty("--animation-x", `${animationX}px`);
+        this.parent.root.style.setProperty("--animation-y", `${animationY}px`);
+        this.parent.root.style.setProperty("--animation-scale", scale);
     }
 
     // Return the rect we'll want to transition towards, if known.

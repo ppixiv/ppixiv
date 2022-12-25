@@ -44,19 +44,19 @@ export class EditMutedTagsWidget extends Widget
 
         this._muteType = muteType;
 
-        this.container.querySelector(".add-muted-tag-box").hidden = muteType != "tag";
-        this.container.querySelector(".add-muted-user-box").hidden = muteType != "user";
-        this.container.querySelector(".add-muted-tag").addEventListener("click", this._clickedAddMutedTag);
-        this.container.querySelector(".mute-warning-button").addEventListener("click", (e) => {
+        this.root.querySelector(".add-muted-tag-box").hidden = muteType != "tag";
+        this.root.querySelector(".add-muted-user-box").hidden = muteType != "user";
+        this.root.querySelector(".add-muted-tag").addEventListener("click", this._clickedAddMutedTag);
+        this.root.querySelector(".mute-warning-button").addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            let muteWarning = this.container.querySelector(".mute-warning");
+            let muteWarning = this.root.querySelector(".mute-warning");
             muteWarning.hidden = !muteWarning.hidden;
         });
 
         // Hide the warning for non-premium users if the user does have premium.
-        this.container.querySelector(".non-premium-mute-warning").hidden = ppixiv.pixivInfo.premium;
+        this.root.querySelector(".non-premium-mute-warning").hidden = ppixiv.pixivInfo.premium;
     }
 
     visibilityChanged()
@@ -65,7 +65,7 @@ export class EditMutedTagsWidget extends Widget
 
         if(this.visible)
         {
-            this.container.querySelector(".mute-warning").hidden = true;
+            this.root.querySelector(".mute-warning").hidden = true;
             this.refresh();
         }
 
@@ -125,7 +125,7 @@ export class EditMutedTagsWidget extends Widget
             return entry;
         };
 
-        let mutedTagList = this.container.querySelector(".mute-list");
+        let mutedTagList = this.root.querySelector(".mute-list");
         helpers.html.removeElements(mutedTagList);
         for(let {type, value: tag} of ppixiv.muting.extraMutes)
         {
@@ -169,7 +169,7 @@ export class EditMutedTagsWidget extends Widget
             return entry;
         };
 
-        let mutedUserList = this.container.querySelector(".mute-list");
+        let mutedUserList = this.root.querySelector(".mute-list");
         helpers.html.removeElements(mutedUserList);
 
         for(let {type, value: userId, label: username} of ppixiv.muting.extraMutes)
@@ -328,21 +328,21 @@ export class MutedTagsForPostDialog extends DialogWidget
         this._mediaId = mediaId;
         this._userId = userId;
 
-        this.container.querySelector(".close-button").addEventListener("click", (e) => {
+        this.root.querySelector(".close-button").addEventListener("click", (e) => {
             this.shutdown();
         }, { signal: this.shutdownSignal.signal });
 
-        this.container.querySelector(".mute-warning-button").addEventListener("click", (e) => {
+        this.root.querySelector(".mute-warning-button").addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            let muteWarning = this.container.querySelector(".mute-warning");
+            let muteWarning = this.root.querySelector(".mute-warning");
             muteWarning.hidden = !muteWarning.hidden;
 
         });
 
         // Hide the warning for non-premium users if the user does have premium.
-        this.container.querySelector(".non-premium-mute-warning").hidden = ppixiv.pixivInfo.premium;
+        this.root.querySelector(".non-premium-mute-warning").hidden = ppixiv.pixivInfo.premium;
 
         this.refresh();
     }
@@ -387,7 +387,7 @@ export class MutedTagsForPostDialog extends DialogWidget
             return entry;
         };    
     
-        let mutedList = this.container.querySelector(".post-mute-list");
+        let mutedList = this.root.querySelector(".post-mute-list");
         helpers.html.removeElements(mutedList);
 
         // Add an entry for the user.

@@ -23,12 +23,12 @@ export default class MessageWidget extends Widget
 
         this.clearTimer();
 
-        this.container.querySelector(".message").innerHTML = message;
+        this.root.querySelector(".message").innerHTML = message;
 
-        this.container.classList.add("show");
-        this.container.classList.remove("centered");
+        this.root.classList.add("show");
+        this.root.classList.remove("centered");
         this.timer = realSetTimeout(() => {
-            this.container.classList.remove("show");
+            this.root.classList.remove("show");
         }, 3000);
     }
 
@@ -44,6 +44,6 @@ export default class MessageWidget extends Widget
     hide()
     {
         this.clearTimer();
-        this.container.classList.remove("show");
+        this.root.classList.remove("show");
     }
 }

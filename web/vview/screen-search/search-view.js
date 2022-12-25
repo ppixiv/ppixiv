@@ -56,9 +56,9 @@ export default class SearchView extends Widget
         `});
 
         // The node that scrolls to show thumbs.  This is normally the document itself.
-        this.scrollContainer = this.container.closest(".scroll-container");
-        this.thumbnailBox = this.container.querySelector(".thumbnails");
-        this.loadPreviousPageButton = this.container.querySelector(".load-previous-page");
+        this.scrollContainer = this.root.closest(".scroll-container");
+        this.thumbnailBox = this.root.querySelector(".thumbnails");
+        this.loadPreviousPageButton = this.root.querySelector(".load-previous-page");
 
         // A dictionary of thumbs in the view, in the same order.  This makes iterating
         // existing thumbs faster than iterating the nodes.
@@ -74,7 +74,7 @@ export default class SearchView extends Widget
         ppixiv.muting.addEventListener("mutes-changed", () => this._mediaIdExpandedCache = null, this._signal);
 
         ppixiv.mediaCache.addEventListener("infoloaded", () => this.mediaInfoLoaded(), this._signal);
-        new ResizeObserver(() => this.refreshImages()).observe(this.container);
+        new ResizeObserver(() => this.refreshImages()).observe(this.root);
 
         // The scroll position may not make sense when if scroller changes size (eg. the window was resized
         // or we changed orientations).  Override it and restore from the latest scroll position that we
@@ -88,7 +88,7 @@ export default class SearchView extends Widget
         // When a bookmark is modified, refresh the heart icon.
         ppixiv.mediaCache.addEventListener("mediamodified", (e) => this.refreshThumbnail(e.mediaId), this._signal);
 
-        this.container.addEventListener("load", (e) => {
+        this.root.addEventListener("load", (e) => {
             if(e.target.classList.contains("thumb"))
                 this.thumbImageLoadFinished(e.target.closest(".thumbnail-box"), { cause: "onload" });
         }, { capture: true } );
@@ -124,7 +124,7 @@ export default class SearchView extends Widget
 
         this.thumbnailBox.addEventListener("click", this.thumbnailClick);
 
-        this.container.querySelector(".load-previous-button").addEventListener("click", (e) =>
+        this.root.querySelector(".load-previous-button").addEventListener("click", (e) =>
         {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -768,10 +768,10 @@ export default class SearchView extends Widget
         // any changes.
         let savedScroll = this.saveScrollPosition();
 
-        this.container.style.setProperty('--thumb-width', `${thumbWidth}px`);
-        this.container.style.setProperty('--thumb-height', `${thumbHeight}px`);
-        this.container.style.setProperty('--thumb-padding', `${padding}px`);
-        this.container.style.setProperty('--container-width', `${containerWidth}px`);
+        this.root.style.setProperty('--thumb-width', `${thumbWidth}px`);
+        this.root.style.setProperty('--thumb-height', `${thumbHeight}px`);
+        this.root.style.setProperty('--thumb-padding', `${padding}px`);
+        this.root.style.setProperty('--container-width', `${containerWidth}px`);
 
         // Get all media IDs from the data source.
         let { allMediaIds, mediaIdPages } = this.getDataSourceMediaIds();
@@ -1032,7 +1032,7 @@ export default class SearchView extends Widget
         }
 
         // Hide "no results" if it's shown while we load data.
-        let noResults = this.container.querySelector(".no-results");
+        let noResults = this.root.querySelector(".no-results");
         noResults.hidden = true;
 
         if(loadPage != null)

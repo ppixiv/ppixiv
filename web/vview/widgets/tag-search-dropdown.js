@@ -26,7 +26,7 @@ export class TagSearchBoxWidget extends widget
             </div>
         `});
 
-        this._inputElement = this.container.querySelector(".input-field-container > input");
+        this._inputElement = this.root.querySelector(".input-field-container > input");
 
         this.querySelector(".edit-search-button").addEventListener("click", (e) => {
             this._dropdownOpener.visible = true;
@@ -38,7 +38,7 @@ export class TagSearchBoxWidget extends widget
 
             createBox: ({...options}) => {
                 let dropdown = new TagSearchDropdownWidget({
-                    inputElement: this.container,
+                    inputElement: this.root,
                     parent: this,
                     savedPosition: this._savedDropdownPosition,
                     ...options,
@@ -58,7 +58,7 @@ export class TagSearchBoxWidget extends widget
                     return false;
 
                 // Ignore clicks inside our container.
-                if(helpers.html.isAbove(this.container, e.target))
+                if(helpers.html.isAbove(this.root, e.target))
                     return false;
 
                 return true;
@@ -70,7 +70,7 @@ export class TagSearchBoxWidget extends widget
 
         // Search submission:
         helpers.inputHandler(this._inputElement, this._submitSearch);
-        this.container.querySelector(".search-submit-button").addEventListener("click", this._submitSearch);
+        this.root.querySelector(".search-submit-button").addEventListener("click", this._submitSearch);
     }
 
     // Hide the dropdowns if our tree becomes hidden.
@@ -169,23 +169,23 @@ class TagSearchDropdownWidget extends widget
         // Update the selection if the page is navigated while we're open.
         window.addEventListener("pp:popstate", this._selectCurrentSearch, { signal: this.shutdownSignal.signal });
 
-        this.container.addEventListener("click", this._dropdownClick);
+        this.root.addEventListener("click", this._dropdownClick);
 
         this._currentAutocompleteResults = [];
 
         // input-dropdown is resizable.  Save the size when the user drags it.
-        this._allResults = this.container;
-        this._inputDropdown = this.container.querySelector(".input-dropdown-list");
+        this._allResults = this.root;
+        this._inputDropdown = this.root.querySelector(".input-dropdown-list");
         this._inputDropdownContents = this._inputDropdown.querySelector(".contents");
         let observer = new MutationObserver((mutations) => {
             // resize sets the width.  Use this instead of offsetWidth, since offsetWidth sometimes reads
             // as 0 here.
-            let width = parseInt(this.container.style.width);
+            let width = parseInt(this.root.style.width);
             if(isNaN(width))
                 width = 600;
             ppixiv.settings.set("tag-dropdown-width", width);
         });
-        observer.observe(this.container, { attributes: true });
+        observer.observe(this.root, { attributes: true });
 
         // Restore input-dropdown's width.
         this._inputDropdown.style.width = ppixiv.settings.get("tag-dropdown-width", "400px");
@@ -194,10 +194,10 @@ class TagSearchDropdownWidget extends widget
         let width = ppixiv.settings.get("tag-dropdown-width", "400");
         width = parseInt(width);
 
-        this.container.style.setProperty('--width', `${width}px`);
+        this.root.style.setProperty('--width', `${width}px`);
 
         this.pointerListener = new PointerListener({
-            element: this.container,
+            element: this.root,
             callback: this.pointerevent,
         });
 
@@ -214,8 +214,8 @@ class TagSearchDropdownWidget extends widget
             return;
 
         this._editing = value;
-        helpers.html.setClass(this.container, "editing", this._editing);
-        helpers.html.setClass(this.container.querySelector(".input-dropdown-list"), "editing", this._editing);
+        helpers.html.setClass(this.root, "editing", this._editing);
+        helpers.html.setClass(this.root.querySelector(".input-dropdown-list"), "editing", this._editing);
     }
 
     pointerevent = (e) =>
@@ -245,7 +245,7 @@ class TagSearchDropdownWidget extends widget
 
     _findTagEntry(tag)
     {
-        for(let entry of this.container.querySelectorAll(".entry[data-tag]"))
+        for(let entry of this.root.querySelectorAll(".entry[data-tag]"))
         {
             if(entry.dataset.tag == tag)
                 return entry;
@@ -350,7 +350,7 @@ class TagSearchDropdownWidget extends widget
     // We could do this with querySelector, but we'd need to escape the string.
     _getSectionHeaderForGroup(group)
     {
-        for(let tagSection of this.container.querySelectorAll(".tag-section"))
+        for(let tagSection of this.root.querySelectorAll(".tag-section"))
         {
             if(tagSection.groupName == group)
                 return tagSection;
@@ -362,7 +362,7 @@ class TagSearchDropdownWidget extends widget
     {
         tag = tag.trim();
         
-        for(let entry of this.container.querySelectorAll(".entry"))
+        for(let entry of this.root.querySelectorAll(".entry"))
         {
             if(!includeAutocomplete && entry.classList.contains("autocomplete"))
                 continue;
@@ -597,7 +597,7 @@ class TagSearchDropdownWidget extends widget
     _inputKeydown = (e) =>
     {
         // Only handle inputs when we're open.
-        if(this.container.hidden)
+        if(this.root.hidden)
             return;
 
         switch(e.code)
@@ -621,7 +621,7 @@ class TagSearchDropdownWidget extends widget
     
     inputOnInput = (e) =>
     {
-        if(this.container.hidden)
+        if(this.root.hidden)
             return;
         
         // Clear the selection on input.
@@ -639,8 +639,8 @@ class TagSearchDropdownWidget extends widget
         // the scroll position and setting the max height don't work.  Work around this by making ourselves
         // visible immediately, but staying transparent, so we have layout but aren't visible until we're
         // ready.
-        this.container.classList.add("loading");
-        this.container.hidden = false;
+        this.root.classList.add("loading");
+        this.root.hidden = false;
 
         // Fill in the dropdown before displaying it.  This returns false if we were hidden before
         // we finished loading.
@@ -664,7 +664,7 @@ class TagSearchDropdownWidget extends widget
         this._mostRecentAutocomplete = null;
         this.editing = false;
         this.stopDragging();
-        this.container.hidden = true;
+        this.root.hidden = true;
     }
 
     async _runAutocomplete()
@@ -1018,7 +1018,7 @@ class TagSearchDropdownWidget extends widget
         this.setSelection(currentSearchTags);
 
         // If that selected something, scroll it into view.
-        let selectedEntry = this.container.querySelector(".entry.selected");
+        let selectedEntry = this.root.querySelector(".entry.selected");
         if(selectedEntry)
             this._scrollEntryIntoView(selectedEntry);
     }
@@ -1169,7 +1169,7 @@ class TagSearchDropdownWidget extends widget
         // We're populated now, so if we were hidden for initial loading, we can actually show
         // our contents if we have any.
         let empty = Array.from(this._allResults.querySelectorAll(".entry, .tag-section")).length == 0;
-        helpers.html.setClass(this.container, "loading", empty);
+        helpers.html.setClass(this.root, "loading", empty);
 
         return true;
     }
@@ -1189,10 +1189,10 @@ class TagSearchDropdownWidget extends widget
         // Find the first visible entry.
         for(let node of this._inputDropdown.querySelectorAll(".entry[data-tag]"))
         {
-            if(node.offsetTop < this.container.scrollTop)
+            if(node.offsetTop < this.root.scrollTop)
                 continue;
 
-            let savedPosition = helpers.html.saveScrollPosition(this.container, node);
+            let savedPosition = helpers.html.saveScrollPosition(this.root, node);
             let tag = node.dataset.tag;
             return { savedPosition, tag };
         }
@@ -1207,7 +1207,7 @@ class TagSearchDropdownWidget extends widget
 
         let restoreEntry = this.getEntryForTag(tag);
         if(restoreEntry)
-            helpers.html.restoreScrollPosition(this.container, restoreEntry, savedPosition);
+            helpers.html.restoreScrollPosition(this.root, restoreEntry, savedPosition);
     }
 
     // Scroll a row into view.  entry can be an entry or a section header.
@@ -1237,8 +1237,8 @@ class TagSearchDropdownWidget extends widget
         // If entry is underneath the header, scroll down to make it visible.  The extra offsetTop
         // adjustment is to adjust for the autocomplete box above the scroller.
         let stickyPadding = stickyTop.offsetHeight;
-        let offsetFromTop = entry.offsetTop - this._inputDropdown.offsetTop - this.container.scrollTop;
+        let offsetFromTop = entry.offsetTop - this._inputDropdown.offsetTop - this.root.scrollTop;
         if(offsetFromTop < stickyPadding)
-            this.container.scrollTop -= stickyPadding - offsetFromTop;
+            this.root.scrollTop -= stickyPadding - offsetFromTop;
     }
 }

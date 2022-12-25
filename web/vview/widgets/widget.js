@@ -39,7 +39,7 @@ export default class Widget extends Actor
     {
         // If container is a widget instead of a node, use the container's root node.
         if(container != null && container instanceof Widget)
-            container = container.container;
+            container = container.root;
 
         if(parent == null)
         {
@@ -61,17 +61,17 @@ export default class Widget extends Actor
 
         super({container, parent, ...options});
 
-        this.container = this.createTemplate({html: template});
+        this.root = this.createTemplate({html: template});
         if(container != null)
         {
             if(containerPosition == "replace")
-                container.replaceWith(this.container);
+                container.replaceWith(this.root);
             else
-                container.insertAdjacentElement(containerPosition, this.container);
+                container.insertAdjacentElement(containerPosition, this.root);
         }
 
-        this.container.classList.add("widget");
-        this.container.widget = this;
+        this.root.classList.add("widget");
+        this.root.widget = this;
 
         // visible is the initial visibility.  We can't just set this.visible here, since
         // it'll call refresh and visibilityChanged, and the subclass isn't ready for those
@@ -84,6 +84,13 @@ export default class Widget extends Actor
             this.visibilityChanged();
             this.refresh();
         });
+    }
+
+    // Use widget.root instead of widget.container.
+    get container()
+    {
+        console.warn("Deprecated widget.container");
+        return this.root;
     }
 
     async refresh()
@@ -113,7 +120,7 @@ export default class Widget extends Actor
     {
         super.shutdown();
 
-        this.container.remove();
+        this.root.remove();
     }
 
     // Show or hide the widget.
@@ -122,7 +129,7 @@ export default class Widget extends Actor
     // subclass can override this.
     applyVisibility()
     {
-        helpers.html.setClass(this.container, "hidden-widget", !this._visible);
+        helpers.html.setClass(this.root, "hidden-widget", !this._visible);
     }
 
     // this.visible sets whether or not we want to be visible, but other things might influence
@@ -149,7 +156,7 @@ export default class Widget extends Actor
         }
     }
 
-    querySelector(selector) { return this.container.querySelector(selector); }
-    querySelectorAll(selector) { return this.container.querySelectorAll(selector); }
-    closest(selector) { return this.container.closest(selector); }
+    querySelector(selector) { return this.root.querySelector(selector); }
+    querySelectorAll(selector) { return this.root.querySelectorAll(selector); }
+    closest(selector) { return this.root.closest(selector); }
 }

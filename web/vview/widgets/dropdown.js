@@ -85,8 +85,8 @@ export class DropdownBoxOpener extends Actor
                 return;
             }
 
-            this.boxWidget.container.classList.add("dropdown-box");
-            this.box = this.boxWidget.container;
+            this.boxWidget.root.classList.add("dropdown-box");
+            this.box = this.boxWidget.root;
 
             this.listener = new ClickOutsideListener([this.button, this.box], (target, {event}) => {
                 if(!this.shouldCloseForClick(event))
@@ -235,7 +235,7 @@ export class DropdownMenuOpener extends DropdownBoxOpener
             // Wrap createBox() to add the popup-menu-box class.
             createBox: (...args) => {
                 let widget = createBox(...args);
-                widget.container.classList.add("popup-menu-box");
+                widget.root.classList.add("popup-menu-box");
                 return widget;
             },
 
@@ -293,7 +293,7 @@ export class DropdownMenuOpener extends DropdownBoxOpener
     setButtonPopupHighlight()
     {
         let tempBox = this.createBox({container: document.body});
-        DropdownMenuOpener.setActivePopupHighlightFrom(this.button, tempBox.container);
+        DropdownMenuOpener.setActivePopupHighlightFrom(this.button, tempBox.root);
         tempBox.shutdown();
     }
 

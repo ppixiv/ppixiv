@@ -27,12 +27,12 @@ export class TextPrompt extends DialogWidget
             this._completed = completed;
         });
 
-        this.input = this.container.querySelector(".editor");
+        this.input = this.root.querySelector(".editor");
 
         // Set text by creating a node manually, since textContent won't create a node if value is "".
         this.input.appendChild(document.createTextNode(value));
 
-        this.container.querySelector(".submit-button").addEventListener("click", this.submit);
+        this.root.querySelector(".submit-button").addEventListener("click", this.submit);
     }
 
     _handleKeydown = (e) =>
@@ -116,7 +116,7 @@ export class ConfirmPrompt extends DialogWidget
         
         if(text)
         {
-            let textNode = this.container.querySelector(".text");
+            let textNode = this.root.querySelector(".text");
             textNode.innerText = text;
             textNode.hidden = false;
         }
@@ -125,8 +125,8 @@ export class ConfirmPrompt extends DialogWidget
             this._completed = completed;
         });
 
-        this.container.querySelector(".yes").addEventListener("click", () => this.submit(true), { signal: this.shutdownSignal.signal });
-        this.container.querySelector(".no").addEventListener("click", () => this.submit(false), { signal: this.shutdownSignal.signal });
+        this.root.querySelector(".yes").addEventListener("click", () => this.submit(true), { signal: this.shutdownSignal.signal });
+        this.root.querySelector(".no").addEventListener("click", () => this.submit(false), { signal: this.shutdownSignal.signal });
     }
 
     onkeydown = (e) =>

@@ -26,6 +26,6 @@ export class CheckboxWidget extends Widget
 
     async refresh()
     {
-        this.container.innerText = this.checked? "check_box":"check_box_outline_blank";
+        this.root.innerText = this.checked? "check_box":"check_box_outline_blank";
     }
 }

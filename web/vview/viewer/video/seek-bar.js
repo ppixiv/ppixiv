@@ -25,7 +25,7 @@ export default class SeekBar extends Widget
         this.setCallback(null);
 
         this.dragger = new DragHandler({
-            element: this.container,
+            element: this.root,
             signal: this.shutdownSignal.signal,
             name: "seek-bar",
 
@@ -39,7 +39,7 @@ export default class SeekBar extends Widget
             },
 
             ondragstart: ({event}) => {
-                helpers.html.setClass(this.container, "dragging", true);
+                helpers.html.setClass(this.root, "dragging", true);
 
                 this.setDragPos(event);
                 return true;
@@ -50,7 +50,7 @@ export default class SeekBar extends Widget
             },
 
             ondragend: () => {
-                helpers.html.setClass(this.container, "dragging", false);
+                helpers.html.setClass(this.root, "dragging", false);
 
                 if(this.callback)
                     this.callback(false, null);
@@ -62,7 +62,7 @@ export default class SeekBar extends Widget
     setDragPos(e)
     {
         // Get the mouse position relative to the seek bar.
-        let bounds = this.container.getBoundingClientRect();
+        let bounds = this.root.getBoundingClientRect();
         let pos = (e.clientX - bounds.left) / bounds.width;
         pos = Math.max(0, Math.min(1, pos));
         let time = pos * this.duration;
@@ -110,10 +110,10 @@ export default class SeekBar extends Widget
     refresh()
     {
         let position = this.duration > 0.0001? (this.currentTime / this.duration):0;
-        this.container.querySelector(".seek-fill").style.width = (position * 100) + "%";
+        this.root.querySelector(".seek-fill").style.width = (position * 100) + "%";
 
         let loaded = this.amountLoaded < 1? this.amountLoaded:0;
-        this.container.querySelector(".seek-loaded").style.width = (loaded * 100) + "%";
+        this.root.querySelector(".seek-loaded").style.width = (loaded * 100) + "%";
     };
 }
 
