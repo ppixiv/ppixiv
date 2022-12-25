@@ -119,3 +119,6 @@ async function Bootstrap({env, rootUrl}={})
     runScript(startup);
     runScript(`new AppStartup(${JSON.stringify({ env }) })`);
 }
+
+// This script is executed by eval(), so this expression is its return value.
+Bootstrap;

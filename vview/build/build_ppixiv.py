@@ -200,12 +200,11 @@ class Build(object):
         return;
 
     let rootUrl = %(url)s;
-
-    xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.open("GET", `${rootUrl}/vview/startup/bootstrap.js`, false);
     xhr.send();
-    eval(xhr.responseText);
 
+    let Bootstrap = eval(xhr.responseText);
     Bootstrap({rootUrl});
 })();
         ''' % { 'url': json.dumps(debug_server_url) })
