@@ -9,6 +9,9 @@ export default class DataSource_SearchUsers extends DataSource
   
     async loadPageInternal(page)
     {
+        if(!this.username)
+            return;
+
         // This API only returns 10 results per page  This search only seems useful for looking
         // for somebody specific, so just load the first page to prevent spamming the API.
         if(page > 1)
@@ -50,7 +53,7 @@ export default class DataSource_SearchUsers extends DataSource
 
     get username()
     {
-        return this.url.searchParams.get("nick");
+        return this.url.searchParams.get("nick") ?? "";
     }
 
     get ui()
