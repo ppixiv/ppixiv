@@ -30,6 +30,7 @@ class ZipVideoInterface extends EventTarget
     get currentTime() { return this.player.getCurrentFrameTime(); }
     play() { return this.player.play(); }
     pause() { return this.player.pause(); }
+    hideAudioControls() { return true; }
 }
 
 export default class ZipImagePlayer
