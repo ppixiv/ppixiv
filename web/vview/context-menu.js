@@ -504,8 +504,8 @@ export default class ContextMenu extends Widget
             // so the cursor is always over the zoom toggle button.
             let windowWidth = window.innerWidth - 4;
             let windowHeight = window.innerHeight - 20;
-            x = Math.min(x, windowWidth - this.displayedMenu.offsetWidth);
-            y = Math.min(y, windowHeight - this.displayedMenu.offsetHeight);
+            x = helpers.math.clamp(x, 0, windowWidth - this.displayedMenu.offsetWidth);
+            y = helpers.math.clamp(y, 0, windowHeight - this.displayedMenu.offsetHeight);
         }
 
         this.displayedMenu.style.left = `${x}px`;
