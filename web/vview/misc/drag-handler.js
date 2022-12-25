@@ -314,7 +314,7 @@ export default class DragHandler
     {
         let result = 0;
         for(let {x, y} of this.pointers.values())
-            result += helpers.distance(pos, {x,y});
+            result += helpers.math.distance(pos, {x,y});
         result /= this.pointers.size;
         return result;
     }    

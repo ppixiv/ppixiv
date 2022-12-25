@@ -1,6 +1,6 @@
 // A simple bezier curve implementation matching cubic-bezier.
 
-import { helpers } from 'vview/misc/helpers.js';
+import * as math from 'vview/util/math.js';
 
 export default class Bezier2D
 {
@@ -40,7 +40,7 @@ export default class Bezier2D
         let x_end = this.X.A + this.X.B + this.X.C + this.X.D;
 
         // Search for the curve position of x on the X curve.
-        let t = helpers.scale(x, x_start, x_end, 0, 1);
+        let t = math.scale(x, x_start, x_end, 0, 1);
         for(let i = 0; i < 100; ++i)
         {
             let guess = this.X.evaluate(t);

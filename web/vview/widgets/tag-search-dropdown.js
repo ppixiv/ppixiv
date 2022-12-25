@@ -58,7 +58,7 @@ export class TagSearchBoxWidget extends widget
                     return false;
 
                 // Ignore clicks inside our container.
-                if(helpers.isAbove(this.container, e.target))
+                if(helpers.html.isAbove(this.container, e.target))
                     return false;
 
                 return true;
@@ -127,7 +127,7 @@ export class TagSearchBoxWidget extends widget
         }
         
         // Run the search.
-        let args = helpers.getArgsForTagSearch(tags, ppixiv.plocation);
+        let args = helpers.pixiv.getArgsForTagSearch(tags, ppixiv.plocation);
         helpers.navigate(args);
     }
 }
@@ -214,8 +214,8 @@ class TagSearchDropdownWidget extends widget
             return;
 
         this._editing = value;
-        helpers.setClass(this.container, "editing", this._editing);
-        helpers.setClass(this.container.querySelector(".input-dropdown-list"), "editing", this._editing);
+        helpers.html.setClass(this.container, "editing", this._editing);
+        helpers.html.setClass(this.container.querySelector(".input-dropdown-list"), "editing", this._editing);
     }
 
     pointerevent = (e) =>
@@ -852,7 +852,7 @@ class TagSearchDropdownWidget extends widget
             entry.dataset.translatedTag = translatedTag;
 
         let tagContainer = entry.querySelector(".search");
-        for(let tag of helpers.splitSearchTags(tags))
+        for(let tag of helpers.pixiv.splitSearchTags(tags))
         {
             if(tag == "")
                 continue;
@@ -882,7 +882,7 @@ class TagSearchDropdownWidget extends widget
             tagContainer.appendChild(span);
         }
 
-        let url = helpers.getArgsForTagSearch(targetTags, ppixiv.plocation);
+        let url = helpers.pixiv.getArgsForTagSearch(targetTags, ppixiv.plocation);
         entry.href = url;
         return entry;
     }
@@ -907,8 +907,8 @@ class TagSearchDropdownWidget extends widget
         `});
         section.querySelector(".label").textContent = label;
 
-        helpers.setClass(section, "user-section", isUserSection);
-        helpers.setClass(section, "collapsed", collapsed);
+        helpers.html.setClass(section, "user-section", isUserSection);
+        helpers.html.setClass(section, "collapsed", collapsed);
         if(groupName != null)
             section.dataset.group = groupName;
         else
@@ -1072,7 +1072,7 @@ class TagSearchDropdownWidget extends widget
         let allTags = {};
         for(let tagSearch of allSavedTags)
         {
-            for(let tag of helpers.splitSearchTags(tagSearch))
+            for(let tag of helpers.pixiv.splitSearchTags(tagSearch))
             {
                 tag = helpers.splitTagPrefixes(tag)[1];
                 allTags[tag] = true;
@@ -1108,7 +1108,7 @@ class TagSearchDropdownWidget extends widget
         this.savedPosition = null;
         savedPosition ??= {};
 
-        helpers.removeElements(this._inputDropdownContents);
+        helpers.html.removeElements(this._inputDropdownContents);
 
         // Add autocompletes at the top.
         if(autocompletedTags.length)
@@ -1169,7 +1169,7 @@ class TagSearchDropdownWidget extends widget
         // We're populated now, so if we were hidden for initial loading, we can actually show
         // our contents if we have any.
         let empty = Array.from(this._allResults.querySelectorAll(".entry, .tag-section")).length == 0;
-        helpers.setClass(this.container, "loading", empty);
+        helpers.html.setClass(this.container, "loading", empty);
 
         return true;
     }
@@ -1192,7 +1192,7 @@ class TagSearchDropdownWidget extends widget
             if(node.offsetTop < this.container.scrollTop)
                 continue;
 
-            let savedPosition = helpers.saveScrollPosition(this.container, node);
+            let savedPosition = helpers.html.saveScrollPosition(this.container, node);
             let tag = node.dataset.tag;
             return { savedPosition, tag };
         }
@@ -1207,7 +1207,7 @@ class TagSearchDropdownWidget extends widget
 
         let restoreEntry = this.getEntryForTag(tag);
         if(restoreEntry)
-            helpers.restoreScrollPosition(this.container, restoreEntry, savedPosition);
+            helpers.html.restoreScrollPosition(this.container, restoreEntry, savedPosition);
     }
 
     // Scroll a row into view.  entry can be an entry or a section header.

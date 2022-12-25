@@ -210,7 +210,7 @@ export default class ImageEditor extends IllustWidget
         // Hide while the UI is open.  This is only needed on mobile, where our buttons
         // overlap the hover UI.
         let hidden = ppixiv.mobile && !OpenWidgets.singleton.empty;
-        helpers.setClass(this.container, "temporarily-hidden", hidden);
+        helpers.html.setClass(this.container, "temporarily-hidden", hidden);
     }
 
     visibilityChanged()
@@ -296,26 +296,26 @@ export default class ImageEditor extends IllustWidget
         super.refresh();
 
         this.visible = ppixiv.settings.get("image_editing", false);
-        helpers.setClass(this._saveEdits, "dirty", this.dirty);
+        helpers.html.setClass(this._saveEdits, "dirty", this.dirty);
 
-        let isLocal = helpers.isMediaIdLocal(this._mediaId);
+        let isLocal = helpers.mediaId.isLocal(this._mediaId);
         if(this._mediaId != null)
             this._showInpaint.hidden = !isLocal;
 
         let showingCrop = this.activeEditorName == "crop" && this.visible;
         this.editors.crop.visible = showingCrop;
-        helpers.setClass(this._showCrop, "selected", showingCrop);
+        helpers.html.setClass(this._showCrop, "selected", showingCrop);
 
         let showingPan = this.activeEditorName == "pan" && this.visible;
         this.editors.pan.visible = showingPan;
-        helpers.setClass(this._showPan, "selected", showingPan);
+        helpers.html.setClass(this._showPan, "selected", showingPan);
 
         let showingInpaint = isLocal && this.activeEditorName == "inpaint" && this.visible;
         this.editors.inpaint.visible = showingInpaint;
-        helpers.setClass(this._showInpaint, "selected", showingInpaint);
+        helpers.html.setClass(this._showInpaint, "selected", showingInpaint);
 
-        helpers.setClass(this._undoButton, "disabled", this._undoStack.length == 0);
-        helpers.setClass(this._redoButton, "disabled", this._redoStack.length == 0);
+        helpers.html.setClass(this._undoButton, "disabled", this._undoStack.length == 0);
+        helpers.html.setClass(this._redoButton, "disabled", this._redoStack.length == 0);
 
         // Hide the undo buttons in the top-left when no editor is active, since it overlaps the hover
         // UI.  Undo doesn't handle changes across editors well currently anyway.
@@ -407,7 +407,7 @@ export default class ImageEditor extends IllustWidget
             let edits = this.getDataToSave();
 
             let mediaInfo;
-            if(helpers.isMediaIdLocal(this._mediaId))
+            if(helpers.mediaId.isLocal(this._mediaId))
             {
                 let result = await LocalAPI.localPostRequest(`/api/set-image-edits/${this._mediaId}`, edits);
                 if(!result.success)

@@ -436,7 +436,7 @@ class UI extends Widget
         });
 
         let searchActive = LocalAPI.getSearchOptionsForArgs(dataSource.args).searchOptions != null;
-        helpers.setClass(clearLocalSearchButton, "disabled", !searchActive);
+        helpers.html.setClass(clearLocalSearchButton, "disabled", !searchActive);
 
         this.querySelector(".copy-local-path").addEventListener("click", (e) => {
             this.copyLink();

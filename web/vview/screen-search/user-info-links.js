@@ -184,7 +184,7 @@ export default class UserInfoLinks extends Widget
             let limit = 4;
             for(let link of div.querySelectorAll("a"))
             {
-                extraLinks.push({url: helpers.fix_pixiv_link(link.href)});
+                extraLinks.push({url: helpers.pixiv.fixPixivLink(link.href)});
 
                 // Limit these in case people have a ton of links in their profile.
                 limit--;

@@ -23,7 +23,7 @@ export default class UserCache extends EventTarget
             return null;
 
         // If the media ID is a user ID, use it.
-        let { type, id } = helpers.parseMediaId(mediaId);
+        let { type, id } = helpers.mediaId.parse(mediaId);
         if(type == "user")
             return id;
 

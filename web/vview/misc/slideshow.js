@@ -143,7 +143,7 @@ export default class Slideshow
         // This usually only has an effect for exceptionally wide images.  Most of the time the
         // maximum speed ends up being much lower than the actual speed, and we use the duration
         // as-is.
-        let maxSpeed = helpers.scaleClamp(duration, 5, 15, 0.5, 0.25);
+        let maxSpeed = helpers.math.scaleClamp(duration, 5, 15, 0.5, 0.25);
 
         let animationData = {
             duration, maxSpeed,
@@ -178,14 +178,14 @@ export default class Slideshow
             // by changing the third value, becoming completely linear when it reaches 1.  Reduce
             // the ease-out effect as the duration gets longer, since longer animations don't need
             // the ease-out as much (they're already slow), so we have more even motion.
-            let factor = helpers.scaleClamp(animation.duration, 5, 15, 0.58, 1);
+            let factor = helpers.math.scaleClamp(animation.duration, 5, 15, 0.58, 1);
             animation.ease = `cubic-bezier(0.0, 0.0, ${factor}, 1.0)`;
         }
         else if(this.mode == "loop")
         {
             // Similar to auto-pan, but using an ease-in-out transition instead, and we always keep
             // some easing around even for very long animations.
-            let factor = helpers.scaleClamp(animation.duration, 5, 15, 0.58, 0.90);
+            let factor = helpers.math.scaleClamp(animation.duration, 5, 15, 0.58, 0.90);
             animation.ease = `cubic-bezier(${1-factor}, 0.0, ${factor}, 1.0)`;
         }        
 
@@ -248,8 +248,8 @@ export default class Slideshow
                 // tx and ty are transitions and not the image position.
                 let maxX = zoomedWidth - this.containerWidth,
                     maxY = zoomedHeight - this.containerHeight;
-                tx = helpers.clamp(tx, 0, -maxX);
-                ty = helpers.clamp(ty, 0, -maxY);
+                tx = helpers.math.clamp(tx, 0, -maxX);
+                ty = helpers.math.clamp(ty, 0, -maxY);
 
                 // If the image isn't filling the screen on either axis, center it.  This only applies at
                 // keyframes (we won't always be centered while animating).
@@ -284,12 +284,12 @@ export default class Slideshow
         let distanceInPixels = 0;
         for(let corner = 0; corner < 4; ++corner)
         {
-            let distance = helpers.distance(corners[0][corner], corners[1][corner]);
+            let distance = helpers.math.distance(corners[0][corner], corners[1][corner]);
             distanceInPixels = Math.max(distanceInPixels, distance);
         }
 
         // The diagonal size of the screen is what our speed is relative to.
-        let screenSize = helpers.distance({x: 0, y: 0}, { x: this.containerHeight, y: this.containerWidth });
+        let screenSize = helpers.math.distance({x: 0, y: 0}, { x: this.containerHeight, y: this.containerWidth });
 
         // Calculate the duration for keyframes that specify a speed.
         let duration = animation.duration;

@@ -44,7 +44,7 @@ export default class ViewerVideoBase extends Viewer
                 ondragstart: () => {
                     this.seekCallback(true, null);
                     this.dragRemainder = 0;
-                    helpers.setClass(this.topSeekBar.container, "dragging", true);
+                    helpers.html.setClass(this.topSeekBar.container, "dragging", true);
                     return true;
                 },
                 ondrag: ({movementX}) => {
@@ -53,7 +53,7 @@ export default class ViewerVideoBase extends Viewer
                     let currentTime = this._currentTime + this.dragRemainder;
                     let position = currentTime / this._duration;
                     position += fraction;
-                    position = helpers.clamp(position, 0, 1);
+                    position = helpers.math.clamp(position, 0, 1);
 
                     let newPosition = position * this._duration;
                     this.seekCallback(true, newPosition);
@@ -64,7 +64,7 @@ export default class ViewerVideoBase extends Viewer
                     this.dragRemainder = newPosition - this._currentTime;
                 },
                 ondragend: () => {
-                    helpers.setClass(this.topSeekBar.container, "dragging", false);
+                    helpers.html.setClass(this.topSeekBar.container, "dragging", false);
                     this.seekCallback(false, null);
                 },
             });

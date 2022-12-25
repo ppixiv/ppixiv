@@ -76,7 +76,7 @@ export default class DataSources_VViewSimilar extends DataSource
             let path = args.hash.get("search_path");
             if(path)
             {
-                let mediaId = helpers.encodeMediaId({type: "file", id: path});
+                let mediaId = helpers.mediaId.encodeMediaId({type: "file", id: path});
                 let linkArgs = getUrlForMediaId(mediaId);
                 imageLinkUrl = linkArgs;
             }

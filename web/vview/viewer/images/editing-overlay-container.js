@@ -29,19 +29,19 @@ export default class ImageEditingOverlayContainer extends Widget
 
     set inpaintEditorOverlay(node)
     {
-        helpers.removeElements(this._inpaintEditorOverlayContainer);
+        helpers.html.removeElements(this._inpaintEditorOverlayContainer);
         this._inpaintEditorOverlayContainer.appendChild(node);
     }
 
     set cropEditorOverlay(node)
     {
-        helpers.removeElements(this._cropEditorOverlayContainer);
+        helpers.html.removeElements(this._cropEditorOverlayContainer);
         this._cropEditorOverlayContainer.appendChild(node);
     }
 
     set panEditorOverlay(node)
     {
-        helpers.removeElements(this._panEditorOverlayContainer);
+        helpers.html.removeElements(this._panEditorOverlayContainer);
         this._panEditorOverlayContainer.appendChild(node);
     }
 }

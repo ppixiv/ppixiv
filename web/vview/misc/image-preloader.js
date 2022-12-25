@@ -216,7 +216,7 @@ export default class ImagePreloader
             return [];
 
         // If this is an animation, preload the ZIP.
-        if(mediaInfo.illustType == 2 && !helpers.isMediaIdLocal(mediaId))
+        if(mediaInfo.illustType == 2 && !helpers.mediaId.isLocal(mediaId))
         {
             let results = [];
 
@@ -254,7 +254,7 @@ export default class ImagePreloader
         }
 
         // Preload the requested page.
-        let page = helpers.parseMediaId(mediaId).page;
+        let page = helpers.mediaId.parse(mediaId).page;
         if(page < mediaInfo.mangaPages.length)
         {
             let { url } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);

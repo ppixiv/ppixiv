@@ -67,7 +67,7 @@ export default class DataSource_Search extends DataSource
 
     get _searchTags()
     {
-        return helpers.getSearchTagsFromUrl(this.url);
+        return helpers.pixiv.getSearchTagsFromUrl(this.url);
     }
 
     // Return the search type from the URL.  This is one of "artworks", "illustrations"
@@ -214,7 +214,7 @@ export default class DataSource_Search extends DataSource
 
         let mediaIds = [];
         for(let illust of illusts)
-            mediaIds.push(helpers.illustIdToMediaId(illust.id));
+            mediaIds.push(helpers.mediaId.fromIllustId(illust.id));
 
         // Register the new page of data.
         this.addPage(page, mediaIds);
@@ -526,7 +526,7 @@ class UI extends Widget
                 // the search type.
                 let box = this.querySelector(".reset-search");
                 let url = new URL(this.dataSource.url);
-                let tag = helpers.getSearchTagsFromUrl(url);
+                let tag = helpers.pixiv.getSearchTagsFromUrl(url);
                 url.search = "";
                 if(tag == null)
                     url.pathname = "/tags";
@@ -554,6 +554,6 @@ class UI extends Widget
     {
         super.refresh();
 
-        helpers.setClass(this.querySelector(".related-tags-button"), "disabled", this.dataSource.relatedTags == null);
+        helpers.html.setClass(this.querySelector(".related-tags-button"), "disabled", this.dataSource.relatedTags == null);
     }
 }

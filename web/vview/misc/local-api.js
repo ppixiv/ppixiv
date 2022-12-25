@@ -77,7 +77,7 @@ export default class LocalAPI
     // but we fill it in from urls so we can treat it the same way.
     static adjustIllustInfo(illust)
     {
-        let { type } = helpers.parseMediaId(illust.mediaId);
+        let { type } = helpers.mediaId.parse(illust.mediaId);
         if(type == "folder")
         {
             illust.mangaPages = [];
@@ -164,7 +164,7 @@ export default class LocalAPI
         let argsRoot = args.hashPath || "";
         
         // The new path to set:
-        let { type, id: path } = helpers.parseMediaId(mediaId);
+        let { type, id: path } = helpers.mediaId.parse(mediaId);
 
         if(type == "file")
         {
@@ -210,7 +210,7 @@ export default class LocalAPI
     {
         let searchOptions = { };
         let title = null;
-        let search_root = helpers.getPathSuffix(args.hashPath, 2);
+        let search_root = helpers.strings.getPathSuffix(args.hashPath, 2);
 
         if(args.hash.has("search"))
         {
@@ -238,19 +238,19 @@ export default class LocalAPI
         {
             searchOptions.media_type = args.hash.get("type");
             if(!title)
-                title = helpers.title_case(searchOptions.media_type);
+                title = helpers.strings.titleCase(searchOptions.media_type);
         }
 
         if(args.hash.has("aspect-ratio"))
         {
             let range = args.hash.get("aspect-ratio");
-            searchOptions.aspect_ratio = helpers.parse_range(range);
+            searchOptions.aspect_ratio = helpers.strings.parseRange(range);
         }
 
         if(args.hash.has("pixels"))
         {
             let range = args.hash.get("pixels");
-            searchOptions.total_pixels = helpers.parse_range(range);
+            searchOptions.total_pixels = helpers.strings.parseRange(range);
         }
 
         if(title == null)
@@ -265,8 +265,8 @@ export default class LocalAPI
 
             // When there's no search, just show the current path as the title.
             let folder_id = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
-            let { id } = helpers.parseMediaId(folder_id);
-            title = helpers.getPathSuffix(id);
+            let { id } = helpers.mediaId.parse(folder_id);
+            title = helpers.strings.getPathSuffix(id);
         }
 
         return { searchOptions, title: title };
@@ -279,7 +279,7 @@ export default class LocalAPI
             return null;
 
         // mediaId can be a file or a folder.  We always return a folder.
-        let { id } = helpers.parseMediaId(mediaId);
+        let { id } = helpers.mediaId.parse(mediaId);
 
         let parts = id.split("/");
         if(parts.length == 2)
@@ -360,7 +360,7 @@ export default class LocalAPI
         if(ppixiv.mobile)
             return true;
 
-        if(!helpers.isMediaIdLocal(mediaId))
+        if(!helpers.mediaId.isLocal(mediaId))
             return true;
 
         // If we know the image was viewed in search results recently, it should be cached, so
@@ -453,7 +453,7 @@ export default class LocalAPI
 
     static async indexFolderForSimilaritySearch(mediaId)
     {
-        let { type, id } = helpers.parseMediaId(mediaId);
+        let { type, id } = helpers.mediaId.parse(mediaId);
         if(type != "folder")
         {
             console.log(`Not a folder: ${mediaId}`);

@@ -196,13 +196,13 @@ export default class MediaCacheMappings
             }
 
             // Different APIs return different thumbnail URLs.
-            remappedMediaInfo.url = helpers.get_high_res_thumbnail_url(remappedMediaInfo.url);
+            remappedMediaInfo.url = helpers.pixiv.getHighResThumbnailUrl(remappedMediaInfo.url);
         
             // Create a list of thumbnail URLs.
             remappedMediaInfo.previewUrls = [];
             for(let page = 0; page < remappedMediaInfo.pageCount; ++page)
             {
-                let url = helpers.get_high_res_thumbnail_url(remappedMediaInfo.url, page);
+                let url = helpers.pixiv.getHighResThumbnailUrl(remappedMediaInfo.url, page);
                 remappedMediaInfo.previewUrls.push(url);
             }
 
@@ -215,7 +215,7 @@ export default class MediaCacheMappings
 
             // Put id in illustId and set mediaId.  This matches what we do in illust_data.
             remappedMediaInfo.illustId = remappedMediaInfo.id;
-            remappedMediaInfo.mediaId = helpers.illustIdToMediaId(remappedMediaInfo.illustId);
+            remappedMediaInfo.mediaId = helpers.mediaId.fromIllustId(remappedMediaInfo.illustId);
             delete remappedMediaInfo.id;
         }
         

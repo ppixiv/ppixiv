@@ -45,7 +45,7 @@ export default class ViewerUgoira extends ViewerVideoBase
         // of the video.
         //
         // First, show the thumbnail if we're on Pixiv:
-        let local = helpers.isMediaIdLocal(this.mediaId);
+        let local = helpers.mediaId.isLocal(this.mediaId);
         if(!local)
         {
             // Load early data to show the low-res preview quickly.  This is a simpler version of

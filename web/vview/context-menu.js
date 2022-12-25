@@ -466,7 +466,7 @@ export default class ContextMenu extends Widget
 
         // The center of the centered element, relative to the menu.  Shift the center
         // down a bit in the button.
-        let pos = helpers.getRelativePosition(centeredElement, this.displayedMenu);
+        let pos = helpers.html.getRelativePosition(centeredElement, this.displayedMenu);
         pos[0] += centeredElement.offsetWidth / 2;
         pos[1] += centeredElement.offsetHeight * 3 / 4;
         x -= pos[0];
@@ -662,8 +662,8 @@ export default class ContextMenu extends Widget
     applyVisibility()
     {
         let visible = this.actuallyVisible;
-        helpers.setClass(this.container, "hidden-widget", !visible);
-        helpers.setClass(this.container, "visible", visible);
+        helpers.html.setClass(this.container, "hidden-widget", !visible);
+        helpers.html.setClass(this.container, "visible", visible);
     }
 
     hide()
@@ -773,7 +773,7 @@ export default class ContextMenu extends Widget
             return null;
 
         // Don't return users this way.  They'll be returned by _effectiveUserId.
-        let { type } = helpers.parseMediaId(mediaId);
+        let { type } = helpers.mediaId.parse(mediaId);
         if(type == "user")
             return null;
 
@@ -787,7 +787,7 @@ export default class ContextMenu extends Widget
             return null;
 
         // If the media ID is a user, use it.
-        let { type, id } = helpers.parseMediaId(mediaId);
+        let { type, id } = helpers.mediaId.parse(mediaId);
         if(type == "user")
             return id;
 
@@ -1173,14 +1173,14 @@ export default class ContextMenu extends Widget
         let info = mediaId? ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }):null;
 
         this._buttonViewManga.dataset.popup = "View manga pages";
-        helpers.setClass(this._buttonViewManga, "enabled", info?.pageCount > 1);
-        helpers.setClass(this._buttonFullscreen, "selected", helpers.is_fullscreen());
+        helpers.html.setClass(this._buttonViewManga, "enabled", info?.pageCount > 1);
+        helpers.html.setClass(this._buttonFullscreen, "selected", helpers.is_fullscreen());
 
         this._refreshTooltip();
 
         // Enable the zoom buttons if we're in the image view and we have an ViewerImages.
         for(let element of this.container.querySelectorAll(".button.requires-zoom"))
-            helpers.setClass(element, "enabled", this._isZoomUiEnabled);
+            helpers.html.setClass(element, "enabled", this._isZoomUiEnabled);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
         // they don't load data unnecessarily.  Don't set these back to null if we're hidden, so they
@@ -1210,19 +1210,19 @@ export default class ContextMenu extends Widget
             let folderButton = this.container.querySelector(".button-parent-folder");
             let authorButton = this.container.querySelector(".avatar-widget-container");
 
-            let isLocal = helpers.isMediaIdLocal(this._folderIdForParent);
+            let isLocal = helpers.mediaId.isLocal(this._folderIdForParent);
             folderButton.hidden = !isLocal;
             authorButton.hidden = isLocal;
-            helpers.setClass(folderButton, "enabled", this._parentFolderId != null);
+            helpers.html.setClass(folderButton, "enabled", this._parentFolderId != null);
         }
 
         if(this._isZoomUiEnabled)
         {
-            helpers.setClass(this.container.querySelector(".button-zoom"), "selected", this._currentViewer.getLockedZoom());
+            helpers.html.setClass(this.container.querySelector(".button-zoom"), "selected", this._currentViewer.getLockedZoom());
 
             let zoomLevel = this._currentViewer.getZoomLevel();
             for(let button of this.container.querySelectorAll(".button-zoom-level"))
-                helpers.setClass(button, "selected", this._currentViewer.getLockedZoom() && button.dataset.level == zoomLevel);
+                helpers.html.setClass(button, "selected", this._currentViewer.getLockedZoom() && button.dataset.level == zoomLevel);
         }
     }
 
@@ -1279,7 +1279,7 @@ export default class ContextMenu extends Widget
     get _parentFolderId()
     {
         let folderId = this._folderIdForParent;
-        let isLocal = helpers.isMediaIdLocal(folderId);
+        let isLocal = helpers.mediaId.isLocal(folderId);
         if(!isLocal)
             return null;
 
@@ -1397,12 +1397,12 @@ class ImageInfoWidget extends IllustWidget
         {
             setInfo(".title", mediaInfo.illustTitle);
         
-            let showFolder = helpers.isMediaIdLocal(this._mediaId);
+            let showFolder = helpers.mediaId.isLocal(this._mediaId);
             this.container.querySelector(".folder-block").hidden = !showFolder;
             if(showFolder)
             {
-                let {id} = helpers.parseMediaId(this._mediaId);
-                this.container.querySelector(".folder-text").innerText = helpers.getPathSuffix(id, 1, 1); // parent directory
+                let {id} = helpers.mediaId.parse(this._mediaId);
+                this.container.querySelector(".folder-text").innerText = helpers.strings.getPathSuffix(id, 1, 1); // parent directory
             }
         }
 
@@ -1417,8 +1417,8 @@ class ImageInfoWidget extends IllustWidget
         setInfo(".image-info", info);
 
         let secondsOld = (new Date() - new Date(mediaInfo.createDate)) / 1000;
-        let age = helpers.age_to_string(secondsOld);
-        this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(mediaInfo.createDate);
+        let age = helpers.strings.ageToString(secondsOld);
+        this.container.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
         setInfo(".post-age", age);
     }
 

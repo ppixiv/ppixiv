@@ -49,7 +49,7 @@ export default class DialogWidget extends Widget
             // Block this movement if it's not inside the topmost open dialog.
             let topDialog = DialogWidget.topDialog;
             let dialog = topDialog.container.querySelector(".dialog");
-            if(!helpers.isAbove(dialog, e.target))
+            if(!helpers.html.isAbove(dialog, e.target))
                 e.preventDefault();
         }, { capture: true, passive: false, signal: this._removeTouchScrollerEvents.signal });
     }
@@ -141,8 +141,8 @@ export default class DialogWidget extends Widget
             throw new Error("Dialog shouldn't be hidden");
 
         this.small = small;
-        helpers.setClass(this.container, "small", this.small);
-        helpers.setClass(this.container, "large", !this.small);
+        helpers.html.setClass(this.container, "small", this.small);
+        helpers.html.setClass(this.container, "large", !this.small);
 
         this.refreshFullscreen();
         window.addEventListener("resize", this.refreshFullscreen, { signal: this.shutdownSignal.signal });
@@ -253,7 +253,7 @@ export default class DialogWidget extends Widget
 
     refreshFullscreen = () =>
     {
-        helpers.setClass(this.container, "fullscreen", helpers.is_phone() && !this.small);
+        helpers.html.setClass(this.container, "fullscreen", helpers.is_phone() && !this.small);
     }
 
     visibilityChanged()

@@ -117,7 +117,7 @@ export class MenuOptionButton extends MenuOption
 
     set enabled(value)
     {
-        helpers.setClass(this.container, "disabled", !value);
+        helpers.html.setClass(this.container, "disabled", !value);
         this._enabled = value;
     }
 

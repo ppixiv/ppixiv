@@ -188,9 +188,9 @@ export default class PanEditor extends Widget
         let zoom = this._zoomLevel[this.editingIndex];
         this._zoomSlider.value = 1 / zoom * 100;
         
-        helpers.setClass(this.ui.querySelector(".edit-start-button"), "selected", this.editing == "start");
-        helpers.setClass(this.ui.querySelector(".edit-end-button"), "selected", this.editing == "end");
-        helpers.setClass(this.ui.querySelector(".edit-anchor"), "selected", this.actuallyEditingAnchor);
+        helpers.html.setClass(this.ui.querySelector(".edit-start-button"), "selected", this.editing == "start");
+        helpers.html.setClass(this.ui.querySelector(".edit-end-button"), "selected", this.editing == "end");
+        helpers.html.setClass(this.ui.querySelector(".edit-anchor"), "selected", this.actuallyEditingAnchor);
 
         this._aspectRatioSwitchButton.dataset.popup = 
             this._displayedAspectRatioPortrait? "Previewing portrait":"Previewing landscape";

@@ -11,7 +11,7 @@ export default class Actions
     // Set a bookmark.  Any existing bookmark will be overwritten.
     static async _bookmarkAddInternal(mediaId, options)
     {
-        let illustId = helpers.mediaIdToIllustIdAndPage(mediaId)[0];
+        let illustId = helpers.mediaId.toIllustIdAndPage(mediaId)[0];
         let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
         
         if(options == null)
@@ -90,7 +90,7 @@ export default class Actions
     // making the extra bookmark details request if possible.
     static async bookmarkAdd(mediaId, options)
     {
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
             return await this._localBookmarkAdd(mediaId, options);
 
         if(options == null)
@@ -173,7 +173,7 @@ export default class Actions
 
     static async bookmarkRemove(mediaId)
     {
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
             return await this._localBookmarkRemove(mediaId);
 
         let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
@@ -237,7 +237,7 @@ export default class Actions
             bookmarkData: result.bookmark
         });
 
-        let { type } = helpers.parseMediaId(mediaId);
+        let { type } = helpers.mediaId.parse(mediaId);
         
         ppixiv.message.show(
             wasBookmarked? "Bookmark edited":
@@ -274,7 +274,7 @@ export default class Actions
     // Change an existing bookmark to public or private.
     static async bookmarkSetPrivate(mediaId, private_bookmark)
     {
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
             return;
 
         let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
@@ -340,7 +340,7 @@ export default class Actions
         console.log("All tags:", activeTags);
         
         // Edit the bookmark.
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
             await Actions._localBookmarkAdd(mediaId, { tags: activeTags });
         else
             await Actions.bookmarkAdd(mediaId, { tags: activeTags, });
@@ -349,10 +349,10 @@ export default class Actions
     // If quiet is true, don't print any messages.
     static async likeImage(mediaId, quiet)
     {
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
             return;
 
-        let illust_id = helpers.mediaIdToIllustIdAndPage(mediaId)[0];
+        let illust_id = helpers.mediaId.toIllustIdAndPage(mediaId)[0];
 
         console.log("Clicked like on", mediaId);
         
@@ -579,7 +579,7 @@ export default class Actions
         }
 
         // If we're in image mode for a manga post, only download the requested page.
-        let mangaPage = helpers.parseMediaId(mediaId).page;
+        let mangaPage = helpers.mediaId.parse(mediaId).page;
         if(downloadType == "image")
             images = [images[mangaPage]];
 
@@ -600,7 +600,7 @@ export default class Actions
         {
             let url = images[0];
             let blob = new Blob([results[0]]);
-            let ext = helpers.getExtension(url);
+            let ext = helpers.strings.getExtension(url);
             let filename = userInfo.name + " - " + mediaInfo.illustId;
 
             // If this is a single page of a manga post, include the page number.
@@ -618,7 +618,7 @@ export default class Actions
         for(let i = 0; i < images.length; ++i)
         {
             let url = images[i];
-            let ext = helpers.getExtension(url);
+            let ext = helpers.strings.getExtension(url);
             let filename = i.toString().padStart(3, '0') + "." + ext;
             filenames.push(filename);
         }

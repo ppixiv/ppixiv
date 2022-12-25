@@ -4,7 +4,7 @@ import Widget from 'vview/widgets/widget.js';
 import { MenuOptionsThumbnailSizeSlider } from 'vview/widgets/menu-option.js';
 import { getUrlForMediaId } from 'vview/misc/media-ids.js'
 import PointerListener from 'vview/actors/pointer-listener.js';
-import { StopAnimationAfter } from 'vview/misc/helpers.js';
+import StopAnimationAfter from 'vview/actors/stop-animation-after.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -115,7 +115,7 @@ export default class SearchView extends Widget
                 return;
 
             // Only do this for illustrations.
-            let {type} = helpers.parseMediaId(a.dataset.mediaId);
+            let {type} = helpers.mediaId.parse(a.dataset.mediaId);
             if(type != "illust")
                 return;
 
@@ -171,7 +171,7 @@ export default class SearchView extends Widget
         this.intersectionObservers = [];
         this.intersectionObservers.push(new IntersectionObserver((entries) => {
             for(let entry of entries)
-                helpers.setDataSet(entry.target.dataset, "fullyOnScreen", entry.isIntersecting);
+                helpers.html.setDataSet(entry.target.dataset, "fullyOnScreen", entry.isIntersecting);
 
             this.loadDataSourcePage();
             this.firstVisibleThumbsChanged();
@@ -182,7 +182,7 @@ export default class SearchView extends Widget
         
         this.intersectionObservers.push(new IntersectionObserver((entries) => {
             for(let entry of entries)
-                helpers.setDataSet(entry.target.dataset, "nearby", entry.isIntersecting);
+                helpers.html.setDataSet(entry.target.dataset, "nearby", entry.isIntersecting);
 
             this.refreshImages();
 
@@ -213,7 +213,7 @@ export default class SearchView extends Widget
         this.loadExpandedMediaIds(); // in case expand_manga_thumbnails has changed
         this.refreshImages();
 
-        helpers.setClass(document.body, "disable-thumbnail-zooming", ppixiv.settings.get("disable_thumbnail_zooming") || ppixiv.mobile);
+        helpers.html.setClass(document.body, "disable-thumbnail-zooming", ppixiv.settings.get("disable_thumbnail_zooming") || ppixiv.mobile);
     }
 
     // Return the thumbnail
@@ -228,7 +228,7 @@ export default class SearchView extends Widget
         if(fallbackOnPage1)
         {
             // See if page 1 is available instead.
-            let page1MediaId = helpers.getMediaIdFirstPage(mediaId);
+            let page1MediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
             if(page1MediaId != mediaId && this.thumbs[page1MediaId] != null)
                 return this.thumbs[page1MediaId];
         }
@@ -485,10 +485,10 @@ export default class SearchView extends Widget
             return null;
 
         let results = [];
-        let { type, id } = helpers.parseMediaId(mediaId);
+        let { type, id } = helpers.mediaId.parse(mediaId);
         for(let mangaPage = 0; mangaPage < info.pageCount; ++mangaPage)
         {
-            let pageMediaId = helpers.encodeMediaId({type, id, page: mangaPage});
+            let pageMediaId = helpers.mediaId.encodeMediaId({type, id, page: mangaPage});
             results.push(pageMediaId);
         }
         return results;
@@ -785,7 +785,7 @@ export default class SearchView extends Widget
         // If forcedMediaId isn't in the list, this might be a manga page beyond the first that
         // isn't displayed, so try the first page instead.
         if(forcedMediaId != null && allMediaIds.indexOf(forcedMediaId) == -1)
-            forcedMediaId = helpers.getMediaIdFirstPage(forcedMediaId);
+            forcedMediaId = helpers.mediaId.getMediaIdFirstPage(forcedMediaId);
 
         // When we remove thumbs, we'll cache them here, so if we end up reusing it we don't have
         // to recreate it.
@@ -1021,7 +1021,7 @@ export default class SearchView extends Widget
             return null;
 
         return {
-            savedScroll: helpers.saveScrollPosition(this.scrollContainer, firstVisibleThumbNode),
+            savedScroll: helpers.html.saveScrollPosition(this.scrollContainer, firstVisibleThumbNode),
             mediaId: firstVisibleThumbNode.dataset.id,
         }
     }
@@ -1037,7 +1037,7 @@ export default class SearchView extends Widget
         if(restoreScrollPositionNode == null)
             return false;
 
-        helpers.restoreScrollPosition(this.scrollContainer, restoreScrollPositionNode, scroll.savedScroll);
+        helpers.html.restoreScrollPosition(this.scrollContainer, restoreScrollPositionNode, scroll.savedScroll);
         return true;
     }
 
@@ -1047,8 +1047,8 @@ export default class SearchView extends Widget
     // current default.
     setMediaIdExpanded(mediaId, newValue)
     {
-        let page = helpers.mediaIdToIllustIdAndPage(mediaId)[1];
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        let page = helpers.mediaId.toIllustIdAndPage(mediaId)[1];
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
 
         this.expandedMediaIds.set(mediaId, newValue);
 
@@ -1068,14 +1068,14 @@ export default class SearchView extends Widget
 
         if(!newValue)
         {
-            mediaId = helpers.getMediaIdFirstPage(mediaId);
+            mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
 
             // If we're collapsing a manga post on the first page, we know we don't need to
             // scroll since the user clicked the first page.  Leave it where it is so we don't
             // move the button he clicked around.  If we're collapsing a later page, scroll
             // the first page onscreen so we don't end up in a random scroll position two pages down.
             if(page != 0)
-                this.scrollToMediaId(helpers.getMediaIdFirstPage(mediaId));
+                this.scrollToMediaId(helpers.mediaId.getMediaIdFirstPage(mediaId));
         }
     }
 
@@ -1137,10 +1137,10 @@ export default class SearchView extends Widget
         if(!this.dataSource?.allowExpandingMangaPages)
             return false;
 
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
 
         // Only illust IDs can be expanded.
-        let { type } = helpers.parseMediaId(mediaId);
+        let { type } = helpers.mediaId.parse(mediaId);
         if(type != "illust")
             return false;
 
@@ -1181,13 +1181,13 @@ export default class SearchView extends Widget
         // Don't set expanded-thumb on the manga view, since it's always expanded.
         let mediaId = thumb.dataset.id;
         let showExpanded = this.dataSource?.allowExpandingMangaPages && this.isMediaIdExpanded(mediaId);
-        helpers.setClass(thumb, "expanded-thumb", showExpanded);
+        helpers.html.setClass(thumb, "expanded-thumb", showExpanded);
 
         let info = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
-        let [illustId, illustPage] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illustId, illustPage] = helpers.mediaId.toIllustIdAndPage(mediaId);
         
-        helpers.setClass(thumb, "expanded-manga-post", showExpanded);
-        helpers.setClass(thumb, "first-manga-page", info && info.pageCount > 1 && illustPage == 0);
+        helpers.html.setClass(thumb, "expanded-manga-post", showExpanded);
+        helpers.html.setClass(thumb, "first-manga-page", info && info.pageCount > 1 && illustPage == 0);
 
         // Show the page count if this is a multi-page post (unless we're on the
         // manga view itself).
@@ -1199,7 +1199,7 @@ export default class SearchView extends Widget
             let text = showExpanded? `${illustPage+1}/${info.pageCount}`:info.pageCount;
             thumb.querySelector(".manga-info-box .page-count").textContent = text;
             thumb.querySelector(".manga-info-box .page-count").hidden = false;
-            helpers.setClass(thumb.querySelector(".manga-info-box"), "show-expanded", showExpanded);
+            helpers.html.setClass(thumb.querySelector(".manga-info-box"), "show-expanded", showExpanded);
         }
     }
 
@@ -1238,7 +1238,7 @@ export default class SearchView extends Widget
             return;
 
         let mediaId = element.dataset.id;
-        let [illustId, illustPage] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illustId, illustPage] = helpers.mediaId.toIllustIdAndPage(mediaId);
         let thumb = element.querySelector(".thumb");
 
         // Try to use thumbnail info first.  Preferring this makes things more consistent,
@@ -1346,7 +1346,7 @@ export default class SearchView extends Widget
         // If we're displaying individual pages for this media ID, check them too.
         for(let page = 0; page < mediaInfo.pageCount; ++page)
         {
-            let pageMediaId = helpers.getMediaIdForPage(mediaId, page);
+            let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
             thumbnailElement = this.getThumbnailForMediaId(pageMediaId);
             if(thumbnailElement != null)
                 this.refreshBookmarkIcon(thumbnailElement);
@@ -1493,9 +1493,9 @@ export default class SearchView extends Widget
         if(!force && !("pending" in element.dataset))
             return;
 
-        let [illustId, illustPage] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illustId, illustPage] = helpers.mediaId.toIllustIdAndPage(mediaId);
 
-        let { id: thumbId, type: thumbType } = helpers.parseMediaId(mediaId);
+        let { id: thumbId, type: thumbType } = helpers.mediaId.parse(mediaId);
 
         // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
         // and we'll come back once we have it.
@@ -1508,7 +1508,7 @@ export default class SearchView extends Widget
                 return;
         }
         
-        helpers.setDataSet(element.dataset, "pending", false);
+        helpers.html.setDataSet(element.dataset, "pending", false);
 
         // On hover, use StopAnimationAfter to stop the animation after a while.
         this.addAnimationListener(element);
@@ -1548,7 +1548,7 @@ export default class SearchView extends Widget
             throw "Unexpected thumb type: " + thumbType;
 
         // Set this thumb.
-        let { page } = helpers.parseMediaId(mediaId);
+        let { page } = helpers.mediaId.parse(mediaId);
         let url = info.previewUrls[page];
         let thumb = element.querySelector(".thumb");
 
@@ -1605,7 +1605,7 @@ export default class SearchView extends Widget
 
         element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
 
-        helpers.setClass(element, "dot", helpers.tagsContainDot(info.tagList));
+        helpers.html.setClass(element, "dot", helpers.pixiv.tagsContainDot(info.tagList));
 
         // Set expanded-thumb if this is an expanded manga post.  This is also updated in
         // setMediaIdExpanded.  Set the border to a random-ish value to try to make it
@@ -1614,8 +1614,8 @@ export default class SearchView extends Widget
         // ID means the color will always be the same.  The saturation is a bit low so these
         // colors aren't blinding.
         this.refreshExpandedThumb(element);
-        helpers.setClass(link, "first-page", illustPage == 0);
-        helpers.setClass(link, "last-page", illustPage == info.pageCount-1);
+        helpers.html.setClass(link, "first-page", illustPage == 0);
+        helpers.html.setClass(link, "last-page", illustPage == info.pageCount-1);
         link.style.borderBottomColor = `hsl(${illustId}deg 50% 50%)`;
 
         this.refreshBookmarkIcon(element);
@@ -1673,7 +1673,7 @@ export default class SearchView extends Widget
 
         // If we set y outside of the scroll range, iOS will incorrectly report scrollTop briefly.
         // Clamp the position to avoid this.
-        y = helpers.clamp(y, 0, this.scrollContainer.scrollHeight - this.scrollContainer.offsetHeight);
+        y = helpers.math.clamp(y, 0, this.scrollContainer.scrollHeight - this.scrollContainer.offsetHeight);
 
         this.scrollContainer.scrollTop = y;
 

@@ -67,7 +67,7 @@ export default class MobileSearchUI extends Widget
 
     applyVisibility()
     {
-        helpers.setClass(this.container, "shown", this._visible);
+        helpers.html.setClass(this.container, "shown", this._visible);
     }
 
     refreshUi()
@@ -80,7 +80,7 @@ export default class MobileSearchUI extends Widget
             showBackButton = LocalAPI.getParentFolder(this.parent.displayedMediaId) != null;
         else if(ppixiv.phistory.permanent)
             showBackButton = ppixiv.phistory.length > 1;
-        helpers.setClass(backButton, "disabled", !showBackButton);
+        helpers.html.setClass(backButton, "disabled", !showBackButton);
     }
 }
 
@@ -148,7 +148,7 @@ class MobileEditSearchDialog extends DialogWidget
     {
         let activeRow = this.activeRow;
         for(let button of this.container.querySelectorAll(".navigation-button"))
-            helpers.setClass(button, "selected", button == activeRow);
+            helpers.html.setClass(button, "selected", button == activeRow);
 
         // Show this row if it's hidden.  Some rows are only displayed while they're in use.
         activeRow.widget.visible = true;

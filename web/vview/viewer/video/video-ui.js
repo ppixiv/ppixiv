@@ -56,7 +56,7 @@ export default class VideoUI extends Widget
         new PointerListener({
             element: this.container,
             callback: (e) => {
-                helpers.setClass(this.container, "dragging", e.pressed);
+                helpers.html.setClass(this.container, "dragging", e.pressed);
             },
         });
 
@@ -153,7 +153,7 @@ export default class VideoUI extends Widget
     refreshShowUi()
     {
         let show_ui = ClassFlags.get.get("mobile-ui-visible");
-        helpers.setClass(this.container, "show-ui", show_ui);
+        helpers.html.setClass(this.container, "show-ui", show_ui);
     }
 
     // Set whether the seek bar is above or below the video UI.
@@ -266,7 +266,7 @@ export default class VideoUI extends Widget
         }
         else
         {
-            this.time.innerText = `${helpers.formatSeconds(now)} / ${helpers.formatSeconds(duration)}`;
+            this.time.innerText = `${helpers.strings.formatSeconds(now)} / ${helpers.strings.formatSeconds(duration)}`;
         }
     }
 }

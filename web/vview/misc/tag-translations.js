@@ -156,7 +156,7 @@ export default class TagTranslations
     async translateTagList(tags, language)
     {
         // Pull out individual tags, removing -prefixes.
-        let splitTags = helpers.splitSearchTags(tags);
+        let splitTags = helpers.pixiv.splitSearchTags(tags);
         let tagList = [];
         for(let tag of splitTags)
         {

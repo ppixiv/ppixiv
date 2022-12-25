@@ -54,7 +54,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                     onclick: () => {
                         this.parent.hide();
 
-                        let [illustId] = helpers.mediaIdToIllustIdAndPage(this.mediaId);
+                        let [illustId] = helpers.mediaId.toIllustIdAndPage(this.mediaId);
                         let args = new helpers.args(`/bookmark_detail.php?illust_id=${illustId}#ppixiv?recommendations=1`);
                         helpers.navigate(args);
                     }
@@ -87,7 +87,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                         let args = new helpers.args("/");
                         args.path = "/similar";
                         args.hashPath = "/#/";
-                        let { id } = helpers.parseMediaId(this.mediaId);
+                        let { id } = helpers.mediaId.parse(this.mediaId);
                         args.hash.set("search_path", id);
                         helpers.navigate(args);
                     }
@@ -103,7 +103,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                     onclick: () => {
                         this.parent.hide();
 
-                        let [illustId] = helpers.mediaIdToIllustIdAndPage(this.mediaId);
+                        let [illustId] = helpers.mediaId.toIllustIdAndPage(this.mediaId);
                         let args = new helpers.args(`/bookmark_detail.php?illust_id=${illustId}#ppixiv`);
                         helpers.navigate(args);
                     }
@@ -120,7 +120,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                         if(mediaId == null)
                             return false;
 
-                        let { type } = helpers.parseMediaId(mediaId);
+                        let { type } = helpers.mediaId.parse(mediaId);
                         return type == "folder";
                     },
 
@@ -175,7 +175,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                     requires: ({mediaId}) => {
                         if(navigator.share == null)
                             return false;
-                        if(mediaId == null || helpers.isMediaIdLocal(mediaId))
+                        if(mediaId == null || helpers.mediaId.isLocal(mediaId))
                             return false;
 
                         let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
@@ -184,17 +184,17 @@ export default class MoreOptionsDropdown extends IllustWidget
 
                     onclick: async () => {
                         let mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId, { full: true });
-                        let page = helpers.parseMediaId(this.mediaId).page;
+                        let page = helpers.mediaId.parse(this.mediaId).page;
                         let { url } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
 
                         let title = `${mediaInfo.userName} - ${mediaInfo.illustId}`;
                         if(mediaInfo.mangaPages.length > 1)
                         {
-                            let mangaPage = helpers.parseMediaId(this._mediaId).page;
+                            let mangaPage = helpers.mediaId.parse(this._mediaId).page;
                             title += " #" + (mangaPage + 1);
                         }
 
-                        title += `.${helpers.getExtension(url)}`;
+                        title += `.${helpers.strings.getExtension(url)}`;
                         navigator.share({
                             url,
                             title,

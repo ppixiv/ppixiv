@@ -422,7 +422,7 @@ export class SettingsDialog extends DialogWidget
         });
 
         this.phone = helpers.is_phone();
-        helpers.setClass(this.container, "phone", this.phone);
+        helpers.html.setClass(this.container, "phone", this.phone);
         this._pageButtons = {};
 
         // If we're using a phone UI, we're showing items by opening a separate dialog.  The
@@ -490,13 +490,13 @@ export class SettingsDialog extends DialogWidget
         if(name != null)
         {
             this._pageWidget = this._createPage(name);
-            helpers.setClass(this._pageButtons[name], "selected", true);
+            helpers.html.setClass(this._pageButtons[name], "selected", true);
             if(!this.phone)
                 this.header = pageTitles[name];
 
             this._pageWidget.shutdownSignal.signal.addEventListener("abort", () => {
                 this._pageWidget = null;
-                helpers.setClass(this._pageButtons[name], "selected", false);
+                helpers.html.setClass(this._pageButtons[name], "selected", false);
             });
         }
     }

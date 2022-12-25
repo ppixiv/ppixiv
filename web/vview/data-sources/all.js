@@ -83,7 +83,7 @@ export function getDataSourceForUrl(url)
         // /users/12345/following
         //
         // All of these except for bookmarks are handled by allDataSources.Artist.
-        let mode = helpers.getPathPart(url, 2);
+        let mode = helpers.strings.getPathPart(url, 2);
         if(mode == "following")
             return allDataSources.FollowedUsers;
 
@@ -94,7 +94,7 @@ export function getDataSourceForUrl(url)
         // we're viewing all bookmarks, so use allDataSources.BookmarksMerged.  Otherwise,
         // use allDataSources.bookmarks.
         let args = new helpers.args(url);
-        let user_id = helpers.getPathPart(url, 1);
+        let user_id = helpers.strings.getPathPart(url, 1);
         if(user_id == null)
             user_id = ppixiv.pixivInfo.userId;
         let viewingOwnBookmarks = user_id == ppixiv.pixivInfo.userId;

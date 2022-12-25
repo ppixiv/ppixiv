@@ -217,7 +217,7 @@ export default class DataSource extends EventTarget
             return null;
 
         let page = this.getPageFromUrl(args);
-        return helpers.illustIdToMediaId(illustId, page);
+        return helpers.mediaId.fromIllustId(illustId, page);
     }
 
     // If the URL specifies a manga page, return it, otherwise return 0.
@@ -278,7 +278,7 @@ export default class DataSource extends EventTarget
     // should update the history state to reflect the current state.
     setCurrentMediaId(mediaId, args)
     {
-        let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
         if(this.supportsStartPage)
         {
             // Store the page the illustration is on in the hash, so if the page is reloaded while
@@ -366,7 +366,7 @@ export default class DataSource extends EventTarget
 
         // If this data source doesn't return manga pages, always use the first page.
         if(this.allowExpandingMangaPages)
-            initialMediaId = helpers.getMediaIdForPage(initialMediaId, 0);
+            initialMediaId = helpers.mediaId.getMediaIdForPage(initialMediaId, 0);
 
         if(page == this.initialPage &&
             initialMediaId != null &&
@@ -467,7 +467,7 @@ export default class DataSource extends EventTarget
         // Adjust the URL for this button.
         let { args: newArgs, buttonIsSelected } = this.setItemInUrl(args, options);
 
-        helpers.setClass(link, "selected", buttonIsSelected);
+        helpers.html.setClass(link, "selected", buttonIsSelected);
 
         link.href = newArgs.url.toString();
     };
@@ -603,12 +603,12 @@ export default class DataSource extends EventTarget
         url.searchParams.delete("p");
 
         // This button is selected if the given value was already set.
-        let buttonIsSelected = helpers.getPathPart(url, index) == value;
+        let buttonIsSelected = helpers.strings.getPathPart(url, index) == value;
 
         // Replace the path part.
-        url = helpers.setPathPart(url, index, value);
+        url = helpers.strings.setPathPart(url, index, value);
 
-        helpers.setClass(link, "selected", buttonIsSelected);
+        helpers.html.setClass(link, "selected", buttonIsSelected);
 
         link.href = url.toString();
     };

@@ -39,7 +39,7 @@ export default class SeekBar extends Widget
             },
 
             ondragstart: ({event}) => {
-                helpers.setClass(this.container, "dragging", true);
+                helpers.html.setClass(this.container, "dragging", true);
 
                 this.setDragPos(event);
                 return true;
@@ -50,7 +50,7 @@ export default class SeekBar extends Widget
             },
 
             ondragend: () => {
-                helpers.setClass(this.container, "dragging", false);
+                helpers.html.setClass(this.container, "dragging", false);
 
                 if(this.callback)
                     this.callback(false, null);

@@ -14,13 +14,13 @@ export default class ExtraCache
     // Remember when we've liked an image recently, so we don't spam API requests.
     getLikedRecently(mediaId)
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
         return this._recentLikes[mediaId];
     }
 
     addLikedRecently(mediaId)
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
         this._recentLikes[mediaId] = true;
     }
 
@@ -33,14 +33,14 @@ export default class ExtraCache
     {
         // If we know the image isn't bookmarked, we know there are no bookmark tags, so
         // we can skip this.
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
         let thumb = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
         if(thumb && thumb.bookmarkData == null)
             return [];
 
         // The local API just puts bookmark info on the illust info.  Copy over the current
         // data.
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
             this._bookmarkedImageTags[mediaId] = thumb.bookmarkData.tags;
 
         // If we already have bookmark tags, return them.  Return a copy, so modifying the
@@ -48,7 +48,7 @@ export default class ExtraCache
         if(this._bookmarkedImageTags[mediaId])
             return [...this._bookmarkedImageTags[mediaId]]; 
 
-        let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
         let bookmarkPage = await helpers.fetchDocument("/bookmark_add.php?type=illust&illust_id=" + illustId);
         
         let tags = bookmarkPage.querySelector(".bookmark-detail-unit form input[name='tag']").value;
@@ -62,7 +62,7 @@ export default class ExtraCache
     // Return bookmark tags if they're already loaded, otherwise return null.
     getBookmarkDetailsSync(mediaId)
     {
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
         {
             let thumb = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
             if(thumb && thumb.bookmarkData == null)
@@ -79,7 +79,7 @@ export default class ExtraCache
     // a bookmark.
     updateCachedBookmarkTags(mediaId, tags)
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
 
         if(tags == null)
             delete this._bookmarkedImageTags[mediaId];

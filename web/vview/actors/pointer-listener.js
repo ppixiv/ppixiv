@@ -223,7 +223,7 @@ export default class PointerListener
 
         // See if the cursor is over our element.
         let nodeUnderCursor = document.elementFromPoint(PointerListener.latestMouseClientPosition[0], PointerListener.latestMouseClientPosition[1]);
-        if(nodeUnderCursor == null || !helpers.isAbove(this.element, nodeUnderCursor))
+        if(nodeUnderCursor == null || !helpers.html.isAbove(this.element, nodeUnderCursor))
             return;
 
         // Simulate a pointerdown on this element for each button that's down, so we can

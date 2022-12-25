@@ -194,7 +194,7 @@ export default class InpaintEditor extends Widget
     {
         super.refresh();
 
-        helpers.setClass(this._createLinesButton, "selected", this._createLines);
+        helpers.html.setClass(this._createLinesButton, "selected", this._createLines);
 
         if(this._selectedLine)
             this._lineWidthSlider.value = this._selectedLine.thickness;
@@ -205,8 +205,8 @@ export default class InpaintEditor extends Widget
     updateMenu(menuContainer)
     {
         let create = menuContainer.querySelector(".edit-inpaint");
-        helpers.setClass(create, "enabled", true);
-        helpers.setClass(create, "selected", this.editor?._createLines);
+        helpers.html.setClass(create, "enabled", true);
+        helpers.html.setClass(create, "selected", this.editor?._createLines);
     }
 
     visibilityChanged()
@@ -413,7 +413,7 @@ export default class InpaintEditor extends Widget
 
     _refreshPointerEvents()
     {
-        helpers.setClass(this._editorOverlay, "creating-lines", this._createLines);
+        helpers.html.setClass(this._editorOverlay, "creating-lines", this._createLines);
         if(this._ctrlPressed || this._createLines)
             this._editorOverlay.style.pointerEvents = "auto";
         else
@@ -592,8 +592,8 @@ export default class InpaintEditor extends Widget
             segment[1] += delta_y;
 
             // Clamp the position so it doesn't go offscreen.
-            segment[0] = helpers.clamp(segment[0], 0, this.width);
-            segment[1] = helpers.clamp(segment[1], 0, this.height);
+            segment[0] = helpers.math.clamp(segment[0], 0, this.width);
+            segment[1] = helpers.math.clamp(segment[1], 0, this.height);
         }
 
         this._draggingSegment.updateSegment();

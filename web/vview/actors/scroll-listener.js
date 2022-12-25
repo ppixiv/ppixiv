@@ -110,7 +110,7 @@ export default class ScrollListener extends Actor
 
         // If the scroller's scrollHeight changed since the last scroll, ignore 
         // Ignore scrolls past the edge, to avoid being confused by iOS's overflow scrolling.
-        let newScrollTop = helpers.clamp(this._scroller.scrollTop, 0, this._scroller.scrollHeight-this._scroller.offsetHeight);
+        let newScrollTop = helpers.math.clamp(this._scroller.scrollTop, 0, this._scroller.scrollHeight-this._scroller.offsetHeight);
         let delta = newScrollTop - this._lastScrollY;
         this._lastScrollY = newScrollTop;
 

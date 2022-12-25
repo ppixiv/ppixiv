@@ -123,7 +123,7 @@ export default class MediaCache extends EventTarget
 
     _getMediaInfoInner(mediaId, { full=true }={})
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
         if(mediaId == null)
             return null;
 
@@ -155,7 +155,7 @@ export default class MediaCache extends EventTarget
     // already loaded.
     getMediaInfoSync(mediaId, { full=true, safe=true }={})
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
         let mediaInfo = this._mediaInfo[mediaId];
 
         // If full info was requested and we only have partial info, don't return it.
@@ -171,7 +171,7 @@ export default class MediaCache extends EventTarget
     // If getMediaInfo returned null, return the error message.
     getMediaLoadError(mediaId)
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
         return this._nonexistantMediaIds[mediaId];
     }
 
@@ -180,7 +180,7 @@ export default class MediaCache extends EventTarget
     // If an image only has partial info loaded, this will cause its full info to be loaded.
     async refreshMediaInfo(mediaId)
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
         await this._loadMediaInfo(mediaId, { force: true, refreshFromDisk: true });
     }
 
@@ -208,7 +208,7 @@ export default class MediaCache extends EventTarget
         {
             // This mediaInfo is from the API and hasn't been adjusted yet, so mediaInfo.illustId
             // and mediaInfo.mediaId don't exist yet.
-            let mediaId = helpers.illustIdToMediaId(mediaInfo.id);
+            let mediaId = helpers.mediaId.fromIllustId(mediaInfo.id);
             let loadPromise = this._loadMediaInfo(mediaId, { mediaInfo, force: true });
             this._startedLoadingMediaInfoFull(mediaId, loadPromise);
             return loadPromise;
@@ -241,13 +241,13 @@ export default class MediaCache extends EventTarget
     // it can be supplied with mediaInfo.
     async _loadMediaInfo(mediaId, { mediaInfo=null, refreshFromDisk=false }={})
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
-        let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
+        let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
 
         delete this._nonexistantMediaIds[mediaId];
 
         // If this is a local image, use our API to retrieve it.
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
             return await this._loadLocalImageData(mediaId, { refreshFromDisk});
 
         console.log("Fetching", mediaId);
@@ -298,7 +298,7 @@ export default class MediaCache extends EventTarget
         for(let [key, url] of Object.entries(mediaInfo.urls))
         {
             url = new URL(url);
-            helpers.adjustImageUrlHostname(url);
+            helpers.pixiv.adjustImageUrlHostname(url);
             mediaInfo.urls[key] = url.toString();
         }
 
@@ -306,7 +306,7 @@ export default class MediaCache extends EventTarget
         mediaInfo.previewUrls = [];
         for(let page = 0; page < mediaInfo.pageCount; ++page)
         {
-            let url = helpers.get_high_res_thumbnail_url(mediaInfo.urls.small, page);
+            let url = helpers.pixiv.getHighResThumbnailUrl(mediaInfo.urls.small, page);
             mediaInfo.previewUrls.push(url);
         }
 
@@ -325,7 +325,7 @@ export default class MediaCache extends EventTarget
                 for(let [key, url] of Object.entries(page.urls))
                 {
                     url = new URL(url);
-                    helpers.adjustImageUrlHostname(url);
+                    helpers.pixiv.adjustImageUrlHostname(url);
                     page.urls[key] = url.toString();
                 }
             }
@@ -338,7 +338,7 @@ export default class MediaCache extends EventTarget
 
             // Switch the data URL to i-cf..pximg.net.
             let url = new URL(mediaInfo.ugoiraMetadata.originalSrc);
-            helpers.adjustImageUrlHostname(url);
+            helpers.pixiv.adjustImageUrlHostname(url);
             mediaInfo.ugoiraMetadata.originalSrc = url.toString();
         }
 
@@ -409,7 +409,7 @@ export default class MediaCache extends EventTarget
         let localMediaIds = [];
         for(let mediaId of mediaIds)
         {
-            mediaId = helpers.getMediaIdFirstPage(mediaId);
+            mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
 
             // If we're not forcing a refresh, skip this ID if it's already loaded.
             if(!force && this._mediaInfo[mediaId] != null)
@@ -428,8 +428,8 @@ export default class MediaCache extends EventTarget
             }
 
             // Only load local IDs and illust IDs.
-            let { type } = helpers.parseMediaId(mediaId);
-            if(helpers.isMediaIdLocal(mediaId))
+            let { type } = helpers.mediaId.parse(mediaId);
+            if(helpers.mediaId.isLocal(mediaId))
                 localMediaIds.push(mediaId);
             else if(type == "illust")
                 neededMediaIds.push(mediaId);
@@ -469,10 +469,10 @@ export default class MediaCache extends EventTarget
         let illustIds = [];
         for(let mediaId of mediaIds)
         {
-            if(helpers.parseMediaId(mediaId).type != "illust")
+            if(helpers.mediaId.parse(mediaId).type != "illust")
                 continue;
 
-            let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
+            let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
             illustIds.push(illustId);
         }
 
@@ -581,7 +581,7 @@ export default class MediaCache extends EventTarget
         let mediaInfo = await LocalAPI.loadMediaInfo(mediaId, { refreshFromDisk });
         if(!mediaInfo.success)
         {
-            mediaId = helpers.getMediaIdFirstPage(mediaId);
+            mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
             this._nonexistantMediaIds[mediaId] = mediaInfo.reason;
             return null;
         }
@@ -606,14 +606,14 @@ export default class MediaCache extends EventTarget
 
     isMediaIdLoadedOrLoading(mediaId)
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
         return this._mediaInfo[mediaId] != null || this._mediaInfoLoadsFull[mediaId] || this._mediaInfoLoadsPartial[mediaId];
     }
         
     // Save data to extra_image_data, and update cached data.  Returns the updated extra data.
     async saveExtraImageData(mediaId, edits)
     {
-        let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
 
         // Load the current data from the database, in case our cache is out of date.
         let results = await ppixiv.extraImageData.loadMediaId([mediaId]);
@@ -669,7 +669,7 @@ export default class MediaCache extends EventTarget
     // with inconsistent fields.
     updateMediaInfo(mediaId, keys)
     {
-        mediaId = helpers.getMediaIdFirstPage(mediaId);
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
 
         let mediaInfo = this._mediaInfo[mediaId];
         if(mediaInfo == null)
@@ -727,7 +727,7 @@ export default class MediaCache extends EventTarget
 
         // If this is already partial data, just return it as is.  Don't do this for
         // local info either, since that's always full.
-        if(!mediaInfo.full || helpers.isMediaIdLocal(mediaInfo.mediaId))
+        if(!mediaInfo.full || helpers.mediaId.isLocal(mediaInfo.mediaId))
             return mediaInfo;
 
         let result = {};        
@@ -779,7 +779,7 @@ export default class MediaCache extends EventTarget
 
         // If page is null, mediaId is already this page's ID.
         if(page != null)
-            mediaId = helpers.getMediaIdForPage(mediaId, page);
+            mediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
         
         return mediaInfo.extraData[mediaId] ?? {};
     }
@@ -797,7 +797,7 @@ export default class MediaCache extends EventTarget
             return { width: 1, height: 1 };
 
         let pageInfo = mediaInfo;
-        if(!helpers.isMediaIdLocal(mediaInfo.mediaId))
+        if(!helpers.mediaId.isLocal(mediaInfo.mediaId))
         {
             if(page == null)
             {
@@ -805,7 +805,7 @@ export default class MediaCache extends EventTarget
                 // know what page we want.
                 if(mediaId == null)
                     throw new Error("At least one of mediaId or page must be specified");
-                page = helpers.mediaIdToIllustIdAndPage(mediaId)[1];
+                page = helpers.mediaId.toIllustIdAndPage(mediaId)[1];
             }
 
             if(page > 0)
@@ -835,7 +835,7 @@ export default class MediaCache extends EventTarget
     getMainImageUrl(mediaInfo, page=0, { ignore_limits=false }={})
     {
         // This isn't currently used locally.
-        if(helpers.isMediaIdLocal(mediaInfo.mediaId))
+        if(helpers.mediaId.isLocal(mediaInfo.mediaId))
             return {
                 url: mediaInfo.urls.original,
                 width: mediaInfo.width,

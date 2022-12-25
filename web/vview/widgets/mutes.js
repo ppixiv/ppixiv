@@ -126,7 +126,7 @@ export class EditMutedTagsWidget extends Widget
         };
 
         let mutedTagList = this.container.querySelector(".mute-list");
-        helpers.removeElements(mutedTagList);
+        helpers.html.removeElements(mutedTagList);
         for(let {type, value: tag} of ppixiv.muting.extraMutes)
         {
             if(type != "tag")
@@ -170,7 +170,7 @@ export class EditMutedTagsWidget extends Widget
         };
 
         let mutedUserList = this.container.querySelector(".mute-list");
-        helpers.removeElements(mutedUserList);
+        helpers.html.removeElements(mutedUserList);
 
         for(let {type, value: userId, label: username} of ppixiv.muting.extraMutes)
         {
@@ -379,7 +379,7 @@ export class MutedTagsForPostDialog extends DialogWidget
                 </div>
             `});
 
-            helpers.setClass(entry, "muted", isMuted);
+            helpers.html.setClass(entry, "muted", isMuted);
             entry.querySelector(".toggle-mute .label").innerText = isMuted? "Muted":"Mute";
             entry.querySelector(".tag-name").innerText = label;
             mutedList.appendChild(entry);
@@ -388,7 +388,7 @@ export class MutedTagsForPostDialog extends DialogWidget
         };    
     
         let mutedList = this.container.querySelector(".post-mute-list");
-        helpers.removeElements(mutedList);
+        helpers.html.removeElements(mutedList);
 
         // Add an entry for the user.
         {

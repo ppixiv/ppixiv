@@ -44,7 +44,7 @@ export class LocalSearchBoxWidget extends Widget
 
             shouldCloseForClick: (e) => {
                 // Ignore clicks inside our container.
-                if(helpers.isAbove(this.container, e.target))
+                if(helpers.html.isAbove(this.container, e.target))
                     return false;
 
                 return true;
@@ -240,7 +240,7 @@ class LocalSearchDropdownWidget extends Widget
         tagSearches.sort();
 
         let list = this.container.querySelector(".input-dropdown-list");
-        helpers.removeElements(list);
+        helpers.html.removeElements(list);
 
         for(let tag of tagSearches)
         {
@@ -275,11 +275,11 @@ export class ViewInExplorerWidget extends IllustWidget
     refreshInternal({ mediaId, mediaInfo })
     {
         // Hide the button if we're not on a local image.
-        this.container.closest(".button-container").hidden = !helpers.isMediaIdLocal(mediaId);
+        this.container.closest(".button-container").hidden = !helpers.mediaId.isLocal(mediaId);
         
         let path = mediaInfo?.localPath;
         this.enabled = mediaInfo?.localPath != null;
-        helpers.setClass(this.container.querySelector("A.button"), "enabled", this.enabled);
+        helpers.html.setClass(this.container.querySelector("A.button"), "enabled", this.enabled);
         if(path == null)
             return;
 
@@ -298,7 +298,7 @@ export class ViewInExplorerWidget extends IllustWidget
         a.href = url;
 
         // Set the popup for the type of ID.
-        let { type } = helpers.parseMediaId(mediaId);
+        let { type } = helpers.mediaId.parse(mediaId);
         let popup = type == "file"? "View file in Explorer":"View folder in Explorer";
         a.dataset.popup = popup;
     }

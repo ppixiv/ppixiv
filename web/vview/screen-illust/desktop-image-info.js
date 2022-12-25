@@ -257,7 +257,7 @@ export default class DesktopImageInfo extends Widget
 
     applyVisibility()
     {
-        helpers.setClass(this.container.querySelector(".ui-box"), "ui-hidden", this._visible);
+        helpers.html.setClass(this.container.querySelector(".ui-box"), "ui-hidden", this._visible);
     }
 
     visibilityChanged()
@@ -293,7 +293,7 @@ export default class DesktopImageInfo extends Widget
 
     get displayedPage()
     {
-        return helpers.parseMediaId(this._mediaId).page;
+        return helpers.mediaId.parse(this._mediaId).page;
     }
 
     handleKeydown(e)
@@ -302,7 +302,7 @@ export default class DesktopImageInfo extends Widget
 
     refresh = async() =>
     {
-        helpers.setClass(this.container, "disabled", !this.visible);
+        helpers.html.setClass(this.container, "disabled", !this.visible);
 
         // Don't do anything if we're not visible.
         if(!this.visible)
@@ -337,7 +337,7 @@ export default class DesktopImageInfo extends Widget
             this.mangaPageBar.style.width = (fill * 100) + "%";
         }
 
-        let [illustId] = helpers.mediaIdToIllustIdAndPage(this._mediaId);
+        let [illustId] = helpers.mediaId.toIllustIdAndPage(this._mediaId);
         let userId = mediaInfo.userId;
 
         // Show the author if it's someone else's post, or the edit link if it's ours.
@@ -359,11 +359,11 @@ export default class DesktopImageInfo extends Widget
 
         // Show the folder if we're viewing a local image.
         let folderTextElement = this.container.querySelector(".folder-text");
-        let showFolder = helpers.isMediaIdLocal(this._mediaId);
+        let showFolder = helpers.mediaId.isLocal(this._mediaId);
         if(showFolder)
         {
-            let {id} = helpers.parseMediaId(this.mediaId);
-            folderTextElement.innerText = helpers.getPathSuffix(id, 2, 1); // last two parent directories
+            let {id} = helpers.mediaId.parse(this.mediaId);
+            folderTextElement.innerText = helpers.strings.getPathSuffix(id, 2, 1); // last two parent directories
 
             let parentFolderId = LocalAPI.getParentFolder(id);
             let args = new helpers.args("/", ppixiv.plocation);
@@ -391,8 +391,9 @@ export default class DesktopImageInfo extends Widget
         let elementComment = this.container.querySelector(".description");
         elementComment.hidden = mediaInfo.illustComment == "";
         elementComment.innerHTML = mediaInfo.illustComment;
-        helpers.fixPixivLinks(elementComment);
-        helpers.makePixivLinksInternal(elementComment);
+        helpers.pixiv.fixPixivLinks(elementComment);
+        if(!ppixiv.native)
+            helpers.pixiv.makePixivLinksInternal(elementComment);
 
         // Set the download button popup text.
         let downloadImageButton = this.container.querySelector(".download-image-button");
@@ -417,8 +418,8 @@ export default class DesktopImageInfo extends Widget
         };
 
         let seconds_old = (new Date() - new Date(mediaInfo.createDate)) / 1000;
-        setInfo(".post-age", helpers.age_to_string(seconds_old));
-        postInfoContainer.querySelector(".post-age").dataset.popup = helpers.date_to_string(mediaInfo.createDate);
+        setInfo(".post-age", helpers.strings.ageToString(seconds_old));
+        postInfoContainer.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
 
         let info = "";
 
@@ -432,7 +433,7 @@ export default class DesktopImageInfo extends Widget
             if(this.mediaInfo.illustType != 2)
             {
                 let url = new URL(pageInfo.urls?.original);
-                let ext = helpers.getExtension(url.pathname).toUpperCase();
+                let ext = helpers.strings.getExtension(url.pathname).toUpperCase();
                 if(ext)
                     info += " " + ext;
             }

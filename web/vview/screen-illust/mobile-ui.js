@@ -121,11 +121,11 @@ export default class MobileImageUI extends Widget
         // visible for transitions.
         this.container.hidden = !visible;
 
-        helpers.setClass(document.documentElement, "illust-menu-visible", visible);
+        helpers.html.setClass(document.documentElement, "illust-menu-visible", visible);
 
         // This enables pointer-events only when the animation is finished.  This avoids problems
         // with iOS sending clicks to the button when it wasn't pressable when the touch started.
-        helpers.setClass(this.container, "fully-visible", visible && !this.dragger.isAnimationPlaying);
+        helpers.html.setClass(this.container, "fully-visible", visible && !this.dragger.isAnimationPlaying);
 
         this.refresh();
     }
@@ -244,7 +244,7 @@ class IllustBottomMenuBar extends Widget
         this.buttonSlider = this.container.querySelector(".button-similar");
         this.buttonSlider.hidden = ppixiv.native;
         this.buttonSlider.addEventListener("click", (e) => {
-            let [illustId] = helpers.mediaIdToIllustIdAndPage(this._mediaId);
+            let [illustId] = helpers.mediaId.toIllustIdAndPage(this._mediaId);
             let args = new helpers.args(`/bookmark_detail.php?illust_id=${illustId}#ppixiv?recommendations=1`);
             helpers.navigate(args);
         });
@@ -258,7 +258,7 @@ class IllustBottomMenuBar extends Widget
         });
 
         // This tells widgets that want to be above us how tall we are.
-        helpers.setHeightAsProperty(this.container, "--menu-bar-height", {
+        helpers.html.setHeightAsProperty(this.container, "--menu-bar-height", {
             target: this.closest(".screen"),
             ...this._signal
         });
@@ -298,9 +298,9 @@ class IllustBottomMenuBar extends Widget
         buttonViewManga.dataset.popup = "View manga pages";
         buttonViewManga.hidden = !ppixiv.app.navigateOutEnabled;
 
-        helpers.setClass(this.toggleSlideshowButton, "selected", ppixiv.app.slideshowMode == "1");
-        helpers.setClass(this.toggleLoopButton, "selected", ppixiv.app.slideshowMode == "loop");
-        helpers.setClass(this.container.querySelector(".button-bookmark"), "enabled", true);
+        helpers.html.setClass(this.toggleSlideshowButton, "selected", ppixiv.app.slideshowMode == "1");
+        helpers.html.setClass(this.toggleLoopButton, "selected", ppixiv.app.slideshowMode == "loop");
+        helpers.html.setClass(this.container.querySelector(".button-bookmark"), "enabled", true);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
         // they don't load data unnecessarily.  Don't set these back to null if we're hidden, so they
@@ -323,7 +323,7 @@ class IllustBottomMenuBar extends Widget
     get parentFolderId()
     {
         let folder_id = this.folderIdForParent;
-        let isLocal = helpers.isMediaIdLocal(folder_id);
+        let isLocal = helpers.mediaId.isLocal(folder_id);
         if(!isLocal)
             return null;
 
@@ -505,9 +505,9 @@ class ImageInfoWidget extends IllustWidget
         this.avatarWidget.setUserId(mediaInfo?.userId);
 
         let tagWidget = this.container.querySelector(".bookmark-tags");
-        helpers.removeElements(tagWidget);
+        helpers.html.removeElements(tagWidget);
 
-        let isLocal = helpers.isMediaIdLocal(this._mediaId);
+        let isLocal = helpers.mediaId.isLocal(this._mediaId);
         let tags = isLocal? mediaInfo.bookmarkData?.tags:mediaInfo.tagList;
         tags ??= [];
         for(let tag of tags)
@@ -519,7 +519,7 @@ class ImageInfoWidget extends IllustWidget
                 </a>
             `});
 
-            entry.href = helpers.getArgsForTagSearch(tag, ppixiv.plocation);
+            entry.href = helpers.pixiv.getArgsForTagSearch(tag, ppixiv.plocation);
             entry.querySelector(".tag-name").innerText = tag;
             tagWidget.appendChild(entry);
         }
@@ -560,12 +560,12 @@ class ImageInfoWidget extends IllustWidget
 
         setInfo(".title", mediaInfo.illustTitle);
     
-        let showFolder = helpers.isMediaIdLocal(this._mediaId);
+        let showFolder = helpers.mediaId.isLocal(this._mediaId);
         this.container.querySelector(".folder-block").hidden = !showFolder;
         if(showFolder)
         {
-            let {id} = helpers.parseMediaId(this._mediaId);
-            this.container.querySelector(".folder-text").innerText = helpers.getPathSuffix(id, 1, 1); // parent directory
+            let {id} = helpers.mediaId.parse(this._mediaId);
+            this.container.querySelector(".folder-text").innerText = helpers.strings.getPathSuffix(id, 1, 1); // parent directory
         }
 
         // If we're on the first page then we only requested early info, and we can use the dimensions
@@ -580,8 +580,8 @@ class ImageInfoWidget extends IllustWidget
         setInfo(".image-info-text", info);
 
         let secondsOld = (new Date() - new Date(mediaInfo.createDate)) / 1000;
-        let age = helpers.age_to_string(secondsOld);
-        this.container.querySelector(".post-age").dataset.popup = helpers.date_to_string(mediaInfo.createDate);
+        let age = helpers.strings.ageToString(secondsOld);
+        this.container.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
         setInfo(".post-age", age);
     }
 

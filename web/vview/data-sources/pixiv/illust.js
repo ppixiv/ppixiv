@@ -42,7 +42,7 @@ export default class DataSource_Illust extends DataSource
         let illust_id = parts[2];
 
         let page = this.getPageFromUrl(args);
-        return helpers.illustIdToMediaId(illust_id, page);
+        return helpers.mediaId.fromIllustId(illust_id, page);
     }
 
     // We're always viewing our media ID.
@@ -62,7 +62,7 @@ export default class DataSource_Illust extends DataSource
     // quick view.
     setCurrentMediaId(mediaId, args)
     {
-        let [illustId] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
 
         // Pixiv's inconsistent URLs are annoying.  Figure out where the ID field is.
         // If the first field is a language, it's the third field (/en/artworks/#), otherwise

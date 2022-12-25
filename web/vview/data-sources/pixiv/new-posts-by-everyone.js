@@ -57,7 +57,7 @@ export default class DataSource_NewPostsByEveryone extends DataSource
 
         let mediaIds = [];
         for(let illustData of result.body.illusts)
-            mediaIds.push(helpers.illustIdToMediaId(illustData.id));
+            mediaIds.push(helpers.mediaId.fromIllustId(illustData.id));
 
         await ppixiv.mediaCache.addMediaInfosPartial(result.body.illusts, "normal");
 

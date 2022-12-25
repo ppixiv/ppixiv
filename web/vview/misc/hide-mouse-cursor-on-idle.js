@@ -48,7 +48,7 @@ class TrackMouseMovement
             return;
 
         // Show the cursor if the mouse has moved far enough from the current anchorPos.
-        let distanceMoved = helpers.distance({x: this.anchorPos[0], y: this.anchorPos[1]}, {x: mousePos[0], y: mousePos[1]});
+        let distanceMoved = helpers.math.distance({x: this.anchorPos[0], y: this.anchorPos[1]}, {x: mousePos[0], y: mousePos[1]});
         if(distanceMoved > 10)
         {
             this.markMouseActive();
@@ -166,7 +166,7 @@ export class HideMouseCursorOnIdle
         // This is set as a separate style, so we can disable it selectively.  This allows us to
         // globally disable mouse hiding.  This used to be done by setting a class on body, but
         // that's slower and can cause animation hitches.
-        let style = helpers.addStyle("hide-cursor", `
+        let style = helpers.html.addStyle("hide-cursor", `
             .hide-cursor {
                 cursor: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), none !important;
             }
@@ -230,10 +230,10 @@ export class HideMouseCursorOnIdle
         // and UI elements that are hidden with the cursor.
         let stationary = TrackMouseMovement.singleton.stationary;
         let hidden = stationary && HideMouseCursorOnIdle.isEnabled;
-        helpers.setClass(this.element, "hide-cursor", hidden);
-        helpers.setClass(this.element, "show-cursor", !hidden);
+        helpers.html.setClass(this.element, "hide-cursor", hidden);
+        helpers.html.setClass(this.element, "show-cursor", !hidden);
 
-        helpers.setClass(this.element, "cursor-stationary", stationary);
-        helpers.setClass(this.element, "cursor-active", !stationary);
+        helpers.html.setClass(this.element, "cursor-stationary", stationary);
+        helpers.html.setClass(this.element, "cursor-active", !stationary);
     }
 }

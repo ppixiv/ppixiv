@@ -5,9 +5,8 @@ import MobileSearchUI from 'vview/screen-search/mobile-search-ui.js';
 import ScrollListener from 'vview/actors/scroll-listener.js';
 import LocalNavigationTreeWidget from 'vview/widgets/folder-tree.js';
 import SearchView from 'vview/screen-search/search-view.js';
-import DialogWidget from 'vview/widgets/dialog.js';
 import LocalAPI from 'vview/misc/local-api.js';
-import { HoverWithDelay } from 'vview/misc/helpers.js';
+import HoverWithDelay from 'vview/actors/hover-with-delay.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 // The search UI.
@@ -56,7 +55,7 @@ export default class ScreenSearch extends Screen
             this.shutdownSignal.signal.addEventListener("abort", () => resize.disconnect());
 
             // The ui-on-hover class enables the hover style if it's enabled.
-            let refreshUiOnHover = () => helpers.setClass(topUiBox, "ui-on-hover", ppixiv.settings.get("ui-on-hover") && !ppixiv.mobile);
+            let refreshUiOnHover = () => helpers.html.setClass(topUiBox, "ui-on-hover", ppixiv.settings.get("ui-on-hover") && !ppixiv.mobile);
             ppixiv.settings.addEventListener("ui-on-hover", refreshUiOnHover, { signal: this.shutdownSignal.signal });
             refreshUiOnHover();
         }
@@ -81,7 +80,7 @@ export default class ScreenSearch extends Screen
 
                 applyVisibility()
                 {
-                    helpers.setClass(this.container, "shown", this._visible);
+                    helpers.html.setClass(this.container, "shown", this._visible);
                 }
             }({
                 container: this.container.querySelector(".title-bar-container"),
@@ -93,11 +92,11 @@ export default class ScreenSearch extends Screen
             });
 
             // Set the height on the nav bar and title for transitions to use.
-            helpers.setHeightAsProperty(this.querySelector(".title-bar"), "--title-height", {
+            helpers.html.setHeightAsProperty(this.querySelector(".title-bar"), "--title-height", {
                 ...this._signal,
                 target: this.container,
             });
-            helpers.setHeightAsProperty(this.thumbnailUiMobile.container, "--nav-bar-height", {
+            helpers.html.setHeightAsProperty(this.thumbnailUiMobile.container, "--nav-bar-height", {
                 ...this._signal,
                 target: this.container,
             });
@@ -295,7 +294,7 @@ export default class ScreenSearch extends Screen
         helpers.setPageTitle(this.dataSource.pageTitle || "Loading...");
         
         // Refresh whether we're showing the local navigation widget and toggle button.
-        helpers.setDataSet(this.container.dataset, "showNavigation", this.canShowLocalNavigation && this._localNavigationVisible);
+        helpers.html.setDataSet(this.container.dataset, "showNavigation", this.canShowLocalNavigation && this._localNavigationVisible);
 
         this.refreshUiForUserId();
     };

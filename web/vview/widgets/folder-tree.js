@@ -249,8 +249,8 @@ class TreeWidgetItem extends Widget
         }
 
         // If our parent is the root node, we're a top-level node.
-        helpers.setClass(this.container, "top", !root && parent.root);
-        helpers.setClass(this.container, "child", !root && !parent.root);
+        helpers.html.setClass(this.container, "top", !root && parent.root);
+        helpers.html.setClass(this.container, "child", !root && !parent.root);
 
         this.items = this.container.querySelector(".items");
         this.expander = this.container.querySelector(".expander");
@@ -436,7 +436,7 @@ class TreeWidgetItem extends Widget
         this.expander.dataset.mode = this.displayedExpandMode;
         this.expander.dataset.pending = this._pending;
         this.items.hidden = !this._expanded || this._pending;
-        helpers.setClass(this.container, "allow-content-visibility", this.displayedExpandMode != "expanded");
+        helpers.html.setClass(this.container, "allow-content-visibility", this.displayedExpandMode != "expanded");
     }
 
     // user is true if the item is being selected by the user, so it shouldn't be automatically
@@ -574,7 +574,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         // Set the ID on the item to let the popup menu know what it is.  Don't do
         // this for top-level libraries ("folder:/images"), since they can't be
         // bookmarked.
-        let { id } = helpers.parseMediaId(this.path);
+        let { id } = helpers.mediaId.parse(this.path);
         let isLibrary = id.indexOf("/", 1) == -1;
         if(!isLibrary)
             this.container.dataset.mediaId = this.path;
@@ -668,7 +668,7 @@ class LocalNavigationWidgetItem extends TreeWidgetItem
         for(let dir of result.results)
         {
             // Strip "folder:" off of the name, and use the basename of that as the label.
-            let {type } = helpers.parseMediaId(dir.mediaId);
+            let {type } = helpers.mediaId.parse(dir.mediaId);
             if(type != "folder")
                 continue;
     
@@ -789,7 +789,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
         signal.check();
 
         let mediaId = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
-        let { id } = helpers.parseMediaId(mediaId);
+        let { id } = helpers.mediaId.parse(mediaId);
 
         // Split apart the path.
         let parts = id.split("/");

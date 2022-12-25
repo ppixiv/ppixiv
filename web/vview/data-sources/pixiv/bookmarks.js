@@ -200,7 +200,7 @@ export class DataSource_BookmarksBase extends DataSource
 
                 // illust.id is an int if this image is deleted.  Convert it to a string so it's
                 // like other images.
-                let mediaId = helpers.illustIdToMediaId(illust.id.toString());
+                let mediaId = helpers.mediaId.fromIllustId(illust.id.toString());
                 ppixiv.extraCache.updateCachedBookmarkTags(mediaId, tags);
             }
         }
@@ -292,7 +292,7 @@ export class DataSource_BookmarksBase extends DataSource
         //
         // This is currently only used for viewing other people's bookmarks.  Your own bookmarks are still
         // viewed with /bookmark.php with no ID.
-        return helpers.getPathPart(this.url, 1);
+        return helpers.strings.getPathPart(this.url, 1);
     };
 
     // Return true if we're viewing our own bookmarks.
@@ -370,7 +370,7 @@ export class Bookmarks extends DataSource_BookmarksBase
 
         let mediaIds = [];
         for(let illustData of result.works)
-            mediaIds.push(helpers.illustIdToMediaId(illustData.id)); 
+            mediaIds.push(helpers.mediaId.fromIllustId(illustData.id)); 
 
         // If we're shuffling, shuffle the individual illustrations too.
         if(this.shuffle)
@@ -453,7 +453,7 @@ export class BookmarksMerged extends DataSource_BookmarksBase
 
         let mediaIds = [];
         for(let illustData of result.works)
-            mediaIds.push(helpers.illustIdToMediaId(illustData.id));
+            mediaIds.push(helpers.mediaId.fromIllustId(illustData.id));
 
         await ppixiv.mediaCache.addMediaInfosPartial(result.works, "normal");
 

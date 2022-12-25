@@ -18,10 +18,10 @@ export default class DataSource_Follows extends DataSource
 
     get viewingUserId()
     {
-        if(helpers.getPathPart(this.url, 0) == "users")
+        if(helpers.strings.getPathPart(this.url, 0) == "users")
         {
             // New URLs (/users/13245/follows)
-            return helpers.getPathPart(this.url, 1);
+            return helpers.strings.getPathPart(this.url, 1);
         }
         
         let queryArgs = this.url.searchParams;

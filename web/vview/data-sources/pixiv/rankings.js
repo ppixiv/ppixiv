@@ -79,7 +79,7 @@ export default class DataSource_Rankings extends DataSource
 
         let mediaIds = [];
         for(let item of result.body.ranking)
-            mediaIds.push(helpers.illustIdToMediaId("" + item.illustId));
+            mediaIds.push(helpers.mediaId.fromIllustId("" + item.illustId));
 
         return { mediaIds, thisDate, nextDate, prevDate, lastPage };
     }
@@ -129,7 +129,7 @@ export default class DataSource_Rankings extends DataSource
         // but it's not quite the same.
         let mediaIds = [];
         for(let item of result.contents)
-            mediaIds.push(helpers.illustIdToMediaId("" + item.illust_id));
+            mediaIds.push(helpers.mediaId.fromIllustId("" + item.illust_id));
 
         // Register this as thumbnail data.
         await ppixiv.mediaCache.addMediaInfosPartial(result.contents, "rankings");
@@ -422,7 +422,7 @@ class UI extends Widget
         // This UI is greyed rather than hidden before we have the dates, so the UI doesn't
         // shift around as we load.
         let yesterday = this.querySelector(".nav-yesterday");
-        helpers.setClass(yesterday, "disabled", this.dataSource.prevDate == null);
+        helpers.html.setClass(yesterday, "disabled", this.dataSource.prevDate == null);
         if(this.dataSource.prevDate)
         {
             let url = new URL(this.dataSource.url);
@@ -431,7 +431,7 @@ class UI extends Widget
         }
 
         let tomorrow = this.querySelector(".nav-tomorrow");
-        helpers.setClass(tomorrow, "disabled", this.dataSource.nextDate == null);
+        helpers.html.setClass(tomorrow, "disabled", this.dataSource.nextDate == null);
         if(this.dataSource.nextDate)
         {
             let url = new URL(this.dataSource.url);

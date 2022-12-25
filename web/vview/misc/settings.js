@@ -194,7 +194,7 @@ export default class Settings extends EventTarget
             value = 4;
 
         value += down?-1:+1;
-        value = helpers.clamp(value, 0, 7);
+        value = helpers.math.clamp(value, 0, 7);
         this.sliderValue = value;
         this.value = this.sliderValue;
 

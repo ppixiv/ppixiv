@@ -57,7 +57,7 @@ export default class GuessImageURL
         for(let page = 0; page < imageData.pageCount; ++page)
         {
             let illustId = imageData.illustId;
-            let mediaId = helpers.illustIdToMediaId(imageData.illustId, page);
+            let mediaId = helpers.mediaId.fromIllustId(imageData.illustId, page);
             let url = imageData.mangaPages[page].urls.original;
             let parts = url.split(".");
             let ext = parts[parts.length-1];
@@ -142,7 +142,7 @@ export default class GuessImageURL
             return null;
 
         // If this is a local URL, we always have the image URL and we don't need to guess.
-        let { type, page } = helpers.parseMediaId(mediaId);
+        let { type, page } = helpers.mediaId.parse(mediaId);
         console.assert(type != "folder");
         if(type == "file")
         {

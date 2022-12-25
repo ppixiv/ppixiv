@@ -260,7 +260,7 @@ export class DropdownMenuOpener extends DropdownBoxOpener
             // open.
             let top_ui_box = this.parent.closest(".top-ui-box");
             if(top_ui_box)
-                helpers.setClass(top_ui_box, "force-open", value);
+                helpers.html.setClass(top_ui_box, "force-open", value);
         }
     }
 
@@ -317,8 +317,8 @@ export class DropdownMenuOpener extends DropdownBoxOpener
         if(itemHasDefault && selectedItem == null)
             selectedDefault = false;
 
-        helpers.setClass(button, "selected", !selectedDefault);
-        helpers.setClass(box, "selected", !selectedDefault);
+        helpers.html.setClass(button, "selected", !selectedDefault);
+        helpers.html.setClass(box, "selected", !selectedDefault);
 
         // If an option is selected, replace the menu button text with the selection's label.
         if(!selectedDefault)

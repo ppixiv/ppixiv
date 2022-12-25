@@ -5,7 +5,7 @@ import { helpers } from 'vview/misc/helpers.js';
 // /artworks/12345.  If manga is true, return the manga viewer page.
 export function getUrlForMediaId(mediaId, { manga=false}={})
 {
-    if(helpers.isMediaIdLocal(mediaId))
+    if(helpers.mediaId.isLocal(mediaId))
     {
         // URLs for local files are handled differently.
         let args = helpers.args.location;
@@ -14,7 +14,7 @@ export function getUrlForMediaId(mediaId, { manga=false}={})
         return args;
     }
 
-    let [illustId, page] = helpers.mediaIdToIllustIdAndPage(mediaId);
+    let [illustId, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
     let args = new helpers.args("/", ppixiv.plocation);
     args.path  = `/artworks/${illustId}`;
 

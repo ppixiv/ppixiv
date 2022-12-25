@@ -36,7 +36,7 @@ export class AvatarWidget extends Widget
         if(this.options.mode != "dropdown" && this.options.mode != "overlay")
             throw "Invalid avatar widget mode";
 
-        helpers.setClass(this.container, "big", big);
+        helpers.html.setClass(this.container, "big", big);
 
         ppixiv.userCache.addEventListener("usermodified", this._userChanged, { signal: this.shutdownSignal.signal });
 
@@ -88,8 +88,8 @@ export class AvatarWidget extends Widget
         let avatarPopup = this.container; //container.querySelector(".avatar-popup");
         if(this.options.mode == "dropdown")
         {
-            avatarPopup.addEventListener("mouseover", (e) => { helpers.setClass(avatarPopup, "popup-visible", true); });
-            avatarPopup.addEventListener("mouseout", (e) => { helpers.setClass(avatarPopup, "popup-visible", false); });
+            avatarPopup.addEventListener("mouseover", (e) => { helpers.html.setClass(avatarPopup, "popup-visible", true); });
+            avatarPopup.addEventListener("mouseout", (e) => { helpers.html.setClass(avatarPopup, "popup-visible", false); });
         }
 
         new CreepyEyeWidget({
@@ -151,7 +151,7 @@ export class AvatarWidget extends Widget
             this.container.querySelector(".avatar").classList.remove("popup");
 
         // Clear stuff we need user info for, so we don't show old data while loading.
-        helpers.setClass(this.container, "followed", false);
+        helpers.html.setClass(this.container, "followed", false);
         this.container.querySelector(".avatar").dataset.popup = "";
 
         this.container.classList.remove("loading");
@@ -233,7 +233,7 @@ class ImageCanvasFilter
         if(currentUrl == this._currentUrl)
             return;
 
-        helpers.setClass(this.canvas, "loaded", false);
+        helpers.html.setClass(this.canvas, "loaded", false);
 
         this.canvas.width = this.img.naturalWidth;
         this.canvas.height = this.img.naturalHeight;
@@ -262,7 +262,7 @@ class ImageCanvasFilter
         // Use destination-over to draw the image underneath the overlay we just drew.
         this.ctx.globalCompositeOperation = "destination-over";
         this.ctx.drawImage(this.img, 0, 0);
-        helpers.setClass(this.canvas, "loaded", true);
+        helpers.html.setClass(this.canvas, "loaded", true);
     }
 }
 
@@ -540,7 +540,7 @@ class FollowWidget extends Widget
     
                 // True if the user is bookmarked with this tag.
                 let selected = selectedTags.has(tag);
-                helpers.setClass(button, "selected", selected);
+                helpers.html.setClass(button, "selected", selected);
 
                 this.container.appendChild(button);
 

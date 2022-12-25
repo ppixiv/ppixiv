@@ -32,7 +32,7 @@ export default class DataSources_Artist extends DataSource
     get viewingUserId()
     {
         // /users/13245
-        return helpers.getPathPart(this.url, 1);
+        return helpers.strings.getPathPart(this.url, 1);
     };
 
     // Return "artworks" (all), "illustrations" or "manga".
@@ -128,7 +128,7 @@ export default class DataSources_Artist extends DataSource
 
             let mediaIds = [];
             for(let illustData of result.body.works)
-                mediaIds.push(helpers.illustIdToMediaId(illustData.id)); 
+                mediaIds.push(helpers.mediaId.fromIllustId(illustData.id)); 
 
             await ppixiv.mediaCache.addMediaInfosPartial(result.body.works, "normal");
 
@@ -198,7 +198,7 @@ export default class DataSources_Artist extends DataSource
 
         let mediaIds = [];
         for(let illustId of illustIds)
-            mediaIds.push(helpers.illustIdToMediaId(illustId));
+            mediaIds.push(helpers.mediaId.fromIllustId(illustId));
 
         return mediaIds;
     };
@@ -373,7 +373,7 @@ class UI extends Widget
             refreshTags()
             {
                 // Refresh the post tag list.
-                helpers.removeElements(this.container);
+                helpers.html.removeElements(this.container);
 
                 if(dataSource.postTags != null)
                 {

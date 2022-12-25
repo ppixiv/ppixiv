@@ -45,7 +45,7 @@ export default class DataSources_CompletedRequests extends DataSource
             // as regular posts.
             let request = request_data[requestId];
             let request_post_id = request.postWork.postWorkId;
-            let mediaId = helpers.illustIdToMediaId(request_post_id);
+            let mediaId = helpers.mediaId.fromIllustId(request_post_id);
 
             // This returns a lot of post IDs that don't exist.  Why are people deleting so many of these?
             // Check whether the post was in result.body.thumbnails.illust.

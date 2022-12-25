@@ -23,7 +23,7 @@ export default class DataSource_SimilarIllusts extends DataSource
 
             // Don't wait for this to finish before continuing.
             let illustId = this.url.searchParams.get("illust_id");
-            let mediaId = helpers.illustIdToMediaId(illustId)
+            let mediaId = helpers.mediaId.fromIllustId(illustId)
             ppixiv.mediaCache.getMediaInfo(mediaId).then((mediaInfo) => {
                 this.mediaInfo = mediaInfo;
                 this.callUpdateListeners();
@@ -60,7 +60,7 @@ export default class DataSource_SimilarIllusts extends DataSource
 
         let mediaIds = [];
         for(let thumb of thumbs)
-            mediaIds.push(helpers.illustIdToMediaId(thumb.id));
+            mediaIds.push(helpers.mediaId.fromIllustId(thumb.id));
 
         ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
         this.addPage(page, mediaIds);

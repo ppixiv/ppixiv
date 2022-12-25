@@ -16,7 +16,7 @@ export default class DataSource_MangaPages extends DataSource
         url = helpers.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
         let illustId = parts[2];
-        this.mediaId = helpers.illustIdToMediaId(illustId);
+        this.mediaId = helpers.mediaId.fromIllustId(illustId);
     }
 
     async loadPageInternal(page)
@@ -37,7 +37,7 @@ export default class DataSource_MangaPages extends DataSource
 
         let pageMediaIds = [];
         for(let page = 0; page < this.illustInfo.pageCount; ++page)
-            pageMediaIds.push(helpers.getMediaIdForPage(this.mediaId, page));
+            pageMediaIds.push(helpers.mediaId.getMediaIdForPage(this.mediaId, page));
 
         this.addPage(page, pageMediaIds);
     }

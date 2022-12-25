@@ -342,7 +342,7 @@ export default class ScreenIllust extends Screen
         if(newViewer == this.viewer)
             return;
 
-        helpers.setClass(document.body,  "force-ui", window.debugShowUi);
+        helpers.html.setClass(document.body,  "force-ui", window.debugShowUi);
 
         let mediaId = newViewer.mediaId;
 
@@ -360,7 +360,7 @@ export default class ScreenIllust extends Screen
         helpers.setTitleAndIcon(earlyIllustData);
 
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
-        helpers.setClass(document.body, "dot", helpers.tagsContainDot(earlyIllustData?.tagList));
+        helpers.html.setClass(document.body, "dot", helpers.pixiv.tagsContainDot(earlyIllustData?.tagList));
 
         // If linked tabs are active, send this image.
         if(ppixiv.settings.get("linked_tabs_enabled"))
@@ -375,7 +375,7 @@ export default class ScreenIllust extends Screen
         // If we're not local, don't do this when showing the first image, since the most common
         // case is simply viewing a single image and then backing out to the search, so this avoids
         // doing extra loads every time you load a single illustration.
-        if(!initial || helpers.isMediaIdLocal(mediaId))
+        if(!initial || helpers.mediaId.isLocal(mediaId))
         {
             // getNavigation may block to load more search results.  Run this async without
             // waiting for it.
@@ -453,14 +453,14 @@ export default class ScreenIllust extends Screen
     // already loaded, and navigate to the first result.
     async loadFirstImage(mediaId)
     {
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
         {
             let args = helpers.args.location;
             LocalAPI.getArgsForId(mediaId, args);
             if(args.hash.get("file") != "*")
                 return false;
         }
-        else if(helpers.parseMediaId(mediaId).id != "*")
+        else if(helpers.mediaId.parse(mediaId).id != "*")
             return false;
 
         // This will load results if needed, skip folders so we only pick images, and return

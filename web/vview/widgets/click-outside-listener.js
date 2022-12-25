@@ -28,7 +28,7 @@ export default class ClickOutsideListener extends Actor
     {
         for(let ancestor of this.nodeList)
         {
-            if(helpers.isAbove(ancestor, node))
+            if(helpers.html.isAbove(ancestor, node))
                 return true;
         }
         return false;

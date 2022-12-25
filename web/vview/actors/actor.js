@@ -142,7 +142,7 @@ export default class Actor extends EventTarget
             cls.templates[name] = template;
         }
 
-        return helpers.createFromTemplate(template, { makeSVGUnique });
+        return helpers.html.createFromTemplate(template, { makeSVGUnique });
     }
 
     // For convenience, return options to add to an event listener and other objects that

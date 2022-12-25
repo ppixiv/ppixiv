@@ -29,7 +29,7 @@ export default class DataSource_Discovery extends DataSource
 
         let mediaIds = [];
         for(let thumb of thumbs)
-            mediaIds.push(helpers.illustIdToMediaId(thumb.id));
+            mediaIds.push(helpers.mediaId.fromIllustId(thumb.id));
 
         ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
         this.addPage(page, mediaIds);

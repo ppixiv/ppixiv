@@ -200,7 +200,7 @@ export default class WidgetDragger
                     actualSize = actualSize();
 
                 pos += movement / actualSize;
-                pos = helpers.clamp(pos, this.startOffset, this.endOffset);
+                pos = helpers.math.clamp(pos, this.startOffset, this.endOffset);
                 this._dragAnimation.position = pos;
             },
 

@@ -12,7 +12,7 @@ export default class TagListWidget extends Widget
 
     formatTagLink(tag)
     {
-        return helpers.getArgsForTagSearch(tag, ppixiv.plocation);
+        return helpers.pixiv.getArgsForTagSearch(tag, ppixiv.plocation);
     };
 
     async set(tags)
@@ -41,7 +41,7 @@ export default class TagListWidget extends Widget
         this._currentTags = this.tags;
 
         // Remove any old tag list and create a new one.
-        helpers.removeElements(this.container);
+        helpers.html.removeElements(this.container);
 
         for(let tag of tagList)
         {

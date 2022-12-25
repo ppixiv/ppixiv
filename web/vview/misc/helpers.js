@@ -1,3 +1,9 @@
+import * as math from 'vview/util/math.js';
+import * as strings from 'vview/util/strings.js';
+import * as html from 'vview/util/html.js';
+import * as mediaId from 'vview/util/media-id.js';
+import * as pixiv from 'vview/util/pixiv.js';
+
 // XXX
 export class Args
 {
@@ -10,13 +16,113 @@ export class Args
 
         this.path = url.pathname;
         this.query = url.searchParams;
-        let { path: hashPath, query: hash_query } = helpers.get_hash_args(url);
+        let { path: hashPath, query: hash_query } = Args.getHashArgs(url);
         this.hash = hash_query;
         this.hashPath = hashPath;
 
         // History state is only available when we come from the current history state,
         // since URLs don't have state.
         this.state = { };
+    }
+
+    static getHashArgs(url)
+    {
+        if(!helpers.isPPixivUrl(url))
+            return { path: "", query: new URLSearchParams() };
+
+        // The hash looks like:
+        //
+        // #ppixiv/a/b/c?foo&bar
+        //
+        // /a/b/c is the hash path.  foo&bar are the hash args.
+        // Parse the hash of the current page as a path.  For example, if
+        // the hash is #ppixiv/foo/bar?baz, parse it as /ppixiv/foo/bar?baz.
+        // The pathname portion of this (with /ppixiv removed) is the hash path,
+        // and the query portion is the hash args.
+        //
+        // If the hash is #ppixiv/abcd, the hash path is "/abcd".
+        // Remove #ppixiv:
+        let hashPath = url.hash;
+        if(hashPath.startsWith("#ppixiv"))
+            hashPath = hashPath.substr(7);
+        else if(hashPath.startsWith("#"))
+            hashPath = hashPath.substr(1);
+
+        // See if we have hash args.
+        let idx = hashPath.indexOf('?');
+        let query = null;
+        if(idx != -1)
+        {
+            query = hashPath.substr(idx+1);
+            hashPath = hashPath.substr(0, idx);
+        }
+
+        // We encode spaces as + in the URL, but decodeURIComponent doesn't, so decode
+        // that first.  Actual '+' is always escaped as %2B.
+        hashPath = hashPath.replace(/\+/g, " ");
+        hashPath = decodeURIComponent(hashPath);
+
+        if(query == null)
+            return { path: hashPath, query: new URLSearchParams() };
+        else
+            return { path: hashPath, query: new URLSearchParams(query) };
+    }
+
+    static encodeURLPart(regex, part)
+    {
+        return part.replace(regex, (c) => {
+            // encodeURIComponent(sic) encodes non-ASCII characters.  We don't need to.
+            let ord = c.charCodeAt(0);
+            if(ord >= 128)
+                return c;
+
+            // Regular URL escaping wants to escape spaces as %20, which is silly since
+            // it's such a common character in filenames.  Escape them as + instead, like
+            // things like AWS do.  The escaping is different, but it's still a perfectly
+            // valid URL.  Note that the API doesn't decode these, we only use it in the UI.
+            if(c == " ")
+                return "+";
+
+            let hex = ord.toString(16).padStart('0', 2);
+            return "%" + hex;
+        });
+    }
+
+    // Both "encodeURI" and "encodeURIComponent" are wrong for encoding hashes.
+    // The first doesn't escape ?, and the second escapes lots of things we
+    // don't want to, like forward slash.
+    static encodeURLHash(hash)
+    {
+        return Args.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^#=&]/g, hash);
+    }
+
+    // This one escapes keys in hash parameters.  This is the same as encodeURLHash,
+    // except it also encodes = and &.
+    static encodeHashParam(param)
+    {
+        return Args.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^#]/g, param);
+    }
+
+    // Encode a URLSearchParams for hash parameters.
+    //
+    // We can use URLSearchParams.toString(), but that escapes overaggressively and
+    // gives us nasty, hard to read URLs.  There's no reason to escape forward slash
+    // in query parameters.
+    static encodeHashParams(params)
+    {
+        let values = [];
+        for(let key of params.keys())
+        {
+            let key_values = params.getAll(key);
+            for(let value of key_values)
+            {
+                key = Args.encodeHashParam(key);
+                value = Args.encodeHashParam(value);
+                values.push(key + "=" + value);
+            }
+        }
+
+        return values.join("&");
     }
 
     // Return the args for the current page.
@@ -46,10 +152,10 @@ export class Args
         {
             if(!this.hashPath.startsWith("/"))
                 url.hash += "/";
-            url.hash += helpers.encodeURLHash(this.hashPath);
+            url.hash += Args.encodeURLHash(this.hashPath);
         }
 
-        let hash_string = helpers.encodeHashParams(this.hash);
+        let hash_string = Args.encodeHashParams(this.hash);
         if(hash_string != "")
             url.hash += "?" + hash_string;
 
@@ -154,13 +260,6 @@ export class helpers
     static blankImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     static xmlns = "http://www.w3.org/2000/svg";
     
-    static remove_array_element(array, element)
-    {
-        let idx = array.indexOf(element);
-        if(idx != -1)
-            array.splice(idx, 1);
-    }
-
     // Preload an array of images.
     static preloadImages(images)
     {
@@ -175,69 +274,35 @@ export class helpers
         }
     }
 
-    static moveChildren(parent, new_parent)
+    static getIconClassAndName(iconName)
     {
-        for(let child = parent.firstChild; child; )
-        {
-            let next = child.nextSibling;
-            new_parent.appendChild(child);
-            child = next;
-        }
-    }
-    
-    static removeElements(parent)
-    {
-        while(parent.firstChild !== null)
-            parent.firstChild.remove();
-    }
-
-    // Return true if ancestor is one of descendant's parents, or if descendant is ancestor.
-    static isAbove(ancestor, descendant)
-    {
-        while(descendant != null && descendant != ancestor)
-            descendant = descendant.parentNode;
-        return descendant == ancestor;
-    }
-
-    static createStyle(css, { id }={})
-    {
-        let style = document.realCreateElement("style");
-        style.type = "text/css";
-        if(id)
-            style.id = id;
-        style.textContent = css;
-        return style;
-    }
-
-    static get_icon_class_and_name(icon_name)
-    {
-        let [icon_set, name] = icon_name.split(":");
+        let [iconSet, name] = iconName.split(":");
         if(name == null)
         {
-            name = icon_set;
-            icon_set = "mat";
+            name = iconSet;
+            iconSet = "mat";
         }
 
         let icon_class = "material-icons";
-        if(icon_set == "ppixiv")
+        if(iconSet == "ppixiv")
             icon_class = "ppixiv-icon";
-        else if(icon_set == "mat")
+        else if(iconSet == "mat")
             icon_class = "material-icons";
 
         return [icon_class, name];
     }
 
-    // Create a font icon.  icon_name is an icon set and name, eg. "mat:lightbulb"
+    // Create a font icon.  iconName is an icon set and name, eg. "mat:lightbulb"
     // for material icons or "ppixiv:icon" for our icon set.  If no icon set is
     // specified, material icons is used.
-    static createIcon(icon_name, {
+    static createIcon(iconName, {
         asElement=false,
         classes=[],
         align=null,
         dataset={},
     }={})
     {
-        let [icon_class, name] = this.get_icon_class_and_name(icon_name);
+        let [icon_class, name] = this.getIconClassAndName(iconName);
 
         let icon = document.createElement("span");
         icon.classList.add("font-icon");
@@ -256,45 +321,6 @@ export class helpers
             return icon;
         else
             return icon.outerHTML;
-    }
-
-    static get_template(type)
-    {
-        let template = document.body.querySelector(type);
-        if(template == null)
-            throw "Missing template: " + type;
-
-        // Replace any <ppixiv-inline> inlines on the template, and remember that
-        // we've done this so we don't redo it every time the template is used.
-        if(!template.dataset.replacedInlines)
-        {
-            template.dataset.replacedInlines = true;
-            this.replaceInlines(template.content);
-        }
-
-        return template;
-    }
-
-    // If makeSVGUnique is false, skip making SVG IDs unique.  This is a small optimization
-    // for creating thumbs, which don't need this.
-    static createFromTemplate(type, {makeSVGUnique=true}={})
-    {
-        let template;
-        if(typeof(type) == "string")
-            template = this.get_template(type);
-        else
-            template = type;
-
-        let node = document.importNode(template.content, true).firstElementChild;
-        
-        if(makeSVGUnique)
-        {
-            // Make all IDs in the template we just cloned unique.
-            for(let svg of node.querySelectorAll("svg"))
-                this.make_svg_ids_unique(svg);
-        }
-        
-        return node;
     }
 
     // Find <ppixiv-inline> elements inside root, and replace them with elements
@@ -393,7 +419,7 @@ export class helpers
             this._cached_box_link_template = document.createElement("template");
             this._cached_box_link_template.innerHTML = html;
         }
-        let node = this.createFromTemplate(this._cached_box_link_template);
+        let node = helpers.html.createFromTemplate(this._cached_box_link_template);
 
         if(label != null)
         {
@@ -414,12 +440,12 @@ export class helpers
 
         if(icon != null)
         {
-            let [icon_class, icon_name] = this.get_icon_class_and_name(icon);
+            let [icon_class, iconName] = this.getIconClassAndName(icon);
             let icon_element = node.querySelector(".icon");
             icon_element.classList.add(icon_class);
             icon_element.classList.add("font-icon");
             icon_element.hidden = false;
-            icon_element.innerText = icon_name;
+            icon_element.innerText = iconName;
             icon_element.lang = "icon";
     
             // .with.text is set for icons that have text next to them, to enable padding
@@ -475,80 +501,6 @@ export class helpers
 
         let node = this._resource_cache[src];
         return document.importNode(node, true);
-    }
-
-    // SVG has a big problem: it uses IDs to reference its internal assets, and that
-    // breaks if you inline the same SVG more than once in a while.  Making them unique
-    // at build time doesn't help, since they break again as soon as you clone a template.
-    // This makes styling SVGs a nightmare, since you can only style inlined SVGs.
-    //
-    // <use> doesn't help, since that's just broken with masks and gradients entirely.
-    // Broken for over a decade and nobody cares: https://bugzilla.mozilla.org/show_bug.cgi?id=353575
-    //
-    // This seems like a basic feature of SVG, and it's just broken.
-    //
-    // Work around it by making IDs within SVGs unique at runtime.  This is called whenever
-    // we clone SVGs.
-    static _svg_id_sequence = 0;
-    static make_svg_ids_unique(svg)
-    {
-        let id_map = {};
-        let idx = this._svg_id_sequence;
-
-        // First, find all IDs in the SVG and change them to something unique.
-        for(let def of svg.querySelectorAll("[id]"))
-        {
-            let old_id = def.id;
-            let new_id = def.id + "_" + idx;
-            idx++;
-            id_map[old_id] = new_id;
-            def.id = new_id;
-        }
-
-        // Search for all URL references within the SVG and point them at the new IDs.
-        for(let node of svg.querySelectorAll("*"))
-        {
-            for(let attr of node.getAttributeNames())
-            {
-                let value = node.getAttribute(attr);
-                let new_value = value;
-                
-                // See if this is an ID reference.  We don't try to parse all valid URLs
-                // here.  Handle url(#abcd) inside strings, and things like xlink:xref="#abcd".
-                if((attr == "href" || attr == "xlink:href") && value.startsWith("#"))
-                {
-                    let old_id = value.substr(1);
-                    let new_id = id_map[old_id];
-                    if(new_id == null)
-                    {
-                        console.warn("Unmatched SVG ID:", old_id);
-                        continue;
-                    }
-
-                    new_value = "#" + new_id;
-                }
-
-                let re = /url\(#.*?\)/;
-                new_value = new_value.replace(re, (str) => {
-                    let re = /url\(#(.*)\)/;
-                    let old_id = str.match(re)[1];
-                    let new_id = id_map[old_id];
-                    if(new_id == null)
-                    {
-                        console.warn("Unmatched SVG ID:", old_id);
-                        return str;
-                    }
-                    // Replace the ID.
-                    return "url(#" + new_id + ")";
-                });
-
-                if(new_value != value)
-                    node.setAttribute(attr, new_value);
-            }
-        }
-
-        // Store the index, so the next call will start with the next value.
-        this._svg_id_sequence = idx;
     }
 
     // Prompt to save a blob to disk.  For some reason, the really basic FileSaver API disappeared from
@@ -763,44 +715,6 @@ export class helpers
         });
     }
 
-    static addStyle(name, css)
-    {
-        let style = this.createStyle(css);
-        style.id = name;
-        document.querySelector("head").appendChild(style);
-        return style;
-    }
-
-    // Create a node from HTML.
-    static create_node(html)
-    {
-        let temp = document.createElement("div");
-        temp.innerHTML = html;
-        return temp.firstElementChild;
-    }
-
-    // Set or unset a class.
-    static setClass(element, className, enable)
-    {
-        if(element.classList.contains(className) == enable)
-            return;
-
-        if(enable)
-            element.classList.add(className);
-        else
-            element.classList.remove(className);
-    }
-
-    // dataset is another web API with nasty traps: if you assign false or null to
-    // it, it assigns "false" or "null", which are true values.
-    static setDataSet(dataset, name, value)
-    {
-        if(value)
-            dataset[name] = value;
-        else
-            delete dataset[name];
-    }
-
     // Input elements have no way to tell when edits begin or end.  The input event tells
     // us when the user changes something, but it doesn't tell us when drags begin and end.
     // This is important for things like undo: you want to save undo the first time a slider
@@ -865,29 +779,6 @@ export class helpers
             }
         }, { signal });
     }
-    
-    // Set node's height as a CSS variable.
-    //
-    // If target is null, the variable is set on the node itself.
-    static setHeightAsProperty(node, name, { target, signal }={})
-    {
-        if(target == null)
-            target = node;
-        let refresh_height = () =>
-        {
-            // Our height usually isn't an integer.  Round down, so we prefer to overlap backgrounds
-            // with things like the video UI rather than leaving a gap.
-            let {height} = node.getBoundingClientRect();
-            target.style.setProperty(name, `${Math.floor(height)}px`);
-        };
-    
-        let resize_observer = new ResizeObserver(() => refresh_height());
-        resize_observer.observe(node);
-        if(signal)
-            signal.addEventListener("abort", () => resize_observer.disconnect());
-
-        refresh_height();
-    }
 
     // Force all external links to target=_blank.
     //
@@ -949,147 +840,6 @@ export class helpers
         return event.clientX < width || event.clientX > window.innerWidth - width;
     }
 
-    // Return the value of a list of CSS expressions.  For example:
-    //
-    // get_css_values({ value1: "calc(let(--value) * 2)" });
-    static get_css_values(properties)
-    {
-        let div = document.createElement("div");
-
-        let style = [];
-        for(let [key, value] of Object.entries(properties))
-            style += `--${key}:${value};\n`;
-        div.style = style;
-
-        // The div needs to be in the document for this to work.
-        document.body.appendChild(div);
-        let computed = getComputedStyle(div);
-        let results = {};
-        for(let key of Object.keys(properties))
-            results[key] = computed.getPropertyValue(`--${key}`);
-        div.remove();
-
-        return results;
-    }
-
-    // Get the current safe area insets.
-    static getSafeAreaInsets()
-    {
-        let { left, top, right, bottom } = this.get_css_values({
-            left: 'env(safe-area-inset-left)',
-            top: 'env(safe-area-inset-top)',
-            right: 'env(safe-area-inset-right)',
-            bottom: 'env(safe-area-inset-bottom)',
-        });
-
-        left = parseInt(left ?? 0);
-        top = parseInt(top ?? 0);
-        right = parseInt(right ?? 0);
-        bottom = parseInt(bottom ?? 0);
-        return { left, top, right, bottom };
-    }
-
-    static date_to_string(date)
-    {
-        date = new Date(date);
-        let day = date.toLocaleDateString();
-        let time = date.toLocaleTimeString();
-        return day + " " + time;
-    }
-
-    static age_to_string(seconds)
-    {
-        // If seconds is negative, return a time in the future.
-        let future = seconds < 0;
-        if(future)
-            seconds = -seconds;
-
-        function to_plural(label, places, value)
-        {
-            let factor = Math.pow(10, places);
-            let plural_value = Math.round(value * factor);
-            if(plural_value > 1)
-                label += "s";
-                
-            let result = value.toFixed(places) + " " + label;
-            result += future? " from now":" ago";
-            return result;
-        };
-        if(seconds < 60)
-            return to_plural("sec", 0, seconds);
-        let minutes = seconds / 60;
-        if(minutes < 60)
-            return to_plural("min", 0, minutes);
-        let hours = minutes / 60;
-        if(hours < 24)
-            return to_plural("hour", 0, hours);
-        let days = hours / 24;
-        if(days < 30)
-            return to_plural("day", 0, days);
-        let months = days / 30;
-        if(months < 12)
-            return to_plural("month", 0, months);
-        let years = months / 12;
-        return to_plural("year", 1, years);
-    }
-
-    static formatSeconds(total_seconds)
-    {
-        total_seconds = Math.floor(total_seconds);
-
-        let result = "";
-        let seconds = total_seconds % 60; total_seconds = Math.floor(total_seconds / 60);
-        let minutes = total_seconds % 60; total_seconds = Math.floor(total_seconds / 60);
-        let hours = total_seconds % 24;
-
-        result = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-        if(hours > 0)
-        {
-            // Pad minutes to two digits if we have hours.
-            result = result.padStart(5, '0');
-
-            result = hours + ":" + result;
-        }
-
-        return result;
-    }
-
-    // Return i rounded up to interval.
-    static round_up_to(i, interval)
-    {
-        return Math.floor((i+interval-1)/interval) * interval;
-    }    
-
-    static getExtension(fn)
-    {
-        let parts = fn.split(".");
-        return parts[parts.length-1];
-    }
-
-    static saveScrollPosition(scroller, save_relative_to)
-    {
-        return {
-            original_scroll_top: scroller.scrollTop,
-            original_offset_top: save_relative_to.offsetTop,
-        };
-    }
-
-    static restoreScrollPosition(scroller, restore_relative_to, saved_position)
-    {
-        let scroll_top = saved_position.original_scroll_top;
-        if(restore_relative_to)
-        {
-            let offset = restore_relative_to.offsetTop - saved_position.original_offset_top;
-            scroll_top += offset;
-        }
-
-        // Don't write to scrollTop if it's not changing, since that breaks
-        // scrolling on iOS.
-        if(scroller.scrollTop != scroll_top)
-            scroller.scrollTop = scroll_top;
-    }
-    
     static encode_query(data) {
         let str = [];
         for(let key in data)
@@ -1509,22 +1259,6 @@ export class helpers
         });
     }
 
-    // Split a tag search into individual tags.
-    static splitSearchTags(search)
-    {
-        // Replace full-width spaces with regular spaces.  Pixiv treats this as a delimiter.
-        search = search.replace("　", " ");
-
-        // Make sure there's a single space around parentheses, so parentheses are treated as their own item.
-        // This makes it easier to translate tags inside parentheses, and style parentheses separately.
-        search = search.replace(/ *([\(\)]) */g, " $1 ");
-
-        // Remove repeated spaces.
-        search = search.replace(/ +/g, " ");
-
-        return search.split(" ");
-    }
-    
     // If a tag has a modifier, return [modifier, tag].  -tag seems to be the only one, so
     // we return ["-", "tag"].
     static splitTagPrefixes(tag)
@@ -1535,75 +1269,6 @@ export class helpers
             return ["", tag];
     }
 
-    // Return true if the given illust_data.tags contains the pixel art (ドット絵) tag.
-    static tagsContainDot(tag_list)
-    {
-        if(tag_list == null)
-            return false;
-
-        for(let tag of tag_list)
-            if(tag.indexOf("ドット") != -1)
-                return true;
-
-        return false;
-    }
-
-    // Find all links to Pixiv pages, and set a #ppixiv anchor.
-    //
-    // This allows links to images in things like image descriptions to be loaded
-    // internally without a page navigation.
-    static makePixivLinksInternal(root)
-    {
-        if(ppixiv.native)
-            return;
-
-        for(let a of root.querySelectorAll("A"))
-        {
-            let url = new URL(a.href, ppixiv.plocation);
-            if(url.hostname != "pixiv.net" && url.hostname != "www.pixiv.net" || url.hash != "")
-                continue;
-
-            url.hash = "#ppixiv";
-            a.href = url.toString();
-        }
-    }
-
-    // Find the real link inside Pixiv's silly jump.php links.
-    static fix_pixiv_link(link)
-    {
-        // These can either be /jump.php?url or /jump.php?url=url.
-        let url = new URL(link);
-        if(url.pathname != "/jump.php")
-            return link;
-        if(url.searchParams.has("url"))
-            return url.searchParams.get("url");
-        else
-        {
-            let target = url.search.substr(1); // remove "?"
-            target = decodeURIComponent(target);
-            return target;
-        }
-    }
-
-    static fixPixivLinks(root)
-    {
-        for(let a of root.querySelectorAll("A[target='_blank']"))
-            a.target = "";
-
-        for(let a of root.querySelectorAll("A"))
-        {
-            if(a.relList == null)
-                a.rel += " noreferrer noopener"; // stupid Edge
-            else
-            {
-                a.relList.add("noreferrer");
-                a.relList.add("noopener");
-            }
-        }
-
-        for(let a of root.querySelectorAll("A[href*='jump.php']"))
-            a.href = this.fix_pixiv_link(a.href);
-    }
 
     // Some of Pixiv's URLs have languages prefixed and some don't.  Ignore these and remove
     // them to make them simpler to parse.
@@ -1666,52 +1331,6 @@ export class helpers
         document.querySelector("link[rel='icon']").href = url;
     }
 
-    // Get the search tags from an "/en/tags/TAG" search URL.
-    static getSearchTagsFromUrl(url)
-    {
-        url = this.getUrlWithoutLanguage(url);
-        let parts = url.pathname.split("/");
-
-        // ["", "tags", tag string, "search type"]
-        let tags = parts[2] || "";
-        return decodeURIComponent(tags);
-    }
-    
-    // Given a list of tags, return the URL to use to search for them.  This differs
-    // depending on the current page.
-    static getArgsForTagSearch(tags, url)
-    {
-        url = this.getUrlWithoutLanguage(url);
-
-        let type = helpers.getPageTypeFromUrl(url);
-        if(type == "tags")
-        {
-            // If we're on search already, just change the search tag, so we preserve other settings.
-            // /tags/tag/artworks -> /tag/new tag/artworks
-            let parts = url.pathname.split("/");
-            parts[2] = encodeURIComponent(tags);
-            url.pathname = parts.join("/");
-        } else {
-            // If we're not, change to search and remove the rest of the URL.
-            url = new URL("/tags/" + encodeURIComponent(tags) + "/artworks#ppixiv", url);
-        }
-        
-        // Don't include things like the current page in the URL.
-        let args = helpers.getCanonicalUrl(url);
-        return args;
-    }
-    
-    // The inverse of getArgsForTagSearch:
-    static get_tag_search_from_args(url)
-    {
-        url = helpers.getUrlWithoutLanguage(url);
-        let type = helpers.getPageTypeFromUrl(url);
-        if(type != "tags")
-            return null;
-
-        let parts = url.pathname.split("/");
-        return decodeURIComponent(parts[2]);
-    }
 
     // Return a canonical URL for a data source.  If the canonical URL is the same,
     // the same instance of the data source should be used.
@@ -1802,96 +1421,6 @@ export class helpers
             return url.hash.startsWith("#ppixiv");
     }
 
-    static get_hash_args(url)
-    {
-        if(!helpers.isPPixivUrl(url))
-            return { path: "", query: new URLSearchParams() };
-
-        // The hash looks like:
-        //
-        // #ppixiv/a/b/c?foo&bar
-        //
-        // /a/b/c is the hash path.  foo&bar are the hash args.
-        // Parse the hash of the current page as a path.  For example, if
-        // the hash is #ppixiv/foo/bar?baz, parse it as /ppixiv/foo/bar?baz.
-        // The pathname portion of this (with /ppixiv removed) is the hash path,
-        // and the query portion is the hash args.
-        //
-        // If the hash is #ppixiv/abcd, the hash path is "/abcd".
-        // Remove #ppixiv:
-        let hashPath = url.hash;
-        if(hashPath.startsWith("#ppixiv"))
-            hashPath = hashPath.substr(7);
-        else if(hashPath.startsWith("#"))
-            hashPath = hashPath.substr(1);
-
-        // See if we have hash args.
-        let idx = hashPath.indexOf('?');
-        let query = null;
-        if(idx != -1)
-        {
-            query = hashPath.substr(idx+1);
-            hashPath = hashPath.substr(0, idx);
-        }
-
-        // We encode spaces as + in the URL, but decodeURIComponent doesn't, so decode
-        // that first.  Actual '+' is always escaped as %2B.
-        hashPath = hashPath.replace(/\+/g, " ");
-        hashPath = decodeURIComponent(hashPath);
-
-        if(query == null)
-            return { path: hashPath, query: new URLSearchParams() };
-        else
-            return { path: hashPath, query: new URLSearchParams(query) };
-    }
-    
-    // Replace the given field in the URL path.
-    //
-    // If the path is "/a/b/c/d", "a" is 0 and "d" is 4.
-    static setPathPart(url, index, value)
-    {
-        url = new URL(url);
-
-        // Split the path, and extend it if needed.
-        let parts = url.pathname.split("/");
-
-        // The path always begins with a slash, so the first entry in parts is always empty.
-        // Skip it.
-        index++;
-        
-        // Hack: If this URL has a language prefixed, like "/en/users", add 1 to the index.  This way
-        // the caller doesn't need to check, since URLs can have these or omit them.
-        if(parts.length > 1 && parts[1].length == 2)
-            index++;
-        
-        // Extend the path if needed.
-        while(parts.length < index)
-            parts.push("");
-
-        parts[index] = value;
-
-        // If the value is empty and this was the last path component, remove it.  This way, we
-        // remove the trailing slash from "/users/12345/".
-        if(value == "" && parts.length == index+1)
-            parts = parts.slice(0, index);
-
-        url.pathname = parts.join("/");
-        return url;
-    }
-
-    static getPathPart(url, index, value)
-    {
-        // The path always begins with a slash, so the first entry in parts is always empty.
-        // Skip it.
-        index++;
-
-        let parts = url.pathname.split("/");
-        if(parts.length > 1 && parts[1].length == 2)
-            index++;
-        
-        return parts[index] || "";
-    }
-
     // Given a URLSearchParams, return a new URLSearchParams with keys sorted alphabetically.
     static sort_query_parameters(search)
     {
@@ -1977,70 +1506,6 @@ export class helpers
             // we don't send popstate.
             window.dispatchEvent(new PopStateEvent("pp:statechange"));
         }
-    }
-
-    static setup_popups(container, selectors)
-    {
-        function setup_popup(box)
-        {
-            box.addEventListener("mouseover", function(e) { helpers.setClass(box, "popup-visible", true); });
-            box.addEventListener("mouseout", function(e) { helpers.setClass(box, "popup-visible", false); });
-        }
-
-        for(let selector of selectors)
-        {
-            let box = container.querySelector(selector);
-            if(box == null)
-            {
-                console.warn("Couldn't find", selector);
-                continue;
-            }
-            setup_popup(box);
-        }
-    }
-
-    // Return the offset of element relative to an ancestor.
-    static getRelativePosition(element, ancestor)
-    {
-        let x = 0, y = 0;
-        while(element != null && element != ancestor)
-        {
-            x += element.offsetLeft;
-            y += element.offsetTop;
-            // Advance through parents until we reach the offsetParent or the ancestor
-            // that we're stopping at.  We do this rather than advancing to offsetParent,
-            // in case ancestor isn't an offsetParent.
-            let search_for = element.offsetParent;
-            while(element != ancestor && element != search_for)
-                element = element.parentNode;
-        }
-        return [x, y];
-    }
-    
-    static distance({x: x1, y: y1}, {x: x2, y: y2})
-    {
-        let distance = Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2);
-        return Math.pow(distance, 0.5);
-    }
-
-    // Scale x from [l1,h2] to [l2,h2].
-    static scale(x, l1, h1, l2, h2)
-    {
-        return (x - l1) * (h2 - l2) / (h1 - l1) + l2;
-    }
-
-    // Clamp value between min and max.
-    static clamp(value, min, max)
-    {
-        if(min > max)
-            [min, max] = [max, min];
-        return Math.min(Math.max(value, min), max);
-    }
-
-    // Scale x from [l1,h2] to [l2,h2], clamping to l2,h2.
-    static scaleClamp(x, l1, h1, l2, h2)
-    {
-        return helpers.clamp(helpers.scale(x, l1, h1, l2, h2), l2, h2);
     }
 
     // Return the index (in B) of the first value in A that exists in B.
@@ -2358,8 +1823,8 @@ export class helpers
         // don't tell us the dimensions in advance.
         if(width == null || height == null)
         {
-            helpers.setClass(thumb, "vertical-panning", false);
-            helpers.setClass(thumb, "horizontal-panning", false);
+            helpers.html.setClass(thumb, "vertical-panning", false);
+            helpers.html.setClass(thumb, "horizontal-panning", false);
             return null;
         }
 
@@ -2429,7 +1894,7 @@ export class helpers
 
         let page_title = "";
     
-        if(!helpers.isMediaIdLocal(illust_data.mediaId))
+        if(!helpers.mediaId.isLocal(illust_data.mediaId))
         {
             // For Pixiv images, use the username and title, and indicate if the image is bookmarked.
             // We don't show bookmarks in the title for local images, since it's less useful.
@@ -2444,9 +1909,9 @@ export class helpers
             // For local images, put the filename at the front, and the two parent directories after
             // it.  For example, "books/Book Name/001" will be displayed a "001 - books/Book Name".
             // This is consistent with the title we use in the search view.
-            let {id} = helpers.parseMediaId(illust_data.mediaId);
-            let name = helpers.getPathSuffix(id, 1, 0); // filename
-            let parent = helpers.getPathSuffix(id, 2, 1); // parent directories
+            let {id} = helpers.mediaId.parse(illust_data.mediaId);
+            let name = helpers.strings.getPathSuffix(id, 1, 0); // filename
+            let parent = helpers.strings.getPathSuffix(id, 2, 1); // parent directories
             page_title += `${name} - ${parent}`;
         }
 
@@ -2518,275 +1983,6 @@ export class helpers
         ctx.closePath();
     }
 
-    // Split a "type:id" into its two parts.
-    //
-    // If there's no colon, this is a Pixiv illust ID, so set type to "illust".
-    static _split_id(id)
-    {
-        if(id == null)
-            return { }
-
-        let parts = id.split(":");
-        let type = parts.length < 2?  "illust": parts[0];
-        let actual_id = parts.length < 2? id: parts.splice(1).join(":"); // join the rest
-        return {
-            type: type,
-            id: actual_id,
-        }
-    }
-
-    // Encode a media ID.
-    //
-    // These represent single images, videos, etc. that we can view.  Examples:
-    //
-    // illust:1234-0          - The first page of Pixiv illust ID 1234
-    // illust:1234-12         - Pixiv illust ID 1234, page 12.  Pages are zero-based.
-    // user:1000              - Pixiv user 1000.
-    // folder:/images         - A directory in the local API.
-    // file:/images/image.jpg - A file in the local API.
-    //
-    // IDs with the local API are already in this format, and Pixiv illust IDs and pages are
-    // converted to it.
-    static encodeMediaId({type, id, page=null}={})
-    {
-        if(type == "illust")
-        {
-            if(page == null)
-                page = 0;
-            id  += "-" + page;
-        }
-
-        return type + ":" + id;
-    }
-
-    // Media IDs are parsed by the thousands, and this can have a small performance
-    // impact.  Cache the results, so we only parse any given media ID once.
-    static _mediaIdCache = new Map();
-    static parseMediaId(mediaId)
-    {
-        let cache = this._mediaIdCache.get(mediaId);
-        if(cache == null)
-        {
-            cache = this._parse_media_id_inner(mediaId);
-            this._mediaIdCache.set(mediaId, cache);
-        }
-
-        // Return a new object and not the cache, since the returned value might be
-        // modified.
-        return { type: cache.type, id: cache.id, page: cache.page };
-    }
-
-    static _parse_media_id_inner(mediaId)
-    {
-        // If this isn't an illust, a media ID is the same as an illust ID.
-        let { type, id } = this._split_id(mediaId);
-        if(type != "illust")
-            return { type: type, id: id, page: 0 };
-
-        // If there's no hyphen in the ID, it's also the same.
-        if(mediaId.indexOf("-") == -1)
-            return { type: type, id: id, page: 0 };
-
-        // Split out the page.
-        let parts = id.split("-");
-        let page = parts[1];
-        page = parseInt(page);
-        id = parts[0];
-        
-        return { type: type, id: id, page: page };
-    }
-
-    // Given a media ID, return the same media ID for the first page.
-    //
-    // Some things don't interact with pages, such as illust info loads, and
-    // only store data with the ID of the first page.
-    static getMediaIdFirstPage(mediaId)
-    {
-        return this.getMediaIdForPage(mediaId, 0);
-    }
-
-    static getMediaIdForPage(mediaId, page=0)
-    {
-        if(mediaId == null)
-            return null;
-            
-        let id = helpers.parseMediaId(mediaId);
-        id.page = page;
-        return helpers.encodeMediaId(id);
-    }
-
-    // Convert a Pixiv illustration ID and page number to a media ID.
-    static illustIdToMediaId(illust_id, page)
-    {
-        if(illust_id == null)
-            return null;
-            
-        let { type, id } = helpers._split_id(illust_id);
-
-        // Pages are only used for illusts.  For other types, the page should always
-        // be null or 0, and we don't include it in the media ID.  If this is "*" for
-        // slideshow staging, don't append a page number.
-        if(type == "illust" && id != "*")
-        {
-            id += "-";
-            id += page || 0;
-        }
-        else
-        {
-            console.assert(page == null || page == 0);
-        }
-
-        return type + ":" + id;
-    }
-
-    static mediaIdToIllustIdAndPage(mediaId)
-    {
-        let { type, id, page } = helpers.parseMediaId(mediaId);
-        if(type != "illust")
-            return [mediaId, 0];
-        
-        return [id, page];
-    }
-
-    // Return true if mediaId is an ID for the local API.
-    static isMediaIdLocal(mediaId)
-    {
-        let { type } = helpers.parseMediaId(mediaId);
-        return type == "file" || type == "folder";
-    }
-
-    // Return the last count parts of path.
-    static getPathSuffix(path, count=2, remove_from_end=0, { remove_extension=true }={})
-    {
-        let parts = path.split('/');
-        parts = parts.splice(0, parts.length - remove_from_end);
-        parts = parts.splice(parts.length-count); // take the last count parts
-
-        let result = parts.join("/");
-        if(remove_extension)
-            result = result.replace(/\.[a-z0-9]+$/i, '');
-
-        return result;
-    }
-
-    static encodeURLPart(regex, part)
-    {
-        return part.replace(regex, (c) => {
-            // encodeURIComponent(sic) encodes non-ASCII characters.  We don't need to.
-            let ord = c.charCodeAt(0);
-            if(ord >= 128)
-                return c;
-
-            // Regular URL escaping wants to escape spaces as %20, which is silly since
-            // it's such a common character in filenames.  Escape them as + instead, like
-            // things like AWS do.  The escaping is different, but it's still a perfectly
-            // valid URL.  Note that the API doesn't decode these, we only use it in the UI.
-            if(c == " ")
-                return "+";
-
-            let hex = ord.toString(16).padStart('0', 2);
-            return "%" + hex;
-        });
-    }
-
-    // Both "encodeURI" and "encodeURIComponent" are wrong for encoding hashes.
-    // The first doesn't escape ?, and the second escapes lots of things we
-    // don't want to, like forward slash.
-    static encodeURLHash(hash)
-    {
-        return helpers.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^#=&]/g, hash);
-    }
-
-    // This one escapes keys in hash parameters.  This is the same as encodeURLHash,
-    // except it also encodes = and &.
-    static encodeHashParam(param)
-    {
-        return helpers.encodeURLPart(/[^A-Za-z0-9-_\.!~\*'()/:\[\]\^#]/g, param);
-    }
-
-    // Encode a URLSearchParams for hash parameters.
-    //
-    // We can use URLSearchParams.toString(), but that escapes overaggressively and
-    // gives us nasty, hard to read URLs.  There's no reason to escape forward slash
-    // in query parameters.
-    static encodeHashParams(params)
-    {
-        let values = [];
-        for(let key of params.keys())
-        {
-            let key_values = params.getAll(key);
-            for(let value of key_values)
-            {
-                key = helpers.encodeHashParam(key);
-                value = helpers.encodeHashParam(value);
-                values.push(key + "=" + value);
-            }
-        }
-
-        return values.join("&");
-    }
-
-    // Escape a string to use in a CSS selector.
-    //
-    // If we're searching for [data-filename='path'], we need to escape quotes in "path".
-    static escape_selector(s)
-    {
-        return s.replace(/['"]/g, (c) => {
-            return "\\" + c;
-        });
-    }
-
-    title_case(s)
-    {
-        let parts = [];
-        for(let part of s.split(" "))
-            parts.push(part.substr(0, 1).toUpperCase() + s.substr(1));
-        return parts.join(" ");
-    }
-
-    // 1     -> 1
-    // 1:2   -> 0.5
-    // null  -> null
-    // ""    -> null
-    static parse_ratio(value)
-    {
-        if(value == null || value == "")
-            return null;
-        if(value.indexOf == null)
-            return value;
-
-        let parts = value.split(":", 2);
-        if(parts.length == 1)
-        {
-            return parseFloat(parts[0]);
-        }
-        else
-        {
-            let num = parseFloat(parts[0]);
-            let den = parseFloat(parts[1]);
-            return num/den;
-        }
-    }
-    
-    // Parse:
-    // 1        -> [1,1]
-    // 1...2    -> [1,2]
-    // 1...     -> [1,null]
-    // ...2     -> [null,2]
-    // 1:2      -> [0.5, 0.5]
-    // 1:2...2  -> [0.5, 2]
-    // null     -> null
-    static parse_range(range)
-    {
-        if(range == null)
-            return null;
-            
-        let parts = range.split("...");
-        let min = helpers.parse_ratio(parts[0]);
-        let max = helpers.parse_ratio(parts[1]);
-        return [min, max];
-    }
-
     // Generate a UUID.
     static createUuid()
     {
@@ -2823,216 +2019,7 @@ export class helpers
         }
     }
 
-    static adjustImageUrlHostname(url)
-    {
-        if(url.hostname == "i.pximg.net")
-            url.hostname = "i-cf.pximg.net";
-    }
-
-    // Given a low-res thumbnail URL from thumbnail data, return a high-res thumbnail URL.
-    // If page isn't 0, return a URL for the given manga page.
-    static get_high_res_thumbnail_url(url, page=0)
-    {
-        // Some random results on the user recommendations page also return this:
-        //
-        // /c/540x540_70/custom-thumb/img/.../12345678_custom1200.jpg
-        //
-        // Replace /custom-thumb/' with /img-master/ first, since it makes matching below simpler.
-        url = url.replace("/custom-thumb/", "/img-master/");
-
-        // path should look like
-        //
-        // /c/250x250_80_a2/img-master/img/.../12345678_square1200.jpg
-        //
-        // where 250x250_80_a2 is the resolution and probably JPEG quality.  We want
-        // the higher-res thumbnail (which is "small" in the full image data), which
-        // looks like:
-        //
-        // /c/540x540_70/img-master/img/.../12345678_master1200.jpg
-        //
-        // The resolution field is changed, and "square1200" is changed to "master1200".
-        url = new URL(url, ppixiv.plocation);
-        let path = url.pathname;
-        let re = /(\/c\/)([^\/]+)(.*)(square1200|master1200|custom1200).jpg/;
-        let match = re.exec(path);
-        if(match == null)
-        {
-            console.warn("Couldn't parse thumbnail URL:", path);
-            return url.toString();
-        }
-
-        url.pathname = match[1] + "540x540_70" + match[3] + "master1200.jpg";
-
-        if(page != 0)
-        {
-            // Manga URLs end with:
-            //
-            // /c/540x540_70/custom-thumb/img/.../12345678_p0_master1200.jpg
-            //
-            // p0 is the page number.
-            url.pathname = url.pathname.replace("_p0_master1200", "_p" + page + "_master1200");
-        }
-
-        this.adjustImageUrlHostname(url);
-
-        return url.toString();
-    }
 }
-    
-// Gradually slow down and stop the given CSS animation after a delay, resuming it
-// if the mouse is moved.
-export class StopAnimationAfter
-{
-    constructor(animation, delay, duration, vertical)
-    {
-        this.animation = animation;
-        this.delay = delay;
-        this.duration = duration;
-        this.vertical = vertical;
-        this.abort = new AbortController();
-
-        this.run();
-    }
-
-    async run()
-    {
-        // We'll keep the animation running as long as we've been active within the delay
-        // period.
-        let last_activity_at = Date.now() / 1000;
-        let onmove = (e) => {
-            last_activity_at = Date.now() / 1000;
-        };
-
-        window.addEventListener("mousemove", onmove, {
-            passive: true,
-        });
-
-        try {
-            // This is used for thumbnail animations.  We want the animation to end at a
-            // natural place: at the top for vertical panning, or in the middle for horizontal
-            // panning.
-            //
-            // Animations are async, so we can't control their speed precisely, but it's close
-            // enough that we don't need to worry about it here.
-            //
-            // Both animations last 4 seconds.  At a multiple of 4 seconds, the vertical animation
-            // is at the top and the horizontal animation is centered, which is where we want them
-            // to finish.  The vertical animation's built-in deceleration is also at the end, so for
-            // those we can simply stop the animation when it reaches a multiple of 4.
-            //
-            // Horizontal animations decelerate at the edges rather than at the end, so we need to
-            // decelerate these by reducing playbackRate.
-
-            // How long the deceleration lasts.  We don't need to decelerate vertical animations, so
-            // use a small value for those.
-            const duration = this.vertical? 0.001:0.3;
-
-            // We want the animation to stop with currentTime equal to this:
-            let stop_at_animation_time = null;
-            while(1)
-            {
-                let success = await helpers.vsync({signal: this.abort.signal});
-                if(!success)
-                    break;
-
-                let now = Date.now() / 1000;
-                let stopping = now >= last_activity_at + this.delay;
-                if(!stopping)
-                {
-                    // If the mouse has moved recently, set the animation to full speed.  We don't
-                    // accelerate back to speed.
-                    stop_at_animation_time = null;
-                    this.animation.playbackRate = 1;
-                    continue;
-                }
-
-                // We're stopping, since the mouse hasn't moved in a while.  Figure out when we want
-                // the animation to actually stop if we haven't already.
-                if(stop_at_animation_time == null)
-                {
-                    stop_at_animation_time = this.animation.currentTime / 1000 + 0.0001;
-                    stop_at_animation_time = Math.ceil(stop_at_animation_time / 4) * 4; // round up to next multiple of 4
-                }
-
-                let animation_time = this.animation.currentTime/1000;
-
-                // The amount of animation time left, ignoring playbackSpeed:
-                let animation_time_left = stop_at_animation_time - animation_time;
-                if(animation_time_left > duration)
-                {
-                    this.animation.playbackRate = 1;
-                    continue;
-                }
-
-                if(animation_time_left <= 0.001)
-                {
-                    this.animation.playbackRate = 0;
-                    continue;
-                }
-
-                // We want to decelerate smoothly, reaching a velocity of zero when animation_time_left
-                // reaches 0.  Just estimate it by decreasing the time left linearly.
-                this.animation.playbackRate = animation_time_left / duration;
-            }
-        } finally {
-            window.removeEventListener("mousemove", onmove);
-        }
-    }
-
-    // Stop affecting the animation and return it to full speed.
-    shutdown()
-    {
-        this.abort.abort();
-
-        this.animation.playbackRate = 1;
-    }
-}
-
-// Add delays to hovering and unhovering.  The class "hover" will be set when the mouse
-// is over the element (equivalent to the :hover selector), with a given delay before the
-// state changes.
-//
-// This is used when hovering the top bar when in ui-on-hover mode, to delay the transition
-// before the UI disappears.  transition-delay isn't useful for this, since it causes weird
-// hitches when the mouse enters and leaves the area quickly.
-export class HoverWithDelay
-{
-    constructor(element, delay_enter, delay_exit)
-    {
-        this.element = element;
-        this.delay_enter = delay_enter * 1000.0;
-        this.delay_exit = delay_exit * 1000.0;
-        this.timer = -1;
-        this.pending_hover = null;
-
-        element.addEventListener("mouseenter", (e) => { this.real_hover_changed(true); });
-        element.addEventListener("mouseleave", (e) => { this.real_hover_changed(false); });
-    }
-
-    real_hover_changed(hovering)
-    {
-        // If we already have this event queued, just let it continue.
-        if(this.pending_hover != null && this.pending_hover == hovering)
-            return;
-
-        // If the opposite event is pending, cancel it.
-        if(this.hover_timeout != null)
-        {
-            realClearTimeout(this.hover_timeout);
-            this.hover_timeout = null;
-        }
-
-        this.real_hover_state = hovering;
-        this.pending_hover = hovering;
-        let delay = hovering? this.delay_enter:this.delay_exit;
-        this.hover_timeout = realSetTimeout(() => {
-            this.pending_hover = null;
-            this.hover_timeout = null;
-            helpers.setClass(this.element, "hover", this.real_hover_state);
-        }, delay);
-    }
-}
-
 
 // A simple wakeup event.
 class WakeupEvent
@@ -3628,10 +2615,10 @@ export class FixedDOMRect extends DOMRect
     cropTo(outer)
     {
         return new FixedDOMRect(
-            helpers.clamp(this.x1, outer.x1, outer.x2),
-            helpers.clamp(this.y1, outer.y1, outer.y2),
-            helpers.clamp(this.x2, outer.x1, outer.x2),
-            helpers.clamp(this.y2, outer.y1, outer.y2),
+            helpers.math.clamp(this.x1, outer.x1, outer.x2),
+            helpers.math.clamp(this.y1, outer.y1, outer.y2),
+            helpers.math.clamp(this.x2, outer.x1, outer.x2),
+            helpers.math.clamp(this.y2, outer.y1, outer.y2),
         );
     }
 }
@@ -3753,7 +2740,7 @@ export class ClassFlags extends EventTarget
     set(name, value)
     {
         // Update the class.  The mutation observer will handle broadcasting the change.
-        helpers.setClass(this.element, name, value);
+        helpers.html.setClass(this.element, name, value);
 
         return true;
     }
@@ -3860,3 +2847,9 @@ export class OpenWidgets extends EventTarget
         return this.open_widgets;
     }
 }
+
+helpers.math = math;
+helpers.strings = strings;
+helpers.html = html;
+helpers.mediaId = mediaId;
+helpers.pixiv = pixiv;

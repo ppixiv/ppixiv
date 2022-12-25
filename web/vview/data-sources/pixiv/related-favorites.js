@@ -29,7 +29,7 @@ export default class DataSource_RelatedFavorites extends DataSourceFromPage
         // Get info for the illustration we're displaying bookmarks for.
         let queryArgs = this.url.searchParams;
         let illustId = queryArgs.get("illustId");
-        let mediaId = helpers.illustIdToMediaId(illustId)
+        let mediaId = helpers.mediaId.fromIllustId(illustId)
         this.illustInfo = await ppixiv.mediaCache.getMediaInfo(mediaId);
         this.callUpdateListeners();
 

@@ -375,7 +375,7 @@ export default class WhatsNew extends widget
             lastViewedVersion = parseInt(lastViewedVersion);
     
             let newUpdates = lastViewedVersion < WhatsNew.latestInterestingHistoryRevision();
-            helpers.setDataSet(document.documentElement.dataset, "whatsNewUpdated", newUpdates);
+            helpers.html.setDataSet(document.documentElement.dataset, "whatsNewUpdated", newUpdates);
         };
         refresh();
         ppixiv.settings.addEventListener("whats-new-last-viewed-version", refresh);

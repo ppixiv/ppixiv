@@ -72,7 +72,7 @@ export default class MobileDoubleTapHandler
 
         let timeSinceClick = e.timeStamp - this._pointerdownTimestamp;
         let position = { x: e.screenX, y: e.screenY };
-        let distance = helpers.distance(position, this._pointerdownPosition);
+        let distance = helpers.math.distance(position, this._pointerdownPosition);
         this._pointerdownTimestamp = e.timeStamp;
         this._pointerdownPosition = position;
 

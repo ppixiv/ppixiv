@@ -83,7 +83,7 @@ export default class PropertyAnimation
     // Return the value of the output property for the given 0-1 position.
     propertyValueForPosition(position)
     {
-        return helpers.scale(position, 0, 1, this.propertyStart, this.propertyEnd);
+        return helpers.math.scale(position, 0, 1, this.propertyStart, this.propertyEnd);
     }
 
     // Return the current value of the property.
@@ -125,13 +125,13 @@ export default class PropertyAnimation
 
             // The position through this animation, from 0 to 1:
             let offset = (Date.now() - startTime) / duration;
-            offset = helpers.clamp(offset, 0, 1);
+            offset = helpers.math.clamp(offset, 0, 1);
 
             // Apply easing.
             let offset_with_easing = curve.evaluate(offset);
 
             // Update the animation.  Snap to the start and end positions to remove rounding error.
-            let newPosition = helpers.scale(offset_with_easing, 0, 1, startPosition, endPosition);
+            let newPosition = helpers.math.scale(offset_with_easing, 0, 1, startPosition, endPosition);
             if(Math.abs(newPosition - startPosition) < 0.00001) newPosition = startPosition;
             if(Math.abs(newPosition - endPosition) < 0.00001) newPosition = endPosition;
             this._setPosition(newPosition);

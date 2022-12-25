@@ -138,7 +138,7 @@ export default class Widget extends Actor
     // subclass can override this.
     applyVisibility()
     {
-        helpers.setClass(this.container, "hidden-widget", !this._visible);
+        helpers.html.setClass(this.container, "hidden-widget", !this._visible);
     }
 
     // this.visible sets whether or not we want to be visible, but other things might influence

@@ -392,7 +392,7 @@ export default class ViewerImages extends Viewer
 
     get _page()
     {
-        return helpers.parseMediaId(this.mediaId).page;
+        return helpers.mediaId.parse(this.mediaId).page;
     }
 
     onkeydown = async(e) =>
@@ -412,7 +412,7 @@ export default class ViewerImages extends Viewer
                 return;
 
             let newPage = e.code == "End"? mediaInfo.pageCount - 1:0;
-            let newMediaId = helpers.getMediaIdForPage(this.mediaId, newPage);
+            let newMediaId = helpers.mediaId.getMediaIdForPage(this.mediaId, newPage);
             ppixiv.app.showMediaId(newMediaId);
             return;
         }
@@ -624,7 +624,7 @@ export default class ViewerImages extends Viewer
         {
             // Clamp relative zooming.  Do this here to make sure we can always select cover and actual
             // which aren't clamped, even if the image is very large or small.
-            newLevel = helpers.clamp(newLevel, -8, +8);
+            newLevel = helpers.math.clamp(newLevel, -8, +8);
         }
 
         this.setZoomLevel(newLevel);
@@ -817,12 +817,12 @@ export default class ViewerImages extends Viewer
         let topLeft = this.getViewPosFromImagePos([0,0], { pos: zoomPos });
         let bottomRight = this.getViewPosFromImagePos([1,1], { pos: zoomPos });
         topLeft = [
-            helpers.clamp(topLeft[0], 0, viewWidth), 
-            helpers.clamp(topLeft[1], 0, viewHeight),
+            helpers.math.clamp(topLeft[0], 0, viewWidth), 
+            helpers.math.clamp(topLeft[1], 0, viewHeight),
         ];
         bottomRight = [
-            helpers.clamp(bottomRight[0], 0, viewWidth), 
-            helpers.clamp(bottomRight[1], 0, viewHeight),
+            helpers.math.clamp(bottomRight[0], 0, viewWidth), 
+            helpers.math.clamp(bottomRight[1], 0, viewHeight),
         ];
 
         return new FixedDOMRect(
@@ -923,8 +923,8 @@ export default class ViewerImages extends Viewer
         // It also gives the effect of the rounding scaling down if the image is pinch zoomed
         // very small.  This only takes effect if there's a significant amount of unused screen
         // space, so most of the time the rounding stays the same.
-        let horiz = helpers.scaleClamp(size[0] / viewWidth,      .75, 0.35, 1, 0.25);
-        let vert = helpers.scaleClamp(size[1] / viewHeight,      .75, 0.35, 1, 0.25);
+        let horiz = helpers.math.scaleClamp(size[0] / viewWidth,      .75, 0.35, 1, 0.25);
+        let vert = helpers.math.scaleClamp(size[1] / viewHeight,      .75, 0.35, 1, 0.25);
         roundedBox.style.setProperty("--rounding-amount", Math.min(horiz, vert));
     }
 
@@ -1001,7 +1001,7 @@ export default class ViewerImages extends Viewer
 
     _updateCrop()
     {
-        helpers.setClass(this._imageBox, "cropping", this._croppedSize != null);
+        helpers.html.setClass(this._imageBox, "cropping", this._croppedSize != null);
 
         // If we're not cropping, just turn the crop box off entirely.
         if(this._croppedSize == null)

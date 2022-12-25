@@ -30,7 +30,7 @@ export class IllustWidget extends Widget
 
         this._mediaId = mediaId;
 
-        let [illustId, page] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illustId, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
         this._page = page;
         this.refresh();
     }
@@ -129,10 +129,10 @@ export class BookmarkButtonWidget extends IllustWidget
     {
         // If this is a local image, we won't have a bookmark count, so set local-image
         // to remove our padding for it.  We can get mediaId before mediaInfo.
-        let is_local =  helpers.isMediaIdLocal(mediaId);
-        helpers.setClass(this.container,  "has-like-count", !is_local);
+        let is_local =  helpers.mediaId.isLocal(mediaId);
+        helpers.html.setClass(this.container,  "has-like-count", !is_local);
 
-        let { type } = helpers.parseMediaId(mediaId);
+        let { type } = helpers.mediaId.parse(mediaId);
 
         // Hide the private bookmark button for local IDs.
         if(this.bookmarkType == "private")
@@ -146,9 +146,9 @@ export class BookmarkButtonWidget extends IllustWidget
             isOurBookmarkType = willDelete = bookmarked;
 
         // Set up the bookmark buttons.
-        helpers.setClass(this.container,  "enabled",     mediaInfo != null);
-        helpers.setClass(this.container,  "bookmarked",  isOurBookmarkType);
-        helpers.setClass(this.container,  "will-delete", willDelete);
+        helpers.html.setClass(this.container,  "enabled",     mediaInfo != null);
+        helpers.html.setClass(this.container,  "bookmarked",  isOurBookmarkType);
+        helpers.html.setClass(this.container,  "will-delete", willDelete);
         
         // Set the tooltip.
         this.container.dataset.popup =
@@ -243,9 +243,9 @@ export class ImageBookmarkedWidget extends IllustWidget
         let bookmarked = mediaInfo?.bookmarkData != null;
         let privateBookmark = mediaInfo?.bookmarkData?.private;
 
-        helpers.setClass(this.container,  "enabled",     mediaInfo != null);
-        helpers.setClass(this.container,  "bookmarked",  bookmarked);
-        helpers.setClass(this.container,  "public",      !privateBookmark);
+        helpers.html.setClass(this.container,  "enabled",     mediaInfo != null);
+        helpers.html.setClass(this.container,  "bookmarked",  bookmarked);
+        helpers.html.setClass(this.container,  "public",      !privateBookmark);
     }
 }
 
@@ -254,7 +254,7 @@ export class BookmarkCountWidget extends IllustWidget
     refreshInternal({ mediaId, mediaInfo })
     {
         let text = "";
-        if(!helpers.isMediaIdLocal(mediaId))
+        if(!helpers.mediaId.isLocal(mediaId))
             text = mediaInfo?.bookmarkCount ?? "---";
         this.container.textContent = text;
     }
@@ -274,11 +274,11 @@ export class LikeButtonWidget extends IllustWidget
     async refreshInternal({ mediaId })
     {
         // Hide the like button for local IDs.
-        this.container.closest(".button-container").hidden = helpers.isMediaIdLocal(mediaId);
+        this.container.closest(".button-container").hidden = helpers.mediaId.isLocal(mediaId);
 
         let likedRecently = mediaId != null? ppixiv.extraCache.getLikedRecently(mediaId):false;
-        helpers.setClass(this.container, "liked", likedRecently);
-        helpers.setClass(this.container, "enabled", !likedRecently);
+        helpers.html.setClass(this.container, "liked", likedRecently);
+        helpers.html.setClass(this.container, "enabled", !likedRecently);
 
         this.container.dataset.popup = this._mediaId == null? "":
             likedRecently? "Already liked image":"Like image";
@@ -299,7 +299,7 @@ export class LikeCountWidget extends IllustWidget
     async refreshInternal({ mediaId, mediaInfo })
     {
         let text = "";
-        if(!helpers.isMediaIdLocal(mediaId))
+        if(!helpers.mediaId.isLocal(mediaId))
             text = mediaInfo?.likeCount ?? "---";
         this.container.textContent = text;
     }

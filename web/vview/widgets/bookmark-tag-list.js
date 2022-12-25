@@ -199,7 +199,7 @@ export class BookmarkTagListWidget extends IllustWidget
             entry.dataset.tag = tag;
 
             let active = activeTags.indexOf(tag) != -1;
-            helpers.setClass(entry, "selected", active);
+            helpers.html.setClass(entry, "selected", active);
         }
 
         let syncButton = createEntry("Refresh", {
@@ -265,7 +265,7 @@ export class BookmarkTagListWidget extends IllustWidget
 
         // Toggle this tag.  Don't actually save it immediately, so if we make multiple
         // changes we don't spam requests.
-        helpers.setClass(a, "selected", !a.classList.contains("selected"));
+        helpers.html.setClass(a, "selected", !a.classList.contains("selected"));
     }
 }
 
@@ -361,7 +361,7 @@ export class BookmarkTagDropdownOpener extends Actor
             {
                 for(let button of this.bookmarkButtons)
                 {
-                    if(helpers.isAbove(button.container, e.target))
+                    if(helpers.html.isAbove(button.container, e.target))
                         return false;
                 }
 
@@ -387,7 +387,7 @@ export class BookmarkTagDropdownOpener extends Actor
             return;
 
         this._mediaId = mediaId;
-        helpers.setClass(this.bookmarkTagsButton, "enabled", mediaId != null);
+        helpers.html.setClass(this.bookmarkTagsButton, "enabled", mediaId != null);
 
         // Hide the dropdown if the image changes while it's open.
         this._opener.visible = false;

@@ -93,15 +93,15 @@ export default class App
 
         // Set the .premium class on body if this is a premium account, to display features
         // that only work with premium.
-        helpers.setClass(document.body, "premium", ppixiv.pixivInfo.premium);
+        helpers.html.setClass(document.body, "premium", ppixiv.pixivInfo.premium);
 
         // These are used to hide UI when running native or not native.
-        helpers.setClass(document.body, "native", ppixiv.native);
-        helpers.setClass(document.body, "pixiv", !ppixiv.native);
+        helpers.html.setClass(document.body, "native", ppixiv.native);
+        helpers.html.setClass(document.body, "pixiv", !ppixiv.native);
 
         // These are used to hide buttons that the user has disabled.
-        helpers.setClass(document.body, "hide-r18", !ppixiv.pixivInfo.include_r18);
-        helpers.setClass(document.body, "hide-r18g", !ppixiv.pixivInfo.include_r18g);
+        helpers.html.setClass(document.body, "hide-r18", !ppixiv.pixivInfo.include_r18);
+        helpers.html.setClass(document.body, "hide-r18g", !ppixiv.pixivInfo.include_r18g);
 
         this._setDeviceProperties();
         ppixiv.settings.addEventListener("avoid-statusbar", this._setDeviceProperties);
@@ -140,7 +140,7 @@ export default class App
 
         window.addEventListener("keydown", this._windowKeydown);
 
-        let refreshFocus = () => { helpers.setClass(document.body, "focused", document.hasFocus()); };
+        let refreshFocus = () => { helpers.html.setClass(document.body, "focused", document.hasFocus()); };
         window.addEventListener("focus", refreshFocus);
         window.addEventListener("blur", refreshFocus);
         refreshFocus();
@@ -179,8 +179,8 @@ export default class App
         let html = document.createElement("document");
         if(!ppixiv.native)
         {
-            helpers.moveChildren(document.head, html);
-            helpers.moveChildren(document.body, html);
+            helpers.html.moveChildren(document.head, html);
+            helpers.html.moveChildren(document.body, html);
         }
 
         // Copy the location to the document copy, so the data source can tell where
@@ -191,7 +191,7 @@ export default class App
         await this.loadResourceBlobs();
 
         // Add the blobs for binary resources as CSS variables.
-        helpers.addStyle("image-styles", `
+        helpers.html.addStyle("image-styles", `
             html {
                 --dark-noise: url("${ppixiv.resources['resources/noise.png']}");
             }
@@ -199,7 +199,7 @@ export default class App
 
         // Load our icon font.  var() doesn't work for font-face src, so we have to do
         // this manually.
-        helpers.addStyle("ppixiv-font", `
+        helpers.html.addStyle("ppixiv-font", `
             @font-face {
                 font-family: 'ppixiv';
                 src: url(${ppixiv.resources['resources/ppixiv.woff']}) format('woff');
@@ -211,7 +211,7 @@ export default class App
 
         // Add the main stylesheet.
         let mainStylesheet = ppixiv.resources['resources/main.css'];
-        document.head.appendChild(helpers.createStyle(mainStylesheet, { id: "main" }));
+        document.head.appendChild(helpers.html.createStyle(mainStylesheet, { id: "main" }));
 
         // If we're running natively, index.html included an initial stylesheet to set the background
         // color.  Remove it now that we have our real stylesheet.
@@ -312,14 +312,14 @@ export default class App
 
     _setDeviceProperties = () =>
     {
-        let insets = helpers.getSafeAreaInsets();
+        let insets = helpers.html.getSafeAreaInsets();
 
-        helpers.setClass(document.documentElement, "mobile", ppixiv.mobile);
-        helpers.setClass(document.documentElement, "ios", ppixiv.ios);
-        helpers.setClass(document.documentElement, "android", ppixiv.android);
-        helpers.setClass(document.documentElement, "phone", helpers.is_phone());
+        helpers.html.setClass(document.documentElement, "mobile", ppixiv.mobile);
+        helpers.html.setClass(document.documentElement, "ios", ppixiv.ios);
+        helpers.html.setClass(document.documentElement, "android", ppixiv.android);
+        helpers.html.setClass(document.documentElement, "phone", helpers.is_phone());
         document.documentElement.dataset.orientation = window.orientation ?? "0";
-        helpers.setDataSet(document.documentElement.dataset, "hasBottomInset", insets.bottom > 0);
+        helpers.html.setDataSet(document.documentElement.dataset, "hasBottomInset", insets.bottom > 0);
 
         // Set the fullscreen mode.  See the device styling rules in main.scss for more
         // info.
@@ -525,9 +525,9 @@ export default class App
         let args = helpers.args.location;
 
         // Check if this is a local ID.
-        if(helpers.isMediaIdLocal(mediaId))
+        if(helpers.mediaId.isLocal(mediaId))
         {
-            if(helpers.parseMediaId(mediaId).type == "folder")
+            if(helpers.mediaId.parse(mediaId).type == "folder")
             {
                 // If we're told to show a folder: ID, always go to the search page, not the illust page.
                 screen = "search";
@@ -540,12 +540,12 @@ export default class App
         }
 
         // If this is a user ID, just go to the user page.
-        let { type, id } = helpers.parseMediaId(mediaId);
+        let { type, id } = helpers.mediaId.parse(mediaId);
         if(type == "user")
             return new helpers.args(`/users/${id}/artworks#ppixiv`);
 
         let oldMediaId = this._dataSource.getCurrentMediaId(args);
-        let [oldIllustId] = helpers.mediaIdToIllustIdAndPage(oldMediaId);
+        let [oldIllustId] = helpers.mediaId.toIllustIdAndPage(oldMediaId);
 
         // Update the URL to display this mediaId.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
@@ -554,7 +554,7 @@ export default class App
         this._dataSource.setCurrentMediaId(mediaId, args);
 
         // Remove any leftover page from the current illust.  We'll load the default.
-        let [illust_id, page] = helpers.mediaIdToIllustIdAndPage(mediaId);
+        let [illust_id, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
         if(page == null)
             args.hash.delete("page");
         else
@@ -915,7 +915,7 @@ export default class App
             return;
 
         // If the event is going to an element inside the screen already, just let it continue.
-        if(helpers.isAbove(screen.container, e.target))
+        if(helpers.html.isAbove(screen.container, e.target))
             return;
 
         // If the keyboard input didn't go to an element inside the screen, redirect
@@ -1089,7 +1089,7 @@ export default class App
             if(firstPart != "tags")
                 return;
 
-            let tag = helpers.getSearchTagsFromUrl(url);
+            let tag = helpers.pixiv.getSearchTagsFromUrl(url);
             // console.log("Adding to tag search history:", tag);
             SavedSearchTags.add(tag);
         });
