@@ -211,6 +211,8 @@ export default class App
 
         // Add the main stylesheet.
         let mainStylesheet = ppixiv.resources['resources/main.css'];
+        if(mainStylesheet == null)
+            throw new Error("resources/main.css missing");
         document.head.appendChild(helpers.html.createStyle(mainStylesheet, { id: "main" }));
 
         // If we're running natively, index.html included an initial stylesheet to set the background

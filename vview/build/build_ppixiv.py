@@ -447,21 +447,24 @@ class Build(object):
         result.append('};\n')
 
         # Add resources.
-        for fn, path in self.get_resource_list().items():
-            fn = fn.replace('\\', '/')
-            mime_type, encoding = mimetypes.guess_type(fn)
+        for name, path in self.get_resource_list().items():
+            name = name.replace('\\', '/')
+
+            mime_type, encoding = mimetypes.guess_type(path)
             if mime_type is None:
-                raise Exception(f'{fn}: MIME type unknown')
+                raise Exception(f'{path}: MIME type unknown')
 
             if mime_type in ('image/png', 'application/x-font-woff', 'application/octet-stream'):
                 # Encode binary files as data: URLs.
                 data = path.open('rb').read()
                 data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
-                result.append('''env.resources["%s"] = "%s";''' % (fn, data))
+                result.append('''env.resources["%s"] = "%s";''' % (name, data))
                 continue
 
             if path.suffix == '.scss':
                 data = self.build_css(path)
+                path = path.with_suffix('.css')
+                name = name.replace('.scss', '.css')
             else:
                 data = path.open('rt', encoding='utf-8').read()
 
@@ -469,7 +472,7 @@ class Build(object):
             # to_javascript_string instead of JSON to avoid ugly escaping.
             string = to_javascript_string(data)
 
-            result.append(f'''env.resources["{fn}"] = loadBlob("{mime_type}", {string});''')
+            result.append(f'''env.resources["{name}"] = loadBlob("{mime_type}", {string});''')
 
         # Add app-startup directly without loading it into a blob.
         path = Path('web/vview/app-startup.js')
