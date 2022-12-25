@@ -15,22 +15,12 @@ async function Bootstrap({env, rootUrl}={})
     if(window.location.hostname.endsWith(".pixiv.net") && window.location.hostname != "www.pixiv.net")
         return;
 
-    // If we're running in a user script and GM_info is available, log the script manager and
-    // script manager version.
-    try {
-        console.log("ppixiv is running in", GM_info?.scriptHandler, GM_info?.version);
-    } catch(e) {
-    }
+    // Some script managers define this on window, some as a local, and some not at all.
+    let info = null;
+    if(typeof GM_info != "undefined")
+        info = GM_info;
 
-    // Make sure that we're not loaded more than once.  This can happen if we're installed in
-    // multiple script managers, or if the release and debug versions are enabled simultaneously.
-    if(document.documentElement.dataset.ppixivLoaded)
-    {
-        console.error("ppixiv has been loaded twice.  Is it loaded in multiple script managers?");
-        return;
-    }
-
-    document.documentElement.dataset.ppixivLoaded = "1";
+    console.log(`ppixiv is running in ${info?.scriptHandler} ${info?.version}`);
 
     // If we're running in a user script and we have access to GM.xmlHttpRequest, give access to
     // it to support saving image files to disk.  Since we may be sandboxed, we do this through

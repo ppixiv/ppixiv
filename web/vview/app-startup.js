@@ -44,6 +44,14 @@ class AppStartup
             env = await request.json();
         }
 
+        if(window.ppixiv)
+        {
+            // Make sure that we're not loaded more than once.  This can happen if we're installed in
+            // multiple script managers, or if the release and debug versions are enabled simultaneously.
+            console.error("ppixiv has been loaded twice.  Is it loaded in multiple script managers?");
+            return;
+        }
+
         // Set up the global object.
         window.ppixiv = {
             resources: env.resources,
