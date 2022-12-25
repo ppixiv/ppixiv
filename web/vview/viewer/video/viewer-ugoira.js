@@ -167,10 +167,6 @@ export default class ViewerUgoira extends ViewerVideoBase
     {
         super.active = active;
 
-        // Rewind the video when we're not visible.
-        if(!active && this.player != null)
-            this.player.rewind();
-
         // Refresh playback, since we pause while the viewer isn't visible.
         this.refreshFocus();
     }
