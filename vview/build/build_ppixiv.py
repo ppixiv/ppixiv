@@ -204,8 +204,8 @@ class Build(object):
     xhr.open("GET", `${rootUrl}/vview/startup/bootstrap.js`, false);
     xhr.send();
 
-    let Bootstrap = eval(xhr.responseText);
-    Bootstrap({rootUrl});
+    let startup = eval(xhr.responseText);
+    startup({rootUrl});
 })();
         ''' % { 'url': json.dumps(debug_server_url) })
 
