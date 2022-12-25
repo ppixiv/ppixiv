@@ -433,7 +433,7 @@ class BookmarkTagDialog extends DialogWidget
         this.deleteBookmark = new BookmarkButtonWidget({
             container: deleteBookmark,
             template: `
-                <div class="button-bookmark private item icon-button">
+                <div class="button-bookmark item icon-button">
                     ${ helpers.createIcon("mat:delete") }
                 </div>
             `,

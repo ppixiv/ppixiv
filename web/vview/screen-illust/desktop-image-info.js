@@ -1,7 +1,7 @@
 // This handles the desktop overlay UI on the illustration page.
 
 import Widget from 'vview/widgets/widget.js';
-import { BookmarkButtonWidget, BookmarkCountWidget, LikeButtonWidget, LikeCountWidget } from 'vview/widgets/illust-widgets.js';
+import { BookmarkButtonWidget, LikeButtonWidget } from 'vview/widgets/illust-widgets.js';
 import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
@@ -167,9 +167,6 @@ export default class DesktopImageInfo extends Widget
                 </div>
             `
         });
-        this.likeCountWidget = new LikeCountWidget({
-            container: this.root.querySelector(".button-like"),
-        });
         this.mangaPageBar = this.querySelector(".manga-page-bar");
 
         // The bookmark buttons, and clicks in the tag dropdown:
@@ -184,10 +181,6 @@ export default class DesktopImageInfo extends Widget
                 `,
                 bookmarkType: a.dataset.bookmarkType,
             }));
-
-        this.bookmarkCountWidget = new BookmarkCountWidget({
-            container: this.root.querySelector(".button-bookmark"),
-        });
 
         let bookmarkTagsButton = this.root.querySelector(".button-bookmark-tags");
         this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({
@@ -313,8 +306,6 @@ export default class DesktopImageInfo extends Widget
 
         // Update widget illust IDs.
         this.likeButton.setMediaId(this._mediaId);
-        this.likeCountWidget.setMediaId(this._mediaId);
-        this.bookmarkCountWidget.setMediaId(this._mediaId);
         for(let button of this.bookmarkButtons)
             button.setMediaId(this._mediaId);
         this.bookmarkTagsDropdownOpener.setMediaId(this._mediaId);

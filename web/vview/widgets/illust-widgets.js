@@ -109,6 +109,9 @@ export class BookmarkButtonWidget extends IllustWidget
         this._bookmarkTagListWidget = bookmarkTagListWidget;
 
         this.root.addEventListener("click", this.clickedBookmark);
+
+        if(bookmarkType == "public")
+            this.bookmarkCountWidget = new BookmarkCountWidget({ container: this.root });
     }
 
     // Dispatch bookmarkedited when we're editing a bookmark.  This lets any bookmark tag
@@ -134,16 +137,20 @@ export class BookmarkButtonWidget extends IllustWidget
 
     refreshInternal({ mediaId, mediaInfo })
     {
+        if(this.bookmarkCountWidget)
+            this.bookmarkCountWidget.setMediaId(mediaId);
+
         // If this is a local image, we won't have a bookmark count, so set local-image
         // to remove our padding for it.  We can get mediaId before mediaInfo.
-        let is_local =  helpers.mediaId.isLocal(mediaId);
-        helpers.html.setClass(this.root,  "has-like-count", !is_local);
+        let isLocal =  helpers.mediaId.isLocal(mediaId);
+        let isPublic = this.bookmarkType == "public";
+        helpers.html.setClass(this.root,  "has-like-count", isPublic && !isLocal);
 
         let { type } = helpers.mediaId.parse(mediaId);
 
         // Hide the private bookmark button for local IDs.
         if(this.bookmarkType == "private")
-            this.root.closest(".button-container").hidden = is_local;
+            this.root.hidden = isLocal;
 
         let bookmarked = mediaInfo?.bookmarkData != null;
         let privateBookmark = this.bookmarkType == "private";
@@ -278,10 +285,16 @@ export class LikeButtonWidget extends IllustWidget
         })
 
         this.root.addEventListener("click", this.clickedLike);
+
+        this.likeCount = new LikeCountWidget({
+            container: this.root
+        });
     }
 
     async refreshInternal({ mediaId })
     {
+        this.likeCount.setMediaId(mediaId);
+
         // Hide the like button for local IDs.
         this.root.closest(".button-container").hidden = helpers.mediaId.isLocal(mediaId);
 

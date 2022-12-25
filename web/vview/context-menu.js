@@ -9,7 +9,7 @@
 // This also handles mousewheel zooming.
 
 import Widget from 'vview/widgets/widget.js';
-import { BookmarkButtonWidget, BookmarkCountWidget, LikeButtonWidget, LikeCountWidget } from 'vview/widgets/illust-widgets.js';
+import { BookmarkButtonWidget, LikeButtonWidget } from 'vview/widgets/illust-widgets.js';
 import { HideMouseCursorOnIdle } from 'vview/misc/hide-mouse-cursor-on-idle.js';
 import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
@@ -213,9 +213,6 @@ export default class ContextMenu extends Widget
                     </div>
                 `
             }),
-            new LikeCountWidget({
-                container: this.root.querySelector(".button-like"),
-            }),
             new ImageInfoWidget({
                 container: this.root.querySelector(".context-menu-image-info-container"),
             }),
@@ -250,12 +247,6 @@ export default class ContextMenu extends Widget
             this.bookmarkButtons.push(bookmarkWidget);
             this.illustWidgets.push(bookmarkWidget);
         }
-
-        this.illustWidgets.push(
-            new BookmarkCountWidget({
-                container: this.root.querySelector(".button-bookmark.public")
-            })            
-        );
 
         // Set up the bookmark tags dropdown.
         this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({
