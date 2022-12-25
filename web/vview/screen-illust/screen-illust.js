@@ -20,7 +20,6 @@ import ViewerError from 'vview/viewer/viewer-error.js';
 import ImagePreloader from "vview/misc/image-preloader.js";
 import IsolatedTapHandler from 'vview/actors/isolated-tap-handler.js';
 import LocalAPI from 'vview/misc/local-api.js';
-import MobileDoubleTapHandler from 'vview/actors/mobile-double-tap-handler.js';
 import { HideMouseCursorOnIdle } from "vview/misc/hide-mouse-cursor-on-idle.js";
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -97,11 +96,7 @@ export default class ScreenIllust extends Screen
             });
 
             // Toggle zoom on double-tap.
-            this.doubleTapHandler = new MobileDoubleTapHandler({
-                container: this.viewContainer,
-                signal: this.shutdownSignal.signal,
-                ondbltap: (e) => this.viewer.toggleZoom(e),
-            });
+            this.container.addEventListener("dblclick", (e) => this.viewer.toggleZoom(e), this._signal);
 
             new IsolatedTapHandler({
                 node: this.viewContainer,

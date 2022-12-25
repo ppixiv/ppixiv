@@ -62,4 +62,9 @@ export default function installPolyfills()
             },
         });
     }
+
+    // Work around a strange iOS Safari bug: we don't always get dblclick events unless
+    // at least one dblclick listener exists on the document.
+    if(ppixiv.ios)
+        document.addEventListener("dblclick", (e) => { });
 };
