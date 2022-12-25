@@ -85,7 +85,7 @@ export default class ContextMenu extends Widget
                         </div>
                     </div>
 
-                    <div class="button-block button-container view-in-explorer"></div>
+                    <div class="button-block button-container view-in-explorer" hidden></div>
 
                     <div class="button-block button-container">
                         <vv-container class=button-bookmark data-bookmark-type=public></vv-container>
@@ -223,8 +223,10 @@ export default class ContextMenu extends Widget
 
         if(ppixiv.native)
         {
+            let viewInExplorer = this.root.querySelector(".view-in-explorer");
+            viewInExplorer.hidden = false;
             this.illustWidgets.push(new ViewInExplorerWidget({
-                container: this.root.querySelector(".view-in-explorer"),
+                container: viewInExplorer,
             }));
         }
 
