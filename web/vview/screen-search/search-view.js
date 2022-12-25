@@ -1339,10 +1339,15 @@ export default class SearchView extends Widget
         if(mediaInfo == null)
             return;
 
+        let thumbnailElement = this.getThumbnailForMediaId(mediaId);
+        if(thumbnailElement != null)
+            this.refreshBookmarkIcon(thumbnailElement);
+
+        // If we're displaying individual pages for this media ID, check them too.
         for(let page = 0; page < mediaInfo.pageCount; ++page)
         {
-            mediaId = helpers.getMediaIdForPage(mediaId, page);
-            let thumbnailElement = this.getThumbnailForMediaId(mediaId);
+            let pageMediaId = helpers.getMediaIdForPage(mediaId, page);
+            thumbnailElement = this.getThumbnailForMediaId(pageMediaId);
             if(thumbnailElement != null)
                 this.refreshBookmarkIcon(thumbnailElement);
         }
