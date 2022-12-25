@@ -22,9 +22,7 @@ export default class VideoUI extends Widget
 
                     <div style="flex: 1;"></div>
 
-                    <vv-container class="volume-slider button" data-hidden-on=ios>
-                        <div class=volume-line></div>
-                    </vv-container>
+                    <vv-container class=volume-slider-container data-hidden-on=mobile></vv-container>
 
                     <vv-container class=button>
                         ${ helpers.createIcon("volume_up", { dataset: { volume: "high" }}) }
@@ -67,7 +65,7 @@ export default class VideoUI extends Widget
         this._setSeekBarPos();
 
         this.volumeSlider = new VolumeSliderWidget({
-            contents: this.container.querySelector(".volume-slider"),
+            container: this.container.querySelector(".volume-slider-container"),
             startedDragging: () =>
             {
                 // Remember what the volume was before the drag started.
@@ -280,7 +278,14 @@ class VolumeSliderWidget extends Widget
         ...options
     })
     {
-        super(options);
+        super({
+            ...options,
+            template: `
+                <div class=volume-slider>
+                    <div class=volume-line></div>
+                </div>
+            `
+        });
 
         this.ondrag = ondrag;
         this.startedDragging = startedDragging;

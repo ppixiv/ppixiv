@@ -571,17 +571,16 @@ input, textarea, [contenteditable] {
         }
 
         .volume-slider {
-            width: 100px;
-            height: 100%;
             display: flex;
             flex-direction: row;
             align-items: center;
             margin-right: -10px;
+            padding: .5rem 0;
+            cursor: pointer;
 
             > .volume-line {
-                height: 4px;
+                height: .25rem;
                 width: 100px;
-                flex: 1;
             }
         }
     }
