@@ -116,7 +116,6 @@ async function Bootstrap({env, rootUrl}={})
     let { startup } = env;
     delete env.startup;
 
-    runScript(`${startup}
-        new AppStartup(${JSON.stringify({ env }) });
-    `);
+    runScript(startup);
+    runScript(`new AppStartup(${JSON.stringify({ env }) })`);
 }

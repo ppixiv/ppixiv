@@ -92,7 +92,7 @@ def handle_init(request):
         startup_script = startup_file.read()
 
         # Add a source URL.
-        url = urllib.parse.urljoin(str(request.url), startup_path.relative_to('web').as_posix())
+        url = urllib.parse.urljoin(str(request.url), startup_path.relative_to('web/vview').as_posix())
         startup_script += f'\n//# sourceURL={url}\n'
 
     init = {
@@ -189,8 +189,8 @@ def handle_css(request):
     # The source root for the CSS source map needs to be an absolute URL, since it might be
     # loaded into the user script and a relative domain will resolve to that domain instead
     # of ours.
-    base_url = '%s://%s:%i' % (request.url.scheme, request.url.host, request.url.port)
-    data = build.build_css(path.path, embed_source_root=f'{base_url}/vview')
+    base_url = request.url.with_query('').with_path('/vview')
+    data = build.build_css(path.path, embed_source_root=str(base_url))
 
     response = aiohttp.web.Response(body=data, headers={
         'Cache-Control': 'public, immutable',

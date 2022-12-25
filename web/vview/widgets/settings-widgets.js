@@ -1,7 +1,7 @@
 import Widget from 'vview/widgets/widget.js';
-import { MenuOptionButton, MenuOptionRow, MenuOptionOptionsSetting, MenuOptionsThumbnailSizeSlider,
-    MenuOptionSliderSetting, MenuOptionToggleSetting } from 'vview/widgets/menu-option.js';
-
+import { MenuOptionButton, MenuOptionRow, MenuOptionOptionsSetting, MenuOptionsThumbnailSizeSlider } from 'vview/widgets/menu-option.js';
+import { MenuOptionSliderSetting, MenuOptionToggleSetting } from 'vview/widgets/menu-option.js';
+   
 import { EditMutedTagsWidget } from 'vview/widgets/mutes.js';
 import { LinkTabsPopup } from 'vview/misc/send-image.js';
 import DialogWidget from 'vview/widgets/dialog.js';

@@ -316,13 +316,13 @@ class Build(object):
         # fix it ourself.  It's pretty obnoxious to have to jump a bunch of hoops because they
         # couldn't be bothered to just let us pass in a URL and tell it where the top path is.
         #
-        # We expect all CSS files to be inside the top directory, eg:
+        # We expect all CSS files to be inside the web/resources directory, eg:
         #
-        # file:///c:/files/ppixiv/resources/main.scss
+        # file:///c:/files/ppixiv/web/resources/main.scss
         #
         # Map these so they're relative to the root, and set sourceRoot to embed_source_root.
         source_map = json.loads(source_map)
-        expected_wrong_url = self.get_local_root_url()
+        expected_wrong_url = self.get_local_root_url() + '/web'
         if not expected_wrong_url.endswith('/'):
             expected_wrong_url += '/'
 
