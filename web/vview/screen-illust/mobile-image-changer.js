@@ -4,13 +4,15 @@ import DragHandler from 'vview/misc/drag-handler.js';
 import Bezier2D from 'vview/util/bezier.js';
 import FlingVelocity from 'vview/util/fling-velocity.js';
 import DirectAnimation from 'vview/actors/direct-animation.js';
+import Actor from 'vview/actors/actor.js';
 import { helpers } from 'vview/misc/helpers.js';
 
-export default class DragImageChanger
+export default class DragImageChanger extends Actor
 {
     constructor({parent})
     {
-        this.parent = parent;
+        super({parent});
+
         this.recentPointerMovement = new FlingVelocity({
             samplePeriod: 0.150,
         });
@@ -29,6 +31,7 @@ export default class DragImageChanger
         this.bounds = [null, null];
 
         this.dragger = new DragHandler({
+            parent: this,
             name: "image-changer",
             element: this.parent.root,
             confirmDrag: ({event}) => {

@@ -46,8 +46,6 @@ export default class Actor extends EventTarget
     }
 
     constructor({
-        container,
-        
         // The parent actor, if any.
         parent=null,
 

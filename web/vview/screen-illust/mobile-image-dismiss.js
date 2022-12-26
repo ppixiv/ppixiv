@@ -1,14 +1,16 @@
 import WidgetDragger from 'vview/actors/widget-dragger.js';
+import Actor from 'vview/actors/actor.js';
 import { helpers, FixedDOMRect } from 'vview/misc/helpers.js';
 
 // This handles dragging up from the top of the screen to return to the search on mobile.
-export default class MobileImageDismiss
+export default class MobileImageDismiss extends Actor
 {
     constructor({parent})
     {
-        this.parent = parent;
+        super({parent});
 
         this.dragger = new WidgetDragger({
+            parent: this,
             name: "drag-to-exit",
             nodes: [
                 this.parent.root,

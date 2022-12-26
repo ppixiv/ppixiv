@@ -2,12 +2,13 @@
 
 import DragHandler from 'vview/misc/drag-handler.js';
 import FlingVelocity from 'vview/util/fling-velocity.js';
+import Actor from 'vview/actors/actor.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 const FlingFriction = 7;
 const FlingMinimumVelocity = 10;
 
-export default class TouchScroller
+export default class TouchScroller extends Actor
 {
     constructor({
         // The container to watch for pointer events on:
@@ -36,12 +37,12 @@ export default class TouchScroller
         ondragstart = () => { },               ondragend = () => { },
         onanimationstart = () => { },          onanimationfinished = () => { },
 
-        // An AbortSignal to shut down.
-        signal,
+        ...options
     })
     {
+        super(options);
+
         this.root = container;
-        this.shutdownSignal = signal;
         this.options = {
             getPosition,
             setPosition,
@@ -62,14 +63,14 @@ export default class TouchScroller
         this._state = "idle";
 
         // Cancel any running fling if we're shut down while a fling is active.
-        signal.addEventListener("abort", (e) => this.cancelFling(), { once: true });
+        this.shutdownSignal.signal.addEventListener("abort", (e) => this.cancelFling(), { once: true });
 
         this.dragger = new DragHandler({
+            parent: this,
             name: "TouchScroller",
             element: container,
             pinch: true,
             deferDelayMs: 30,
-            signal,
 
             confirmDrag: ({event}) => !helpers.shouldIgnoreHorizontalDrag(event),
             ondragstart: (...args) => this._ondragstart(...args),

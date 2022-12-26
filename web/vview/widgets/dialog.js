@@ -157,6 +157,7 @@ export default class DialogWidget extends Widget
             }[dragDirection];
 
             this._dialogDragger = new WidgetDragger({
+                parent: this,
                 name: "close-dialog",
                 nodes: this.root,
                 dragNode: this.root,

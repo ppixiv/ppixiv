@@ -3,10 +3,11 @@ import Bezier2D from 'vview/util/bezier.js';
 import FlingVelocity from 'vview/util/fling-velocity.js';
 import DragHandler from 'vview/misc/drag-handler.js';
 import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
+import Actor from 'vview/actors/actor.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 // A simpler interface for allowing a widget to be dragged open or closed.
-export default class WidgetDragger
+export default class WidgetDragger extends Actor
 {
     constructor({
         name="widget-dragger", // for diagnostics
@@ -60,8 +61,12 @@ export default class WidgetDragger
 
         startOffset=0,
         endOffset=1,
+
+        ...options
     }={})
     {
+        super(options);
+
         this._visible = visible;
         this.nodes = nodes;
         this.onactive = onactive;                      this.oninactive = oninactive;
@@ -98,6 +103,7 @@ export default class WidgetDragger
 
         // Create the animation.
         this._dragAnimation = new PropertyAnimation({
+            parent: this,
             node: this.nodes,
             property: this.animatedProperty,
             propertyStart,
@@ -131,6 +137,7 @@ export default class WidgetDragger
         this._dragAnimation.position = visible? 1:0;
 
         this.dragger = new DragHandler({
+            parent: this,
             name,
             element: dragNode,
             oncancelled,
@@ -446,11 +453,5 @@ export default class WidgetDragger
     get finished()
     {
         return this._animationPromise;
-    }
-
-
-    shutdown()
-    {
-        this._dragAnimation.shutdown();
     }
 }

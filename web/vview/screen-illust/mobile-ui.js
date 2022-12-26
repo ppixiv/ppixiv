@@ -41,6 +41,7 @@ export default class MobileImageUI extends Widget
         });
         
         this.dragger = new WidgetDragger({
+            parent: this,
             name: "menu-dragger",
             // Put the --menu-bar-pos property up high, since the video UI also uses it.
             nodes: [this.transitionTarget],

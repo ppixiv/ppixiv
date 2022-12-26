@@ -7,9 +7,10 @@
 // many quirks to bother with for this.
 
 import Bezier2D from 'vview/util/bezier.js';
+import Actor from 'vview/actors/actor.js';
 import { helpers } from 'vview/misc/helpers.js';
 
-export default class PropertyAnimation
+export default class PropertyAnimation extends Actor
 {
     constructor({
         // The node containing the property to animate.  This can be an array of multiple nodes,
@@ -27,8 +28,12 @@ export default class PropertyAnimation
 
         // This is called when this.position changes, including during animations.
         onchange=() => { },
+
+        ...options
     }={})
     {
+        super({...options});
+
         if(!(node instanceof Array))
             node = [node];
         this.node = node;
@@ -43,6 +48,7 @@ export default class PropertyAnimation
     shutdown()
     {
         this.stop();
+        super.shutdown();
     }
 
     // When not animating, return the current offset.

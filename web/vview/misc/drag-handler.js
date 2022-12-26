@@ -2,10 +2,11 @@
 //
 // This currently handles simple single-touch drags.  It doesn't handle multitouch, so it's not
 // used by TouchScroller.
-import { helpers } from 'vview/misc/helpers.js';
+import Actor from 'vview/actors/actor.js';
 import TouchListener from 'vview/actors/touch-listener.js';
+import { helpers } from 'vview/misc/helpers.js';
 
-export default class DragHandler
+export default class DragHandler extends Actor
 {
     constructor({
         name="unnamed", // for diagnostics
@@ -45,8 +46,12 @@ export default class DragHandler
         // pointer movements.  We'll ignore the drag if we see movement before this, and start the
         // drag as soon as this period elapses.
         deferDelayMs=null,
+
+        ...options
     }={})
     {
+        super(options);
+
         this.name = name;
         this.element = element;
         this.pointers = new Map();

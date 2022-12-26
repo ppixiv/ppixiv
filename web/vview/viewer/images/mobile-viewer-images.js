@@ -21,7 +21,7 @@ export default class ViewerImagesMobile extends ViewerImages
         });
     
         this._touchScroller = new TouchScroller({
-            ...this._signal,
+            parent: this,
             container: this.root,
 
             onactive: () => {
