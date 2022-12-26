@@ -62,14 +62,6 @@ export default class MobileImageUI extends Widget
                 // Prevent IsolatedTapHandler, so it doesn't trigger from this press and reopen us.
                 IsolatedTapHandler.preventTaps();
             },
-            confirmDrag: ({event}) => {
-                // If this is a drag up and we're closed, ignore the drag, since it should be handled
-                // by ScreenIllustDragToExit instead.
-                if(event.movementY < 0 && this.dragger.position == 0)
-                    return false;
-
-                return true;
-            },
             onbeforeshown: () => this.visibilityChanged(),
             onafterhidden: () => this.visibilityChanged(),
             onactive: () => this.visibilityChanged(),

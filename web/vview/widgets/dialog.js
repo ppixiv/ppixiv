@@ -167,15 +167,9 @@ export default class DialogWidget extends Widget
                 direction: dragDirection,
                 onafterhidden: () => this.visibilityChanged(),
 
-                // Ignore vertical drags.
-                confirmDrag: ({event}) => {
-                    if(!this.drag_to_exit)
-                        return false;
-
-                    let horizontal = Math.abs(event.movementX) > Math.abs(event.movementY);
-                    let wantHorizontal = dragDirection == "left" || dragDirection == "right";
-                    return horizontal == wantHorizontal;
-                },
+                // This is still used for transitions even if it's not used for drags, but only
+                // allow dragging if dragToExit is true
+                confirmDrag: ({event}) => this.dragToExit,
 
                 // Set dragging while dragging the dialog to disable the scroller.
                 onactive: () => this.root.classList.add("dragging-dialog"),
@@ -187,8 +181,8 @@ export default class DialogWidget extends Widget
 
         // By default, dialogs with vertical or horizontal animations are also draggable.  Only
         // animated dialogs can drag to exit.
-        // this.drag_to_exit = this._dialogDragger != null && this.animation != "fade";
-        this.drag_to_exit = true;
+        // this.dragToExit = this._dialogDragger != null && this.animation != "fade";
+        this.dragToExit = true;
 
         // If we're not the first dialog on the stack, make the previous dialog inert, so it'll ignore inputs.
         let oldTopDialog = DialogWidget.topDialog;

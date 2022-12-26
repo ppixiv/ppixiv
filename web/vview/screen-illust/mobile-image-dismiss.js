@@ -29,14 +29,9 @@ export default class MobileImageDismiss extends Actor
                 return ppixiv.settings.get("animations_enabled")? 250:0;
             },
             size: 500,
-            confirmDrag: ({event}) => {
-                // Don't do anything if the screen isn't active.
-                if(!this.parent._active || !ppixiv.mobile)
-                    return false;
 
-                return Math.abs(event.movementY) > Math.abs(event.movementX);
-            },
-
+            // Don't do anything if the screen isn't active.
+            confirmDrag: ({event}) => this.parent._active && ppixiv.mobile,
             onactive: () => {
                 // Close the menu bar if it's open when a drag starts.
                 if(this.parent.mobileIllustUi)

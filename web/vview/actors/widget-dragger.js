@@ -142,13 +142,30 @@ export default class WidgetDragger extends Actor
             element: dragNode,
             oncancelled,
 
-            ondragstart: (args) => {
+            ondragstart: ({event}) => {
                 // If this is a horizontal dragger, see if we should ignore this drag because
                 // it might trigger iOS navigation.
-                if(!vertical && helpers.shouldIgnoreHorizontalDrag(args.event))
+                if(!vertical && helpers.shouldIgnoreHorizontalDrag(event))
                     return false;
-                
-                if(!this.confirmDrag(args))
+
+                // Only accept this drag if the axis of the drag matches ours.
+                let dragIsVertical = Math.abs(event.movementY) > Math.abs(event.movementX);
+                if(vertical != dragIsVertical)
+                    return false;
+
+                let movement = vertical? event.movementY:event.movementX;
+                if(reversed)
+                    movement *= -1;
+
+                // If the drag has nowhere to go in this direction, don't accept it, so other draggers
+                // see it instead.
+                let towardsShown = movement > 0;
+                if(towardsShown && this.position == 1)
+                    return false;
+                if(!towardsShown && this.position == 0)
+                    return false;
+
+                if(!this.confirmDrag({event}))
                     return false;
 
                 // Stop any running animation.
