@@ -12,7 +12,7 @@ export default class WidgetDragger
         name="widget-dragger", // for diagnostics
 
         // The node that will be animated by the drag.
-        node,
+        nodes,
 
         // The node to listen for drags on:
         dragNode,
@@ -63,7 +63,7 @@ export default class WidgetDragger
     }={})
     {
         this._visible = visible;
-        this.nodes = node;
+        this.nodes = nodes;
         this.onactive = onactive;                      this.oninactive = oninactive;
         this.ondragstart = ondragstart;                this.ondragend = ondragend;
         this.onanimationstart = onanimationstart;      this.onanimationfinished = onanimationfinished;

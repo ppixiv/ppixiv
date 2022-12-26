@@ -10,7 +10,7 @@ export default class MobileImageDismiss
 
         this.dragger = new WidgetDragger({
             name: "drag-to-exit",
-            node: [
+            nodes: [
                 this.parent.root,
                 this.parent.querySelector(".fade-search"),
             ],
