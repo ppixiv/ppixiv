@@ -475,9 +475,17 @@ export class SettingsDialog extends DialogWidget
         return pageButton;
     }
 
-    showPage(name)
+    showPage(settingsPage)
     {
-        if(this._visiblePageName == name)
+        // If we're on a phone, create a dialog to show the page.
+        if(this.phone)
+        {
+            this._hideAndShowPageDialog(settingsPage);
+            return;
+        }
+
+        // Create the page in our items container.        
+        if(this._visiblePageName == settingsPage)
             return;
 
         // Remove the widget page or dialog if it still exists.
@@ -485,29 +493,42 @@ export class SettingsDialog extends DialogWidget
             this._pageWidget.shutdown();
         console.assert(this._pageWidget == null);
 
-        this._visiblePageName = name;
+        this._visiblePageName = settingsPage;
 
-        if(name != null)
-        {
-            this._pageWidget = this._createPage(name);
-            helpers.html.setClass(this._pageButtons[name], "selected", true);
-            if(!this.phone)
-                this.header = pageTitles[name];
+        if(settingsPage == null)
+            return;
 
-            this._pageWidget.shutdownSignal.signal.addEventListener("abort", () => {
-                this._pageWidget = null;
-                helpers.html.setClass(this._pageButtons[name], "selected", false);
-            });
-        }
+        this._pageWidget = this._createPage(settingsPage);
+        helpers.html.setClass(this._pageButtons[settingsPage], "selected", true);
+        if(!this.phone)
+            this.header = pageTitles[settingsPage];
+
+        this._pageWidget.shutdownSignal.signal.addEventListener("abort", () => {
+            this._pageWidget = null;
+            helpers.html.setClass(this._pageButtons[settingsPage], "selected", false);
+        });
+    }
+
+    // Hide ourself and show a settings page in a dialog.  When the page closes, open
+    // ourselves again.
+    async _hideAndShowPageDialog(settingsPage)
+    {
+        this.visible = false;
+
+        // If this triggered a transition, wait for it to finish.  Overlapping the opening
+        // and closing would be fine, but it's hard to overlap them the other way when the
+        // page is closing, and it looks better to have the transition look the same both
+        // ways.
+        await this.visibilityChangePromise();
+
+        let dialog = new SettingsPageDialog({ settingsPage });
+        dialog.shutdownSignal.signal.addEventListener("abort", () => {
+            new SettingsDialog();
+        });
     }
 
     _createPage(settingsPage)
     {
-        // If we're on a phone, create a dialog to show the page.  Otherwise, create the page in our
-        // items container.
-        if(this.phone)
-            return new SettingsPageDialog({ settingsPage });
-
         let pageWidget = new Widget({
             container: this.root.querySelector(".items"),
             template: `

@@ -456,7 +456,7 @@ class MoreOptionsDialog extends DialogWidget
 {
     constructor({template, mediaId, ...options})
     {
-        super({...options, dialogType: "small", header: "More", classes: ['mobile-illust-ui-dialog'], template: `
+        super({...options, header: "More", classes: ['mobile-illust-ui-dialog'], template: `
             <div class=box>
             </div>
         `});

@@ -303,7 +303,7 @@ export class MutedTagsForPostDialog extends DialogWidget
         userId,
         ...options})
     {
-        super({...options, classes: "muted-tags-popup", header: "Edit mutes", dialogType: "small", template: `
+        super({...options, classes: "muted-tags-popup", header: "Edit mutes", template: `
             <div style="display: flex; align-items: center;">
                 <span class=non-premium-mute-warning>
                     ${ helpers.createBoxLink({label: "Note",      icon: "warning",  classes: ["mute-warning-button", "clickable"] }) }

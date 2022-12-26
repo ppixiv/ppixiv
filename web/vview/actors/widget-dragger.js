@@ -82,6 +82,7 @@ export default class WidgetDragger extends Actor
         this.startOffset = startOffset;
         this.endOffset = endOffset;
         this._state = "idle";
+        this._runningNonInterruptibleAnimation = false;
 
         if(!(this.duration instanceof Function))
             this.duration = () => duration;
@@ -165,6 +166,12 @@ export default class WidgetDragger extends Actor
                 if(!towardsShown && this.position == 0)
                     return false;
 
+                if(this._runningNonInterruptibleAnimation)
+                {
+                    console.log("Not dragging because a non-interruptible animation is in progress");
+                    return false;
+                }
+
                 if(!this.confirmDrag({event}))
                     return false;
 
@@ -187,6 +194,12 @@ export default class WidgetDragger extends Actor
             },
 
             ondrag: ({event, first}) => {
+                if(this._runningNonInterruptibleAnimation)
+                {
+                    console.log("Not dragging because a non-interruptible animation is in progress");
+                    return false;
+                }
+
                 // If we're animating, show() or hide() was called during a drag.  This doesn't stop
                 // the drag, but we're in the animating state while this happens.  Since we saw another
                 // drag movement, cancel the animation and return to dragging.
@@ -309,19 +322,28 @@ export default class WidgetDragger extends Actor
     // drag will be cancelled if the animation completes.
     //
     // If transition is false, jump to the new state without animating.
-    show({ easing=null, transition=true }={})
+    //
+    // If interruptible is true, this animation can be stopped by the user dragging it.  If false,
+    // drags will be ignored and the animation will always complete.
+    show({ easing=null, transition=true, interruptible=true }={})
     {
-        this._animateTo({endPosition: 1, easing, transition});
+        this._animateTo({endPosition: 1, easing, transition, interruptible});
     }
 
     // Animate to the completely hidden state.  If given, velocity is the drag speed that caused this.
-    hide({ easing=null, transition=true }={})
+    hide({ easing=null, transition=true, interruptible=true }={})
     {
-        this._animateTo({endPosition: 0, easing, transition});
+        this._animateTo({endPosition: 0, easing, transition, interruptible});
     }
 
-    _animateTo({ endPosition, easing=null, transition=true }={})
+    _animateTo({ endPosition, easing=null, transition=true, interruptible=true }={})
     {
+        if(this._runningNonInterruptibleAnimation)
+        {
+            console.log("Not running animation because a non-interruptible one is already in progress");
+            return;
+        }
+
         // If we don't want a transition, stop any animation and just jump to this position.
         if(!transition)
         {
@@ -336,6 +358,9 @@ export default class WidgetDragger extends Actor
         if(this._state == "idle" && this._dragAnimation.position == endPosition)
             return;
     
+        // Remember if the animation is interruptible.
+        this._runningNonInterruptibleAnimation = !interruptible;
+
         // If we're already animating towards this position, just let it continue.
         if(this._state == "animating" && this._dragAnimation.animatingTowards == endPosition)
             return;
@@ -366,7 +391,10 @@ export default class WidgetDragger extends Actor
         let promise = this._animationPromise = this._dragAnimation.play({endPosition, easing, duration});
         this._animationPromise.then(() => {
             if(promise == this._animationPromise)
+            {
                 this._animationPromise = null;
+                this._runningNonInterruptibleAnimation = false;
+            }
         });
 
         // Call this after starting the animation, so isAnimationPlaying and isAnimatingToShown

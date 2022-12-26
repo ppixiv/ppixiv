@@ -2798,10 +2798,6 @@ svg.heart-image .delete {
     // we're treating the device as a phone.
     $type: "normal",
 
-    // Most dialogs default to dragging horizontally to dismiss, so the drag doesn't conflict
-    // with vertical scrollers, so default to scrolling horizontally too.
-    $animation: "horizontal",
-
     // If true, darken the background more than default.  This is used for dialogs like settings
     // which have more brightness variation and darkening the background more is useful for
     // readability.
@@ -2814,7 +2810,6 @@ svg.heart-image .delete {
     z-index: 1000;
     inset: 0;
     overscroll-behavior: contain;
-    opacity: var(--dialog-visible);
 
     // On iOS, push the dialog out vertically by one pixel to work around Safari compositing bugs
     // that leave a row of pixels not covered properly.
@@ -2826,37 +2821,32 @@ svg.heart-image .delete {
     --dialog-visible: 1;
 
     // We've set padding for the absolute maximum dialog size.  If the dialog decides to be
-    // smaller, center it in both dimensions.
+    // smaller, floating dialogs are centered vertically and regular dialogs are bottom-aligned.
     display: flex;
-    align-items: center;
+    align-items: flex-end;
+    &.floating {
+        align-items: center;
+    }
     justify-content: center;
 
-    // --dialog-backdrop-color is the color around the dialog to dim what's underneath it.
-    // --dialog-bg-color is the background of the dialog itself.  In fullscreen, put the dialog
+    // --dialog-backdrop-alpha is the color around the dialog to dim what's underneath it.
+    // --dialog-bg-alpha is the background of the dialog itself.  In fullscreen, put the dialog
     // background on the container, so we can transition it separately from the dialog animation.
-    // Note that these overlap, and --dialog-bg-color will be applied on top of --dialog-backdrop-color.
-    --dialog-backdrop-color: rgba(0,0,0,0.5);
-
+    // Note that these overlap, and --dialog-bg-alpha will be applied on top of --dialog-backdrop-alpha.
     @if $dark {
         // total brightness .125: (1-0.5) * (1-0.75)
-        --dialog-bg-color: rgba(0,0,0,0.75);
-
-        &.fullscreen {
-            --dialog-backdrop-color: rgba(0,0,0,0.875);
-            --dialog-bg-color: rgba(0,0,0,0);
-        }
+        --dialog-bg-alpha: 0.75;
+        --dialog-backdrop-alpha: 0.5;
     }
     @else
     {
         // total brightness .25: (1-0.5) * (1-0.5)
-        --dialog-bg-color: rgba(0,0,0,0.5);
-
-        &.fullscreen {
-            --dialog-backdrop-color: rgba(0,0,0,0.75);
-            --dialog-bg-color: rgba(0,0,0,0);
-        }
+        --dialog-bg-alpha: 0.5;
+        --dialog-backdrop-alpha: 0.5;
     }
-    background-color: var(--dialog-backdrop-color);
+
+    --dialog-bg-color: rgba(0,0,0, var(--dialog-bg-alpha));
+    background-color: rgba(0,0,0, #{scale_clamp_value(var(--dialog-visible), 0, 1, 0, var(--dialog-backdrop-alpha))});
 
     // We increase the global font size on mobile, but it's too much for dialogs.  Set it to
     // a smaller multiplier.
@@ -2875,7 +2865,7 @@ svg.heart-image .delete {
     --edge-padding-outer-vert: 20px;
 
     // If this is a floating dialog, also apply edge padding inside the dialog.
-    &:not(.fullscreen)
+    &.floating
     {
         // Most of the time, the safe area is in the outer padding.
         --dialog-outer-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding-outer-horiz)));
@@ -2887,18 +2877,38 @@ svg.heart-image .delete {
         --dialog-inner-padding-right: var(--edge-padding-inner-horiz);
         --dialog-inner-padding-top: var(--edge-padding-inner-vert);
         --dialog-inner-padding-bottom: var(--edge-padding-inner-vert);
+
+        // Floating dialogs fade in and out, since they don't pan all the way offscreen.
+        .dialog {
+            opacity: scale_clamp_value(var(--dialog-visible), 0, 1, 0, 1);
+        }
     }
 
-    &.fullscreen
+    &:not(.floating)
     {
         --edge-padding-horiz: 20px;
         --edge-padding-vert: 20px;
+        --dialog-extra-top-padding: 2vh;
 
-        // Fullscreen dialogs only have inner padding.
+        // For fullscreen dialogs, leave a small amount of padding at the top to indicate that this
+        // can be dragged down to close, and include the top inset in this padding.  The rest of the
+        // dialog is flush against the edge of the screen, so put the rest of the padding in the
+        // inner padding.
+        --dialog-outer-padding-left: 0px;
+        --dialog-outer-padding-right: 0px;
+        --dialog-outer-padding-top: calc(env(safe-area-inset-top) + var(--dialog-extra-top-padding));
+        --dialog-outer-padding-bottom: 0px;
+
         --dialog-inner-padding-left: calc(max(env(safe-area-inset-left), var(--edge-padding-inner-horiz)));
         --dialog-inner-padding-right: calc(max(env(safe-area-inset-right), var(--edge-padding-inner-horiz)));
-        --dialog-inner-padding-top: calc(max(env(safe-area-inset-top), var(--edge-padding-inner-vert)));
+        --dialog-inner-padding-top: var(--edge-padding-inner-vert);
         --dialog-inner-padding-bottom: calc(max(var(--fixed-safe-area-inset-bottom), var(--edge-padding-inner-vert)));
+
+        // Round the top of fullscreen dialogs.
+        .dialog {
+            border-radius: 25px 25px 0 0;
+            overflow: hidden;
+        }
     }
 
     // There are two places we can put padding: inside the dialog itself (--dialog-inner-padding),
@@ -2913,12 +2923,8 @@ svg.heart-image .delete {
     > .dialog {
         padding: var(--dialog-inner-padding-top) var(--dialog-inner-padding-right) var(--dialog-inner-padding-bottom) var(--dialog-inner-padding-left);
 
-        @if $animation == "horizontal" {
-            transform: translateX(calc((1 - var(--dialog-visible)) * 100px));
-        }
-        @if $animation == "vertical" {
-            transform: translateY(calc((1 - var(--dialog-visible)) * 100px));
-        }
+        //--dialog-transform-distance
+        transform: translateY(#{scale_value(var(--dialog-visible), 0, 1, 100%, 0%)});
 
         // .dialog > .scroll is for optional scrolling content.  Dialogs with fixed content
         // don't need to use this.
@@ -2926,6 +2932,7 @@ svg.heart-image .delete {
         {
             overflow-x: hidden;
             overflow-y: auto;
+            overflow-y: overlay;
             touch-action: pan-y;
 
             // .dialog has the inner padding for everything inside the dialog, but if we have
@@ -2948,13 +2955,15 @@ svg.heart-image .delete {
     // For floating dialogs, set a maximum width so they aren't too wide on wide screens, a
     // minimum width so layout doesn't break if the window is tiny, and cap the size at 90%
     // of the window.
-    &:not(.fullscreen) .dialog {
+    &.floating .dialog {
         min-width: 20em;
         max-width: min(45em, 90vw);
 
         // The dialog scales vertically to fill its content, but on desktop, don't go beyond
         // 90% of the window height so we leave some space on the top and bottom.
         max-height: 90vh;
+
+        border-radius: 5px;
     }
 
     &.small .dialog {
@@ -2963,9 +2972,8 @@ svg.heart-image .delete {
         max-width: 45em;
     }
 
-    // The dialog itself sizes to its content, but if it's fullscreen, clamp it to 100%.
-    &.fullscreen .dialog {
-        height: 100%;
+    // Fullscreen dialogs flex to their height up to the maximum, and stretch to fill horizontally.
+    &:not(.floating) .dialog {
         width: 100%;
     }
 
@@ -2977,9 +2985,6 @@ svg.heart-image .delete {
         position: relative;
         display: flex;
         flex-direction: column;
-    }
-    &:not(.fullscreen) .dialog {
-        border-radius: 5px;
     }
 
     &.dragging-dialog {
@@ -3050,7 +3055,7 @@ svg.heart-image .delete {
 }
 
 .dialog-small {
-    @include general-dialog($type: "small", $animation: "vertical");
+    @include general-dialog($type: "small");
 }
 
 // A dialog that just contains a single button:
@@ -3153,7 +3158,7 @@ svg.heart-image .delete {
 
 .text-entry-popup
 {
-    @include general-dialog($type: "small", $animation: "vertical");
+    @include general-dialog($type: "small");
 
     .header {
         font-size: 20px;
@@ -3189,7 +3194,7 @@ svg.heart-image .delete {
 
 .confirm-dialog
 {
-    @include general-dialog($type: "small", $animation: "vertical");
+    @include general-dialog($type: "small");
 
     .scroll {
         display: flex;
@@ -3601,9 +3606,9 @@ svg.heart-image .delete {
     }
 }
 
-@mixin settings-dialog($animation: "vertical")
+@mixin settings-dialog()
 {
-    @include general-dialog($animation: $animation, $dark: true);
+    @include general-dialog($dark: true);
 
     // Set the font size.  This ignores the font size multiplier we use for the rest
     // of the UI on mobile, which is much too big for settings, and is slightly larger
@@ -3613,7 +3618,7 @@ svg.heart-image .delete {
     // Try to set a fixed minimum size, so the dialog doesn't resize when the page is
     // changed, but allow it to go lower if the screen is very small.  Don't do this
     // if the dialog is fullscreen.
-    &:not(.fullscreen) .dialog {
+    &.floating .dialog {
         min-height: calc(min(30em, 100%));
         width: 100%; // use the maximum
     }
@@ -3729,13 +3734,19 @@ svg.heart-image .delete {
 
 .settings-dialog
 {
-    @include settings-dialog($animation: "horizontal");
+    @include settings-dialog();
 
     html.mobile & {
         // Space out the top-level page a bit more on mobile, and flex so the whole column
         // is clickable and not just the text.
         .sections {
             gap: 0.5em;
+        }
+
+        // If we're not floating, the section list is being displayed on its own.  Flex it
+        // so the whole column is clickable and not just the text.  Don't do this in the
+        // split section/page view since it makes the labels bigger.
+        &:not(.floating) .sections {
             flex: 1;
         }
     }
@@ -3753,12 +3764,12 @@ svg.heart-image .delete {
 
 .settings-dialog-page
 {
-    @include settings-dialog($animation: "horizontal");
+    @include settings-dialog();
 }
 
 .edit-search-dialog
 {
-    @include general-dialog($animation: "horizontal");
+    @include general-dialog();
 
     .scroll {
         display: flex;
@@ -3781,7 +3792,6 @@ svg.heart-image .delete {
     display: flex;
     flex-direction: column;
     gap: 0.5em;
-    max-height: 440px;
     overflow-y: auto;
 }
 

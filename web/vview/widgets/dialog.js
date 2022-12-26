@@ -84,21 +84,12 @@ export default class DialogWidget extends Widget
         // If true, the close button shows a back icon instead of an X.
         backIcon=false,
 
-        // The drag direction to close the dialog if the dialog can be dragged to close.
-        dragDirection=null,
-
         template,
         ...options
     })
     {
         if(small == null)
             small = dialogType == "small";
-
-        // By default, regular dialogs scroll and drag right, so they don't conflict with vertical
-        // scrollers.  Small dialogs currently drag down, since animating a small dialog like a
-        // text entry horizontally looks weird.
-        if(dragDirection == null)
-            dragDirection = small? "down":"right";
 
         // Most dialogs are added to the body element.
         if(container == null)
@@ -118,7 +109,7 @@ export default class DialogWidget extends Widget
                     <div class="dialog ${classes ?? ""}">
                         <div class=header>
                             <div class="close-button-container">
-                                <div class="close-button icon-button">
+                                <div class="close-button icon-button" data-hidden-on=mobile>
                                     ${ helpers.createIcon(closeIcon) }
                                 </div>
                             </div>
@@ -143,33 +134,59 @@ export default class DialogWidget extends Widget
         this.small = small;
         helpers.html.setClass(this.root, "small", this.small);
         helpers.html.setClass(this.root, "large", !this.small);
+        this.dragToExit = true;
 
-        this.refreshFullscreen();
-        window.addEventListener("resize", this.refreshFullscreen, { signal: this.shutdownSignal.signal });
+        this.refreshDialogMode();
+        window.addEventListener("resize", () => this.refreshDialogMode(), this._signal);
 
         // Create the dragger that will control animations.  Animations are only used on mobile.
         if(ppixiv.mobile)
         {
-            // dragDirection is the direction to close.  We're giving it to WidgetDragger,
-            // which takes the direction ti open, so reverse it.
-            dragDirection = {
-                down: "up", up: "down", left: "right", right: "left",
-            }[dragDirection];
-
             this._dialogDragger = new WidgetDragger({
                 parent: this,
                 name: "close-dialog",
                 nodes: this.root,
                 dragNode: this.root,
                 visible: false,
-                size: 150,
+                duration: 200,
                 animatedProperty: "--dialog-visible",
-                direction: dragDirection,
+                direction: "up", // up opens, down closes
                 onafterhidden: () => this.visibilityChanged(),
 
-                // This is still used for transitions even if it's not used for drags, but only
-                // allow dragging if dragToExit is true
-                confirmDrag: ({event}) => this.dragToExit,
+                confirmDrag: ({event}) => {
+                    // This is still used for transitions even if it's not used for drags, but only
+                    // allow dragging if dragToExit is true.
+                    if(!this.dragToExit)
+                        return false;
+
+                    // If this dialog closes by dragging down, only begin the drag if the scroller
+                    // is already scrolled to the top.  Otherwise, allow the scroller to scroll.
+                    //
+                    // On iOS, don't scroll if we're overscrolled past the top, to roughly match the
+                    // native behavior.  We use a small threshold here so we do start if we're just
+                    // slightly past it (this also roughly matches native).
+                    //
+                    // If the drag touch is outside the scroller, such as on the title, always allow
+                    // the drag to start.
+                    let scroll = this.querySelector(".scroll");
+                    if(helpers.html.isAbove(scroll, event.target))
+                    {
+                        // We're overscrolled if scrollTop is negative.  Give a bit of leeway, so
+                        // we can scroll to hide even if there's a bit of scrolling.
+                        if(scroll.scrollTop > 0 || scroll.scrollTop < -25)
+                            return false;
+                    }
+
+                    return true;
+                },
+
+                // The drag size and the transition should have the same distance, so drags are synchronized.
+                // The drag distance is controlled by the dialog transform and transforms by 100% of the height,
+                // which this matches.  The two can be out of sync briefly if the dialog refreshes and changes
+                // its contents.
+                size: () => {
+                    return this.querySelector(".dialog").getBoundingClientRect().height;
+                },
 
                 // Set dragging while dragging the dialog to disable the scroller.
                 onactive: () => this.root.classList.add("dragging-dialog"),
@@ -178,11 +195,6 @@ export default class DialogWidget extends Widget
         
             this._dialogDragger.show();
         }
-
-        // By default, dialogs with vertical or horizontal animations are also draggable.  Only
-        // animated dialogs can drag to exit.
-        // this.dragToExit = this._dialogDragger != null && this.animation != "fade";
-        this.dragToExit = true;
 
         // If we're not the first dialog on the stack, make the previous dialog inert, so it'll ignore inputs.
         let oldTopDialog = DialogWidget.topDialog;
@@ -246,9 +258,9 @@ export default class DialogWidget extends Widget
         this.root.querySelector(".header-text").textContent = value ?? "";
     }
 
-    refreshFullscreen = () =>
+    refreshDialogMode()
     {
-        helpers.html.setClass(this.root, "fullscreen", helpers.other.isPhone() && !this.small);
+        helpers.html.setClass(this.root, "floating", !helpers.other.isPhone() || this.small);
     }
 
     visibilityChanged()
@@ -310,8 +322,15 @@ export default class DialogWidget extends Widget
         }
 
         // We're being hidden and we have an animation.  Tell the dragger to run our hide
-        // animation.  We'll shut down when it finishes.
-        this._dialogDragger.hide();
+        // animation.  We'll shut down when it finishes.  Make this animation uninterruptible,
+        // so it can't be interrupted by dragging.
+        this._dialogDragger.hide({interruptible: false});
+    }
+
+    // If a dragger animation is running, return its completion promise.
+    visibilityChangePromise()
+    {
+        return this._dialogDragger.finished;
     }
 
     // Calling shutdown() directly will remove the dialog immediately.  To remove it and allow
