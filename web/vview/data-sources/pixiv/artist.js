@@ -10,6 +10,7 @@
 import DataSource, { PaginateMediaIds, TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
+import * as InfoLinks from 'vview/data-sources/info-links.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import { helpers } from 'vview/misc/helpers.js';
@@ -137,8 +138,10 @@ export default class DataSources_Artist extends DataSource
         }
     }
     
-    addExtraLinks(links)
+    _getInfoLinks()
     {
+        let links = InfoLinks.getInfoLinksForUser({userInfo: this.userInfo});
+
         // Add the Fanbox link to the list if we have one.
         if(this.fanboxUrl)
             links.push({url: this.fanboxUrl, label: "Fanbox"});
@@ -153,6 +156,8 @@ export default class DataSources_Artist extends DataSource
                 label: "Accepting requests",
             });
         }
+
+        return links;
     }
 
     async loadAllResults()

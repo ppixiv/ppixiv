@@ -12,6 +12,7 @@
 // and has no way to just view all bookmarks.
 import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
+import * as InfoLinks from 'vview/data-sources/info-links.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -284,6 +285,14 @@ export class DataSource_BookmarksBase extends DataSource
         return {
             userId: this.viewingOwnBookmarks()? null:this.viewingUserId,
         }
+    }
+
+    _getInfoLinks()
+    {
+        if(this.viewingOwnBookmarks())
+            return [];
+
+        return InfoLinks.getInfoLinksForUser({userInfo: this.userInfo});
     }
 
     get viewingUserId()

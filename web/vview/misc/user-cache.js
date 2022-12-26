@@ -66,9 +66,23 @@ export default class UserCache extends EventTarget
         return await this._getUserInfo(userId, false);
     }
 
-    getUserInfoSync(userId)
+    // Return user info for userId if it's already cached, otherwise return null.
+    //
+    // If afterLoad is given and the user info isn't available, load the user in the background.
+    // If user info can be loaded, call afterLoad() when the load completes.
+    getUserInfoSync(userId, { afterLoad=null }={})
     {
-        return this._userData[userId];
+        if(this._userData[userId])
+            return this._userData[userId];
+        
+        if(afterLoad == null)
+            return null;
+        
+        this.getUserInfo(userId).then((userInfo) => {
+            if(userInfo)
+                afterLoad(userInfo);
+        });
+        return null;
     }
 
     // Load userId if needed.

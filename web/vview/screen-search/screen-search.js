@@ -309,7 +309,7 @@ export default class ScreenSearch extends Screen
         if(this.desktopSearchUi == null)
             return;
 
-        this.desktopSearchUi.userInfoLinks.setUserIdAndDataSource({userId: this.viewingUserId, dataSource: this.dataSource});
+        this.desktopSearchUi.userInfoLinks.setDataSource(this.dataSource);
     }
     
     get canShowLocalNavigation()
