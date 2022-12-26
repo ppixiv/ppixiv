@@ -133,6 +133,17 @@ export default class ScrollListener extends Actor
         else if(newScrollTop >= this._scroller.scrollHeight - 1)
             scrolledForwards = true;
 
+        if(!ppixiv.ios)
+        {
+            // If we're at the very top or very bottom, the user can't scroll any further to reach
+            // the threshold, so force the direction to up or down.  This isn't needed on iOS, since
+            // overscroll means we can always scroll.
+            if(newScrollTop == 0)
+                scrolledForwards = false;
+            else if(newScrollTop >= this._scroller.scrollHeight - 1)
+                scrolledForwards = true;
+        }
+
         if(this._stickyUiNode)
         {
             if(newScrollTop < this._stickyUiNode.offsetHeight)
