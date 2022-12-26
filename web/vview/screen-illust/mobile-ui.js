@@ -48,7 +48,7 @@ export default class MobileImageUI extends Widget
             dragNode: this.root.parentNode,
             size: () => 150,
             animatedProperty: "--menu-bar-pos",
-            direction: "down",
+            direction: "up",
 
             oncancelled: ({otherDragger}) => {
                 if(!this.dragger.visible)

@@ -24,7 +24,7 @@ export default class MobileImageDismiss extends Actor
 
             // We're hidden until setActive makes us visible.
             visible: false,
-            direction: "down", // down to make visible, up to hide
+            direction: "up", // up to make visible, up to down
             duration: () => {
                 return ppixiv.settings.get("animations_enabled")? 250:0;
             },
