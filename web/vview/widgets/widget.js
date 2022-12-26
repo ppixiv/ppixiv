@@ -71,6 +71,7 @@ export default class Widget extends Actor
         }
 
         this.root.classList.add("widget");
+        this.root.dataset.widget = this.className;
         this.root.widget = this;
 
         // visible is the initial visibility.  We can't just set this.visible here, since

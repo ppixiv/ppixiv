@@ -80,6 +80,11 @@ export default class Actor extends EventTarget
             Actor._topActors.push(this);
     }
 
+    get className()
+    {
+        return this.__proto__.constructor.name;
+    }
+
     shutdown()
     {
         if(Actor._debugShutdown && !this._previousShutdownStack)
