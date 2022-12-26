@@ -237,7 +237,7 @@ export default class ContextMenu extends Widget
                 container: a,
                 // position: relative positions the bookmark count.
                 template: `
-                    <div class="button button-bookmark ${a.dataset.bookmarkType}" style="position: relative;">
+                    <div class="button button-bookmark ${a.dataset.bookmarkType}">
                         <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                     </div>
                 `,

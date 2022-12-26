@@ -175,7 +175,7 @@ export default class DesktopImageInfo extends Widget
             this.bookmarkButtons.push(new BookmarkButtonWidget({
                 container: a,
                 template: `
-                    <div class="button icon-button button-bookmark popup ${a.dataset.bookmarkType}" style="position: relative;">
+                    <div class="button icon-button button-bookmark popup ${a.dataset.bookmarkType}">
                         <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                     </div>
                 `,

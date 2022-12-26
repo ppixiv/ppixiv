@@ -2646,23 +2646,25 @@ a.box-link, span.box-link
     }
 }
 
-.button.button-bookmark .count,
-.button.button-like .count
+.button-bookmark, .button-like
 {
-    color: var(--minor-text-fg-color);
+    position: relative;
+    .count {
+        color: var(--minor-text-fg-color);
 
-    text-shadow:
-        0px 1px 1px var(--minor-text-shadow-color),
-        0px -1px 1px var(--minor-text-shadow-color),
-        1px 0px 1px var(--minor-text-shadow-color),
-        -1px 0px 1px var(--minor-text-shadow-color);
-    font-size: .7em;
-    font-weight: bold;
-    position: absolute;
-    top: calc(100% - 14px);
-    left: 0;
-    width: 100%;
-    text-align: center;
+        text-shadow:
+            0px 1px 1px var(--minor-text-shadow-color),
+            0px -1px 1px var(--minor-text-shadow-color),
+            1px 0px 1px var(--minor-text-shadow-color),
+            -1px 0px 1px var(--minor-text-shadow-color);
+        font-size: .7em;
+        font-weight: bold;
+        position: absolute;
+        top: calc(100% - 14px);
+        left: 0;
+        width: 100%;
+        text-align: center;
+    }
 }
 
 /* Nudge the public heart icon up a bit to make room for the bookmark count. 
@@ -3141,10 +3143,10 @@ svg.heart-image .delete {
         -webkit-backdrop-filter: blur(10px);
 
         // Nudge the bookmark icons down a bit, since they're offset vertically.
-        .public-bookmark,
-        .private-bookmark
+        .button-bookmark.public,
+        .button-bookmark.private
         {
-            margin-top: .25em;
+            margin-bottom: -.25em;
         }
     }
 }
