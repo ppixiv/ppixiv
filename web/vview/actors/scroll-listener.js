@@ -77,16 +77,20 @@ export default class ScrollListener extends Actor
         this.reset({callOnchange: false});
     }
 
-    // Reset scrolledForwards to the default and clear scroll history.  onchange will be
-    // called if onchange is true.
-    reset({callOnchange=true}={})
+    // Reset scrolledForwards to the given direction and clear scroll history.  If resetTo is null, use
+    // the default.  onchange will be called if onchange is true.  
+    reset({resetTo=null, callOnchange=true}={})
     {
-        this._scrolledForwards = this._defaultValue;
-        this._lastScrollY = this._scroller.scrollTop;
-        this._lastScrollHeight = this._scroller.scrollHeight;
+        if(resetTo == null)
+            resetTo = this._defaultValue;
 
-        if(callOnchange)
-            this._onchange(this);
+        // Set this direction by simulating a drag in that direction, so we only set the
+        // direction if it would normally be possible.
+        this._motion = resetTo? this._threshold:-this._thresholdUp;
+
+        this._updateScrolledForwards({callOnchange});
+
+        this._motion = 0;
     }
 
     // Return true if the most recent scroll was positive (down or right), or false if it was
@@ -96,7 +100,13 @@ export default class ScrollListener extends Actor
         return this._scrolledForwards;
     }
 
-    _refreshAfterScroll({force=false}={})
+    get _currentScrollPosition()
+    {
+        // Ignore scrolls past the edge, to avoid being confused by iOS's overflow scrolling.
+        return helpers.math.clamp(this._scroller.scrollTop, 0, this._scroller.scrollHeight-this._scroller.offsetHeight);
+    }
+
+    _refreshAfterScroll({force=false, callOnchange=true}={})
     {
         // If scrollHeight changed, content may have been added or removed to the scroller, so
         // we don't know if we've actually been scrolling up or down.  Ignore a single scroll
@@ -108,29 +118,29 @@ export default class ScrollListener extends Actor
             return;
         }
 
-        // If the scroller's scrollHeight changed since the last scroll, ignore 
-        // Ignore scrolls past the edge, to avoid being confused by iOS's overflow scrolling.
-        let newScrollTop = helpers.math.clamp(this._scroller.scrollTop, 0, this._scroller.scrollHeight-this._scroller.offsetHeight);
-        let delta = newScrollTop - this._lastScrollY;
-        this._lastScrollY = newScrollTop;
+        let newScrollPosition = this._currentScrollPosition;
+        let delta = newScrollPosition - this._lastScrollY;
+        this._lastScrollY = newScrollPosition;
 
         // If scrolling changed direction, reset motion.
         if(delta > 0 != this._motion > 0)
             this._motion = 0;
         this._motion += delta;
 
+        this._updateScrolledForwards({callOnchange});
+    }
+
+    // Update this._scrolledForwards after a change to this._motion.
+    _updateScrolledForwards({callOnchange})
+    {
+        let newScrollTop = this._currentScrollPosition;
+
         // If we've moved far enough in either direction, set it as the scrolling direction.
         let scrolledForwards = this._scrolledForwards;
-        if(this._motion < -this._thresholdUp)
-            scrolledForwards = false;
-        else if(Math.abs(this._motion) > this._threshold)
-            scrolledForwards = true;
 
-        // If we're at the very top or very bottom, the user can't scroll any further to reach
-        // the threshold, so force the direction to up or down.
-        if(newScrollTop == 0)
+        if(this._motion <= -this._thresholdUp)
             scrolledForwards = false;
-        else if(newScrollTop >= this._scroller.scrollHeight - 1)
+        else if(Math.abs(this._motion) >= this._threshold)
             scrolledForwards = true;
 
         if(!ppixiv.ios)
@@ -159,7 +169,9 @@ export default class ScrollListener extends Actor
 
         // Update the scroll direction.
         this._scrolledForwards = scrolledForwards;
-        this._onchange(this);
+
+        if(callOnchange)
+            this._onchange(this);
     }
 
     // Return true if we think it's possible to move the scroller, ignoring overscroll.
