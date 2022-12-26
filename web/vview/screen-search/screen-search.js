@@ -7,7 +7,7 @@ import LocalNavigationTreeWidget from 'vview/widgets/folder-tree.js';
 import SearchView from 'vview/screen-search/search-view.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import HoverWithDelay from 'vview/actors/hover-with-delay.js';
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
 
 // The search UI.
 export default class ScreenSearch extends Screen
@@ -103,8 +103,10 @@ export default class ScreenSearch extends Screen
     
             let onchange = () =>
             {
+                // Hide the UI when scrolling down, and also hide the menu bar if a
+                // dialog is open.
                 let shown = !this.scrollListener.scrolledForwards;
-                this.thumbnailUiMobile.visible = shown;
+                this.thumbnailUiMobile.visible = shown && OpenWidgets.singleton.empty;
                 this.titleBarWidget.visible = shown;
             };
             
@@ -115,6 +117,9 @@ export default class ScreenSearch extends Screen
                 onchange,
                 stickyUiNode: this.querySelector(".title-bar"),
             });
+
+            OpenWidgets.singleton.addEventListener("changed", onchange, this._signal);
+
             onchange();
         }
 
