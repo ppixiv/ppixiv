@@ -116,7 +116,7 @@ def handle_client(request):
     path = Path(path)
 
     cache_control = 'public, immutable'
-    if path == Path('startup/bootstrap.js'):
+    if path in (Path('app-startup.js'), Path('startup/bootstrap.js')):
         # Don't cache these.  They're loaded before URL cache busting is available.
         cache_control = 'no-store'
 
