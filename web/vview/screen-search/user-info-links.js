@@ -19,7 +19,7 @@ export default class UserInfoLinks extends Widget
     {
         // If we're viewing ourself (our own bookmarks page), hide this.
         if(userId == ppixiv.pixivInfo.userId)
-        userId = null;
+            userId = null;
 
         // Load info for this user.
         this._showingUserId = userId;
