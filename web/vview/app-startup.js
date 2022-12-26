@@ -109,7 +109,8 @@ class AppStartup
 
         // Run the app.
         console.log("Launching app");
-        let { default: App } = await importer.import("vview/app.js");
+        window.import = importer.import.bind(importer);
+        let { default: App } = await window.import("vview/app.js");
         new App();
     }
 
