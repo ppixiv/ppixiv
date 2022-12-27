@@ -3,6 +3,15 @@ import widget from 'vview/widgets/widget.js';
 
 let updateHistory = [
     {
+        version: 198,
+        text: `
+            Artist links have been moved to the avatar dropdown, and can be accessed directly
+            from the popup menu.
+            <p>
+            "AI-generated" is now displayed as a tag.
+        `,
+    },
+    {
         version: 172,
         text: `
             Added support for AI rankings.
