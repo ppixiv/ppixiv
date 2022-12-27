@@ -45,9 +45,6 @@ export default class DataSource_Illust extends DataSource
         return helpers.mediaId.fromIllustId(illust_id, page);
     }
 
-    // We're always viewing our media ID.
-    getCurrentMediaId(args) { return this.mediaId; }
-
     // Use the artist's page as the view if we're trying to return to a search for this data
     // source.
     get searchUrl()
@@ -58,11 +55,17 @@ export default class DataSource_Illust extends DataSource
             return this.url;
     }
 
+    // this.mediaId is always the first manga page.  This returns the active manga page.
+    getCurrentMediaId(args)
+    {
+        return this.getMediaIdFromUrl(args);
+    }
+
     // We don't return any posts to navigate to, but this can still be called by
     // quick view.
     setCurrentMediaId(mediaId, args)
     {
-        let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
+        let [illustId, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
 
         // Pixiv's inconsistent URLs are annoying.  Figure out where the ID field is.
         // If the first field is a language, it's the third field (/en/artworks/#), otherwise
@@ -71,5 +74,6 @@ export default class DataSource_Illust extends DataSource
         let id_part = parts[1].length == 2? 3:2;
         parts[id_part] = illustId;
         args.path = parts.join("/");
+        args.hash.set("page", page+1);
     }
 }

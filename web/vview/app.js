@@ -457,7 +457,7 @@ export default class App
         // The media ID we're displaying if we're going to ScreenIllust:
         let mediaId = null;
         if(newScreenName == "illust")
-        mediaId = dataSource.getCurrentMediaId(args);
+            mediaId = dataSource.getCurrentMediaId(args);
 
         // If we're entering ScreenSearch, ignore clicks for a while.  See _windowClickCapture.
         if(newScreenName == "search")
