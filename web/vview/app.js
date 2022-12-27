@@ -26,9 +26,10 @@ import * as DataSources from 'vview/data-sources/all.js';
 // This is the main top-level app controller.
 export default class App
 {
-    constructor()
+    constructor({showLoggedOutMessage})
     {
         ppixiv.app = this;
+        this.showLoggedOutMessage = showLoggedOutMessage;
         this.setup();
     }
 

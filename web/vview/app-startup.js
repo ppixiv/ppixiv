@@ -107,11 +107,13 @@ class AppStartup
         if(!await importer.load(modules))
             return;
 
+        let showLoggedOutMessage = this.showLoggedOutMessage.bind(this);
+
         // Run the app.
         console.log("Launching app");
         window.import = importer.import.bind(importer);
         let { default: App } = await window.import("vview/app.js");
-        new App();
+        new App({ showLoggedOutMessage });
     }
 
     // Block until DOMContentLoaded.
