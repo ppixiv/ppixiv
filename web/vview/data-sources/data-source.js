@@ -208,7 +208,7 @@ export default class DataSource extends EventTarget
 
     // If a URL for this data source contains a media ID to view, return it.  Otherwise, return
     // null.
-    getMediaIdFromUrl(args)
+    getUrlMediaId(args)
     {
         // Most data sources for Pixiv store the media ID in the hash, separated into the
         // illust ID and page.
@@ -216,18 +216,64 @@ export default class DataSource extends EventTarget
         if(illustId == null)
             return null;
 
-        let page = this.getPageFromUrl(args);
+        let page = this.getUrlMangaPage(args);
         return helpers.mediaId.fromIllustId(illustId, page);
     }
 
     // If the URL specifies a manga page, return it, otherwise return 0.
-    getPageFromUrl(args)
+    getUrlMangaPage(args)
     {
         if(!args.hash.has("page"))
             return 0;
 
         // Pages are 1-based in URLs, but 0-based internally.
         return parseInt(args.hash.get("page"))-1;
+    }
+
+    // Set args to include the media ID being viewed.  This is usually a media ID that the
+    // data source returned.
+    setUrlMediaId(mediaId, args)
+    {
+        console.error("set media id", mediaId);
+
+        let [illustId, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
+        if(this.supportsStartPage)
+        {
+            // Store the page the illustration is on in the hash, so if the page is reloaded while
+            // we're showing an illustration, we'll start on that page.  If we don't do this and
+            // the user clicks something that came from page 6 while the top of the search results
+            // were on page 5, we'll start the search at page 5 if the page is reloaded and not find
+            // the image, which is confusing.
+            let { page: originalPage } = this.idList.getPageForMediaId(illustId);
+            if(originalPage != null)
+                this.setStartPage(args, originalPage);
+        }
+
+        // By default, put the illust ID and page in the hash.
+        args.hash.set("illust_id", illustId);
+
+        if(page == null)
+            args.hash.delete("page");
+        else
+            args.hash.set("page", page + 1);
+    }
+
+    // Store the current page in the URL.
+    //
+    // This is only used if supportsStartPage is true.
+    setStartPage(args, page)
+    {
+        // Remove the page for page 1 to keep the initial URL clean.
+        if(page == 1)
+            args.query.delete("p");
+        else
+            args.query.set("p", page);
+    }
+
+    getStartPage(args)
+    {
+        let page = args.query.get("p") || "1";
+        return parseInt(page) || 1;
     }
 
     // If we're viewing a folder, return its ID.  This is used for local searches.
@@ -255,28 +301,6 @@ export default class DataSource extends EventTarget
     async loadPageInternal(page)
     {
         throw "Not implemented";
-    }
-
-    // This is called when the currently displayed media ID changes.  The ID should always
-    // have been loaded by this data source, so it should be in idList.  The data source
-    // should update the history state to reflect the current state.
-    setCurrentMediaId(mediaId, args)
-    {
-        let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
-        if(this.supportsStartPage)
-        {
-            // Store the page the illustration is on in the hash, so if the page is reloaded while
-            // we're showing an illustration, we'll start on that page.  If we don't do this and
-            // the user clicks something that came from page 6 while the top of the search results
-            // were on page 5, we'll start the search at page 5 if the page is reloaded and not find
-            // the image, which is confusing.
-            let { page: originalPage } = this.idList.getPageForMediaId(illustId);
-            if(originalPage != null)
-                this.setStartPage(args, originalPage);
-        }
-
-        // By default, put the illust_id in the hash.
-        args.hash.set("illust_id", illustId);
     }
 
     // Return the estimated number of items per page.
@@ -313,24 +337,6 @@ export default class DataSource extends EventTarget
     // The data source can override this to set the aspect ratio to use for thumbnails.
     getThumbnailAspectRatio() { return null; }
 
-    // Store the current page in the URL.
-    //
-    // This is only used if supportsStartPage is true.
-    setStartPage(args, page)
-    {
-        // Remove the page for page 1 to keep the initial URL clean.
-        if(page == 1)
-            args.query.delete("p");
-        else
-            args.query.set("p", page);
-    }
-
-    getStartPage(args)
-    {
-        let page = args.query.get("p") || "1";
-        return parseInt(page) || 1;
-    }
-
     // Register a page of data.
     addPage(page, mediaIds, {...options}={})
     {
@@ -346,7 +352,7 @@ export default class DataSource extends EventTarget
         // images, but at least we can still navigate, and we can get back to where we started
         // if the user navigates down and then back up.  If the image shows up in real results later,
         // it'll be filtered out.
-        let initialMediaId = this.getMediaIdFromUrl(helpers.args.location);
+        let initialMediaId = this.getUrlMediaId(helpers.args.location);
 
         // If this data source doesn't return manga pages, always use the first page.
         if(this.allowExpandingMangaPages)

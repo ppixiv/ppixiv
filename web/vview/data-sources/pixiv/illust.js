@@ -13,7 +13,7 @@ export default class DataSource_Illust extends DataSource
     {
         super(url);
 
-        this.mediaId = this.getMediaIdFromUrl(new helpers.args(url));
+        this.mediaId = this.getUrlMediaId(new helpers.args(url));
 
         this._loadMediaInfo();
     }
@@ -29,7 +29,7 @@ export default class DataSource_Illust extends DataSource
     // This data source just views a single image and doesn't return any posts.
     async loadPageInternal(page) { }
 
-    getMediaIdFromUrl(args)
+    getUrlMediaId(args)
     {
         // The illust ID is stored in the path, for compatibility with Pixiv URLs:
         //
@@ -41,7 +41,7 @@ export default class DataSource_Illust extends DataSource
         let parts = url.pathname.split("/");
         let illustId = parts[2];
 
-        let page = this.getPageFromUrl(args);
+        let page = this.getUrlMangaPage(args);
         return helpers.mediaId.fromIllustId(illustId, page);
     }
 
@@ -57,7 +57,7 @@ export default class DataSource_Illust extends DataSource
 
     // We don't return any posts to navigate to, but this can still be called by
     // quick view.
-    setCurrentMediaId(mediaId, args)
+    setUrlMediaId(mediaId, args)
     {
         let [illustId, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
 

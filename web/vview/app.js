@@ -457,7 +457,7 @@ export default class App
         // The media ID we're displaying if we're going to ScreenIllust:
         let mediaId = null;
         if(newScreenName == "illust")
-            mediaId = dataSource.getMediaIdFromUrl(args);
+            mediaId = dataSource.getUrlMediaId(args);
 
         // If we're entering ScreenSearch, ignore clicks for a while.  See _windowClickCapture.
         if(newScreenName == "search")
@@ -547,21 +547,13 @@ export default class App
         if(type == "user")
             return new helpers.args(`/users/${id}/artworks#ppixiv`);
 
-        let oldMediaId = this._dataSource.getMediaIdFromUrl(args);
-        let [oldIllustId] = helpers.mediaId.toIllustIdAndPage(oldMediaId);
+        let oldMediaId = this._dataSource.getUrlMediaId(args);
 
         // Update the URL to display this mediaId.  This stays on the same data source,
         // so displaying an illust won't cause a search to be made in the background or
         // have other side-effects.
         this._setActiveScreenInUrl(args, screen);
-        this._dataSource.setCurrentMediaId(mediaId, args);
-
-        // Remove any leftover page from the current illust.  We'll load the default.
-        let [illust_id, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
-        if(page == null)
-            args.hash.delete("page");
-        else
-            args.hash.set("page", page + 1);
+        this._dataSource.setUrlMediaId(mediaId, args);
 
         if(tempView)
         {
@@ -576,7 +568,9 @@ export default class App
 
         // If we were viewing a muted image and we're navigating away from it, remove view-muted so
         // we're muting images again.  Don't do this if we're navigating between pages of the same post.
-        if(illust_id != oldIllustId)
+        let [illustId] = helpers.mediaId.toIllustIdAndPage(mediaId);
+        let [oldIllustId] = helpers.mediaId.toIllustIdAndPage(oldMediaId);
+        if(illustId != oldIllustId)
             args.hash.delete("view-muted");
 
         return args;
@@ -630,7 +624,7 @@ export default class App
         if(this._currentScreenName != "illust" || this._dataSource == null)
             return false;
 
-        let mediaId = this._dataSource.getMediaIdFromUrl(helpers.args.location);
+        let mediaId = this._dataSource.getUrlMediaId(helpers.args.location);
         if(mediaId == null)
             return false;
             
@@ -647,7 +641,7 @@ export default class App
         if(!this.navigateOutEnabled)
             return;
             
-        let mediaId = this._dataSource.getMediaIdFromUrl(helpers.args.location);
+        let mediaId = this._dataSource.getUrlMediaId(helpers.args.location);
         if(mediaId == null)
             return;
 
@@ -1067,7 +1061,7 @@ export default class App
         if(dataSource.name == "vview")
             args.hash.set("file", "*");
         else if(dataSource.name != "manga")
-            dataSource.setCurrentMediaId("*", args);
+            dataSource.setUrlMediaId("*", args);
 
         args.hash.set("slideshow", "1");
         args.hash.set("view", "illust");

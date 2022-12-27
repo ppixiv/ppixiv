@@ -194,12 +194,12 @@ export default class DataSource_VView extends DataSource
 
     // Put the illust ID in the hash instead of the path.  Pixiv doesn't care about this,
     // and this avoids sending the user's filenames to their server as 404s.
-    setCurrentMediaId(mediaId, args)
+    setUrlMediaId(mediaId, args)
     {
         LocalAPI.getArgsForId(mediaId, args);
     }
 
-    getMediaIdFromUrl(args)
+    getUrlMediaId(args)
     {
         // If the URL points to a file, return it.  If no image is being viewed this will give
         // the folder we're in, which shouldn't be returned here.
