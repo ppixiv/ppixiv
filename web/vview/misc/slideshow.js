@@ -43,7 +43,7 @@ export default class Slideshow
     {
         if(this.mode == "slideshow")
         {
-            let slideshowDefault = ppixiv.settings.get("slideshowDefault", "pan");
+            let slideshowDefault = ppixiv.settings.get("slideshow_default", "pan");
             if(slideshowDefault == "contain")
                 return this.getAnimation(Slideshow.pans.stationary);
             else    

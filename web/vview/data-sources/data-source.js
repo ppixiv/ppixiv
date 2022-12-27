@@ -234,8 +234,6 @@ export default class DataSource extends EventTarget
     // data source returned.
     setUrlMediaId(mediaId, args)
     {
-        console.error("set media id", mediaId);
-
         let [illustId, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
         if(this.supportsStartPage)
         {
