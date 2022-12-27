@@ -345,7 +345,7 @@ export default class DesktopImageInfo extends Widget
         disableButton.href = `/artworks/${illustId}#no-ppixiv`;
 
         this.avatarWidget.setUserId(userId);
-        this.tagListWidget.set(mediaInfo.tagList);
+        this.tagListWidget.set(mediaInfo);
 
         let elementTitle = this.root.querySelector(".title");
         elementTitle.textContent = mediaInfo.illustTitle;

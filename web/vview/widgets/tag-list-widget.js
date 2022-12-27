@@ -20,44 +20,76 @@ export default class TagListWidget extends Widget
         return helpers.getArgsForTagSearch(tag, ppixiv.plocation);
     };
 
-    async set(tags)
+    async set(mediaInfo)
     {
-        this.tags = tags;
+        this.mediaInfo = mediaInfo;
         this.refresh();
     }
 
     async refresh()
     {
-        if(this.tags == null)
+        if(this.mediaInfo == null)
             return;
 
+        let tags = [];
+        let showR18 = this.mediaInfo == 1;
+        let showR18G = this.mediaInfo == 1;
+        for(let tag of this.mediaInfo.tagList)
+        {
+            // If R-18 is in the list, remove it so we can add them in the position we want.
+            // This should always match xRestrict, but we check both just to be safe.
+            if(tag == "R-18")
+                showR18 = true;
+            else if(tag == "R-18G")
+                showR18G = true;
+            else
+                tags.push({tag});
+        }
+
+        // Add "AI" to the list.
+        let showAI = this.mediaInfo.aiType == 2;
+        if(showAI)
+            tags.splice(0, 0, {ai: true});
+        
+        if(showR18G)
+            tags.splice(0, 0, {tag: "R-18G"});
+        else if(showR18)
+            tags.splice(0, 0, {tag: "R-18"});
+
         // Short circuit if the tag list isn't changing, since IndexedDB is really slow.
-        if(this._currentTags != null && JSON.stringify(this._currentTags) == JSON.stringify(this.tags))
+        if(this._currentTags != null && JSON.stringify(this._currentTags) == JSON.stringify(tags))
             return;
 
         // Look up tag translations.
-        let tagList = this.tags;
-        let translatedTags = await ppixiv.tagTranslations.getTranslations(tagList, "en");
+        let tagList = tags;
+        let translatedTags = await ppixiv.tagTranslations.getTranslations(this.mediaInfo.tagList, "en");
         
         // Stop if the tag list changed while we were reading tag translations.
-        if(tagList != this.tags)
+        if(tagList != tags)
             return;
 
-        this._currentTags = this.tags;
+        this._currentTags = tags;
 
         // Remove any old tag list and create a new one.
         helpers.html.removeElements(this.root);
 
-        for(let tag of tagList)
+        for(let {tag, ai} of tagList)
         {
+            if(ai)
+                tag = "AI-generated";
+
             let translatedTag = tag;
             if(translatedTags[tag])
                 translatedTag = translatedTags[tag];
 
+            let link = this.formatTagLink(tag);
+            if(ai)
+                link = null;
+
             let a = helpers.createBoxLink({
                 label: translatedTag,
                 classes: ["tag-entry"],
-                link: this.formatTagLink(tag),
+                link,
                 asElement: true,
             });
 
