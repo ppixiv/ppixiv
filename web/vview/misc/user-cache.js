@@ -42,7 +42,6 @@ export default class UserCache extends EventTarget
         console.log(`User modified: ${userId}`);
         let event = new Event("usermodified");
         event.userId = userId;
-        event.user_id = userId;
         this.dispatchEvent(event);
     }
     

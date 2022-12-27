@@ -321,13 +321,13 @@ export default class ScreenSearch extends Screen
         if(this.dataSource == null)
             return super.displayedMediaId;
 
-        let user_id = this.dataSource.viewingUserId;
-        if(user_id != null)
-            return "user:" + user_id;
+        let userId = this.dataSource.viewingUserId;
+        if(userId != null)
+            return `user:${userId}`;
 
-        let folder_id = this.dataSource.viewingFolder;
-        if(folder_id != null)
-            return folder_id;
+        let folderId = this.dataSource.viewingFolder;
+        if(folderId != null)
+            return folderId;
     
         return super.displayedMediaId;
     }

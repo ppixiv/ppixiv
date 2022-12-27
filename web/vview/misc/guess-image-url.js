@@ -81,22 +81,22 @@ export default class GuessImageURL
     // eg. "jpg".
     //
     // We have a dedicated index for this, so retrieving the count is fast.
-    async _getFiletypeCountForUser(store, user_id, filetype)
+    async _getFiletypeCountForUser(store, userId, filetype)
     {
         let index = store.index("user_id_and_filetype");
-        let query = IDBKeyRange.only([user_id, 0 /* page */, filetype]);
+        let query = IDBKeyRange.only([userId, 0 /* page */, filetype]);
         return await KeyStorage.awaitRequest(index.count(query));
     }
 
     // Try to guess the user's preferred file type.  Returns "jpg", "png" or null.
-    guessFileTypeForUserId(user_id)
+    guessFileTypeForUserId(userId)
     {
         return this.db.dbOp(async (db) => {
             let store = this.db.getStore(db);
 
             // Get the number of posts by this user with both file types.
-            let jpg = await this._getFiletypeCountForUser(store, user_id, "jpg");
-            let png = await this._getFiletypeCountForUser(store, user_id, "png");
+            let jpg = await this._getFiletypeCountForUser(store, userId, "jpg");
+            let png = await this._getFiletypeCountForUser(store, userId, "png");
 
             // Wait until we've seen a few images from this user before we start guessing.
             if(jpg+png < 3)
@@ -106,17 +106,17 @@ export default class GuessImageURL
             let jpegFraction = jpg / (jpg+png);
             if(jpegFraction > 0.9)
             {
-                console.debug(`User ${user_id} posts mostly JPEGs`);
+                console.debug(`User ${userId} posts mostly JPEGs`);
                 return "jpg";
             }
             else if(jpegFraction < 0.1)
             {
-                console.debug(`User ${user_id} posts mostly PNGs`);
+                console.debug(`User ${userId} posts mostly PNGs`);
                 return "png";
             }
             else
             {
-                console.debug(`Not guessing file types for ${user_id} due to too much variance`);
+                console.debug(`Not guessing file types for ${userId} due to too much variance`);
                 return null;
             }
         });

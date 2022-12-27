@@ -114,29 +114,29 @@ export default class Muting extends EventTarget
         }
     };
 
-    isUserIdMuted(user_id)
+    isUserIdMuted(userId)
     {
-        if(this._mutedUserIds.indexOf(user_id) != -1)
+        if(this._mutedUserIds.indexOf(userId) != -1)
             return true;
         
         for(let {value: mutedUserId} of this.extraMutes)
         {
-            if(user_id == mutedUserId)
+            if(userId == mutedUserId)
                 return true;
         }
         return false;
     };
 
-    // Unmute user_id.
+    // Unmute userId.
     //
     // This checks both Pixiv's unmute list and our own, so it can always be used if
     // isUserIdMuted is true.
-    async unmuteUserId(user_id)
+    async unmuteUserId(userId)
     {
-        this.removeExtraMute(user_id, {type: "user"});
+        this.removeExtraMute(userId, {type: "user"});
 
-        if(this._mutedUserIds.indexOf(user_id) != -1)
-            await this.removePixivMute(user_id, {type: "user"});
+        if(this._mutedUserIds.indexOf(userId) != -1)
+            await this.removePixivMute(userId, {type: "user"});
     }
 
     // Return true if any tag in tagList is muted.
@@ -175,7 +175,7 @@ export default class Muting extends EventTarget
 
         ppixiv.settings.set("cached_mutes", {
             tags: this._mutedTags,
-            user_ids: this._mutedUserIds,
+            userIds: this._mutedUserIds,
         });
     }
 
@@ -194,9 +194,9 @@ export default class Muting extends EventTarget
             return;
         }
 
-        let { tags, user_ids } = cachedMutes;
+        let { tags, userIds } = cachedMutes;
         this._mutedTags = tags;
-        this._mutedUserIds = user_ids;
+        this._mutedUserIds = userIds;
     }
 
     // Request the user's mute list.  This is only used on mobile.
@@ -221,10 +221,10 @@ export default class Muting extends EventTarget
         }
 
         let pixivMutedUserIds = [];
-        for(let [user_id, info] of Object.entries(mutes.users))
+        for(let [userId, info] of Object.entries(mutes.users))
         {
             if(info.enabled)
-            pixivMutedUserIds.push(user_id);
+            pixivMutedUserIds.push(userId);
         }
 
         this.setMutes({pixivMutedTags, pixivMutedUserIds});

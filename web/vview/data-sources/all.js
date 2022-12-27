@@ -94,10 +94,10 @@ export function getDataSourceForUrl(url)
         // we're viewing all bookmarks, so use allDataSources.BookmarksMerged.  Otherwise,
         // use allDataSources.bookmarks.
         let args = new helpers.args(url);
-        let user_id = helpers.strings.getPathPart(url, 1);
-        if(user_id == null)
-            user_id = ppixiv.pixivInfo.userId;
-        let viewingOwnBookmarks = user_id == ppixiv.pixivInfo.userId;
+        let userId = helpers.strings.getPathPart(url, 1);
+        if(userId == null)
+            userId = ppixiv.pixivInfo.userId;
+        let viewingOwnBookmarks = userId == ppixiv.pixivInfo.userId;
         let bothPublicAndPrivate = viewingOwnBookmarks && args.hash.get("show-all") != "0";
         return bothPublicAndPrivate? allDataSources.BookmarksMerged:allDataSources.Bookmarks;
 

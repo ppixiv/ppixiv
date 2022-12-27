@@ -104,21 +104,21 @@ export class AvatarWidget extends Widget
     }
 
     // Refresh when the user changes.
-    _userChanged = ({user_id}) =>
+    _userChanged = ({userId}) =>
     {
-        if(this.userId == null || this.userId != user_id)
+        if(this.userId == null || this.userId != userId)
             return;
 
         this.setUserId(this.userId);
     }
 
-    async setUserId(user_id)
+    async setUserId(userId)
     {
         // Close the dropdown if the user is changing.
-        if(this.userId != user_id && this.followDropdownOpener)
+        if(this.userId != userId && this.followDropdownOpener)
             this.followDropdownOpener.visible = false;
 
-        this.userId = user_id;
+        this.userId = userId;
         this.refresh();
     }
 

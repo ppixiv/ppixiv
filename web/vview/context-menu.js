@@ -794,12 +794,12 @@ export default class ContextMenu extends Widget
         return null;
     }
 
-    set cachedUserId(user_id)
+    set cachedUserId(userId)
     {
-        if(this._cachedUserId == user_id)
+        if(this._cachedUserId == userId)
             return;
 
-        this._cachedUserId = user_id;
+        this._cachedUserId = userId;
         this.refresh();
     }
 
@@ -813,13 +813,13 @@ export default class ContextMenu extends Widget
             return;
         }
 
-        let user_id = await ppixiv.userCache.getUserIdForMediaId(mediaId);
+        let userId = await ppixiv.userCache.getUserIdForMediaId(mediaId);
 
         // Stop if the media ID changed.
         if(mediaId != this._effectiveMediaId)
             return;
 
-        this.cachedUserId = user_id;
+        this.cachedUserId = userId;
     }
 
     setMediaId(mediaId)
@@ -991,7 +991,7 @@ export default class ContextMenu extends Widget
         // These hotkeys require a user, which we have if we're viewing an image, if the user
         // was hovering over an image in search results, or if we're viewing a user's posts.
         // We might not have the user info yet, but we at least need a user ID.
-        let user_id = this._effectiveUserId;
+        let userId = this._effectiveUserId;
 
         // All of these hotkeys require Ctrl.
         if(!e.ctrlKey)
@@ -1000,10 +1000,10 @@ export default class ContextMenu extends Widget
         if(e.key.toUpperCase() == "F")
         {
             (async() => {
-                if(user_id == null)
+                if(userId == null)
                     return;
 
-                let userInfo = await ppixiv.userCache.getUserInfoFull(user_id);
+                let userInfo = await ppixiv.userCache.getUserInfoFull(userId);
                 if(userInfo == null)
                     return;
 
@@ -1016,7 +1016,7 @@ export default class ContextMenu extends Widget
                         return;
                     }
 
-                    await Actions.unfollow(user_id);
+                    await Actions.unfollow(userId);
                     return;
                 }
             
@@ -1035,7 +1035,7 @@ export default class ContextMenu extends Widget
                     return;
                 }
             
-                await Actions.follow(user_id, followPrivately);
+                await Actions.follow(userId, followPrivately);
             })();
 
             return true;
@@ -1185,7 +1185,7 @@ export default class ContextMenu extends Widget
         // for it here.  It'll call refresh() again when it finishes.
         this._loadUserId();
             
-        let user_id = this._effectiveUserId;
+        let userId = this._effectiveUserId;
         let info = mediaId? ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }):null;
 
         this._buttonViewManga.dataset.popup = "View manga pages";
@@ -1208,7 +1208,7 @@ export default class ContextMenu extends Widget
                 if(widget.setMediaId)
                     widget.setMediaId(mediaId);
                 if(widget.setUserId)
-                    widget.setUserId(user_id);
+                    widget.setUserId(userId);
 
                 // If _clickedMediaId is set, we're open for a search result image the user right-clicked
                 // on.  Otherwise, we're open for the image actually being viewed.  Tell ImageInfoWidget

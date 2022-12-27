@@ -100,8 +100,8 @@ export default class SendImage
         // do a lookup.
         let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId);
 
-        let user_id = mediaInfo?.userId;
-        let userInfo = user_id? ppixiv.userCache.getUserInfoSync(user_id):null;
+        let userId = mediaInfo?.userId;
+        let userInfo = userId? ppixiv.userCache.getUserInfoSync(userId):null;
 
         this.sendMessage({
             message: "send-image",
@@ -138,8 +138,8 @@ export default class SendImage
         // do a lookup.
         let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId);
 
-        let user_id = mediaInfo?.userId;
-        let userInfo = user_id? ppixiv.userCache.getUserInfoSync(user_id):null;
+        let userId = mediaInfo?.userId;
+        let userInfo = userId? ppixiv.userCache.getUserInfoSync(userId):null;
 
         this.sendMessage({
             message: "image-info",
