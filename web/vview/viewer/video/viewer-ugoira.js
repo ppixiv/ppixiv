@@ -46,7 +46,7 @@ export default class ViewerUgoira extends ViewerVideoBase
         if(partialMediaInfo)
         {
             if(local)
-                this._createPreviewImage(this.mediaInfo.urls.poster, null);
+                this._createPreviewImage(partialMediaInfo.urls.poster, null);
             else
                 this._createPreviewImage(partialMediaInfo.previewUrls[0], null);
 
