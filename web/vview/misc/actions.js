@@ -353,7 +353,7 @@ export default class Actions
         if(helpers.mediaId.isLocal(mediaId))
             return;
 
-        let illust_id = helpers.mediaId.toIllustIdAndPage(mediaId)[0];
+        let illustId = helpers.mediaId.toIllustIdAndPage(mediaId)[0];
 
         console.log("Clicked like on", mediaId);
         
@@ -365,7 +365,7 @@ export default class Actions
         }
         
         let result = await helpers.pixivRequest.post("/ajax/illusts/like", {
-            "illust_id": illust_id,
+            "illust_id": illustId,
         });
 
         // If is_liked is true, we already liked the image, so this had no effect.

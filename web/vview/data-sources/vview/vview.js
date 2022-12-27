@@ -203,10 +203,10 @@ export default class DataSource_VView extends DataSource
     {
         // If the URL points to a file, return it.  If no image is being viewed this will give
         // the folder we're in, which shouldn't be returned here.
-        let illust_id = LocalAPI.getLocalIdFromArgs(args);
-        if(illust_id == null || !illust_id.startsWith("file:"))
+        let mediaId = LocalAPI.getLocalIdFromArgs(args);
+        if(mediaId == null || !mediaId.startsWith("file:"))
             return null;
-        return illust_id;
+        return mediaId;
     }
 
     getCurrentMediaId(args)

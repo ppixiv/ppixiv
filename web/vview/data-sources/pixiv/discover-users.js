@@ -100,8 +100,8 @@ export default class DataSource_DiscoverUsers extends DataSource
             mediaIds.push("user:" + user.userId);
             
             let illustIds = user.illustIds || user.recentIllustIds;
-            for(let illust_id of illustIds)
-                mediaIds.push(helpers.mediaId.fromIllustId(illust_id));
+            for(let illustId of illustIds)
+                mediaIds.push(helpers.mediaId.fromIllustId(illustId));
         }
 
         // Register the new page of data.

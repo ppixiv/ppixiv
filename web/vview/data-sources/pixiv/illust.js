@@ -39,10 +39,10 @@ export default class DataSource_Illust extends DataSource
         let url = args.url;
         url = helpers.pixiv.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
-        let illust_id = parts[2];
+        let illustId = parts[2];
 
         let page = this.getPageFromUrl(args);
-        return helpers.mediaId.fromIllustId(illust_id, page);
+        return helpers.mediaId.fromIllustId(illustId, page);
     }
 
     // Use the artist's page as the view if we're trying to return to a search for this data
