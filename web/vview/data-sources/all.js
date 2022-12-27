@@ -188,10 +188,9 @@ export function createDataSourceForUrl(url, {
     // The search page isn't part of the canonical URL, but keep it in the URL we create
     // the data source with, so it starts at the current page.
     let baseUrl = helpers.getCanonicalUrl(url, { removeSearchPage }).url.toString();
-    let source = new dataSourceClass(baseUrl);
-
-    dataSourcesByUrl[canonicalUrl] = source;
-    return source;
+    let dataSource = new dataSourceClass(baseUrl);
+    dataSourcesByUrl[canonicalUrl] = dataSource;
+    return dataSource;
 }
 
 // If we have the given data source cached, discard it, so it'll be recreated

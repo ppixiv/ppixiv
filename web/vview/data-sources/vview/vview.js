@@ -209,11 +209,6 @@ export default class DataSource_VView extends DataSource
         return mediaId;
     }
 
-    getCurrentMediaId(args)
-    {
-        return this.getMediaIdFromUrl(args) ?? this.idList.getFirstId();
-    }
-
     // We're doing a bookmark search if the bookmark filter is enabled, or if
     // we're restricted to listing tagged bookmarks.
     get bookmarkSearchActive()

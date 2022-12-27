@@ -55,12 +55,6 @@ export default class DataSource_Illust extends DataSource
             return this.url;
     }
 
-    // this.mediaId is always the first manga page.  This returns the active manga page.
-    getCurrentMediaId(args)
-    {
-        return this.getMediaIdFromUrl(args);
-    }
-
     // We don't return any posts to navigate to, but this can still be called by
     // quick view.
     setCurrentMediaId(mediaId, args)

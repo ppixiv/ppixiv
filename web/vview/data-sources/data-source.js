@@ -230,22 +230,6 @@ export default class DataSource extends EventTarget
         return parseInt(args.hash.get("page"))-1;
     }
 
-    // Return the media ID to display by default.
-    //
-    // This should only be called after the initial data is loaded.  Returns a media ID from the URL if
-    // it contains one, otherwise one selected by the data source (usually the first result).
-    getCurrentMediaId(args)
-    {
-        // If we have an explicit media ID in the hash, use it.  Note that some pages (in
-        // particular illustration pages) put this in the query, which is handled in the particular
-        // data source.
-        let mediaId = this.getMediaIdFromUrl(args);
-        if(mediaId)
-            return mediaId;
-         
-        return this.idList.getFirstId();
-    };
-
     // If we're viewing a folder, return its ID.  This is used for local searches.
     get viewingFolder() { return null; }
 
@@ -362,7 +346,7 @@ export default class DataSource extends EventTarget
         // images, but at least we can still navigate, and we can get back to where we started
         // if the user navigates down and then back up.  If the image shows up in real results later,
         // it'll be filtered out.
-        let initialMediaId = this.getCurrentMediaId(helpers.args.location);
+        let initialMediaId = this.getMediaIdFromUrl(helpers.args.location);
 
         // If this data source doesn't return manga pages, always use the first page.
         if(this.allowExpandingMangaPages)

@@ -457,7 +457,7 @@ export default class App
         // The media ID we're displaying if we're going to ScreenIllust:
         let mediaId = null;
         if(newScreenName == "illust")
-            mediaId = dataSource.getCurrentMediaId(args);
+            mediaId = dataSource.getMediaIdFromUrl(args);
 
         // If we're entering ScreenSearch, ignore clicks for a while.  See _windowClickCapture.
         if(newScreenName == "search")
@@ -547,7 +547,7 @@ export default class App
         if(type == "user")
             return new helpers.args(`/users/${id}/artworks#ppixiv`);
 
-        let oldMediaId = this._dataSource.getCurrentMediaId(args);
+        let oldMediaId = this._dataSource.getMediaIdFromUrl(args);
         let [oldIllustId] = helpers.mediaId.toIllustIdAndPage(oldMediaId);
 
         // Update the URL to display this mediaId.  This stays on the same data source,
@@ -630,7 +630,7 @@ export default class App
         if(this._currentScreenName != "illust" || this._dataSource == null)
             return false;
 
-        let mediaId = this._dataSource.getCurrentMediaId(helpers.args.location);
+        let mediaId = this._dataSource.getMediaIdFromUrl(helpers.args.location);
         if(mediaId == null)
             return false;
             
@@ -647,7 +647,7 @@ export default class App
         if(!this.navigateOutEnabled)
             return;
             
-        let mediaId = this._dataSource.getCurrentMediaId(helpers.args.location);
+        let mediaId = this._dataSource.getMediaIdFromUrl(helpers.args.location);
         if(mediaId == null)
             return;
 
