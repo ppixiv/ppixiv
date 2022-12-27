@@ -123,8 +123,6 @@ export default class ScreenSearch extends Screen
             onchange();
         }
 
-        ppixiv.muting.addEventListener("mutes-changed", this.refreshUiForUserId);
-
         // Zoom the thumbnails on ctrl-mousewheel:
         this.root.addEventListener("wheel", (e) => {
             if(!e.ctrlKey)
@@ -300,17 +298,7 @@ export default class ScreenSearch extends Screen
         
         // Refresh whether we're showing the local navigation widget and toggle button.
         helpers.html.setDataSet(this.root.dataset, "showNavigation", this.canShowLocalNavigation && this._localNavigationVisible);
-
-        this.refreshUiForUserId();
     };
-
-    refreshUiForUserId()
-    {
-        if(this.desktopSearchUi == null)
-            return;
-
-        this.desktopSearchUi.userInfoLinks.setDataSource(this.dataSource);
-    }
     
     get canShowLocalNavigation()
     {

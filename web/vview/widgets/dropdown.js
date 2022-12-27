@@ -19,6 +19,9 @@ export class DropdownBoxOpener extends Actor
 
         onvisibilitychanged=() => { },
 
+        // If true, clicking the button toggles the dropdown.
+        clickToOpen=false,
+
         ...options
     })
     {
@@ -36,13 +39,15 @@ export class DropdownBoxOpener extends Actor
         this.createBox = createBox;
 
         this.box = null;
-
         this._visible = true;
         this.visible = false;
 
         // Refresh the position if the box width changes.  Don't refresh on any ResizeObserver
         // call, since that'll recurse and end up refreshing constantly.
         this._boxWidth = 0;
+
+        if(clickToOpen)
+            this.button.addEventListener("click", (e) => this.visible = !this.visible, this._signal);
     }
 
     onwindowresize = (e) =>
@@ -62,6 +67,12 @@ export class DropdownBoxOpener extends Actor
     get visible()
     {
         return this._visible;
+    }
+
+    // If the dropdown is open, return it.
+    get dropdownWidget()
+    {
+        return this.boxWidget;
     }
 
     set visible(value)
@@ -88,7 +99,7 @@ export class DropdownBoxOpener extends Actor
             this.boxWidget.root.classList.add("dropdown-box");
             this.box = this.boxWidget.root;
 
-            this.listener = new ClickOutsideListener([this.button, this.box], (target, {event}) => {
+            this.listener = new ClickOutsideListener([this.button, this.boxWidget], (target, {event}) => {
                 if(!this.shouldCloseForClick(event))
                     return;
 

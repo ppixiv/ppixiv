@@ -208,6 +208,25 @@ export default class Actor extends EventTarget
         }
     }
 
+    // Return true if widget is a descendant of this node.
+    isAncestorOf(widget)
+    {
+        for(let ancestor of widget.ancestors({includeSelf: true}))
+            if(ancestor == this)
+                return true;
+        return false;
+    }
+
+    // Return all DOM roots within this actor.  See Widget.getRoots().
+    getRoots()
+    {
+        // We're not an actor, so all of our children's roots are our roots.
+        let result = [];
+        for(let child of this.children)
+            result = [...result, ...child.getRoots()];
+        return result;
+    }
+
     // Non-widget actors are always visible.
     get visible() { return true; }
 

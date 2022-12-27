@@ -160,4 +160,27 @@ export default class Widget extends Actor
     querySelector(selector) { return this.root.querySelector(selector); }
     querySelectorAll(selector) { return this.root.querySelectorAll(selector); }
     closest(selector) { return this.root.closest(selector); }
+
+    // Return an array of all DOM roots within this tree.  This is a list of DOM nodes which
+    // contain all DOM nodes within the widget.
+    //
+    // Most of the time, a widget's only DOM root is its own root.  However, if a widget
+    // contains a dropdown or other type of child widget which lives somewhere else in the
+    // tree, that's also a root.
+    //
+    // This allows detecting if things like pointer events are anywhere within a widget's tree.
+    getRoots()
+    {
+        let result = [this.root];
+
+        // Any node whose root isn't within its parent widget's root is a new root node,
+        // since it's not a DOM descendant of its parent.
+        for(let widget of this.descendents())
+        {
+            if(helpers.html.isAbove(widget.parent.root, widget.root))
+                result.push(widget.root);
+        }
+
+        return result;
+    }
 }

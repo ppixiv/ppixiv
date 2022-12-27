@@ -980,19 +980,14 @@ input, textarea, [contenteditable] {
     }
 }
 
-.follow-container
+.follow-widget
 {
-    display: flex;
-    flex-direction: column;
+    // Allow this to be wide relative to the screen for mobile, but clamp to a reasonable
+    // max so long usernames don't expand it indefinitely.
+    max-width: min(90vw, 40em);
 
     .separator {
-        // For some reason flex overrides our height if the dropdown is scaled down
-        // from reaching the bottom of the screen.  This happens even if we explicitly
-        // set a height and set flex-shrink to 0.  Work around this by setting our height
-        // in a child element.
-        > div {
-            height: 2px;
-        }
+        height: 2px;
         width: 100%;
         background-color: #fff;
         margin: 2px 0;

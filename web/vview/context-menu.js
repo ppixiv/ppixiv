@@ -1096,6 +1096,26 @@ export default class ContextMenu extends Widget
         if(!this._isZoomUiEnabled)
             return;
 
+        // Stop if the user dropdown is open.
+        let userDropdown = this.avatarWidget.userDropdownWidget;
+        if(userDropdown)
+        {
+            // If the input isn't inside the dropdown, prevent the input so we don't navigate
+            // while the dropdown is open.  Otherwise, leave it alone to allow scrolling the
+            // dropdown.  This includes submenus (the bookmark tag dropdown).
+            let targetWidget = Widget.fromNode(e.target);
+            if(targetWidget)
+            {
+                if(!userDropdown.isAncestorOf(targetWidget))
+                {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+                
+            }
+            return;
+        }
+
         // Only mousewheel zoom if the popup menu is visible.
         if(!this.visible)
             return;

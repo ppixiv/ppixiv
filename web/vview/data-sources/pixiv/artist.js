@@ -10,7 +10,6 @@
 import DataSource, { PaginateMediaIds, TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import Widget from 'vview/widgets/widget.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
-import * as InfoLinks from 'vview/data-sources/info-links.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import { helpers } from 'vview/misc/helpers.js';
@@ -23,9 +22,6 @@ export default class DataSources_Artist extends DataSource
     constructor(url)
     {
         super(url);
-
-        this.fanboxUrl = null;
-        this.boothUrl = null;
     }
 
     get supportsStartPage() { return true; }
@@ -138,57 +134,11 @@ export default class DataSources_Artist extends DataSource
         }
     }
     
-    _getInfoLinks()
-    {
-        let links = InfoLinks.getInfoLinksForUser({userInfo: this.userInfo});
-
-        // Add the Fanbox link to the list if we have one.
-        if(this.fanboxUrl)
-            links.push({url: this.fanboxUrl, label: "Fanbox"});
-        if(this.boothUrl)
-            links.push({url: this.boothUrl, label: "Booth"});
-
-        if(this.acceptingRequests)
-        {
-            links.push({
-                url: new URL(`/users/${this.viewingUserId}/request#no-ppixiv`, ppixiv.plocation),
-                type: "request",
-                label: "Accepting requests",
-            });
-        }
-
-        return links;
-    }
-
     async loadAllResults()
     {
         let type = this.viewingType;
 
         let result = await helpers.pixivRequest.get("/ajax/user/" + this.viewingUserId + "/profile/all", {});
-
-        // Remember if this user is accepting requests, so we can add a link.
-        this.acceptingRequests = result.body.request.showRequestTab;
-
-        // See if there's a Fanbox link.
-        //
-        // For some reason Pixiv supports links to Twitter and Pawoo natively in the profile, but Fanbox
-        // can only be linked in this weird way outside the regular user profile info.
-        for(let pickup of result.body.pickup)
-        {
-            if(pickup.type != "fanbox")
-                continue;
-
-            // Remove the Google analytics junk from the URL.
-            let url = new URL(pickup.contentUrl);
-            url.search = "";
-            this.fanboxUrl = url.toString();
-        }
-        this.callUpdateListeners();
-
-        // If this user has a linked Booth account, look it up.  Only do this if the profile indicates
-        // that it exists.  Don't wait for this to complete.
-        if(result.body?.externalSiteWorksStatus?.booth)
-            this.loadBooth();
 
         let illustIds = [];
         if(type == "artworks" || type == "illustrations")
@@ -207,25 +157,6 @@ export default class DataSources_Artist extends DataSource
 
         return mediaIds;
     };
-
-    async loadBooth()
-    {
-        let bootRequest = await helpers.pixivRequest.get("https://api.booth.pm/pixiv/shops/show.json", {
-            pixiv_user_id: this.viewingUserId,
-            adult: "include",
-            limit: 24,
-        });
-
-        let booth = await bootRequest;
-        if(booth.error)
-        {
-            console.log(`Error reading Booth profile for ${this.viewingUserId}`);
-            return;
-        }
-
-        this.boothUrl = booth.body.url;
-        this.callUpdateListeners();
-    }
 
     // If we're filtering a follow tag, return it.  Otherwise, return null.
     get currentTag()

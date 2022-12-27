@@ -4,7 +4,6 @@ import Widget from 'vview/widgets/widget.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
 import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import UserInfoLinks from 'vview/screen-search/user-info-links.js';
 import CreateSearchMenu from 'vview/screen-search/search-menu.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import { helpers } from 'vview/misc/helpers.js';
@@ -96,10 +95,6 @@ export default class DesktopSearchUI extends Widget
 
                 return dropdown;
             },
-        });
-
-        this.userInfoLinks = new UserInfoLinks({
-            container: this.querySelector(".user-links"),
         });
 
         this.root.querySelector(".refresh-search-from-page-button").addEventListener("click", () => this.parent.refreshSearchFromPage());

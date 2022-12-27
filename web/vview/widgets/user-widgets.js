@@ -10,10 +10,6 @@ export class AvatarWidget extends Widget
         // If true, show the big avatar instead of the small one.
         big=false,
 
-        // If true, handle clicks and show the follow dropdown.  If false, this is just an
-        // avatar image.
-        interactive=true,
-
         // This is called when the follow dropdown visibility changes.
         dropdownvisibilitychanged=() => { },
 
@@ -43,39 +39,36 @@ export class AvatarWidget extends Widget
         let avatarElement = this.root.querySelector(".avatar");
         let avatarLink = this.root.querySelector(".avatar-link");
 
-        if(interactive)
-        {
-            this.followDropdownOpener = new DropdownBoxOpener({
-                button: avatarLink,
-                onvisibilitychanged: dropdownvisibilitychanged,
-                createBox: ({...options}) => {
-                    return new FollowWidget({
-                        ...options,
-                        userId: this.userId,
-                    });
-                },
-            });
+        this.followDropdownOpener = new DropdownBoxOpener({
+            button: avatarLink,
+            onvisibilitychanged: dropdownvisibilitychanged,
+            createBox: ({...options}) => {
+                return new FollowWidget({
+                    ...options,
+                    userId: this.userId,
+                });
+            },
+        });
 
-            avatarLink.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.followDropdownOpener.visible = !this.followDropdownOpener.visible;
-            }, {
-                // Hack: capture this event so we get clicks even over the eye widget.  We can't
-                // set it to pointer-events: none since it reacts to mouse movement.
-                capture: true,
-            });
+        avatarLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.followDropdownOpener.visible = !this.followDropdownOpener.visible;
+        }, {
+            // Hack: capture this event so we get clicks even over the eye widget.  We can't
+            // set it to pointer-events: none since it reacts to mouse movement.
+            capture: true,
+        });
 
-            // Clicking the avatar used to go to the user page, but now it opens the follow dropdown.
-            // Allow doubleclicking it instead, to keep it quick to go to the user.
-            avatarLink.addEventListener("dblclick", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+        // Clicking the avatar used to go to the user page, but now it opens the follow dropdown.
+        // Allow doubleclicking it instead, to keep it quick to go to the user.
+        avatarLink.addEventListener("dblclick", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
 
-                let args = new helpers.args(`/users/${this.userId}/artworks#ppixiv`);
-                helpers.navigate(args);
-            });
-        }
+            let args = new helpers.args(`/users/${this.userId}/artworks#ppixiv`);
+            helpers.navigate(args);
+        });
 
         // A canvas filter for the avatar.  This has no actual filters.  This is just to kill off any
         // annoying GIF animations in people's avatars.
@@ -102,6 +95,12 @@ export class AvatarWidget extends Widget
         super.visibilityChanged();
 
         this.refresh();
+    }
+
+    // Return the dropdown if it's open.
+    get userDropdownWidget()
+    {
+        return this.followDropdownOpener.dropdownWidget;
     }
 
     // Refresh when the user changes.
@@ -340,227 +339,615 @@ class FollowWidget extends Widget
     {
         super({
             ...options, template: `
-            <div class="follow-container vertical-list">
-                ${helpers.createBoxLink({
-                    label: "View posts",
-                    icon: "image",
-                    classes: ["view-posts"],
-                })}
+            <div class="follow-widget vertical-list">
+                ${helpers.createBoxLink({ label: "", icon: "mat:palette", classes: ["view-posts"] })}
 
-                <!-- Buttons for following and unfollowing: -->
-                ${helpers.createBoxLink({
-                    label: "Follow",
-                    icon: "public",
-                    classes: ["follow-button-public"],
-                })}
+                <!-- Buttons for following, unfollowing, and changing privacy. -->
+                ${helpers.createBoxLink({ label: "Follow", icon: "public", classes: ["follow-button-public"] })}
+                ${helpers.createBoxLink({ label: "Follow privately", icon: "lock", classes: ["follow-button-private"] })}
+                ${helpers.createBoxLink({ label: "Unfollow", icon: "delete", classes: ["unfollow-button"]})}
 
                 ${helpers.createBoxLink({
-                    label: "Follow privately",
-                    icon: "lock",
-                    classes: ["follow-button-private"],
-                })}
-
-                ${helpers.createBoxLink({
-                    label: "Unfollow",
-                    icon: "delete",
-                    classes: ["unfollow-button"],
+                    label: "Change follow to private",
+                    icon: "mat:hourglass_full",
+                    classes: ["follow-placeholder", "disabled"],
                 })}
 
                 <!-- Buttons for toggling a follow between public and private.  This is separate
-                     from the buttons above, since it comes after to make sure that the unfollow
-                     button is above the toggle buttons. -->
-                ${helpers.createBoxLink({
-                    label: "Change to public",
-                    icon: "public",
-                    classes: ["toggle-follow-button-public"],
-                })}
+                    from the buttons above, since it comes after to make sure that the unfollow
+                    button is above the toggle buttons. -->
+                ${helpers.createBoxLink({ label: "Change follow to public", icon: "public",classes: ["toggle-follow-button-public"] })}
+                ${helpers.createBoxLink({ label: "Change follow to private",icon: "lock", classes: ["toggle-follow-button-private"] })}
 
-                ${helpers.createBoxLink({
-                    label: "Change to private",
-                    icon: "lock",
-                    classes: ["toggle-follow-button-private"],
-                })}
-
-                <!-- A separator before follow tags.  Hide this if the user doesn't have premium,
-                     since he won't have access to tags and this will be empty. -->
-                <div class="separator premium-only"><div></div></div>
-
-                ${helpers.createBoxLink({
-                    label: "Add new tag",
-                    icon: "add_circle",
-                    classes: ["premium-only", "add-follow-tag"],
-                })}
-
-                <vv-container class=follow-tag-list></vv-container>
+                ${helpers.createBoxLink({ label: "Follow tags", icon: "mat:bookmark", classes: ["follow-tags", "premium-only"] })}
             </div>
         `});
 
-        this._userId = userId;
+        this.userId = userId;
+        this.data = { };
 
+        this.viewPosts = this.querySelector(".view-posts");
         this.root.querySelector(".follow-button-public").addEventListener("click", (e) => this._clickedFollow(false));
         this.root.querySelector(".follow-button-private").addEventListener("click", (e) => this._clickedFollow(true));
         this.root.querySelector(".toggle-follow-button-public").addEventListener("click", (e) => this._clickedFollow(false));
         this.root.querySelector(".toggle-follow-button-private").addEventListener("click", (e) => this._clickedFollow(true));
         this.root.querySelector(".unfollow-button").addEventListener("click", (e) => this._clickedUnfollow());
-        this.root.querySelector(".add-follow-tag").addEventListener("click", (e) => this._addFollowTag());
 
         // Refresh if the user we're displaying changes.
         ppixiv.userCache.addEventListener("usermodified", this._userChanged, this._signal);
+        ppixiv.muting.addEventListener("mutes-changed", () => this.refresh(), this._signal);
+
+        this.followTagDropdownOpener = new DropdownBoxOpener({
+            button: this.querySelector(".follow-tags"),
+            clickToOpen: true,
+            createBox: ({...options}) => {
+                return new FollowTagWidget({
+                    ...options,
+                    userId: this.userId,
+                });
+            },
+        });
+
+        this.loadUser();
     }
 
-    _userChanged = ({user_id}) =>
+    _userChanged = ({userId}) =>
     {
-        if(!this.visible || user_id != this.userId)
+        if(!this.visible || userId != this.userId)
             return;
 
         this.refresh();
     };
 
-    set userId(value)
-    {
-        if(this._userId == value)
-            return;
-
-        this._userId = value;
-        if(value == null)
-            this.visible = false;
-    }
-    get userId() { return this._userId; }
-
-    async refresh()
+    async loadUser()
     {
         if(!this.visible)
             return;
 
-        if(this.refreshing)
-        {
-            console.error("Already refreshing");
-            return;
-        }
+        // Refresh with no data.
+        this.data = { };
+        this.refresh();
 
-        this.refreshing = true;
-        try {
-            if(this._userId == null)
-            {
-                console.log("Follow widget has no user ID");
-                return;
-            }
-            
-            // Refresh with no data.
-            this._refreshWithData();
+        // If user info is already loaded, use it and refresh now, otherwise request it.
+        let userInfo = ppixiv.userCache.getUserInfoSync(this.userId);
+        if(userInfo)
+            this.data.userInfo = userInfo;
+        else
+            userInfo = ppixiv.userCache.getUserInfo(this.userId);
 
-            // Refresh with whether we're followed or not, so the follow/unfollow UI is
-            // displayed as early as possible.
-            let userInfo = await ppixiv.userCache.getUserInfo(this.userId);
-            if(!this.visible)
-                return;
+        // Do the same for the user profile.  If we're requesting both of these, they'll run
+        // in parallel.
+        let userProfile = ppixiv.userCache.getUserProfileSync(this.userId);
+        if(userProfile)
+            this.data.userProfile = userProfile;
+        else
+            userProfile = ppixiv.userCache.getUserProfile(this.userId);
 
-            this._refreshWithData({ userInfo, following: userInfo.isFollowed });
-            
-            if(!userInfo.isFollowed)
-            {
-                // We're not following, so just load the follow tag list.
-                let allTags = await ppixiv.userCache.loadAllUserFollowTags();
-                this._refreshWithData({ userInfo, following: userInfo.isFollowed, allTags, selectedTags: new Set() });
-                return;
-            }
+        // Refresh with any data we just got.  This usually fills in most of the dropdown quickly,
+        // and we'll refresh for the rest.
+        this.refresh();
 
-            // Get full follow info to find out if the follow is public or private, and which
-            // tags are selected.
-            let followInfo = await ppixiv.userCache.getUserFollowInfo(this.userId);
-            let allTags = await ppixiv.userCache.loadAllUserFollowTags();
-            this._refreshWithData({userInfo, following: true, followingPrivately: followInfo?.followingPrivately, allTags, selectedTags: followInfo?.tags});
-        } finally {
-            this.refreshing = false;
-        }
+        // We only want to request follow info if we're following.  If we already have user info,
+        // request follow info, so we start this request earlier if we can.
+        if(this.data.userInfo?.isFollowed)
+            this._requestFollowInfo();
+
+        // If we had to request the user info or profile, wait for them to complete and refresh again.
+        if(userInfo)
+            this.data.userInfo = await userInfo;
+        if(userProfile)
+            this.data.userProfile = await userProfile;
+
+        // Refresh again now that we have user info and the profile.
+        this.refresh();
+
+        // In case we didn't have user info earlier, request follow info now.  It's OK for us to
+        // do this twice (the request won't be duplicated).
+        if(this.data.userInfo?.isFollowed)
+            this._requestFollowInfo();
+
+        // Request the user's Booth URL.  This won't start until we have follow info, so there's no
+        // benefit to doing this earlier.
+        this._requestBoothInfo();
+    }
+
+    // Request user follow info to find out if we're following publically or privately, and
+    // refresh.
+    async _requestFollowInfo()
+    {
+        let followInfo = await ppixiv.userCache.getUserFollowInfo(this.userId);
+        this.data.followingPrivately = followInfo?.followingPrivately;
+        this.refresh();
+    }
+
+    // Request the user's Booth link and refresh.
+    async _requestBoothInfo()
+    {
+        this.data.boothUrl = await ppixiv.userCache.getUserBoothUrl(this.userId);
+        this.refresh();
     }
 
     // Refresh the UI with as much data as we have.  This data comes in a bunch of little pieces,
     // so we get it incrementally.
-    _refreshWithData({userInfo=null, following=null, followingPrivately=null, allTags=null, selectedTags=null}={})
+    refresh()
     {
+        this.viewPosts.href = `/users/${this.userId}#ppixiv`;
+
+        let { followingPrivately=null, ...otherUserInfo } = this.data;
         if(!this.visible)
             return;
+
+        let userInfo = ppixiv.userCache.getUserInfoSync(this.userId);
+        this.viewPosts.querySelector(".label").textContent = userInfo?.name ?? "";
+
+        let infoLinksContainer = this.root;
+        for(let link of this.querySelectorAll(".info-link, .separator"))
+            link.remove();
+
+        if(userInfo)
+        {
+            let links = this._getInfoLinksForUser({userInfo, ...otherUserInfo});
+            links = this._filterLinks(links);
+
+            for(let {url, label, type, icon, disabled} of links)
+            {
+                if(type == "separator")
+                {
+                    let separator = document.createElement("div");
+                    separator.classList.add("separator");
+                    infoLinksContainer.appendChild(separator);
+                    continue;
+                }
+
+                let button = helpers.createBoxLink({
+                    asElement: true,
+                    label,
+                    icon,
+                    link: url,
+                    classes: ["info-link"],
+                });
+                if(disabled)
+                    button.classList.add("disabled");
+
+                if(type == "mute")
+                {
+                    button.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this._clickedMute();
+                    });
+                }
+
+                infoLinksContainer.appendChild(button);
+            }
+        }
 
         this.root.querySelector(".follow-button-public").hidden = true;
         this.root.querySelector(".follow-button-private").hidden = true;
         this.root.querySelector(".toggle-follow-button-public").hidden = true;
         this.root.querySelector(".toggle-follow-button-private").hidden = true;
         this.root.querySelector(".unfollow-button").hidden = true;
-        this.root.querySelector(".add-follow-tag").hidden = true;
-        this.root.querySelector(".separator").hidden = true;
-        
-        let viewText = userInfo != null? `View ${userInfo.name}'s posts`:`View posts`;
-        this.root.querySelector(".view-posts .label").innerText = viewText;
-        this.root.querySelector(".view-posts").href = `/users/${this._userId}/artworks#ppixiv`;
+        this.root.querySelector(".follow-placeholder").hidden = true;
 
-        // If following is null, we're still waiting for the initial user data request
-        // and we don't have any data yet.  
-        if(following == null)
-            return;
-
-        if(following)
+        let following = userInfo?.isFollowed;
+        if(following != null)
         {
-            // If we know whether we're following privately or publically, we can show the
-            // button to change the follow mode.  If we don't have that yet, we can only show
-            // unfollow.
-            if(followingPrivately != null)
+            if(following)
             {
-                this.root.querySelector(".toggle-follow-button-public").hidden = !followingPrivately;
-                this.root.querySelector(".toggle-follow-button-private").hidden = followingPrivately;
-            }
+                // If we know whether we're following privately or publically, we can show the
+                // button to change the follow mode.  If we don't have that yet, we can only show
+                // unfollow.
+                if(followingPrivately != null)
+                {
+                    this.root.querySelector(".toggle-follow-button-public").hidden = !followingPrivately;
+                    this.root.querySelector(".toggle-follow-button-private").hidden = followingPrivately;
+                }
+                else
+                {
+                    // If we don't know this yet, show a placeholder where the toggle button will go to
+                    // prevent other entries from shifting around as we load.
+                    this.root.querySelector(".follow-placeholder").hidden = false;
+                }
 
-            this.root.querySelector(".unfollow-button").hidden = false;
-        }
-        else
-        {
-            this.root.querySelector(".follow-button-public").hidden = false;
-            this.root.querySelector(".follow-button-private").hidden = false;
+                this.root.querySelector(".unfollow-button").hidden = false;
+            }
+            else
+            {
+                this.root.querySelector(".follow-button-public").hidden = false;
+                this.root.querySelector(".follow-button-private").hidden = false;
+            }
         }
 
         // If we've loaded follow tags, fill in the list.
         for(let element of this.root.querySelectorAll(".follow-tag"))
             element.remove();
-
-        if(allTags != null)
-        {
-            // Show the separator and "add tag" button once we have the tag list.
-            this.root.querySelector(".add-follow-tag").hidden = false;
-            this.root.querySelector(".separator").hidden = false;
-
-            allTags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
-            for(let tag of allTags)
-            {
-                let button = helpers.createBoxLink({
-                    label: tag,
-                    classes: ["follow-tag"],
-                    icon: "bookmark",
-                    asElement: true,
-                });
-    
-                // True if the user is bookmarked with this tag.
-                let selected = selectedTags.has(tag);
-                helpers.html.setClass(button, "selected", selected);
-
-                this.root.appendChild(button);
-
-                button.addEventListener("click", (e) => {
-                    this._toggleFollowTag(tag);
-                });
-            }
-        }
     }
 
     async _clickedFollow(followPrivately)
     {
-        await Actions.follow(this._userId, followPrivately);
+        await Actions.follow(this.userId, followPrivately);
     }
 
     async _clickedUnfollow()
     {
-        await Actions.unfollow(this._userId);
+        await Actions.unfollow(this.userId);
     }
 
+    async _clickedMute()
+    {
+        if(ppixiv.muting.isUserIdMuted(this.userId))
+            ppixiv.muting.unmuteUserId(this.userId);
+        else
+            await ppixiv.muting.addMute(this.userId, null, {type: "user"});
+    }
+
+    // Return info links for the given user.  This is used by data sources with contents
+    // related to a specific user.
+    _getInfoLinksForUser({ userInfo, userProfile, boothUrl }={})
+    {
+        if(userInfo == null)
+            return [];
+
+        let extraLinks = [];
+
+        extraLinks.push({
+            url: new URL(`/discovery/users#ppixiv?user_id=${userInfo.userId}`, ppixiv.plocation),
+            type: "similar-artists",
+            label: "Similar artists",
+        });
+
+        extraLinks.push({
+            url: new URL(`/users/${userInfo.userId}/following#ppixiv`, ppixiv.plocation),
+            type: "following-link",
+            label: `View followed users`,
+        });
+
+        extraLinks.push({
+            url: new URL(`/users/${userInfo.userId}/bookmarks/artworks#ppixiv`, ppixiv.plocation),
+            type: "bookmarks-link",
+            label: `View bookmarks`,
+        });
+
+        extraLinks.push({
+            url: new URL(`/messages.php?receiver_id=${userInfo.userId}`, ppixiv.plocation),
+            type: "contact-link",
+            label: "Send a message",
+        });
+
+        let muted = ppixiv.muting.isUserIdMuted(userInfo.userId);
+        extraLinks.unshift({
+            type: "mute",
+            label: `${muted? "Unmute":"Mute"} this user`,
+            icon: "mat:block",
+        });
+
+        if(userInfo?.acceptRequest)
+        {
+            extraLinks.push({
+                url: new URL(`/users/${this.userId}/request#no-ppixiv`, ppixiv.plocation),
+                type: "request",
+                label: "Accepting requests",
+            });
+        }
+
+        // Add a separator before user profile links.
+        extraLinks.push({ type: "separator" });
+
+        // Set the pawoo link.
+        let pawooUrl = userInfo?.social?.pawoo?.url;
+        if(pawooUrl != null)
+        {
+            extraLinks.push({
+                url: pawooUrl,
+                type: "pawoo-icon",
+                label: "Pawoo",
+            });
+        }
+
+        // Add the twitter link if there's one in the profile.
+        let twitterUrl = userInfo?.social?.twitter?.url;
+        if(twitterUrl != null)
+        {
+            extraLinks.push({
+                url: twitterUrl,
+                type: "twitter",
+            });
+        }
+
+        // Set the circle.ms link.
+        let circlemsUrl = userInfo?.social?.circlems?.url;
+        if(circlemsUrl != null)
+        {
+            extraLinks.push({
+                url: circlemsUrl,
+                label: "Circle.ms",
+            });
+        }
+
+        // Set the webpage link.
+        //
+        // If the webpage link is on a known site, disable the webpage link and add this to the
+        // generic links list, so it'll use the specialized icon.
+        let webpageUrl = userInfo?.webpage;
+        if(webpageUrl != null)
+        {
+            extraLinks.push({
+                url: webpageUrl,
+                label: "Webpage",
+                type: this._findLinkImageType(webpageUrl) ?? "webpage-link",
+            });
+        }
+
+        // Find any other links in the user's profile text.
+        let div = document.createElement("div");
+        div.innerHTML = userInfo.commentHtml;
+
+        for(let link of div.querySelectorAll("a"))
+        {
+            let url = helpers.pixiv.fixPixivLink(link.href);
+            
+            try {
+                url = new URL(url);
+            } catch(e) {
+                console.log("Couldn't parse profile URL:", url);
+                continue;
+            }
+
+            // Figure out a label to use.
+            let label = url.hostname;
+            let imageType = this._findLinkImageType(url);
+            if(imageType == "booth")
+                label = "Booth";
+            else if(imageType == "fanbox")
+                label = "Fanbox";
+            else if(label.startsWith("www."))
+                label = label.substr(4);
+
+            extraLinks.push({
+                url,
+                label,
+            });
+        }
+
+        // See if there's a Fanbox link.
+        //
+        // For some reason Pixiv supports links to Twitter and Pawoo natively in the profile, but Fanbox
+        // can only be linked in this weird way outside the regular user profile info.
+        let pickups = userProfile?.body?.pickup ?? [];
+        for(let pickup of pickups)
+        {
+            if(pickup.type != "fanbox")
+                continue;
+
+            // Remove the Google analytics junk from the URL.
+            let url = new URL(pickup.contentUrl);
+            url.search = "";
+            extraLinks.push({url, type: "fanbox", label: "Fanbox"});
+            break;
+        }
+
+        // Add the Booth link if we have one.  If we know there will be one but it's still loading,
+        // add a placeholder so the menu doesn't move around when it finishes loading.
+        if(boothUrl)
+            extraLinks.push({url: boothUrl, label: "Booth"});
+        else if(userProfile?.body?.externalSiteWorksStatus?.booth)
+            extraLinks.push({url: window.location, label: "Booth", icon: "mat:hourglass_full", disabled: true});
+
+        return extraLinks;
+    }
+
+    // Fill in link icons and remove duplicates.
+    _filterLinks(extraLinks)
+    {
+        // Map from link types to icons:
+        let linkTypes = {
+            // Generic types:
+            ["default-icon"]: "ppixiv:link",
+            ["shopping-cart"]: "mat:shopping_cart",
+            ["webpage-link"]: "mat:home",
+            ["commercial"]: "mat:paid",
+
+            // Site-specific ones.  The distinction is mostly arbitrary, but this tries to
+            // use mat:shopping_cart for sites where you purchase something specific, like
+            // Booth and Amazon, and mat:paid for other types of paid things, like subscriptions
+            // and commissions.
+            ["posts"]: "mat:palette",
+            ["twitter"]: "ppixiv:twitter",
+            ["fanbox"]: "mat:paid",
+            ["request"]: "mat:paid",
+
+            ["booth"]: "mat:shopping_cart",
+
+            ["pawoo-icon"]: "ppixiv:link",
+            ["twitch"]: "ppixiv:twitch",
+            ["contact-link"]: "mat:mail",
+            ["following-link"]: "mat:visibility",
+            ["bookmarks-link"]: "mat:star",
+            ["similar-artists"]: "ppixiv:suggestions",
+            ["mute"]: "block",
+        };
+
+        // Sort 
+        let filteredLinks = [];
+        let seenLinks = {};
+        let seenTypes = {};
+        for(let {type, url, label, ...other} of extraLinks)
+        {
+            if(type == "separator")
+            {
+                filteredLinks.push({ type });
+                continue;
+            }
+            
+            // Filter duplicate links.
+            if(url && seenLinks[url])
+                continue;
+
+            seenLinks[url] = true;
+
+            // Filter out entries with invalid URLs.
+            if(url)
+            {
+                try {
+                    url = new URL(url);
+                } catch(e) {
+                    console.log("Couldn't parse profile URL:", url);
+                    continue;
+                }
+            }
+
+            // Guess link types that weren't supplied.
+            type ??= this._findLinkImageType(url);
+            type ??= "default-icon";
+
+            // A lot of users have links duplicated in their profile and profile text.
+            if(seenTypes[type] && type != "default-icon" && type != "shopping-cart" && type != "webpage-link")
+                continue;
+
+            seenTypes[type] = true;
+
+            // Fill in the icon.
+            let icon = linkTypes[type];
+
+            // If this is a Twitter link, parse out the ID.  We do this here so this works
+            // both for links in the profile text and the profile itself.
+            if(type == "twitter")
+            {
+                let parts = url.pathname.split("/");
+                label = parts.length > 1? ("@" + parts[1]):"Twitter";
+            }
+
+            filteredLinks.push({ url, type, icon, label, ...other });
+        }
+
+        // Remove the last entry if it's a separator with nothing to separate.
+        if(filteredLinks.length && filteredLinks[filteredLinks.length-1].type == "separator")
+        {
+            console.log("del");
+            filteredLinks.splice(filteredLinks.length-1, 1);
+        }
+
+        return filteredLinks;
+    }
+
+    _findLinkImageType(url)
+    {
+        url = new URL(url);
+
+        let altIcons = {
+            "shopping-cart": [
+                "dlsite.com",
+                "skeb.jp",
+                "ko-fi.com",
+                "dmm.co.jp",
+            ],
+            "commercial": [
+                "fantia.jp",
+            ],
+            "twitter": [
+                "twitter.com",
+            ],
+            "fanbox": [
+                "fanbox.cc",
+            ],
+            "booth": [
+                "booth.pm",
+            ],
+            "twitch": [
+                "twitch.tv",
+            ],
+        };
+
+        // Special case for old Fanbox URLs that were under the Pixiv domain.
+        if((url.hostname == "pixiv.net" || url.hostname == "www.pixiv.net") && url.pathname.startsWith("/fanbox/"))
+            return "fanbox";
+
+        for(let alt in altIcons)
+        {
+            // "domain.com" matches domain.com and *.domain.com.
+            for(let domain of altIcons[alt])
+            {
+                if(url.hostname == domain)
+                    return alt;
+
+                if(url.hostname.endsWith("." + domain))
+                    return alt;
+            }
+        }
+        return null;
+    }
+};
+
+// A dropdown to select follow tags.  This is in a separate submenu, since it
+// needs to be loaded separately and it causes the top user menu to move around
+// too much.  This also makes more sense if the user has lots of follow tags.
+class FollowTagWidget extends Widget
+{
+    constructor({ userId, ...options })
+    {
+        super({
+            ...options, template: `<div class=vertical-list></div>`
+        });
+
+        this.userId = userId;
+        this.load();
+
+        // Refresh if our user changes, so we update tag highlights as they're edited.
+        ppixiv.userCache.addEventListener("usermodified", ({userId}) => {
+            if(userId == this.userId)
+                this.load();
+        }, this._signal);
+    }
+
+    async load()
+    {
+        // Get user info to see if we're followed, get our full follow tag list, and any
+        // tags this user is followed with.  This will all usually be in cache.
+        let userInfo = await ppixiv.userCache.getUserInfo(this.userId);
+
+        let selectedTags = new Set();
+        if(userInfo?.isFollowed)
+        {
+            let followInfo = await ppixiv.userCache.getUserFollowInfo(this.userId);
+            selectedTags = followInfo.tags;
+        }
+
+        let allTags = await ppixiv.userCache.loadAllUserFollowTags();
+
+        let followTagList = this.root;
+        helpers.html.removeElements(followTagList);
+
+        let addTagButton = helpers.createBoxLink({
+            label: "Add new tag",
+            icon: "add_circle",
+            classes: ["follow-tag"],
+            asElement: true,
+        });
+        addTagButton.addEventListener("click", (e) => this._addFollowTag());
+        followTagList.appendChild(addTagButton);
+
+        allTags.sort((lhs, rhs) => lhs.toLowerCase().localeCompare(rhs.toLowerCase()));
+        for(let tag of allTags)
+        {
+            let button = helpers.createBoxLink({
+                label: tag,
+                classes: ["follow-tag"],
+                icon: "bookmark",
+                asElement: true,
+            });
+
+            // True if the user is bookmarked with this tag.
+            let selected = selectedTags.has(tag);
+            helpers.html.setClass(button, "selected", selected);
+
+            followTagList.appendChild(button);
+
+            button.addEventListener("click", (e) => {
+                this._toggleFollowTag(tag);
+            });
+        }
+    }
+    
     async _addFollowTag()
     {
         let prompt = new TextPrompt({ title: "New folder:" });
@@ -597,4 +984,4 @@ class FollowWidget extends Widget
         let tagWasSelected = followInfo.tags.has(tag);
         Actions.changeFollowTags(userId, {tag: tag, add: !tagWasSelected});
     }
-};
+}

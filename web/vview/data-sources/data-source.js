@@ -2,7 +2,6 @@ import Widget from 'vview/widgets/widget.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import IllustIdList from 'vview/data-sources/illust-id-list.js';
 import LocalAPI from 'vview/misc/local-api.js';
-import * as InfoLinks from 'vview/data-sources/info-links.js';
 import { helpers, SafetyBackoffTimer } from 'vview/misc/helpers.js';
 
 export default class DataSource extends EventTarget
@@ -619,22 +618,6 @@ export default class DataSource extends EventTarget
     {
         return true;
     }
-
-    // Return an array of info links that can be displayed for this data source:
-    //
-    // { url, type, label }
-    //
-    // 
-    // URLs added to links will be included in the links at the top of the page when viewing an artist.
-    getInfoLinks()
-    {
-        let links = this._getInfoLinks();
-        links = InfoLinks.filterLinks(links);
-        return links;
-    }
-
-    // The data source can override this to add links to getInfoLinks.
-    _getInfoLinks() { return []; }
 
     // Return the next or previous image to navigate to from mediaId.  If we're at the end of
     // the loaded results, load the next or previous page.  If mediaId is null, return the first

@@ -3,6 +3,7 @@
 // This is used to close dropdown menus.
 
 import Actor from 'vview/actors/actor.js';
+import Widget from 'vview/widgets/widget.js';
 import PointerListener from 'vview/actors/pointer-listener.js';
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -28,8 +29,21 @@ export default class ClickOutsideListener extends Actor
     {
         for(let ancestor of this.nodeList)
         {
-            if(helpers.html.isAbove(ancestor, node))
-                return true;
+
+            // nodeList can contain both DOM nodes and widgets (actors).  If this is a widget,
+            // see if the node is within the widget's tree.
+            if(ancestor instanceof Actor)
+            {
+                for(let rootNode of ancestor.getRoots())
+                    if(helpers.html.isAbove(rootNode, node))
+                        return true;
+            }
+            else
+            {
+                // node is just a DOM node.
+                if(helpers.html.isAbove(ancestor, node))
+                    return true;
+            }
         }
         return false;
     }

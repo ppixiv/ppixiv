@@ -14,7 +14,10 @@ export default class UserCache extends EventTarget
         this._userInfoLoads = {};
         this._followInfoLoads = {};
         this._userFollowTagsLoad = null;
+        this._userProfile = { }
+        this._userProfileLoads = { }
         this._nonexistantUserIds = { };
+        this._userBoothUrls = { };
     }
 
     async getUserIdForMediaId(mediaId)
@@ -38,6 +41,7 @@ export default class UserCache extends EventTarget
     {
         console.log(`User modified: ${userId}`);
         let event = new Event("usermodified");
+        event.userId = userId;
         event.user_id = userId;
         this.dispatchEvent(event);
     }
@@ -67,22 +71,9 @@ export default class UserCache extends EventTarget
     }
 
     // Return user info for userId if it's already cached, otherwise return null.
-    //
-    // If afterLoad is given and the user info isn't available, load the user in the background.
-    // If user info can be loaded, call afterLoad() when the load completes.
-    getUserInfoSync(userId, { afterLoad=null }={})
+    getUserInfoSync(userId)
     {
-        if(this._userData[userId])
-            return this._userData[userId];
-        
-        if(afterLoad == null)
-            return null;
-        
-        this.getUserInfo(userId).then((userInfo) => {
-            if(userInfo)
-                afterLoad(userInfo);
-        });
-        return null;
+        return this._userData[userId];
     }
 
     // Load userId if needed.
@@ -203,6 +194,7 @@ export default class UserCache extends EventTarget
             'partial',
             'social',
             'commentHtml',
+            'acceptRequest',
             // 'premium',
             // 'sketchLiveId',
             // 'sketchLives',
@@ -230,6 +222,91 @@ export default class UserCache extends EventTarget
             remappedUserData[key] = userData[key];
         }
         return remappedUserData;
+    }
+
+    // User profiles are separate from user info.
+    getUserProfile(userId)
+    {
+        if(userId == null)
+            return null;
+
+        if(this._userProfile[userId])
+            return this._userProfile[userId];
+
+        // Stop if we know this user doesn't exist.
+        let baseMediaId = `user:${userId}`;
+        if(baseMediaId in this._nonexistantUserIds)
+            return null;
+
+        // If there's already a load in progress, just return it.
+        if(this._userProfileLoads[userId] != null)
+            return this._userProfileLoads[userId];
+       
+        this._userProfileLoads[userId] = this._loadUserProfile(userId);
+        this._userProfileLoads[userId].then(() => {
+            delete this._userProfileLoads[userId];
+        });
+
+        return this._userProfileLoads[userId];
+    }
+
+    getUserProfileSync(userId)
+    {
+        return this._userProfile[userId];
+    }
+
+    async _loadUserProfile(userId)
+    {
+        // -1 is for illustrations with no user, which is used for local images.
+        if(userId == -1)
+            return null;
+
+        // console.log("Fetch user", userId);
+        let result = helpers.pixivRequest.get(`/ajax/user/${userId}/profile/all`);
+        if(result == null || result.error)
+        {
+            let message = result?.message || "Error loading user";
+            console.log(`Error loading user ${userId}: ${message}`);
+            this._nonexistantUserIds[`user:${userId}`] = message;
+            return null;
+        }
+
+        this._userProfile[userId] = result;
+        return result;
+    }
+
+    // Return the URL to a user's Booth page, if any.  The results are cached.
+    getUserBoothUrl(userId)
+    {
+        // Stop if this has already been loaded.  Note that _userBoothUrls[userId]
+        // may be null.
+        if(userId in this._userBoothUrls)
+            return this._userBoothUrls[userId];
+
+        let promise = this._loadUserBoothUrl(userId);
+        promise.then((url) => this._userBoothUrls[userId] = url);
+        return promise;
+    }
+
+    async _loadUserBoothUrl(userId)
+    {
+        // Check if the user's profile says he has a Booth account first.
+        let userProfile = await ppixiv.userCache.getUserProfile(userId);
+        if(!userProfile.body?.externalSiteWorksStatus?.booth)
+            return null;
+
+        let boothInfo = await helpers.pixivRequest.get("https://api.booth.pm/pixiv/shops/show.json", {
+            pixiv_user_id: userId,
+            adult: "exclude",
+
+            // We don't need item results, but 1 is the minimum.
+            limit: 1,
+        });
+
+        if(boothInfo.error)
+            return null;
+
+        return boothInfo.body.url;
     }
 
     // Load the follow info for a followed user, which includes follow tags and whether the
@@ -362,6 +439,12 @@ export default class UserCache extends EventTarget
 
         this._allUserFollowTags.push(tag);
         this._allUserFollowTags.sort();
+    }
+
+    // Return the list of the user's follow tags if it's been loaded, otherwise return null.
+    getAllUserFollowTagsSync()
+    {
+        return this._allUserFollowTags;
     }
 
     // Update the follow info for a user.  This is used after updating a follow.

@@ -503,7 +503,6 @@ class ImageInfoWidget extends IllustWidget
         this.avatarWidget = new AvatarWidget({
             container: this.root.querySelector(".avatar"),
             mode: "dropdown",
-            interactive: false,
         });
         this.root.querySelector(".avatar").hidden = ppixiv.native;
     }
