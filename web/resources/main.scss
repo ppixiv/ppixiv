@@ -1362,20 +1362,54 @@ body.hide-r18g .r18g { display: none; }
         }
 
         .user-links {
-            gap: 0.1em;
+            user-select: none;
+            -webkit-user-select: none;
+                
+            .user-info-hint {
+                font-size: 2rem;
+                color: #aaa;
+                cursor: pointer;
+            }
+            .over-there {
+                position: fixed;
+                z-index: 100;
+                font-size: 2rem;
 
-            .fanbox-icon {
-                // This is weird, since Inkscape doesn't support setting obscure attributes like "class".
-                [inkscape\:label="edge"],
-                [inkscape\:label="ear-left"],
-                [inkscape\:label="ear-right"],
-                [inkscape\:label="hand-right"]
-                {
-                    fill: currentColor !important;
+                &.point {
+                    animation-name: point;
+                    opacity: 1;
+                }
+                opacity: 0;
+                pointer-events: none;
+                animation-duration: 500ms;
+                animation-timing-function: ease-in-out;
+                animation-iteration-count: 1;
+                animation-fill-mode: both;
+
+                --dist: 50px;
+                @keyframes point {
+                    0% {
+                        transform: translateY(var(--dist)) rotate(-50deg) translateY(calc(var(--dist) * -1));
+                        opacity: 0;
+                    }
+                    20% {
+                        transform: translateY(var(--dist)) rotate(0deg) translateY(calc(var(--dist) * -1));
+                        opacity: 1;
+                    }
+                    80% {
+                    }
+                    100% {
+                        transform: translateY(var(--dist)) rotate(-50deg) translateY(calc(var(--dist) * -1));
+                        opacity: 0;
+                    }
+                }
+       
+                .thumb {
+                    transform: rotate(-90deg) scaleY(-1);
                 }
             }
         }
-
+    
         html[data-whats-new-updated] & .settings-menu-box {
             --button-color: #cc0;
         }

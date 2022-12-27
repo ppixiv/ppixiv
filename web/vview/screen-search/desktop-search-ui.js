@@ -28,8 +28,12 @@ export default class DesktopSearchUI extends Widget
                     <div class=title-with-button-row>
                         <div class="displaying title-font"></div>
                         <div style="flex: 1;"></div>
-                        <!-- Links at the top left when viewing a user will be inserted here. -->
-                        <div class=user-links></div>
+                        <div class=user-links>
+                            ${ helpers.createIcon("info", { classes: ["button", "user-info-hint"]  }) }
+                            <div class=over-there>
+                                ${ helpers.createIcon("thumb_up",  { classes: ["thumb"] }) }
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -97,6 +101,21 @@ export default class DesktopSearchUI extends Widget
             },
         });
 
+        // This is temporary to make sure people know where the artist info buttons went.
+        this.userLinks = this.querySelector(".user-links");
+        this.userLinks.addEventListener("click", () => {
+            ppixiv.message.show("Artist links are now in the avatar dropdown");
+
+            let target = this.querySelector(".avatar-container");
+            let node = this.userLinks.querySelector(".over-there");
+            let { left, top, height } = target.getBoundingClientRect();
+            node.style.left = `${left - 10}px`;
+            node.style.top = `${top + height/2}px`;
+
+            node.classList.add("point");
+            node.onanimationend = () => node.classList.remove("point");
+        });
+
         this.root.querySelector(".refresh-search-from-page-button").addEventListener("click", () => this.parent.refreshSearchFromPage());
         this.root.querySelector(".expand-manga-posts").addEventListener("click", (e) => {
             this.parent.searchView.toggleExpandingMediaIdsByDefault();
@@ -162,6 +181,8 @@ export default class DesktopSearchUI extends Widget
 
         if(dataSource == null)
             return;
+
+        this.userLinks.hidden = this.dataSource.viewingUserId == null || this.dataSource.viewingUserId == ppixiv.pixivInfo?.userId;
 
         // Create the new data source's UI.
         if(this.dataSource.ui)

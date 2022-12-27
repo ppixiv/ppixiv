@@ -176,17 +176,17 @@ export class helpers
         if(icon != null)
         {
             let [iconClass, iconName] = helpers.getIconClassAndName(icon);
-            let icon_element = node.querySelector(".icon");
-            icon_element.classList.add(iconClass);
-            icon_element.classList.add("font-icon");
-            icon_element.hidden = false;
-            icon_element.innerText = iconName;
-            icon_element.lang = "icon";
+            let iconElement = node.querySelector(".icon");
+            iconElement.classList.add(iconClass);
+            iconElement.classList.add("font-icon");
+            iconElement.hidden = false;
+            iconElement.innerText = iconName;
+            iconElement.lang = "icon";
     
             // .with.text is set for icons that have text next to them, to enable padding
             // and spacing.
             if(label != null)
-                icon_element.classList.add("with-text");
+                iconElement.classList.add("with-text");
         }
 
         if(explanation != null)
