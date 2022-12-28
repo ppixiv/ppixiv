@@ -47,6 +47,7 @@ export default class ScrollListener extends Actor
         this._thresholdUp = thresholdUp ?? threshold;
         this._onchange = onchange;
         this._motion = 0;
+        this._lastScrollY = 0;
         this._defaultValue = defaultValue;
         this._scrolledForwards = false;
         this._stickyUiNode = stickyUiNode;
@@ -181,6 +182,85 @@ export default class ScrollListener extends Actor
     }
 }
 
+// Call onchange when a node has children added or removed.
+//
+// Treat children of display: contents nodes as direct children of the node.  They have no
+// layout of their own, and we're doing this to track resizes of the layout children of a
+// node.  If we don't do this, we won't see scroller size changes inside display: contents
+// nodes directly inside the scroller.
+class ImmediateChildrenListener extends Actor
+{
+    constructor({
+        root,
+        onchange,
+        ...options
+    }={})
+    {
+        super({ ...options });
+
+        this._onchange = onchange;
+        this._watching = new Set();
+
+        this._mutationObserver = new MutationObserver((mutations) => {
+            for(let mutation of mutations)
+            {
+                for(let node of mutation.addedNodes)
+                    this._nodeAdded(node, { isRoot: false });
+
+                for(let node of mutation.removedNodes)
+                    this._nodeRemoved(node);
+            }
+        });
+        this.shutdownSignal.signal.addEventListener("abort", () => this._mutationObserver.disconnect());
+
+        this._nodeAdded(root, { isRoot: true });
+    }
+
+    // A node we're watching had a child added (or we're adding the root).
+    _nodeAdded(node, { isRoot })
+    {
+        if(!isRoot)
+            this._onchange({node, added: true});
+
+        // If an added node is display: contents, it doesn't have layout, and we need
+        // to watch its children in the same way we're watching the root.  We don't
+        // support display changing to or from contents.
+        let isContents = getComputedStyle(node).display == "contents";
+        if(isRoot || isContents)
+        {
+            console.assert(!this._watching.has(node));
+            this._watching.add(node);
+            this._mutationObserver.observe(node, { childList: true });
+
+            console.log("adding children of", node);
+            for(let child of node.children)
+            {
+                console.log("more children", child);
+                this._nodeAdded(child, {isRoot: false});
+            }
+        }
+    }
+
+    // A node we're watching had a child removed.
+    _nodeRemoved(node)
+    {
+        this._onchange({node, added: false});
+
+        let isContents = getComputedStyle(node).display == "contents";
+        if(isRoot || isContents)
+        {
+            console.assert(this._watching.has(node));
+            this._watching.remove(node);
+            this._mutationObserver.unobserve(node, { childList: true });
+
+            for(let child of node.children)
+            {
+                this._nodeRemoved(child);
+            }
+        }
+    }
+}
+
 // There seems to be no quick way to tell when scrollHeight or scrollWidth change on a
 // scroller.  We have to watch for resizes on all children.
 class ScrollDimensionsListener extends Actor
@@ -195,20 +275,6 @@ class ScrollDimensionsListener extends Actor
 
         this.onchange = onchange;
 
-        // Create a MutationOBserver to watch for children being added or removed from the scroller.
-        // We only need to look at immediate children.
-        this._mutationObserver = new MutationObserver((mutations) => {
-            for(let mutation of mutations)
-            {
-                for(let node of mutation.addedNodes)
-                    this._resizeObserver.observe(node);
-                for(let node of mutation.removedNodes)
-                    this._resizeObserver.unobserve(node);
-            }
-        });
-        this._mutationObserver.observe(scroller, { childList: true });
-        this.shutdownSignal.signal.addEventListener("abort", () => this._mutationObserver.disconnect());
-
         // The ResizeObserver watches for size changes to children which could cause the scroll
         // size to change.
         this._resizeObserver = new ResizeObserver(() => {
@@ -216,8 +282,16 @@ class ScrollDimensionsListener extends Actor
         });
         this.shutdownSignal.signal.addEventListener("abort", () => this._resizeObserver.disconnect());
 
-        // Add children that already exist to the ResizeObserver.
-        for(let node of scroller.children)
-            this._resizeObserver.observe(node);
+        this._childrenListener = new ImmediateChildrenListener({
+            parent: this,
+            root: scroller,
+            onchange: ({ node, added }) =>
+            {
+                if(added)
+                    this._resizeObserver.observe(node);
+                else
+                    this._resizeObserver.unobserve(node);
+            }
+        });
     }
 }
