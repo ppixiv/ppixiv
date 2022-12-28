@@ -634,35 +634,19 @@ class FollowWidget extends Widget
         // Add a separator before user profile links.
         extraLinks.push({ type: "separator" });
 
-        // Set the pawoo link.
-        let pawooUrl = userInfo?.social?.pawoo?.url;
-        if(pawooUrl != null)
-        {
-            extraLinks.push({
-                url: pawooUrl,
-                type: "pawoo-icon",
-                label: "Pawoo",
-            });
-        }
-
-        // Add the twitter link if there's one in the profile.
-        let twitterUrl = userInfo?.social?.twitter?.url;
-        if(twitterUrl != null)
-        {
-            extraLinks.push({
-                url: twitterUrl,
-                type: "twitter",
-            });
-        }
-
-        // Set the circle.ms link.
-        let circlemsUrl = userInfo?.social?.circlems?.url;
-        if(circlemsUrl != null)
-        {
-            extraLinks.push({
-                url: circlemsUrl,
+        // Add entries from userInfo.social.
+        let knownSocialKeys = {
+            circlems: {
                 label: "Circle.ms",
-            });
+            },
+        };
+
+        let social = userInfo?.social ?? [];
+        for(let [key, {url}] of Object.entries(social))
+        {
+            let data = knownSocialKeys[key] ?? { };
+            data.label ??= helpers.strings.titleCase(key);
+            extraLinks.push({ url, ...data });
         }
 
         // Set the webpage link.
@@ -759,7 +743,6 @@ class FollowWidget extends Widget
 
             ["booth"]: "mat:shopping_cart",
 
-            ["pawoo-icon"]: "ppixiv:link",
             ["twitch"]: "ppixiv:twitch",
             ["contact-link"]: "mat:mail",
             ["following-link"]: "mat:visibility",
