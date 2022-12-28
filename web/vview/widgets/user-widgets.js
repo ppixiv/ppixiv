@@ -806,10 +806,7 @@ class FollowWidget extends Widget
 
         // Remove the last entry if it's a separator with nothing to separate.
         if(filteredLinks.length && filteredLinks[filteredLinks.length-1].type == "separator")
-        {
-            console.log("del");
             filteredLinks.splice(filteredLinks.length-1, 1);
-        }
 
         return filteredLinks;
     }
