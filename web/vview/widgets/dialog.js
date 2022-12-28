@@ -109,7 +109,7 @@ export default class DialogWidget extends Widget
                     <div class="dialog ${classes ?? ""}">
                         <div class=header>
                             <div class="close-button-container">
-                                <div class="close-button icon-button" data-hidden-on=mobile>
+                                <div class="close-button icon-button">
                                     ${ helpers.createIcon(closeIcon) }
                                 </div>
                             </div>
@@ -126,6 +126,10 @@ export default class DialogWidget extends Widget
             `,
             ...options,
         });
+
+        // Always hide the close button on mobile.
+        if(ppixiv.mobile)
+            showCloseButton = false;
 
         // Dialogs are always used once and not reused, so they should never be created invisible.
         if(!this.visible)
