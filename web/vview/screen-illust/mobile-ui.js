@@ -36,7 +36,7 @@ export default class MobileImageUI extends Widget
             container: this.root.querySelector(".context-menu-image-info-container"),
         });
 
-        this.page = new IllustBottomMenuBar({
+        this.menuBar = new IllustBottomMenuBar({
             container: this.root,
         });
         
@@ -96,7 +96,7 @@ export default class MobileImageUI extends Widget
 
     setDataSource(dataSource)
     {
-        this.page.setDataSource(dataSource);
+        this.menuBar.setDataSource(dataSource);
     }
 
     get actuallyVisible()
@@ -150,7 +150,7 @@ export default class MobileImageUI extends Widget
             return;
 
         this.infoWidget.setMediaId(this._mediaId);
-        this.page.mediaId = this._mediaId;
+        this.menuBar.mediaId = this._mediaId;
 
         // Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
         // open.
@@ -161,7 +161,7 @@ export default class MobileImageUI extends Widget
         let visible = this.actuallyVisible;
         OpenWidgets.singleton.set(this, visible);
 
-        this.page.refresh();
+        this.menuBar.refresh();
     }
 }
 
