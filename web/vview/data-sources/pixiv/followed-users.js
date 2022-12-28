@@ -227,7 +227,7 @@ class UI extends Widget
         // Create the follow tag dropdown.
         new DropdownMenuOpener({
             button: this.querySelector(".follow-tags-button"),
-            createBox: ({...options}) => new FollowTabDropdown({dataSource, ...options}),
+            createDropdown: ({...options}) => new FollowTabDropdown({dataSource, ...options}),
         });
     }
 }

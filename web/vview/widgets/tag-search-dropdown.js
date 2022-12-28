@@ -30,13 +30,13 @@ export class TagSearchBoxWidget extends widget
 
         this.querySelector(".edit-search-button").addEventListener("click", (e) => {
             this._dropdownOpener.visible = true;
-            this._dropdownOpener.boxWidget.editing = !this._dropdownOpener.boxWidget.editing;
+            this._dropdownOpener.dropdown.editing = !this._dropdownOpener.dropdown.editing;
         });
 
         this._dropdownOpener = new DropdownBoxOpener({
             button: this._inputElement,
 
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 let dropdown = new TagSearchDropdownWidget({
                     inputElement: this.root,
                     parent: this,

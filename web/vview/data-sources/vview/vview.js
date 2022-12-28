@@ -409,7 +409,7 @@ class UI extends Widget
 
         this.tagDropdownOpener = new DropdownMenuOpener({
             button: this.querySelector(".bookmark-tags-button"),
-            createBox: ({...options}) => new BookmarkTagDropdown({ dataSource, ...options }),
+            createDropdown: ({...options}) => new BookmarkTagDropdown({ dataSource, ...options }),
         });
 
         // Hide the bookmark box if we're not showing bookmarks.

@@ -34,7 +34,7 @@ export class LocalSearchBoxWidget extends Widget
         this.dropdownOpener = new DropdownBoxOpener({
             button: this.inputElement,
 
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 return new LocalSearchDropdownWidget({
                     inputElement: this.root,
                     focusParent: this.root,

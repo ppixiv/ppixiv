@@ -90,7 +90,7 @@ export default class DesktopSearchUI extends Widget
         // Create the search menu dropdown.
         new DropdownMenuOpener({
             button: this.root.querySelector(".main-search-menu-button"),
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 let dropdown = this.bookmarkTagsDropdown = new Widget({
                     ...options,
                     template: `<div class="vertical-list"></div>`,

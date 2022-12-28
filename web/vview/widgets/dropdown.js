@@ -15,7 +15,7 @@ export class DropdownBoxOpener extends Actor
 
         // This is called when button is clicked and should return a widget to display.  The
         // widget will be shut down when it's dismissed.
-        createBox=null,
+        createDropdown=null,
 
         onvisibilitychanged=() => { },
 
@@ -36,9 +36,9 @@ export class DropdownBoxOpener extends Actor
         this.button = button;
         this.shouldCloseForClick = shouldCloseForClick;
         this.onvisibilitychanged = onvisibilitychanged;
-        this.createBox = createBox;
+        this.createDropdown = createDropdown;
 
-        this.box = null;
+        this._dropdown = null;
         this._visible = true;
         this.visible = false;
 
@@ -70,9 +70,9 @@ export class DropdownBoxOpener extends Actor
     }
 
     // If the dropdown is open, return it.
-    get dropdownWidget()
+    get dropdown()
     {
-        return this.boxWidget;
+        return this._dropdown;
     }
 
     set visible(value)
@@ -84,22 +84,21 @@ export class DropdownBoxOpener extends Actor
 
         if(value)
         {
-            this.boxWidget = this.createBox({
+            this._dropdown = this.createDropdown({
                 container: document.body,
                 parent: this,
             });
 
             // Stop if no widget was created.
-            if(this.boxWidget == null)
+            if(this._dropdown == null)
             {
                 this._visible = false;
                 return;
             }
 
-            this.boxWidget.root.classList.add("dropdown-box");
-            this.box = this.boxWidget.root;
+            this._dropdown.root.classList.add("dropdown-box");
 
-            this.listener = new ClickOutsideListener([this.button, this.boxWidget], (target, {event}) => {
+            this.listener = new ClickOutsideListener([this.button, this._dropdown], (target, {event}) => {
                 if(!this.shouldCloseForClick(event))
                     return;
 
@@ -107,16 +106,16 @@ export class DropdownBoxOpener extends Actor
             });
 
             if(this.closeOnClickInside)
-                this.box.addEventListener("click", this.boxClicked);
+                this._dropdown.root.addEventListener("click", this.boxClicked);
 
             this._resizeObserver = new ResizeObserver(() => {
-                if(this._boxWidth == this.box.offsetWidth)
+                if(this._boxWidth == this._dropdown.root.offsetWidth)
                     return;
     
-                this._boxWidth = this.box.offsetWidth;
+                this._boxWidth = this._dropdown.root.offsetWidth;
                 this._alignToButton();
             });
-            this._resizeObserver.observe(this.box);
+            this._resizeObserver.observe(this._dropdown.root);
         
             // We manually position the dropdown, so we need to reposition them if
             // the window size changes.
@@ -126,17 +125,17 @@ export class DropdownBoxOpener extends Actor
         }
         else
         {
-            if(!this.box)
+            if(!this._dropdown)
                 return;
 
-            this.box.removeEventListener("click", this.boxClicked);
+            this._dropdown.root.removeEventListener("click", this.boxClicked);
 
             this._cleanup();
 
-            if(this.boxWidget)
+            if(this._dropdown)
             {
-                this.boxWidget.shutdown();
-                this.boxWidget = null;
+                this._dropdown.shutdown();
+                this._dropdown = null;
             }
         }
 
@@ -171,7 +170,7 @@ export class DropdownBoxOpener extends Actor
         // Use getBoundingClientRect to figure out the position, since it works
         // correctly with CSS transforms.  Figure out how far off we are and move
         // by that amount.  This works regardless of what our relative position is.
-        //let {left: box_x, top: box_y} = this.box.getBoundingClientRect(document.body);
+        //let {left: box_x, top: box_y} = this._dropdown.root.getBoundingClientRect(document.body);
         let {left: buttonX, top: buttonY, height: boxHeight} = this.button.getBoundingClientRect();
 
         // Align to the left of the button.  Nudge left slightly for padding.
@@ -189,7 +188,7 @@ export class DropdownBoxOpener extends Actor
 
         let y = buttonY;
 
-        this.box.style.left = `${x}px`;
+        this._dropdown.root.style.left = `${x}px`;
 
         // Put the dropdown below the button if we're on the top half of the screen, otherwise
         // put it above.
@@ -197,25 +196,25 @@ export class DropdownBoxOpener extends Actor
         {
             // Align to the bottom of the button, adding a bit of padding.
             y += boxHeight + verticalPadding;
-            this.box.style.top = `${y}px`;
-            this.box.style.bottom = "";
+            this._dropdown.root.style.top = `${y}px`;
+            this._dropdown.root.style.bottom = "";
 
             // Set the box's maxHeight so it doesn't cross the bottom of the screen.
             // On desktop, add a bit of padding so it's not flush against the edge.
             let height = window.innerHeight - y - padding;
-            this.box.style.maxHeight = `${height}px`;
+            this._dropdown.root.style.maxHeight = `${height}px`;
         }
         else
         {
             y -= verticalPadding;
 
             // Align to the top of the button.
-            this.box.style.top = "";
-            this.box.style.bottom = `calc(100% - ${y}px)`;
+            this._dropdown.root.style.top = "";
+            this._dropdown.root.style.bottom = `calc(100% - ${y}px)`;
 
             // Set the box's maxHeight so it doesn't cross the top of the screen.
             let height = y - padding;
-            this.box.style.maxHeight = `${height}px`;
+            this._dropdown.root.style.maxHeight = `${height}px`;
         }
     }
 
@@ -237,15 +236,15 @@ export class DropdownMenuOpener extends DropdownBoxOpener
 {
     // When button is clicked, show box.
     constructor({
-        createBox=null,
+        createDropdown=null,
 
         ...options
     })
     {
         super({
-            // Wrap createBox() to add the popup-menu-box class.
-            createBox: (...args) => {
-                let widget = createBox(...args);
+            // Wrap createDropdown() to add the popup-menu-box class.
+            createDropdown: (...args) => {
+                let widget = createDropdown(...args);
                 widget.root.classList.add("popup-menu-box");
                 return widget;
             },
@@ -264,7 +263,7 @@ export class DropdownMenuOpener extends DropdownBoxOpener
     {
         super.visible = value;
 
-        if(this.box)
+        if(this._dropdown)
         {
             // If we're inside ScreenSearch's top-ui-box container, set .force-open on that element
             // while we're open.  This prevents it from being hidden while a dropdown inside it is
@@ -303,7 +302,7 @@ export class DropdownMenuOpener extends DropdownBoxOpener
     // dropdown so we can see what gets set.  This is tightly tied to DataSource.setItem.
     setButtonPopupHighlight()
     {
-        let tempBox = this.createBox({container: document.body});
+        let tempBox = this.createDropdown({container: document.body});
         DropdownMenuOpener.setActivePopupHighlightFrom(this.button, tempBox.root);
         tempBox.shutdown();
     }

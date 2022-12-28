@@ -332,7 +332,7 @@ class UI extends Widget
         // Create the content dropdown.
         new DropdownMenuOpener({
             button: this.querySelector(".content-type-button"),
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 let dropdown = new Widget({
                     ...options,
                     template: `
@@ -376,7 +376,7 @@ class UI extends Widget
         // Create the mode dropdown.
         new DropdownMenuOpener({
             button: this.querySelector(".mode-button"),
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 let dropdown = new Widget({
                     ...options,
                     template: `

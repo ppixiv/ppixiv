@@ -412,7 +412,7 @@ export default class DataSource extends EventTarget
     {
         return new DropdownMenuOpener({
             button,
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 let dropdown = new Widget({
                     ...options,
                     template: `<div class=vertical-list></div>`,

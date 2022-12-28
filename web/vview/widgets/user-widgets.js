@@ -42,7 +42,7 @@ export class AvatarWidget extends Widget
         this.followDropdownOpener = new DropdownBoxOpener({
             button: avatarLink,
             onvisibilitychanged: dropdownvisibilitychanged,
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 return new FollowWidget({
                     ...options,
                     userId: this.userId,
@@ -100,7 +100,7 @@ export class AvatarWidget extends Widget
     // Return the dropdown if it's open.
     get userDropdownWidget()
     {
-        return this.followDropdownOpener.dropdownWidget;
+        return this.followDropdownOpener.dropdown;
     }
 
     // Refresh when the user changes.
@@ -380,7 +380,7 @@ class FollowWidget extends Widget
         this.followTagDropdownOpener = new DropdownBoxOpener({
             button: this.querySelector(".follow-tags"),
             clickToOpen: true,
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 return new FollowTagWidget({
                     ...options,
                     userId: this.userId,

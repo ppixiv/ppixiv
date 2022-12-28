@@ -353,7 +353,7 @@ export class BookmarkTagDropdownOpener extends Actor
         this._opener = new DropdownBoxOpener({
             button: bookmarkTagsButton,
             onvisibilitychanged,
-            createBox: this._createBox,
+            createDropdown: this._createBox,
 
             // If we have bookmark buttons, don't close for clicks inside them.  We need the
             // bookmark button to handle the click first, then it'll close us.

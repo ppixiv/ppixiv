@@ -182,7 +182,7 @@ export default class ContextMenu extends Widget
         this._moreOptionsDropdownOpener = new DropdownBoxOpener({
             button: moreOptionsButton,
 
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 let dropdown = new MoreOptionsDropdown({
                     ...options,
                     parent: this,

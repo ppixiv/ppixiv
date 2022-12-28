@@ -364,7 +364,7 @@ class UI extends Widget
 
         this.tagDropdown = new DropdownMenuOpener({
             button: this.querySelector(".related-tags-button"),
-            createBox: ({...options}) => new RelatedTagDropdown({ dataSource, ...options }),
+            createDropdown: ({...options}) => new RelatedTagDropdown({ dataSource, ...options }),
         });
 
         dataSource.setupDropdown(this.querySelector(".ages-button"), [{
@@ -490,7 +490,7 @@ class UI extends Widget
         // The time-ago dropdown has a custom layout, so create it manually.
         new DropdownMenuOpener({
             button: this.querySelector(".time-ago-button"),
-            createBox: ({...options}) => {
+            createDropdown: ({...options}) => {
                 let dropdown = new Widget({
                     ...options,
                     template: `

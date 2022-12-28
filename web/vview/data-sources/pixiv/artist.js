@@ -373,7 +373,7 @@ class UI extends Widget
 
         this.tagDropdown = new DropdownMenuOpener({
             button: this.querySelector(".member-tags-button"),
-            createBox: ({...options}) => new TagDropdown({dataSource, ...options}),
+            createDropdown: ({...options}) => new TagDropdown({dataSource, ...options}),
             onvisibilitychanged: (opener) => {
                 // Populate the tags dropdown if it's opened, so we don't load user tags for every user page.
                 if(opener.visible);
