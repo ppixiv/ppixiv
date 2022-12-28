@@ -2607,8 +2607,6 @@ a.box-link, span.box-link
     }
 
     .mobile-illust-ui-page {
-        @include overlay-blur();
-
         width: 100%;
         bottom: 0;
 
@@ -3271,6 +3269,10 @@ svg.heart-image .delete {
         user-select: none;
         -webkit-user-select: none;
         cursor: pointer;
+
+        // Move up by the height of the menu bar when it's visible.  This follows the transition of the
+        // bar.
+        translate: 0px calc(var(--menu-bar-pos) * var(--menu-bar-height) * -1);
 
         // The individual image viewers.  There's usually just one of these, but we can have
         // multiple for transitions.
