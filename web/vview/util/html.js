@@ -122,17 +122,17 @@ export function saveScrollPosition(scroller, saveRelativeTo)
 // be a node corresponding to saveRelativeTo given to saveSCrollPosition.
 export function restoreScrollPosition(scroller, restoreRelativeTo, savedPosition)
 {
-    let scroll_top = savedPosition.originalScrollTop;
+    let scrollTop = savedPosition.originalScrollTop;
     if(restoreRelativeTo)
     {
         let offset = restoreRelativeTo.offsetTop - savedPosition.originalOffsetTop;
-        scroll_top += offset;
+        scrollTop += offset;
     }
 
     // Don't write to scrollTop if it's not changing, since that breaks
     // scrolling on iOS.
-    if(scroller.scrollTop != scroll_top)
-        scroller.scrollTop = scroll_top;
+    if(scroller.scrollTop != scrollTop)
+        scroller.scrollTop = scrollTop;
 }
 
 
@@ -190,17 +190,17 @@ export function createFromTemplate(type, {makeSVGUnique=true}={})
 let _svgIdSequence = 0;
 function makeSVGIdsUnique(svg)
 {
-    let id_map = {};
+    let idMap = {};
     let idx = _svgIdSequence;
 
     // First, find all IDs in the SVG and change them to something unique.
     for(let def of svg.querySelectorAll("[id]"))
     {
-        let old_id = def.id;
-        let new_id = def.id + "_" + idx;
+        let oldId = def.id;
+        let newId = def.id + "_" + idx;
         idx++;
-        id_map[old_id] = new_id;
-        def.id = new_id;
+        idMap[oldId] = newId;
+        def.id = newId;
     }
 
     // Search for all URL references within the SVG and point them at the new IDs.
@@ -209,39 +209,39 @@ function makeSVGIdsUnique(svg)
         for(let attr of node.getAttributeNames())
         {
             let value = node.getAttribute(attr);
-            let new_value = value;
+            let newValue = value;
             
             // See if this is an ID reference.  We don't try to parse all valid URLs
             // here.  Handle url(#abcd) inside strings, and things like xlink:xref="#abcd".
             if((attr == "href" || attr == "xlink:href") && value.startsWith("#"))
             {
-                let old_id = value.substr(1);
-                let new_id = id_map[old_id];
-                if(new_id == null)
+                let oldId = value.substr(1);
+                let newId = idMap[oldId];
+                if(newId == null)
                 {
-                    console.warn("Unmatched SVG ID:", old_id);
+                    console.warn("Unmatched SVG ID:", oldId);
                     continue;
                 }
 
-                new_value = "#" + new_id;
+                newValue = "#" + newId;
             }
 
             let re = /url\(#.*?\)/;
-            new_value = new_value.replace(re, (str) => {
+            newValue = newValue.replace(re, (str) => {
                 let re = /url\(#(.*)\)/;
-                let old_id = str.match(re)[1];
-                let new_id = id_map[old_id];
-                if(new_id == null)
+                let oldId = str.match(re)[1];
+                let newId = idMap[oldId];
+                if(newId == null)
                 {
-                    console.warn("Unmatched SVG ID:", old_id);
+                    console.warn("Unmatched SVG ID:", oldId);
                     return str;
                 }
                 // Replace the ID.
-                return "url(#" + new_id + ")";
+                return "url(#" + newId + ")";
             });
 
-            if(new_value != value)
-                node.setAttribute(attr, new_value);
+            if(newValue != value)
+                node.setAttribute(attr, newValue);
         }
     }
 
