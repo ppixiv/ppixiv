@@ -69,7 +69,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                     onclick: () => {
                         this.parent.hide();
 
-                        let args = new helpers.args(`/discovery/users#ppixiv?user_id=${this.userId}`);
+                        let args = new helpers.args(`/discovery/users#ppixiv?user_id=${this._effectiveUserId}`);
                         helpers.navigate(args);
                     }
                 });
@@ -145,7 +145,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                         this.parent.hide();
                         new MutedTagsForPostDialog({
                             mediaId: this.mediaId,
-                            userId: this.userId,
+                            userId: this._effectiveUserId,
                         });
                     }
                 });
@@ -413,7 +413,7 @@ export default class MoreOptionsDropdown extends IllustWidget
 
     setUserId(userId)
     {
-        this.userId = userId;
+        this._userId = userId;
         this.refresh();
     }
 
@@ -421,6 +421,12 @@ export default class MoreOptionsDropdown extends IllustWidget
     {
         if(this.visible)
             this.refresh();
+    }
+
+    // If a user ID was specified explicitly, return it.  Otherwise, return mediaId's user if we know it.
+    get _effectiveUserId()
+    {
+        return this._userId ?? this.mediaInfo?.userId;
     }
 
     async refreshInternal({ mediaId, mediaInfo })
@@ -439,9 +445,9 @@ export default class MoreOptionsDropdown extends IllustWidget
             // Enable or disable buttons that require an image.
             if(option.options.requiresImage && mediaId == null)
                 enable = false;
-            if(option.options.requiresUser && this.userId == null)
+            if(option.options.requiresUser && this._effectiveUserId == null)
                 enable = false;
-            if(option.options.requires && !option.options.requires({mediaId, userId: this.userId}))
+            if(option.options.requires && !option.options.requires({mediaId, userId: this._effectiveUserId}))
                 enable = false;
             if(enable && option.options.available)
                 enable = option.options.available();
