@@ -1,5 +1,6 @@
 import Actor from 'vview/actors/actor.js';
 import Widget from 'vview/widgets/widget.js';
+import Dialog from 'vview/widgets/dialog.js';
 import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -18,6 +19,11 @@ export class DropdownBoxOpener extends Actor
         createDropdown=null,
 
         onvisibilitychanged=() => { },
+
+        // If true (or a function that returns true), open the dropdown as a dialog instead.
+        //
+        // On mobile, dropdowns will always open as dialogs if they're inside another dialog.
+        asDialog=() => false,
 
         // If true, clicking the button toggles the dropdown.
         clickToOpen=false,
@@ -38,9 +44,12 @@ export class DropdownBoxOpener extends Actor
         this.onvisibilitychanged = onvisibilitychanged;
         this.createDropdown = createDropdown;
 
+        if(!(asDialog instanceof Function))
+            asDialog = () => asDialog;
+        this.asDialog = asDialog;
+
         this._dropdown = null;
-        this._visible = true;
-        this.visible = false;
+        this._visible = false;
 
         // Refresh the position if the box width changes.  Don't refresh on any ResizeObserver
         // call, since that'll recurse and end up refreshing constantly.
@@ -84,58 +93,109 @@ export class DropdownBoxOpener extends Actor
 
         if(value)
         {
-            this._dropdown = this.createDropdown({
-                container: document.body,
-                parent: this,
-            });
+            let asDialog = this.asDialog();
+            if(ppixiv.mobile)
+            {
+                // Always open dropdowns as dialogs if we're on mobile and inside another dialog.
+                for(let node of this.ancestors())
+                {
+                    if(node instanceof Dialog)
+                    {
+                        console.log("Opening dropdown as a dialog because we're inside another dialog:", node);
+                        asDialog = true;
+                        break;
+                    }
+                }
+            }
+
+            // Normally, the dropdown's container is the document so we can position it easily, and
+            // we're its parent.  If we're opening it in a dialog then the dialog is its container and
+            // parent, and the dialog owns the dropdown.
+            let container = document.body;
+            let parent = this;
+            this._dropdownDialog = null;
+            if(asDialog)
+            {
+                parent = this._dropdownDialog = new Dialog({
+                    parent: this,
+                    template: `<div></div>`,
+                });
+                this._dropdownDialog.shutdownSignal.signal.addEventListener("abort", () => {
+                    console.log("DIalog dropdown closed");
+
+                    // The dropdown shut itself down and the dropdown with it.  Clear them so
+                    // we don't try to shut them down again.
+                    this._dropdownDialog = null;
+                    this._dropdown = null;
+
+                    this.visible = false;
+                });
+                container = this._dropdownDialog.querySelector(".scroll");
+            }
+
+            this._dropdown = this.createDropdown({ container, parent });
 
             // Stop if no widget was created.
             if(this._dropdown == null)
             {
                 this._visible = false;
+
+                // If we created a dialog, remove it since we're not going to use it.
+                if(this._dropdownDialog)
+                {
+                    this._dropdownDialog.shutdown();
+                    this._dropdownDialog = null;
+                }
                 return;
             }
 
-            this._dropdown.root.classList.add("dropdown-box");
+            if(!asDialog)
+            {
+                this._dropdown.root.classList.add("dropdown-box");
 
-            this.listener = new ClickOutsideListener([this.button, this._dropdown], (target, {event}) => {
-                if(!this.shouldCloseForClick(event))
-                    return;
+                this.listener = new ClickOutsideListener([this.button, this._dropdown], (target, {event}) => {
+                    if(!this.shouldCloseForClick(event))
+                        return;
 
-                this.visible = false;
-            });
+                    this.visible = false;
+                });
+
+                this._resizeObserver = new ResizeObserver(() => {
+                    if(this._boxWidth == this._dropdown.root.offsetWidth)
+                        return;
+        
+                    this._boxWidth = this._dropdown.root.offsetWidth;
+                    this._alignToButton();
+                });
+                this._resizeObserver.observe(this._dropdown.root);
+
+                // We manually position the dropdown, so we need to reposition them if
+                // the window size changes.
+                window.addEventListener("resize", this.onwindowresize, this._signal);
+
+                this._alignToButton();
+            }
 
             if(this.closeOnClickInside)
                 this._dropdown.root.addEventListener("click", this.boxClicked);
-
-            this._resizeObserver = new ResizeObserver(() => {
-                if(this._boxWidth == this._dropdown.root.offsetWidth)
-                    return;
-    
-                this._boxWidth = this._dropdown.root.offsetWidth;
-                this._alignToButton();
-            });
-            this._resizeObserver.observe(this._dropdown.root);
-        
-            // We manually position the dropdown, so we need to reposition them if
-            // the window size changes.
-            window.addEventListener("resize", this.onwindowresize, this._signal);
-
-            this._alignToButton();
         }
         else
         {
-            if(!this._dropdown)
-                return;
-
-            this._dropdown.root.removeEventListener("click", this.boxClicked);
-
             this._cleanup();
 
             if(this._dropdown)
             {
-                this._dropdown.shutdown();
+                // If the dropdown is in a dialog, the dialog owns it, so don't shut it down
+                // here.  The dialog will do it.
+                if(!this._dropdownDialog)
+                    this._dropdown.shutdown();
                 this._dropdown = null;
+            }
+
+            if(this._dropdownDialog)
+            {
+                this._dropdownDialog.shutdown();
+                this._dropdownDialog = null;
             }
         }
 
@@ -162,6 +222,10 @@ export class DropdownBoxOpener extends Actor
     _alignToButton()
     {
         if(!this.visible)
+            return;
+
+        // This isn't used when displaying as a dialog.
+        if(this._dropdownDialog)
             return;
 
         // The amount of padding to leave relative to the button we're aligning to.
