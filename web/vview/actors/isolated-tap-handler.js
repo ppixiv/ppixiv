@@ -210,7 +210,24 @@ export default class IsolatedTapHandler extends Actor
                 }
             }
 
-            this._callback(this._pressEvent);
+            // This is a strange workaround for a strange iOS Safari bug.  If the tap is in the
+            // same place as the avatar widget, it receives a click when it becomes visible.  It's
+            // receiving a click event for a touchup that happened about 300ms earlier while it
+            // wasn't even visible.
+            //
+            // This workaround is even more mysterious: calling the callback inside another timer
+            // with no delay stops it from happening.
+            //
+            // Grab pressEvent and re-check hasShutdown after the sleep.
+            let pressEvent = this._pressEvent;
+            this._pressEvent = null;
+
+            realSetTimeout(() => {
+                if(this.hasShutdown)
+                    return;
+
+                this._callback(pressEvent);
+            }, 0);
         }, this._delay);
     }
 
