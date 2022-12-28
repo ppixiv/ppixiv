@@ -99,6 +99,7 @@ export default class ScreenIllust extends Screen
             this.root.addEventListener("dblclick", (e) => this.viewer.toggleZoom(e), this._signal);
 
             new IsolatedTapHandler({
+                parent: this,
                 node: this.viewContainer,
                 callback: (e) => {
                     // Show or hide the menu on isolated taps.  Note that most of the time, hiding

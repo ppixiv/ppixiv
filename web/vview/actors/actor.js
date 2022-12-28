@@ -85,6 +85,11 @@ export default class Actor extends EventTarget
         return this.__proto__.constructor.name;
     }
 
+    get hasShutdown()
+    {
+        return this.shutdownSignal.signal.aborted;
+    }
+
     shutdown()
     {
         if(Actor._debugShutdown && !this._previousShutdownStack)
@@ -97,7 +102,7 @@ export default class Actor extends EventTarget
         }
 
         // We should only be shut down once, so shutdownSignal shouldn't already be signalled.
-        if(this.shutdownSignal.signal.aborted)
+        if(this.hasShutdown)
         {
             console.error("Actor has already shut down:", this);
             if(this._previousShutdownStack)

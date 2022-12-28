@@ -17,7 +17,9 @@
 //
 // This doesn't currently detect if the tap was on something that had a default
 // action, like a link, since we only use this for taps on the image view.
-export default class IsolatedTapHandler
+import Actor from 'vview/actors/actor.js';
+
+export default class IsolatedTapHandler extends Actor
 {
     static handlers = new Set();
 
@@ -32,11 +34,10 @@ export default class IsolatedTapHandler
         }
     }
 
-    constructor({ node, callback, delay=350, signal=null }={})
+    constructor({ parent, node, callback, delay=350 }={})
     {
-        signal ??= (new AbortController()).signal;
-        this.signal = signal;
-
+        super({parent});
+        
         this._node = node;
         this._callback = callback;
         this._lastPointerDownAt = -99999;
@@ -46,10 +47,10 @@ export default class IsolatedTapHandler
         this._allPresses = new Set();
 
         IsolatedTapHandler.handlers.add(this);
-        this.signal.addEventListener("abort", () => IsolatedTapHandler.handlers.delete(this));
+        this.shutdownSignal.signal.addEventListener("abort", () => IsolatedTapHandler.handlers.delete(this));
 
         this._eventNamesDuringTouch = ["pointerup", "pointercancel", "pointermove", "blur", "dblclick"];
-        this._node.addEventListener("pointerdown", this._handleEvent, { signal });
+        this._node.addEventListener("pointerdown", this._handleEvent, this._signal);
     }
 
     // Start listening to events that we only listen to during a press, since these have to go
@@ -57,7 +58,7 @@ export default class IsolatedTapHandler
     _registerEvents()
     {
         for(let type of this._eventNamesDuringTouch)
-            window.addEventListener(type, this._handleEvent, { capture: true, signal: this.signal });
+            window.addEventListener(type, this._handleEvent, { capture: true, ...this._signal });
     }
 
     _unregisterEvents()
@@ -175,7 +176,7 @@ export default class IsolatedTapHandler
             return;
 
         this._timeoutId = realSetTimeout(() => {
-            if(this.signal.aborted)
+            if(this.hasShutdown)
                 return;
 
             this._timeoutId = -1;
