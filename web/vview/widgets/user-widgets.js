@@ -42,6 +42,7 @@ export class AvatarWidget extends Widget
         this.followDropdownOpener = new DropdownBoxOpener({
             button: avatarLink,
             onvisibilitychanged: dropdownvisibilitychanged,
+            asDialog: ppixiv.mobile,
             createDropdown: ({...options}) => {
                 return new FollowWidget({
                     ...options,

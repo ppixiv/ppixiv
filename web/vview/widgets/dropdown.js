@@ -44,9 +44,10 @@ export class DropdownBoxOpener extends Actor
         this.onvisibilitychanged = onvisibilitychanged;
         this.createDropdown = createDropdown;
 
-        if(!(asDialog instanceof Function))
-            asDialog = () => asDialog;
-        this.asDialog = asDialog;
+        if(asDialog instanceof Function)
+            this.asDialog = asDialog;
+        else
+            this.asDialog = () => asDialog;
 
         this._dropdown = null;
         this._visible = false;
