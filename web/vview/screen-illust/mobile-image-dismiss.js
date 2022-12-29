@@ -71,11 +71,6 @@ export default class MobileImageDismiss extends Actor
 
     _configAnimation()
     {
-        // In case the image wasn't available when we tried to scroll to it, try again now.
-        // Either this will scroll to the image and we can use its position, or we know it
-        // isn't in the list.
-        this.scrollSearchToThumbnail();
-
         // If the view container is hidden, it may have transforms from the previous transition.
         // Unset the animation properties so this doesn't affect our calculations here.
         this.parent.root.style.setProperty("--animation-x", `0px`);
@@ -134,9 +129,6 @@ export default class MobileImageDismiss extends Actor
     // Return the rect we'll want to transition towards, if known.
     get _animationTargetRect()
     {
-        if(this.parent._wantedMediaId == null)
-            return null;
-
         return ppixiv.app.getRectForMediaId(this.parent._wantedMediaId);
     }
 
@@ -150,6 +142,11 @@ export default class MobileImageDismiss extends Actor
             // something else.
             let transition = cause != "initialization";
             this.dragger.show({transition});
+
+            // If we're transitioning scrollSearchToThumbnail will be called when the transition
+            // finishes.  That won't happen if we're not transitioning, so do it now.
+            if(!transition)
+                this.scrollSearchToThumbnail();
         }
     }
 
