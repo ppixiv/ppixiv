@@ -969,63 +969,83 @@ export class KeyListener
     }
 }
 
-
-// This is an attempt to make it easier to handle a common problem with
-// asyncs: checking whether what we're doing should continue after awaiting.
-// The wrapped function will be passed an AbortSignal.  It can be used normally
-// for aborting async calls.  It also has signal.cancel(), which will throw
-// SentinelAborted if another call to the guarded function has been made.
-class SentinelAborted extends Error { };
-
-export function SentinelGuard(func, self)
+// A helper to run an async function and abort a previous call if it's still running.
+//
+// async function func({args, signal}) { signal.throwIfAborted(); }
+// this.runner = new GuardedRunner();
+// this.runner.call(func, { args });
+// this.runner.call(func, { args }); // aborts the previous call
+// this.runner.abort(); // also aborts the previous call
+// await this.runner.promise; // wait for the most recent call
+export class GuardedRunner
 {
-    if(self)
-        func = func.bind(self);
-    let sentinel = null;
-
-    let abort = () =>
+    constructor({signal}={})
     {
-        // Abort the current sentinel.
-        if(sentinel)
-        {
-            sentinel.abort();
-            sentinel = null;
-        }
-    };
+        this._abort = null;
+        this._promise = null;
 
-    async function wrapped(...args)
+        if(signal)
+            signal.addEventListener("abort", () => this.abort());
+    }
+
+    call(func, {...args})
     {
-        // If another call is running, abort it.
-        abort();
+        // If a previous call is still running, abort it.
+        if(this._abort)
+            this.abort();
 
-        sentinel = new AbortController();
-        let our_sentinel = sentinel;
-        let signal = sentinel.signal;
-        signal.check = () =>
-        {
-            // If we're signalled, another guarded function was started, so this one should abort.
-            if(our_sentinel.signal.aborted)
-                throw new SentinelAborted;
-        };
+        // Create an AbortController for this call.
+        let abort = this._abort = new AbortController();
+        args = { ...args, signal: abort.signal };
 
+        // Run the function.
+        let promise = this._promise = this._runIgnoringAborts(func, args);
+        promise.finally(() => {
+            if(this._abort == abort)
+                this._abort = null;
+            if(this._promise == promise)
+                this._promise = null;
+        });
+        return promise;
+    }
+
+    // If a call is running, return its promise, otherwise return null.
+    get promise()
+    {
+        return this._promise;
+    }
+
+    // Return true if a call is running.
+    get isRunning()
+    {
+        return this._abort != null;
+    }
+
+    async _runIgnoringAborts(func, args)
+    {
         try {
-            return await func(signal, ...args);
+            return await func(args);
         } catch(e) {
-            if(!(e instanceof SentinelAborted))
-                throw e;
-            
-            // console.warn("Guarded function cancelled");
-            return null;
-        } finally {
-            if(our_sentinel === sentinel)
-                sentinel = null;
+            if(e.name == "AbortError")
+                return;
+
+            throw e;
         }
-    };
+    }
 
-    wrapped.abort = abort;
+    abort()
+    {
+        if(this._abort)
+        {
+            this._abort.abort();
 
-    return wrapped;
-};
+            // Clear this._abort synchronously so isRunning is false when we return, and doesn't
+            // have to wait for the exception to resolve.
+            this._abort = null;
+            this._promise = null;
+        }
+    }
+}
 
 export class FixedDOMRect extends DOMRect
 {

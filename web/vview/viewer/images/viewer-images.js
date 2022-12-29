@@ -5,7 +5,7 @@ import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-co
 import Slideshow from 'vview/misc/slideshow.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import DirectAnimation from 'vview/actors/direct-animation.js';
-import { helpers, FixedDOMRect, OpenWidgets, SentinelGuard } from 'vview/misc/helpers.js';
+import { helpers, FixedDOMRect, OpenWidgets, GuardedRunner } from 'vview/misc/helpers.js';
 
 // This is the viewer for static images.
 //
@@ -46,7 +46,7 @@ export default class ViewerImages extends Viewer
         this._imageBox = this.root.querySelector(".image-box");
         this._cropBox = this.root.querySelector(".crop-box");
 
-        this._refreshImage = new SentinelGuard(this._refreshImage, this);
+        this._refreshImageRunner = new GuardedRunner(this._signal);
 
         this._originalWidth = 1;
         this._originalHeight = 1;
@@ -204,11 +204,11 @@ export default class ViewerImages extends Viewer
             ...imageInfo,
         };
 
-        this._refreshImage(imageInfo);
+        this._refreshImageRunner.call(this._refreshImage.bind(this), {imageInfo});
     }
 
     // Refresh the image from imageInfo.
-    _refreshImage = async(signal, imageInfo) =>
+    async _refreshImage({ imageInfo, signal })
     {
         let {
             url, previewUrl, inpaintUrl,
@@ -281,7 +281,7 @@ export default class ViewerImages extends Viewer
                 // Ignore exceptions from aborts.
             }
         }
-        signal.check();
+        signal.throwIfAborted();
 
         // Work around a Chrome quirk: even if an image is already decoded, calling img.decode()
         // will always delay and allow the page to update.  This means that if we add the preview
@@ -303,7 +303,7 @@ export default class ViewerImages extends Viewer
                 // See if it finishes quickly.
                 imageReady = await helpers.other.awaitWithTimeout(decodePromise, 50) != "timed-out";
             }
-            signal.check();
+            signal.throwIfAborted();
         }
 
         // If the main image is already ready, show it.  Otherwise, show the preview image.
@@ -343,7 +343,7 @@ export default class ViewerImages extends Viewer
             if(result != null)
                 return;
 
-            signal.check();
+            signal.throwIfAborted();
         }
 
         // Wait for any transitions to complete before switching to the full image, so we don't
@@ -351,7 +351,7 @@ export default class ViewerImages extends Viewer
         // desktop we may have already displayed the full image, but this is only important for
         // mobile.
         await this._waitForTransitions();
-        signal.check();
+        signal.throwIfAborted();
 
         // Decode the image asynchronously before adding it.  This is cleaner for large images,
         // since Chrome blocks the UI thread when setting up images.  The downside is it doesn't
@@ -362,7 +362,7 @@ export default class ViewerImages extends Viewer
         if(!decodePromise)
             decodePromise = this._decodeImage(this._imageContainer);
         await decodePromise;
-        signal.check();
+        signal.throwIfAborted();
 
         // If we paused an animation, resume it.
         this.pauseAnimation = false;
@@ -423,8 +423,6 @@ export default class ViewerImages extends Viewer
         this._stopAnimation();
         this._cancelSaveToHistory();
         
-        this._refreshImage.abort();
-
         super.shutdown();
     }
 

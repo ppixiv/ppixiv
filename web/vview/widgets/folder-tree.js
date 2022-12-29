@@ -1,6 +1,6 @@
 import Widget from 'vview/widgets/widget.js';
 import LocalAPI from 'vview/misc/local-api.js';
-import { helpers, SentinelGuard } from 'vview/misc/helpers.js';
+import { helpers, GuardedRunner } from 'vview/misc/helpers.js';
 
 class TreeWidget extends Widget
 {
@@ -700,7 +700,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
             addRoot: false,
         });
 
-        this._loadPath = new SentinelGuard(this.loadPath, this);
+        this._loadPathRunner = new GuardedRunner(this._signal);
 
         // Root LocalNavigationWidgetItems will be stored here when
         // set_data_source_search_options is called.  Until that happens, we have
@@ -764,7 +764,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
         }
 
         // Load the path if possible and select it.
-        let node = await this._loadPath({ args, user });
+        let node = await this._loadPathRunner.call(this.loadPath.bind(this), { args, user });
         if(node)
         {
            
@@ -778,7 +778,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
     //
     // This call is guarded, so if we're called again from another navigation,
     // we won't keep loading and changing the selection.
-    async loadPath(signal, { args, user=false }={})
+    async loadPath({ args, user=false, signal }={})
     {
         // Stop if we don't have a root yet.
         if(this.rootItem == null)
@@ -786,7 +786,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
 
         // Wait until the root is loaded, if needed.
         await this.rootItem.load();
-        signal.check();
+        signal.throwIfAborted();
 
         let mediaId = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
         let { id } = helpers.mediaId.parse(mediaId);
@@ -829,7 +829,7 @@ export default class LocalNavigationTreeWidget extends TreeWidget
             // If the node is loading, wait for the load to finish.
             if(node._loadPromise)
                 await node._loadPromise;
-            signal.check();
+            signal.throwIfAborted();
         }
 
         return this.rootItem.nodes[mediaId];
