@@ -167,11 +167,20 @@ export default class DataSources_Artist extends DataSource
 
     get uiInfo()
     {
+        let headerStripURL = this.userInfo?.background?.url;
+        if(headerStripURL)
+        {
+            headerStripURL = new URL(headerStripURL);
+            helpers.pixiv.adjustImageUrlHostname(headerStripURL);
+        }
+
         return {
             userId: this.viewingUserId,
 
             // Override the title on the mobile search menu.
             mobileTitle: this.userInfo?.name? `Artist: ${this.userInfo?.name}`:`Artist`,
+
+            headerStripURL,
         }
     }
 

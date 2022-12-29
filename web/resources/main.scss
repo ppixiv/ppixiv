@@ -1782,6 +1782,51 @@ body.hide-r18g .r18g { display: none; }
     [data-type="order-shuffle"] .icon {
         font-size: 24px;
     }
+
+    .artist-header
+    {
+        // This should line up with the thumbnail columns exactly.
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: var(--container-width);
+        padding-bottom: var(--thumb-padding);
+        margin: 0 auto;
+        user-select: none;
+        -webkit-user-select: none;
+
+        // This node surrounds the image and gives it its rounding.  This is separate from the image
+        // so we can hide the image and show a temporary color while the image loads.
+        .shape {
+            width: 100%;
+
+            // Cap the header height to the size of thumbs, so if thumbnails are very small we
+            // scale the header down with them.
+            height: min(20vh, var(--thumb-height));
+
+            overflow: hidden;
+            background-color: #333;
+
+            html:not(.mobile) & {
+                border-radius: 50px 50px 0 0;
+            }
+
+            img.bg {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                object-position: 50% 100%;
+                &.loaded { object-position: 50% 20%; }
+
+                // Settle lower if we're not animating.
+                &.loaded:not(.animated) { object-position: 50% 40%; }
+
+                &.animated {
+                    transition: object-position ease 5.0s;
+                }
+            }
+        }
+    }
 }
 
 // A row of box-links inside a menu row.  This is used for menu items that have

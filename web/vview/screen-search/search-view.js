@@ -39,7 +39,7 @@ export default class SearchView extends Widget
     constructor({...options})
     {
         super({...options, template: `
-            <div class=search-view>
+            <div class=search-view data-context-menu-target>
                 <div class=no-results hidden>
                     <div class=message>No results</div>
                 </div>
@@ -51,7 +51,13 @@ export default class SearchView extends Widget
                     </a>
                 </div>
 
-                <div class=thumbnails data-context-menu-target></div>
+                <div class=artist-header hidden>
+                    <div class=shape>
+                        <img class=bg>
+                    </div>
+                </div>
+
+                <div class=thumbnails></div>
             </div>
         `});
 
@@ -60,6 +66,8 @@ export default class SearchView extends Widget
         this.thumbnailBox = this.root.querySelector(".thumbnails");
         this.loadPreviousPageButton = this.root.querySelector(".load-previous-page");
         this._setDataSourceRunner = new GuardedRunner(this._signal);
+
+        this.artistHeader = this.querySelector(".artist-header");
 
         // A dictionary of thumbs in the view, in the same order.  This makes iterating
         // existing thumbs faster than iterating the nodes.
@@ -316,10 +324,9 @@ export default class SearchView extends Widget
 
             // Listen to the data source loading new pages, so we can refresh the list.
             this.dataSource.addEventListener("pageadded", this.dataSourceUpdated);
-        }
 
-        if(this.dataSource == null)
-            return;
+            this.refreshHeader();
+        }
 
         // If we disabled loading more pages earlier, reenable it.
         this._disableLoadingMorePages = false;
@@ -432,6 +439,7 @@ export default class SearchView extends Widget
         if(this._setDataSourceRunner.isRunning)
             return;
 
+        this.refreshHeader();
         this.refreshImages();
         this.loadDataSourcePage();
     }
@@ -1525,6 +1533,39 @@ export default class SearchView extends Widget
             if(thumbnailElement != null)
                 this.refreshBookmarkIcon(thumbnailElement);
         }
+    }
+
+    // If the data source gives us a URL to use as a header image, update it.
+    refreshHeader()
+    {
+        let headerStripURL = this.dataSource?.uiInfo?.headerStripURL;
+        if(headerStripURL == null)
+        {
+            this.artistHeader.hidden = true;
+            let img = this.artistHeader.querySelector("img");
+            img.src = helpers.other.blankImage;
+            return;
+        }
+
+        let img = this.artistHeader.querySelector("img");
+        if(img.src == headerStripURL)
+            return;
+
+        // Save the scroll position in case we're turning the header on.
+        let savedScroll = this.saveScrollPosition();
+
+        // If thumbnail panning is turned off, disable this animation too.
+        helpers.html.setClass(img, "animated", ppixiv.mobile || !ppixiv.settings.get("disable_thumbnail_panning"));
+
+        // Start the animation.
+        img.classList.remove("loaded");
+        img.onload = () => img.classList.add("loaded");
+
+        // Set the URL.
+        img.src = headerStripURL ?? helpers.other.blankImage;
+        this.artistHeader.hidden = false;
+
+        this.restoreScrollPosition(savedScroll);
     }
 
     // Set the bookmarked heart for thumbnailElement.  This can change if the user bookmarks

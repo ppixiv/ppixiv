@@ -183,7 +183,7 @@ export default class UserCache extends EventTarget
         // make use of new keys.  This makes sure that the user data keys are always consistent.
         let fullKeys = [
             'userId',
-            // 'background',
+            'background',
             // 'image',
             'imageBig',
             // 'isBlocking',

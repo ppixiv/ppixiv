@@ -389,6 +389,7 @@ export default class DataSource extends EventTarget
     //     imageLinkUrl,              // a URL where imageUrl should link to
     //     userId,                    // a user ID whose avatar should be displayed
     //     mobileTitle,               // an alternate title for the mobile search menu
+    //     headerStripURL,            // a URL to an image to show at the top of the search
     // }
     //
     // If this changes, the "updated" event will be sent to the data source.

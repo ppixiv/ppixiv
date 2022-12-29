@@ -142,6 +142,9 @@ export function getTagSearchFromArgs(url)
 // Change the host for a Pixiv image URL from i.pximg.net to i-cf.pximg.net.
 export function adjustImageUrlHostname(url)
 {
+    if(url == null)
+        return null;
+
     if(url.hostname == "i.pximg.net")
         url.hostname = "i-cf.pximg.net";
 }
