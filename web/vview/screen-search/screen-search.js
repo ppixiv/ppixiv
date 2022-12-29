@@ -33,6 +33,10 @@ export default class ScreenSearch extends Screen
 
         ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal.signal });        
         
+        this.searchView = new SearchView({
+            container: this.root.querySelector(".thumbnail-container-box"),
+        });
+
         // Add the top search UI if we're on desktop.
         if(!ppixiv.mobile)
         {
@@ -171,10 +175,6 @@ export default class ScreenSearch extends Screen
             // cleanly.
             localNavigationBox.hidden = false;
         }
-
-        this.searchView = new SearchView({
-            container: this.root.querySelector(".thumbnail-container-box"),
-        });
     }
 
     get active()
@@ -192,17 +192,14 @@ export default class ScreenSearch extends Screen
         this.searchView.deactivate();
     }
 
-    async activate({ oldMediaId })
+    async activate()
     {
-        if(oldMediaId)
-            console.log("Showing search, came from media ID:", oldMediaId);
-
         super.activate();
 
         this._active = true;
         this.refreshUi();
 
-        await this.searchView.activate({ oldMediaId });
+        await this.searchView.activate();
     }
 
     scrollToMediaId(mediaId)
@@ -215,18 +212,15 @@ export default class ScreenSearch extends Screen
         return this.searchView.getRectForMediaId(mediaId);
     }
     
-    setDataSource(dataSource)
+    setDataSource(dataSource, { targetMediaId })
     {
-        if(this.dataSource == dataSource)
-            return;
-
         // Remove listeners from the old data source.
         if(this.dataSource != null)
             this.dataSource.removeEventListener("updated", this.dataSourceUpdated);
 
         this.dataSource = dataSource;
 
-        this.searchView.setDataSource(dataSource);
+        this.searchView.setDataSource(dataSource, { targetMediaId });
         if(this.desktopSearchUi)
             this.desktopSearchUi.setDataSource(dataSource);
 

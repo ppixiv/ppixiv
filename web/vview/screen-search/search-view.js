@@ -6,7 +6,7 @@ import { getUrlForMediaId } from 'vview/misc/media-ids.js'
 import PointerListener from 'vview/actors/pointer-listener.js';
 import StopAnimationAfter from 'vview/actors/stop-animation-after.js';
 import LocalAPI from 'vview/misc/local-api.js';
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers, GuardedRunner } from 'vview/misc/helpers.js';
 
 // JavaScript objects are ordered, but for some reason there's no way to actually manipulate
 // the order, such as adding to the beginning.  We have to make a copy of the object, add
@@ -59,6 +59,7 @@ export default class SearchView extends Widget
         this.scrollContainer = this.root.closest(".scroll-container");
         this.thumbnailBox = this.root.querySelector(".thumbnails");
         this.loadPreviousPageButton = this.root.querySelector(".load-previous-page");
+        this._setDataSourceRunner = new GuardedRunner(this._signal);
 
         // A dictionary of thumbs in the view, in the same order.  This makes iterating
         // existing thumbs faster than iterating the nodes.
@@ -267,43 +268,55 @@ export default class SearchView extends Widget
         helpers.navigate(args, { addToHistory: false, cause: "viewing-page", sendPopstate: false });
     }
 
-    async setDataSource(dataSource)
+    // Change the data source.  If targetMediaId is specified, it's the media ID we'd like to
+    // scroll to if possible.
+    setDataSource(dataSource, { targetMediaId }={})
     {
-        if(this.dataSource == dataSource)
-            return;
+        let promise = this._setDataSourceRunner.call(this._setDataSource.bind(this), { dataSource, targetMediaId });
 
-        // Remove listeners from the old data source.
-        if(this.dataSource != null)
-            this.dataSource.removeEventListener("pageadded", this.dataSourceUpdated);
+        // We ignore dataSourceUpdated calls while setting up, so run it once when it finishes.
+        promise.then(() => this.dataSourceUpdated());
 
-        console.debug("Clearing thumbnails for new data source");
+        return promise;
+    }
 
-        // Clear the view when the data source changes.  If we leave old thumbs in the list,
-        // it confuses things if we change the sort and refreshThumbs tries to load thumbs
-        // based on what's already loaded.
-        while(this.thumbnailBox.firstElementChild != null)
+    async _setDataSource({ dataSource, targetMediaId, signal }={})
+    {
+        // console.log("Showing search and scrolling to media ID:", targetMediaId);
+
+        if(dataSource != this.dataSource)
         {
-            let node = this.thumbnailBox.firstElementChild;
-            node.remove();
+            // Remove listeners from the old data source.
+            if(this.dataSource != null)
+                this.dataSource.removeEventListener("pageadded", this.dataSourceUpdated);
 
-            // We should be able to just remove the element and get a callback that it's no longer visible.
-            // This works in Chrome since IntersectionObserver uses a weak ref, but Firefox is stupid and leaks
-            // the node.
-            for(let observer of this.intersectionObservers)
-                observer.unobserve(node);
+            // Clear the view when the data source changes.  If we leave old thumbs in the list,
+            // it confuses things if we change the sort and refreshThumbs tries to load thumbs
+            // based on what's already loaded.
+            while(this.thumbnailBox.firstElementChild != null)
+            {
+                let node = this.thumbnailBox.firstElementChild;
+                node.remove();
+
+                // We should be able to just remove the element and get a callback that it's no longer visible.
+                // This works in Chrome since IntersectionObserver uses a weak ref, but Firefox is stupid and leaks
+                // the node.
+                for(let observer of this.intersectionObservers)
+                    observer.unobserve(node);
+            }
+
+            // Don't leave the "load previous page" button displayed while we wait for the
+            // data source to load.
+            this.loadPreviousPageButton.hidden = true;
+
+            this.thumbs = {};
+            this._mediaIdExpandedCache = null;
+
+            this.dataSource = dataSource;
+
+            // Listen to the data source loading new pages, so we can refresh the list.
+            this.dataSource.addEventListener("pageadded", this.dataSourceUpdated);
         }
-
-        // Don't leave the "load previous page" button displayed while we wait for the
-        // data source to load.
-        this.loadPreviousPageButton.hidden = true;
-
-        this.thumbs = {};
-        this._mediaIdExpandedCache = null;
-
-        this.dataSource = dataSource;
-
-        // Cancel any async scroll restoration if the data source changes.
-        this._cancelLoad();
 
         if(this.dataSource == null)
             return;
@@ -311,48 +324,32 @@ export default class SearchView extends Widget
         // If we disabled loading more pages earlier, reenable it.
         this._disableLoadingMorePages = false;
 
-        // Listen to the data source loading new pages, so we can refresh the list.
-        this.dataSource.addEventListener("pageadded", this.dataSourceUpdated);
-
         this.loadExpandedMediaIds();
 
-        // We might get dataSourceUpdated callbacks during loadDataSourcePage.
-        // Make sure we ignore those, since we want the first refreshImages call
-        // to be the one we make below.
-        this.activating = true;
-        try {
-            // Make the first call to loadDataSourcePage, to load the initial page of images.
-            await this.loadDataSourcePage();
-        } finally {
-            this.activating = false;
+        // Load the initial page if we haven't yet.
+        await this.loadDataSourcePage({ cause: "initialization" });
+        signal.throwIfAborted();
+
+        // Create the initial thumbnails.  Keep creating more until we have enough to allow the screen
+        // to scroll a bit.  This will create targetMediaId if possible, so we can scroll to it, and allow
+        // refreshHeader to scroll the header where we want it.  Only attempt this a couple times, since
+        // we might not have enough images to fill the screen.  This is just a best effort, since we're
+        // not loading more data here and the data source's may not give enough data on the first page
+        // to fill the screen.
+        for(let i = 0; i < 4; ++i)
+        {
+            // Stop once the scroller is a bit taller than the screen.
+            if(this.scrollContainer.scrollHeight > this.scrollContainer.offsetHeight * 1.5)
+                break;
+
+            this.refreshImages({ forcedMediaId: targetMediaId, forceMore: true });
         }
+
+        this._restoreScrollForActivation({oldMediaId: targetMediaId});
     }
 
-    // The data source must be set with setDataSource first.
-    async activate({ oldMediaId })
+    _restoreScrollForActivation({oldMediaId})
     {
-        this._active = true;
-
-        // If nothing's focused, focus the search so keyboard navigation works.  Don't do this if
-        // we already have focus, so we don't steal focus from things like the tag search dropdown
-        // and cause them to be closed.
-        let focus = document.querySelector(":focus");
-        if(focus == null)
-            this.scrollContainer.focus();
-
-        // Wait for the initial page to finish loading.  This load should already have been started
-        // by setDataSource, but this will wait for the same request.
-        let loadInitialPageId = this._loadInitialPageId = new Object();
-        await this.dataSource.loadPage(this.dataSource.initialPage, { cause: "initial scroll" });
-
-        // Stop if we were called again while we were waiting.
-        if(loadInitialPageId !== this._loadInitialPageId)
-            return;
-
-        // Create the initial thumbnails.  This will happen automatically, but we need to do it now so
-        // we can scroll to them.
-        this.refreshImages({ forcedMediaId: oldMediaId });
-
         // If we have no saved scroll position or previous ID, scroll to the top.
         let args = helpers.args.location;
         if(args.state.scroll == null && oldMediaId == null)
@@ -376,8 +373,23 @@ export default class SearchView extends Widget
             console.log("Couldn't restore scroll position for:", oldMediaId);
         }
 
-        if(this.restoreScrollPosition(args.state.scroll?.scrollPosition))
-            console.log("Restored scroll position from history");
+        this.restoreScrollPosition(args.state.scroll?.scrollPosition);
+    }
+
+    // Activate the view, waiting for the current data source to be displayed if needed.
+    async activate()
+    {
+        this._active = true;
+
+        // If nothing's focused, focus the search so keyboard navigation works.  Don't do this if
+        // we already have focus, so we don't steal focus from things like the tag search dropdown
+        // and cause them to be closed.
+        let focus = document.querySelector(":focus");
+        if(focus == null)
+            this.scrollContainer.focus();
+
+        // Wait until the load started by the most recent call to setDataSource finishes.
+        await this._setDataSourceRunner.promise;
     }
 
     deactivate()
@@ -387,7 +399,6 @@ export default class SearchView extends Widget
 
         this._active = false;
         this.stopPulsingThumbnail();
-        this._cancelLoad();
     }
 
     // Schedule storing the scroll position, resetting the timer if it's already running.
@@ -415,16 +426,10 @@ export default class SearchView extends Widget
         helpers.navigate(args, { addToHistory: false, cause: "viewing-page", sendPopstate: false });
     }
 
-    // Cancel any call to restoreScrollPos that's waiting for data.
-    _cancelLoad()
-    {
-        this._loadInitialPageId = null;
-    }
-
     dataSourceUpdated = () =>
     {
-        // Don't load or refresh images if we're in the middle of set_active.
-        if(this.activating)
+        // Don't load or refresh images if we're in the middle of setDataSource.
+        if(this._setDataSourceRunner.isRunning)
             return;
 
         this.refreshImages();
@@ -516,7 +521,12 @@ export default class SearchView extends Widget
     // start at the beginning.
     //
     // The result is always a contiguous subset of media IDs from the data source.
-    getMediaIdsToDisplay({allMediaIds, forcedMediaId, columns})
+    getMediaIdsToDisplay({
+        allMediaIds,
+        forcedMediaId,
+        columns,
+        forceMore=false,
+    })
     {
         if(allMediaIds.length == 0)
             return [];
@@ -572,8 +582,8 @@ export default class SearchView extends Widget
             endIdx = 0;
         }
 
-        // If the last loaded image is nearby (or if we have no nearby images yet),  we've scrolled near the
-        // end of what's loaded, so add another chunk of images to the list.
+        // If the last loaded image is nearby,  we've scrolled near the end of what's loaded, so add
+        // another chunk of images to the list.
         //
         // The chunk size is the number of thumbs we'll create at a time.
         //
@@ -581,14 +591,15 @@ export default class SearchView extends Widget
         // "nearby" IntersectionObserver threshold controls that.  It does trigger media info loads
         // if they weren't supplied by the data source (this happens with DataSsource_VView if we're
         // using /api/ids).
+        //
+        // If forceMore is true, always add a chunk to the end.
         let chunkSizeForwards = 25;
         let [firstNearbyMediaId, lastNearbyMediaId] = this.getNearbyMediaIds();
-        if(lastLoadedMediaIdIdx != -1)
-        {
-            let lastNearbyMediaIdIds = allMediaIds.indexOf(lastNearbyMediaId);
-            if(lastNearbyMediaId == null || lastNearbyMediaIdIds == lastLoadedMediaIdIdx)
-                endIdx += chunkSizeForwards;
-        }
+        let lastNearbyMediaIdIds = allMediaIds.indexOf(lastNearbyMediaId);
+        if(lastNearbyMediaIdIds != -1 && lastNearbyMediaIdIds == lastLoadedMediaIdIdx)
+            endIdx += chunkSizeForwards;
+        else if(forceMore)
+            endIdx += chunkSizeForwards;
 
         // Similarly, if the first loaded image is nearby, we should load another chunk upwards.
         //
@@ -734,7 +745,7 @@ export default class SearchView extends Widget
         return [firstLoadedMediaId, lastLoadedMediaId];
     }
 
-    refreshImages = ({forcedMediaId=null}={}) =>
+    refreshImages = ({forcedMediaId=null, forceMore=false}={}) =>
     {
         if(this.dataSource == null)
             return;
@@ -814,6 +825,7 @@ export default class SearchView extends Widget
             allMediaIds,
             columns,
             forcedMediaId,
+            forceMore,
         });
 
         // Add thumbs.
@@ -1013,7 +1025,7 @@ export default class SearchView extends Widget
     }
     // Start loading data pages that we need to display visible thumbs, and start
     // loading thumbnail data for nearby thumbs.
-    async loadDataSourcePage()
+    async loadDataSourcePage({cause="thumbnails"}={})
     {
         // We load pages when the last thumbs on the previous page are loaded, but the first
         // time through there's no previous page to reach the end of.  Always make sure the
@@ -1037,7 +1049,7 @@ export default class SearchView extends Widget
 
         if(loadPage != null)
         {
-            let result = await this.dataSource.loadPage(loadPage, { cause: "thumbnails" });
+            let result = await this.dataSource.loadPage(loadPage, { cause });
 
             // If this page didn't load, it probably means we've reached the end, so stop trying
             // to load more pages.

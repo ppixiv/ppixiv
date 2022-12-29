@@ -483,7 +483,9 @@ export default class App
             window.dispatchEvent(e);
         }
 
-        newScreen.setDataSource(dataSource);
+        // The data source is set separately from activation because scrollSearchToMediaId can set
+        // the screen's data source before it's visible for transitions.
+        newScreen.setDataSource(dataSource, { targetMediaId: oldMediaId });
 
         if(this._contextMenu)
         {
@@ -505,7 +507,6 @@ export default class App
         // Activate the new screen.
         await newScreen.activate({
             mediaId,
-            oldMediaId,
             cause,
             restoreHistory,
         });
@@ -657,8 +658,7 @@ export default class App
         if(this._currentScreenName == "search")
             return;
 
-        this._screenSearch.setDataSource(dataSource);
-        this._screenSearch.scrollToMediaId(mediaId);
+        this._screenSearch.setDataSource(dataSource, { targetMediaId: mediaId });
     }
 
     // Navigate to args.
