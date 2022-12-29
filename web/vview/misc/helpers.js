@@ -634,6 +634,10 @@ export class helpers
         // what caused a navigation.  For browser forwards/back, this won't be present.
         cause="navigation",
 
+        // When navigating from an image to a search, by default we try to scroll to the image
+        // we came from.  If scrollToTop is true, scroll to the top of the search instead.
+        scrollToTop=false,
+
         // We normally synthesize window.onpopstate, so listeners for navigation will see this
         // as a normal navigation.  If this is false, don't do this.
         sendPopstate=true,
@@ -687,6 +691,7 @@ export class helpers
                 // Set initialNavigation to true.  This indicates that this event is for a new
                 // navigation, and not from browser forwards/back.
                 event.navigationCause = cause;
+                event.scrollToTop = scrollToTop;
 
                 window.dispatchEvent(event);
             }

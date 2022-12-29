@@ -18,7 +18,7 @@ export class AvatarWidget extends Widget
     {
         super({...options, template: `
             <div class=avatar-widget-follow-container>
-                <a href=# class=avatar-link>
+                <a href=# class=avatar-link data-scroll-to-top>
                     <canvas class=avatar></canvas>
 
                     <div class=follow-icon>
@@ -68,7 +68,7 @@ export class AvatarWidget extends Widget
             e.stopPropagation();
 
             let args = new helpers.args(`/users/${this.userId}/artworks#ppixiv`);
-            helpers.navigate(args);
+            helpers.navigate(args, { scrollToTop: true });
         });
 
         // A canvas filter for the avatar.  This has no actual filters.  This is just to kill off any
@@ -341,7 +341,7 @@ class FollowWidget extends Widget
         super({
             ...options, template: `
             <div class="follow-widget vertical-list">
-                ${helpers.createBoxLink({ label: "", icon: "mat:palette", classes: ["view-posts"] })}
+                ${helpers.createBoxLink({ label: "", icon: "mat:palette", classes: ["view-posts"], dataset: {scrollToTop: true} })}
 
                 <!-- Buttons for following, unfollowing, and changing privacy. -->
                 ${helpers.createBoxLink({ label: "Follow", icon: "public", classes: ["follow-button-public"] })}

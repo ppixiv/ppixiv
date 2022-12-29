@@ -41,7 +41,7 @@ export default class DesktopImageInfo extends Widget
                     </span>
                     <span style="display: inline-block;" class="author-block title-font">
                         <span style="font-size: 12px;">by</span>
-                        <a class="author"></a>
+                        <a class="author" data-scroll-to-top></a>
                     </span>
                     <span style="display: inline-block;" class=folder-block>
                         <span style="font-size: 12px;">in</span>

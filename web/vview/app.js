@@ -270,7 +270,7 @@ export default class App
         };
 
         // Create the data source for this page.
-        this.setCurrentDataSource("initialization");
+        this.setCurrentDataSource({ cause: "initialization" });
     };
 
     // Pixiv puts listeners on popstate which we can't always remove, and can get confused and reload
@@ -290,10 +290,13 @@ export default class App
     _windowPopstate = (e) =>
     {
         // Set the current data source and state.
-        this.setCurrentDataSource(e.navigationCause || "history");
+        this.setCurrentDataSource({
+            cause: e.navigationCause || "history",
+            scrollToTop: e.scrollToTop,
+         });
     }
 
-    async refreshCurrentDataSource({removeSearchPage=false}={})
+    async refreshCurrentDataSource({removeSearchPage=false, scrollToTop=false}={})
     {
         if(this._dataSource == null)
             return;
@@ -310,7 +313,7 @@ export default class App
         delete args.state.scroll;
         helpers.navigate(args, { addToHistory: false, cause: "refresh-data-source", sendPopstate: false });
 
-        await this.setCurrentDataSource("refresh");
+        await this.setCurrentDataSource({ cause: "refresh", scrollToTop });
     }
 
     _setDeviceProperties = () =>
@@ -396,7 +399,7 @@ export default class App
     // Create a data source for the current URL and activate it.
     //
     // This is called on startup, and in onpopstate where we might be changing data sources.
-    async setCurrentDataSource(cause)
+    async setCurrentDataSource({cause, scrollToTop=false}={})
     {
         // If we're called again before a previous call finishes, let the previous call
         // finish first.
@@ -410,7 +413,7 @@ export default class App
         if(token !== this._setCurrentDataSourceToken)
             return;
 
-        let promise = this._setCurrentDataSourcePromise = this._setCurrentDataSource(cause);
+        let promise = this._setCurrentDataSourcePromise = this._setCurrentDataSource({cause, scrollToTop});
         promise.finally(() => {
             if(promise == this._setCurrentDataSourcePromise)
                 this._setCurrentDataSourcePromise = null;
@@ -418,11 +421,20 @@ export default class App
         return promise;
     }
 
-    async _setCurrentDataSource(cause)
+    async _setCurrentDataSource({cause, scrollToTop})
     {
         // Remember what we were displaying before we start changing things.
         let oldScreen = this._screens[this._currentScreenName];
-        let oldMediaId = oldScreen? oldScreen.displayedMediaId:null;
+
+        // If scrollToTop is true, scroll the search to the top instead of restoring the scroll
+        // position.  This can be set by putting data-scroll-to-top on a link or setting
+        // scrollToTop when calling navigate().
+        let targetMediaId = oldScreen? oldScreen.displayedMediaId:null;
+        if(scrollToTop)
+        {
+            console.log("Scrolling to top instead of restoring ID");
+            targetMediaId = null;
+        }
 
         // Get the data source for the current URL.
         let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation);
@@ -485,7 +497,7 @@ export default class App
 
         // The data source is set separately from activation because scrollSearchToMediaId can set
         // the screen's data source before it's visible for transitions.
-        newScreen.setDataSource(dataSource, { targetMediaId: oldMediaId });
+        newScreen.setDataSource(dataSource, { targetMediaId });
 
         if(this._contextMenu)
         {
@@ -762,7 +774,11 @@ export default class App
             return;
         }
 
-        helpers.navigate(url);
+        helpers.navigate(url, {
+            // If a link has the data-scroll-to-top attribute, remember that we want to scroll
+            // to the top of the search instead of restoring the position.
+            scrollToTop: a.dataset.scrollToTop // data-scroll-to-top
+        });
     }
 
     // This is called if we're on a page that didn't give us init data.  We'll load it from
