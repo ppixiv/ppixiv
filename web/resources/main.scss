@@ -1101,13 +1101,12 @@ body.hide-r18g .r18g { display: none; }
     /* This places the thumbnail UI at the top, so the thumbnails sit below it when
      * scrolled all the way up, and scroll underneath it. */
     position: sticky;
-    top: 0;
     width: 100%;
     display: flex;
     flex-direction: row;
     justify-content: center;
     padding-top: calc(max(1em, env(safe-area-inset-top)));
-    padding-bottom: .5em;
+    padding-bottom: 1em;
     z-index: 1;
     transition: top ease-out .2s;
 
@@ -1121,11 +1120,14 @@ body.hide-r18g .r18g { display: none; }
         }
     }
 
+    &:not(.ui-on-hover)
+    {
+        top: 0;
+    }
+
     /* If .ui-on-hover is set, switch to showing the top UI when it's hovered instead of sticky. */
     &.ui-on-hover
     {
-        bottom: 100%;
-
         /* Normally pointer-events is disabled above, so the sides of the UI box don't cover clicks.
          * However, that also makes the hover not include the top padding above the UI, causing it
          * to flicker on and off when the mouse is in that area.  This is tricky to fix nicely, so just
@@ -1134,14 +1136,10 @@ body.hide-r18g .r18g { display: none; }
             pointer-events: auto;
         }
 
+        top: 0;
+
         // .force-open is set to lock the UI in place when a menu is open.  It has the same
         // effect as a hover.
-        &.hover,
-        &.force-open
-        {
-            top: 0;
-        }
-
         &:not(.hover):not(.force-open)
         {
             // --ui-box-height is the current height of this box.
@@ -1316,11 +1314,11 @@ body.hide-r18g .r18g { display: none; }
 
     .thumbnail-ui-box {
         width: 50%;
+        height: fit-content;
 
         // Make sure this doesn't get too narrow, or it'll overlap too much of the thumbnail area.
         min-width: calc(min(800px, 100%));
         padding: 0 15px;
-        margin: 10px 0;
 
         background-color: var(--ui-bg-color);
         color: var(--ui-fg-color);
