@@ -480,7 +480,8 @@ class ImageInfoWidget extends IllustWidget
     {
         // We need illust info if we're viewing a manga page beyond page 1, since
         // early info doesn't have that.  Most of the time, we only need early info.
-        if(this._page == null || this._page == 0)
+        let mangaPage = this.mangaPage;
+        if(mangaPage == null || mangaPage == 0)
             return "partial";
         else
             return "full";

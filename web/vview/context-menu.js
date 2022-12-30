@@ -1364,7 +1364,8 @@ class ImageInfoWidget extends IllustWidget
     {
         // We need illust info if we're viewing a manga page beyond page 1, since
         // early info doesn't have that.  Most of the time, we only need early info.
-        if(this._page == null || this._page == 0)
+        let mangaPage = this.mangaPage;
+        if(mangaPage == null || mangaPage == 0)
             return "partial";
         else
             return "full";
@@ -1391,7 +1392,7 @@ class ImageInfoWidget extends IllustWidget
         
         // Add the page count for manga.  If the data source is dataSource.vview, show
         // the index of the current file if it's loaded all results.
-        let currentPage = this._page;
+        let currentPage = this.mangaPage;
         let pageCount = mediaInfo.pageCount;
         let showPageNumber = this._showPageNumber;
         if(this.dataSource?.name == "vview" && this.dataSource.allPagesLoaded)

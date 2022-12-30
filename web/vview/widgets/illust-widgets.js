@@ -1,53 +1,78 @@
 import Widget from 'vview/widgets/widget.js';
+import Actor from 'vview/actors/actor.js';
 import Actions from 'vview/misc/actions.js';
 import { ConfirmPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
 
-// A widget that shows info for a particular media ID, and refreshes if the image changes.
-export class IllustWidget extends Widget
+export class GetMediaInfo extends Actor
 {
-    constructor(options)
+    constructor({
+        mediaId=null,
+
+        // The data this widget needs.  This can be mediaId (nothing but the ID), full or partial.
+        //
+        // This can change dynamically.  Some widgets need media info only when viewing a manga
+        // page.
+        neededData="full",
+
+        // This is called when the media ID changes or new media info becomes available.
+        onrefresh=async ({mediaId, mediaInfo}) => { },
+
+        ...options
+    })
     {
-        super(options);
+        super({...options});
+
+        this._mediaId = mediaId;
+        this._neededData = neededData;
+        if(!(this._neededData instanceof Function))
+            this._neededData = () => neededData;
+        this._onrefresh = onrefresh;
 
         // Refresh when the image data changes.
         ppixiv.mediaCache.addEventListener("mediamodified", (e) => {
             if(e.mediaId == this._mediaId)
                 this.refresh();
         }, { signal: this.shutdownSignal.signal });
+
+        // Defer the initial refresh so we don't call onrefresh before the constructor returns.
+        helpers.other.defer(() => this.refresh());
     }
 
-    // The data this widget needs.  This can be mediaId (nothing but the ID), full or partial.
-    //
-    // This can change dynamically.  Some widgets need media info only when viewing a manga
-    // page.
-    get neededData() { return "full"; }
+    setMediaId(mediaId) { this.mediaId = mediaId; }
+    get mediaId() { return this._mediaId; }
 
-    setMediaId(mediaId)
+    set mediaId(mediaId)
     {
         if(this._mediaId == mediaId)
             return;
 
         this._mediaId = mediaId;
-
-        let [illustId, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
-        this._page = page;
         this.refresh();
     }
-    
-    get mediaId() { return this._mediaId; }
+
+    // For convenience, return the current manga page.
+    get mangaPage()
+    {
+        let [illustId, page] = helpers.mediaId.toIllustIdAndPage(this.mediaId);
+        return page;
+    }
 
     async refresh()
     {
+        if(this.hasShutdown)
+            return;
+
         // Grab the illust info.
         let mediaId = this._mediaId;
         let info = { mediaId: this._mediaId };
         
         // If we have a media ID and we want media info (not just the media ID itself), load
         // the info.
-        if(this._mediaId != null && this.neededData != "mediaId")
+        let neededData = this._neededData();
+        if(this._mediaId != null && neededData != "mediaId")
         {
-            let full = this.neededData == "full";
+            let full = neededData == "full";
 
             // See if we have the data the widget wants already.
             info.mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._mediaId, { full });
@@ -57,7 +82,7 @@ export class IllustWidget extends Widget
             // and reset the widget.  This can give the widget an illust ID without data, which is
             // OK.
             if(info.mediaInfo == null)
-                await this.refreshInternal(info);
+                await this._onrefresh(info);
 
             info.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId, { full });
         }
@@ -66,8 +91,30 @@ export class IllustWidget extends Widget
         if(this._mediaId != mediaId)
             return;
 
-        await this.refreshInternal(info);
+        await this._onrefresh(info);
+    }    
+}
+
+// A widget that shows info for a particular media ID, and refreshes if the image changes.
+export class IllustWidget extends Widget
+{
+    constructor(options)
+    {
+        super(options);
+
+        this.getMediaInfo = new GetMediaInfo({
+            parent: this,
+            neededData: () => this.neededData,
+            onrefresh: async(info) => this.refreshInternal(info),
+        });
     }
+
+    get neededData() { return "full"; }
+
+    get _mediaId() { return this.getMediaInfo.mediaId; }
+    setMediaId(mediaId) { this.getMediaInfo.mediaId = mediaId; }
+    get mediaId() { return this.getMediaInfo.mediaId; }
+    get mangaPage() { return this.getMediaInfo.mangaPage; }
 
     async refreshInternal({ mediaId, mediaInfo })
     {
