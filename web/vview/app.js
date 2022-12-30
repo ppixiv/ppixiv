@@ -261,8 +261,8 @@ export default class App
         WhatsNew.handleLastViewedVersion();
 
         // Create the screens.
-        this._screenSearch = new ScreenSearch({ container: document.body });
-        this._screenIllust = new ScreenIllust({ container: document.body });
+        this._screenSearch = new ScreenSearch({ container: document.body, visible: false });
+        this._screenIllust = new ScreenIllust({ container: document.body, visible: false });
 
         this._screens = {
             search: this._screenSearch,
