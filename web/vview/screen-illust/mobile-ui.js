@@ -148,6 +148,12 @@ export default class MobileImageUI extends Widget
     }
     get mediaId() { return this._mediaId; }
 
+    // We control our own visibility based on the dragger.
+    get visible()
+    {
+        return this.dragger.visible;
+    }
+
     get actuallyVisible()
     {
         return this.dragger.visible;
@@ -374,7 +380,8 @@ class BookmarkTagDialog extends DialogWidget
         super.visibilityChanged();
 
         // Let the tag list know when it's hidden, so it knows to save changes.
-        this.tagListWidget.visible = this.actuallyVisible;
+        if(this.tagListWidget)
+            this.tagListWidget.visible = this.actuallyVisible;
     }
 }
 

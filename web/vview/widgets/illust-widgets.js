@@ -4,6 +4,20 @@ import Actions from 'vview/misc/actions.js';
 import { ConfirmPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
 
+// A helper to allow widgets to display something for a media ID without having to
+// deal with loading media info directly.
+//
+// let getMediaInfo = new GetMediaInfo({
+//     onrefresh=({mediaId, mediaInfo}) { /* update with the new data */ }
+// });
+// getMediaInfo.mediaId = mediaId;
+// 
+// onrefresh will be called when the media ID changes, media info becomes available
+// or changes.
+//
+// If a media ID is set but media info isn't available immediately, onrefresh will be
+// called with mediaInfo == null to allow the display to be cleared, and then called
+// again once data is available.
 export class GetMediaInfo extends Actor
 {
     constructor({
@@ -33,7 +47,7 @@ export class GetMediaInfo extends Actor
         ppixiv.mediaCache.addEventListener("mediamodified", (e) => {
             if(e.mediaId == this._mediaId)
                 this.refresh();
-        }, { signal: this.shutdownSignal.signal });
+        }, this._signal);
 
         // Defer the initial refresh so we don't call onrefresh before the constructor returns.
         helpers.other.defer(() => this.refresh());

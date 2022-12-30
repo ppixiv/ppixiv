@@ -1,8 +1,120 @@
 import Widget from 'vview/widgets/widget.js';
+import Actor from 'vview/actors/actor.js';
 import Actions from 'vview/misc/actions.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
 import { ConfirmPrompt, TextPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
+
+
+// This is GetMediaInfo for user info, looking up user info from a user ID.
+export class GetUserInfo extends Actor
+{
+    constructor({
+        // 
+        userId=null,
+
+        // The data this widget needs.  This can be:
+        // - userId - Just the ID itself
+        // - partial - Partial user info.
+        // - full - Full user info.  This is less likely to be available from cache.
+        //
+        //   This can be mediaId (nothing but the ID), full or partial.
+        //
+        // This can change dynamically.  Some widgets need media info only when viewing a manga
+        // page.
+        neededData="full",
+
+        // If false, we won't make API requests to load data if we're not active.  If we already
+        // have data it'll still be provided.
+        loadWhileNotVisible=false,
+
+        // This is called when the media ID changes or new media info becomes available.
+        onrefresh=async ({userId, userInfo}) => { },
+
+        ...options
+    })
+    {
+        super({...options});
+
+        this._userId = userId;
+        this._neededData = neededData;
+        this._loadWhileNotVisible = loadWhileNotVisible;
+        if(!(this._neededData instanceof Function))
+            this._neededData = () => neededData;
+        this._onrefresh = onrefresh;
+
+        // Refresh when the user data changes.  We don't watch for changes to media IDs since
+        // we don't expect the user for an image to change.
+        ppixiv.mediaCache.addEventListener("usermodified", (e) => {
+            if(e.userId == this._userId)
+                this.refresh();
+        }, this._signal);
+
+        // If we have an initial media ID, refresh with it.  Defer this so we don't call
+        // onrefresh before the constructor returns.
+        if(this._userId != null)
+            helpers.other.defer(() => this.refresh());
+    }
+
+    get userId() { return this._userId; }
+    set userId(userId)
+    {
+        if(this._userId == userId)
+            return;
+
+        this._userId = userId;
+        this.refresh();
+    }
+
+    visibilityChanged()
+    {
+        super.visibilityChanged();
+
+        // If we might have skipped loading while not visible, refresh now.  Use visibleRecursively
+        // for this and not actuallyVisibleRecursively so we don't refresh while we're transitioning
+        // away.
+        if(!this._loadWhileNotVisible && this.visibleRecursively)
+            this.refresh();
+    }
+
+    async refresh()
+    {
+        if(this.hasShutdown)
+            return;
+
+        let userId = this._userId;
+        let info = { userId: this._userId };
+        
+        // If we have a user ID and we want user info (not just the user ID itself), load it.
+        let neededData = this._neededData();
+        if(this._userId != null && neededData != "userId")
+        {
+            let full = neededData == "full";
+
+            // See if we have the data the widget wants already.
+            info.userInfo = ppixiv.userCache.getUserInfoSync(this._userId, { full });
+
+            // If we need to load data, clear the widget while we load, so we don't show the old
+            // data while we wait for data.  Skip this if we don't need to load, so we don't clear
+            // and reset the widget.  This can give the widget an illust ID without data, which is
+            // OK.
+            if(info.userInfo == null)
+                await this._onrefresh(info);
+
+            // Don't make API requests for data if we're not visible to the user.
+            if(!this._loadWhileNotVisible && !this.actuallyVisibleRecursively)
+                return;
+
+            info.userInfo = await ppixiv.userCache.getUserInfo(this._userId, { full });
+        }
+
+        // Stop if the media ID changed while we were async.
+        if(this._userId != userId)
+            return;
+
+        await this._onrefresh(info);
+    }    
+}
 
 export class AvatarWidget extends Widget
 {
@@ -32,9 +144,12 @@ export class AvatarWidget extends Widget
         if(this.options.mode != "dropdown" && this.options.mode != "overlay")
             throw "Invalid avatar widget mode";
 
-        helpers.html.setClass(this.root, "big", big);
+        this.getUserInfo = new GetUserInfo({
+            parent: this,
+            onrefresh: (args) => this.onrefresh(args),
+        });
 
-        ppixiv.userCache.addEventListener("usermodified", this._userChanged, { signal: this.shutdownSignal.signal });
+        helpers.html.setClass(this.root, "big", big);
 
         let avatarElement = this.root.querySelector(".avatar");
         let avatarLink = this.root.querySelector(".avatar-link");
@@ -67,7 +182,7 @@ export class AvatarWidget extends Widget
             e.preventDefault();
             e.stopPropagation();
 
-            let args = new helpers.args(`/users/${this.userId}/artworks#ppixiv`);
+            let args = new helpers.args(`/users/${this.getUserInfo.userId}/artworks#ppixiv`);
             helpers.navigate(args, { scrollToTop: true });
         });
 
@@ -104,30 +219,25 @@ export class AvatarWidget extends Widget
         return this.followDropdownOpener.dropdown;
     }
 
-    // Refresh when the user changes.
-    _userChanged = ({userId}) =>
+    get userId()
     {
-        if(this.userId == null || this.userId != userId)
-            return;
-
-        this.setUserId(this.userId);
+        return this.getUserInfo.userId;
     }
 
     async setUserId(userId)
     {
         // Close the dropdown if the user is changing.
-        if(this.userId != userId && this.followDropdownOpener)
+        if(this.getUserInfo.userId != userId && this.followDropdownOpener)
             this.followDropdownOpener.visible = false;
 
-        this.userId = userId;
+        this.getUserInfo.userId =  userId;
         this.refresh();
     }
 
-    async refresh()
+    onrefresh({userId, userInfo})
     {
-        if(this.userId == null || this.userId == -1)
+        if(userId == null || userId == -1)
         {
-            this.userData = null;
             this.root.classList.add("loading");
 
             // Set the avatar image to a blank image, so it doesn't flash the previous image
@@ -137,14 +247,13 @@ export class AvatarWidget extends Widget
             return;
         }
 
-        // If we've seen this user's profile image URL from thumbnail data, start loading it
-        // now.  Otherwise, we'll have to wait until user info finishes loading.
-        let cachedProfileUrl = ppixiv.mediaCache.userProfileUrls[this.userId];
-        if(cachedProfileUrl)
-            this.img.src = cachedProfileUrl;
+        // If we've seen this user's profile image URL from thumbnail data, we can use it to
+        // start loading the avatar without waiting for user info to finish loading.
+        let cachedProfileUrl = ppixiv.mediaCache.userProfileUrls[userId];
+        this.img.src = cachedProfileUrl ?? userInfo?.imageBig ?? helpers.other.blankImage;
 
         // Set up stuff that we don't need user info for.
-        this.root.querySelector(".avatar-link").href = `/users/${this.userId}/artworks#ppixiv`;
+        this.root.querySelector(".avatar-link").href = `/users/${userId}/artworks#ppixiv`;
 
         // Hide the popup in dropdown mode, since it covers the dropdown.
         if(this.options.mode == "dropdown")
@@ -155,24 +264,8 @@ export class AvatarWidget extends Widget
         this.root.querySelector(".avatar").dataset.popup = "";
 
         this.root.classList.remove("loading");
-        this.root.querySelector(".follow-icon").hidden = true;
-
-        // If we're not actually visible to the user right now, fill in the avatar image if we
-        // know it, but don't request user info.
-        if(!this.actuallyVisibleRecursively)
-            return;
-
-        let userData = await ppixiv.userCache.getUserInfo(this.userId);
-        this.userData = userData;
-        if(userData == null)
-            return;
-
-        this.root.querySelector(".follow-icon").hidden = !this.userData.isFollowed;
-        this.root.querySelector(".avatar").dataset.popup = this.userData.name;
-
-        // If we don't have an image because we're loaded from a source that doesn't give us them,
-        // just hide the avatar image.
-        this.img.src = cachedProfileUrl ?? this.userData.imageBig ?? helpers.other.blankImage;
+        this.root.querySelector(".follow-icon").hidden = !(userInfo?.isFollowed ?? false);
+        this.root.querySelector(".avatar").dataset.popup = userInfo?.name ?? "";
     }
 };
 

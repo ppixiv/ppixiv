@@ -60,9 +60,18 @@ export default class UserCache extends EventTarget
     }
 
     // Return user info for userId if it's already cached, otherwise return null.
-    getUserInfoSync(userId)
+    getUserInfoSync(userId, {full=false}={})
     {
-        return this._userData[userId];
+        let userInfo = this._userData[userId];
+        if(userInfo == null)
+            return null;
+
+        // If full info was requested and we only have partial info, don't return it.
+        // (Note that Pixiv's "partial" flag is backwards.)
+        if(full && !userInfo.partial)
+            return null;
+
+        return userInfo;
     }
 
     // Load userId if needed.
