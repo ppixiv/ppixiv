@@ -2576,8 +2576,8 @@ a.box-link, span.box-link
                 display: flex;
                 flex-wrap: wrap;
                 flex-direction: row;
-                gap: 0.5em 0.5em;
-                align-items: flex-start;
+                gap: 0.25em 0.5em;
+                justify-content: center;
                 pointer-events: auto;
 
                 .mobile-ui-tag-entry {
@@ -2585,16 +2585,8 @@ a.box-link, span.box-link
                     white-space: nowrap;
                     background-color: var(--frame-bg-color);
                     padding: .5em 0.75em;
-                    border-radius: .25em;
-
-                    // Add a slight padding so the box shadow isn't clipped by the overflow: hidden on
-                    // our container.
-                    margin-left: 0.5em;
-
-                    // border: 1px solid #fff;
-                    border-radius: 4px;
-
-                    box-shadow: 0 0 7px 1px #000;
+                    border-radius: .5em;
+                    line-height: 1.5em;
 
                     .bookmark-tag-icon {
                         vertical-align: middle;
