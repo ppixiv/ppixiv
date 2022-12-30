@@ -51,22 +51,12 @@ export default class UserCache extends EventTarget
     }
 
     // The user request can either return a small subset of data (just the username,
-    // profile image URL, etc.), or a larger set with a webpage URL, Twitter, etc.
-    // User preloads often only have the smaller set, and we want to use the preload
-    // data whenever possible.
-    //
-    // getUserInfo requests the smaller set of data, and getUserInfoFull requests
-    // the full data.
-    //
-    // Note that getUserInfo will return the full data if we have it already.
-    async getUserInfoFull(userId)
+    // profile image URL, etc.), or full data with a webpage URL, Twitter, etc.  User
+    // preloads often only have the smaller set, and we want to use the preload data
+    // whenever possible.
+    async getUserInfo(userId, {full=false}={})
     {
-        return await this._getUserInfo(userId, true);
-    }
-
-    async getUserInfo(userId)
-    {
-        return await this._getUserInfo(userId, false);
+        return await this._getUserInfo(userId, full);
     }
 
     // Return user info for userId if it's already cached, otherwise return null.

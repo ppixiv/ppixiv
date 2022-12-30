@@ -410,7 +410,7 @@ export default class Actions
             return;
 
         // We need to do this differently depending on whether we were already following the user.
-        let userInfo = await ppixiv.userCache.getUserInfoFull(userId);
+        let userInfo = await ppixiv.userCache.getUserInfo(userId, { full: true });
         if(userInfo.isFollowed)
         {
             // If we were already following, we're just updating privacy.  We don't update follow

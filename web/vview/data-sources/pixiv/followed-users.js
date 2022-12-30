@@ -36,7 +36,7 @@ export default class DataSource_Follows extends DataSource
     {
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.userInfo = await ppixiv.userCache.getUserInfoFull(this.viewingUserId);
+        this.userInfo = await ppixiv.userCache.getUserInfo(this.viewingUserId, { full: true });
 
         // Update to refresh our page title, which uses userInfo.
         this.callUpdateListeners();

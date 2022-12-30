@@ -64,7 +64,7 @@ export default class DataSources_Artist extends DataSource
 
         // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
         // in main.js, and this won't make a request.
-        this.userInfo = await ppixiv.userCache.getUserInfoFull(this.viewingUserId);
+        this.userInfo = await ppixiv.userCache.getUserInfo(this.viewingUserId, { full: true });
 
         // Update to refresh our page title, which uses userInfo.
         this.callUpdateListeners();
@@ -190,7 +190,7 @@ export default class DataSources_Artist extends DataSource
     {
         // Get user info.  We probably have this on this.userInfo, but that async load
         // might not be finished yet.
-        let userInfo = await ppixiv.userCache.getUserInfoFull(this.viewingUserId);
+        let userInfo = await ppixiv.userCache.getUserInfo(this.viewingUserId, { full: true });
         console.log("Loading tags for user", userInfo.userId);
 
         // Load this artist's common tags.

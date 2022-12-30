@@ -1002,7 +1002,7 @@ export default class ContextMenu extends Widget
                 if(userId == null)
                     return;
 
-                let userInfo = await ppixiv.userCache.getUserInfoFull(userId);
+                let userInfo = await ppixiv.userCache.getUserInfo(userId, { full: true });
                 if(userInfo == null)
                     return;
 

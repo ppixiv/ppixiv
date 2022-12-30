@@ -35,7 +35,7 @@ export class DataSource_BookmarksBase extends DataSource
         this.fetchBookmarkTagCounts();
         
         // Load the user's info.  We don't need to wait for this to finish.
-        let userInfoPromise = ppixiv.userCache.getUserInfoFull(this.viewingUserId);
+        let userInfoPromise = ppixiv.userCache.getUserInfo(this.viewingUserId, { full: true });
         userInfoPromise.then((userInfo) => {
             // Stop if we were deactivated before this finished.
             if(!this.active)

@@ -42,7 +42,7 @@ export default class DataSource_DiscoverUsers extends DataSource
         if(this.showingUserId != null)
         {
             // Make sure the user info is loaded.
-            this.userInfo = await ppixiv.userCache.getUserInfoFull(this.showingUserId);
+            this.userInfo = await ppixiv.userCache.getUserInfo(this.showingUserId, { full: true });
 
             // Update to refresh our page title, which uses user_info.
             this.callUpdateListeners();
