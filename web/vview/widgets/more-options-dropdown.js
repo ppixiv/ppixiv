@@ -390,7 +390,7 @@ export default class MoreOptionsDropdown extends IllustWidget
         // These are in the top-level menu on mobile.  Don't show these if we're on the search
         // view either, since they want to actually be on the illust view, not hovering a thumbnail.
         let screenName = ppixiv.app.getDisplayedScreen({ name: true })
-        if(!ppixiv.mobile && screenName == "illust")
+        if(screenName == "illust")
         {
             this._menuOptions.push(menuOptions.toggleSlideshow());
             this._menuOptions.push(menuOptions.toggleLoop());

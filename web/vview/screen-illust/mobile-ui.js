@@ -5,9 +5,8 @@ import { BookmarkButtonWidget } from 'vview/widgets/illust-widgets.js';
 import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
 import { BookmarkTagListWidget } from 'vview/widgets/bookmark-tag-list.js';
 import { AvatarWidget } from 'vview/widgets/user-widgets.js';
-import { IllustWidget } from 'vview/widgets/illust-widgets.js';
+import { IllustWidget, GetMediaInfo } from 'vview/widgets/illust-widgets.js';
 import DialogWidget from 'vview/widgets/dialog.js';
-import LocalAPI from 'vview/misc/local-api.js';
 import WidgetDragger from 'vview/actors/widget-dragger.js';
 import IsolatedTapHandler from 'vview/actors/isolated-tap-handler.js';
 import { helpers, ClassFlags, OpenWidgets } from 'vview/misc/helpers.js';
@@ -26,20 +25,49 @@ export default class MobileImageUI extends Widget
     {
         super({...options, template: `
             <div class=mobile-illust-ui-container>
-                <div class=context-menu-image-info-container></div>
+                <div class=mobile-illust-ui-page>
+                    <div class=avatar></div>
+
+                    <div class=menu-bar>
+                        <div class="item button-info enabled">
+                            ${ helpers.createIcon("mat:info") }
+                            <span class=label>Info</span>
+                        </div>
+
+                        <vv-container class="bookmark-button-container"></vv-container>
+
+                        <div class="item button-view-manga enabled">
+                            ${ helpers.createIcon("ppixiv:thumbnails") }
+                            <span class=label>Pages</span>
+                        </div>
+
+                        <div class="item button-more enabled">
+                            ${ helpers.createIcon("settings") }
+                            <span class=label>More...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         `});
         
         this.transitionTarget = transitionTarget;
 
-        this.infoWidget = new ImageInfoWidget({
-            container: this.root.querySelector(".context-menu-image-info-container"),
+        this.avatarWidget = new AvatarWidget({
+            container: this.root.querySelector(".avatar"),
+            mode: "dropdown",
+        });
+        this.root.querySelector(".avatar").hidden = ppixiv.native;
+
+        // Get the user ID to load the avatar.
+        this.getMediaInfo = new GetMediaInfo({
+            parent: this,
+            neededData: "partial",
+            onrefresh: async({mediaInfo}) => {
+                this.avatarWidget.visible = mediaInfo != null;
+                this.avatarWidget.setUserId(mediaInfo?.userId);
+            },
         });
 
-        this.menuBar = new IllustBottomMenuBar({
-            container: this.root,
-        });
-        
         this.dragger = new WidgetDragger({
             parent: this,
             name: "menu-dragger",
@@ -70,6 +98,41 @@ export default class MobileImageUI extends Widget
 
         this._mediaId = null;
 
+        this.querySelector(".button-view-manga").addEventListener("click", this.clickedViewManga);
+
+        this.querySelector(".button-more").addEventListener("click", (e) => {
+            new MoreOptionsDialog({
+                mediaId: this._mediaId
+            });
+
+            this.dragger.hide();            
+        });
+
+        this.querySelector(".button-info").addEventListener("click", (e) => {
+            new MobileIllustInfoDialog({
+                mediaId: this._mediaId
+            });
+
+            this.dragger.hide();            
+        });
+
+        this.buttonBookmark = this.querySelector(".bookmark-button-container");
+        this.bookmarkButtonWidget = new ImageBookmarkedWidget({ container: this.buttonBookmark });
+
+        this.buttonBookmark.addEventListener("click", (e) => {
+            new BookmarkTagDialog({
+                mediaId: this._mediaId
+            });
+            
+            this.dragger.hide();            
+        });
+
+        // This tells widgets that want to be above us how tall we are.
+        helpers.html.setHeightAsProperty(this.querySelector(".menu-bar"), "--menu-bar-height", {
+            target: this.closest(".screen"),
+            ...this._signal
+        });
+
         this.refresh();
     }
 
@@ -93,11 +156,6 @@ export default class MobileImageUI extends Widget
         this.refresh();
     }
     get mediaId() { return this._mediaId; }
-
-    setDataSource(dataSource)
-    {
-        this.menuBar.setDataSource(dataSource);
-    }
 
     get actuallyVisible()
     {
@@ -141,117 +199,6 @@ export default class MobileImageUI extends Widget
             this.show();
     }
 
-    refresh()
-    {
-        // Don't refresh while we're hiding, so we don't flash the next page's info while we're
-        // hiding right after the page is dragged.  This shouldn't happen when displaying, since
-        // our media ID should be set before show() is called.
-        if(this.dragger.isAnimationPlaying)
-            return;
-
-        this.infoWidget.setMediaId(this._mediaId);
-        this.menuBar.mediaId = this._mediaId;
-
-        // Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
-        // open.
-        let fullyVisible = this.dragger.position == 1;
-        ClassFlags.get.set("mobile-ui-visible", fullyVisible);
-
-        // Add ourself to OpenWidgets if we're visible at all.
-        let visible = this.actuallyVisible;
-        OpenWidgets.singleton.set(this, visible);
-
-        this.menuBar.refresh();
-    }
-}
-
-class IllustBottomMenuBar extends Widget
-{
-    constructor({template, ...options})
-    {
-        super({...options, visible: true, template: `
-            <div class=mobile-illust-ui-page>
-                <div class="item button-toggle-slideshow enabled">
-                    ${ helpers.createIcon("mat:wallpaper") }
-                    <span class=label>Slideshow</span>
-                </div>
-
-                <div class="item button-toggle-loop enabled">
-                    ${ helpers.createIcon("mat:replay_circle_filled") }
-                    <span class=label>Loop</span>
-                </div>
-
-                <vv-container class="bookmark-button-container"></vv-container>
-
-                <div class="item button-similar enabled">
-                    ${ helpers.createIcon("ppixiv:suggestions") }
-                    <span class=label>Similar</span>
-                </div>
-
-                <div class="item button-view-manga enabled">
-                    ${ helpers.createIcon("ppixiv:thumbnails") }
-                    <span class=label>Pages</span>
-                </div>
-
-                <div class="item button-more enabled">
-                    ${ helpers.createIcon("settings") }
-                    <span class=label>More...</span>
-                </div>
-            </div>
-        `});
-
-        this._mediaId = null;
-
-        this.root.querySelector(".button-view-manga").addEventListener("click", this.clickedViewManga);
-
-        this.toggleSlideshowButton = this.root.querySelector(".button-toggle-slideshow");
-        this.toggleSlideshowButton.addEventListener("click", (e) => {
-            ppixiv.app.toggleSlideshow();
-            this.parent.hide();
-            this.refresh();
-        });
-
-        this.toggleLoopButton = this.root.querySelector(".button-toggle-loop");
-        this.toggleLoopButton.addEventListener("click", (e) => {
-            ppixiv.app.loopSlideshow();
-            this.parent.hide();
-            this.refresh();
-        });
-        
-        this.root.querySelector(".button-more").addEventListener("click", (e) => {
-            new MoreOptionsDialog({
-                mediaId: this._mediaId
-            });
-
-            this.parent.hide();
-        });
-
-        this.buttonBookmark = this.root.querySelector(".bookmark-button-container");
-        this.bookmarkButtonWidget = new ImageBookmarkedWidget({ container: this.buttonBookmark });
-
-        this.buttonSlider = this.root.querySelector(".button-similar");
-        this.buttonSlider.hidden = ppixiv.native;
-        this.buttonSlider.addEventListener("click", (e) => {
-            let [illustId] = helpers.mediaId.toIllustIdAndPage(this._mediaId);
-            let args = new helpers.args(`/bookmark_detail.php?illust_id=${illustId}#ppixiv?recommendations=1`);
-            helpers.navigate(args);
-        });
-
-        this.buttonBookmark.addEventListener("click", (e) => {
-            new BookmarkTagDialog({
-                mediaId: this._mediaId
-            });
-            
-            this.parent.hide();
-        });
-
-        // This tells widgets that want to be above us how tall we are.
-        helpers.html.setHeightAsProperty(this.root, "--menu-bar-height", {
-            target: this.closest(".screen"),
-            ...this._signal
-        });
-    }
-
     setDataSource(dataSource)
     {
         if(this.dataSource == dataSource)
@@ -275,6 +222,23 @@ class IllustBottomMenuBar extends Widget
     {
         super.refresh();
 
+        // Don't refresh while we're hiding, so we don't flash the next page's info while we're
+        // hiding right after the page is dragged.  This shouldn't happen when displaying, since
+        // our media ID should be set before show() is called.
+        if(this.dragger.isAnimationPlaying)
+            return;
+
+        this.getMediaInfo.mediaId = this._mediaId;
+
+        // Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
+        // open.
+        let fullyVisible = this.dragger.position == 1;
+        ClassFlags.get.set("mobile-ui-visible", fullyVisible);
+
+        // Add ourself to OpenWidgets if we're visible at all.
+        let visible = this.actuallyVisible;
+        OpenWidgets.singleton.set(this, visible);
+
         // If we're not visible, don't refresh an illust until we are, so we don't trigger
         // data loads.  Do refresh even if we're hidden if we have no illust to clear
         // the previous illust's display even if we're not visible, so it's not visible the
@@ -286,8 +250,6 @@ class IllustBottomMenuBar extends Widget
         buttonViewManga.dataset.popup = "View manga pages";
         buttonViewManga.hidden = !ppixiv.app.navigateOutEnabled;
 
-        helpers.html.setClass(this.toggleSlideshowButton, "selected", ppixiv.app.slideshowMode == "1");
-        helpers.html.setClass(this.toggleLoopButton, "selected", ppixiv.app.slideshowMode == "loop");
         helpers.html.setClass(this.root.querySelector(".button-bookmark"), "enabled", true);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
@@ -443,54 +405,44 @@ class MoreOptionsDialog extends DialogWidget
     }
 }
 
-class ImageInfoWidget extends IllustWidget
-{
-    constructor({...options})
-    {
-        super({ ...options, template: `
-            <div class=image-info>
-                <div class=info-text>
-                    <div class=title-text-block>
-                        <span class=folder-block hidden>
-                            <span class=folder-text></span>
-                            <span class=slash">/</span>
-                        </span>
-                        <span class=title hidden></span>
-                    </div>
-                    <div class=page-count hidden></div>
-                    <div class=image-info-text hidden></div>
-                    <div class="post-age popup" hidden></div>
-                    <div class=mobile-tag-overlay>
-                        <div class=bookmark-tags></div>
-                    </div>
-                </div>
 
-                <div class=avatar></div>
+
+
+
+
+
+class MobileIllustInfoDialog extends DialogWidget
+{
+    constructor({mediaId, dataSource, ...options})
+    {
+        super({...options, header: "More", classes: ['mobile-illust-ui-dialog'], template: `
+            <div class=mobile-image-info>
+                <div class=author-block>
+                    <vv-container class=avatar></vv-container>
+                    <div class=author></div>
+                </div>
+                <div class=page-count hidden></div>
+                <div class=image-info-text hidden></div>
+                <div class=post-age hidden></div>
+                <div class=bookmark-tags></div>
+                <div class=description></div>
+
             </div>
         `});
+
+        this.dataSource = dataSource;
 
         this.avatarWidget = new AvatarWidget({
             container: this.root.querySelector(".avatar"),
             mode: "dropdown",
         });
         this.root.querySelector(".avatar").hidden = ppixiv.native;
-    }
 
-    get neededData()
-    {
-        // We need illust info if we're viewing a manga page beyond page 1, since
-        // early info doesn't have that.  Most of the time, we only need early info.
-        let mangaPage = this.mangaPage;
-        if(mangaPage == null || mangaPage == 0)
-            return "partial";
-        else
-            return "full";
-    }
-
-    set showPageNumber(value)
-    {
-        this._showPageNumber = value;
-        this.refresh();
+        this.getMediaInfo = new GetMediaInfo({
+            parent: this,
+            mediaId,
+            onrefresh: async(info) => this.refreshInternal(info),
+        });
     }
 
     refreshInternal({ mediaId, mediaInfo })
@@ -499,12 +451,13 @@ class ImageInfoWidget extends IllustWidget
         if(this.root.hidden)
             return;
 
+        this.querySelector(".author").textContent = `by ${mediaInfo?.userName}`;
         this.avatarWidget.setUserId(mediaInfo?.userId);
 
         let tagWidget = this.root.querySelector(".bookmark-tags");
         helpers.html.removeElements(tagWidget);
 
-        let isLocal = helpers.mediaId.isLocal(this._mediaId);
+        let isLocal = helpers.mediaId.isLocal(mediaId);
         let tags = isLocal? mediaInfo.bookmarkData?.tags:mediaInfo.tagList;
         tags ??= [];
         for(let tag of tags)
@@ -532,7 +485,7 @@ class ImageInfoWidget extends IllustWidget
         // the index of the current file if it's loaded all results.
         let currentPage = this._page;
         let pageCount = mediaInfo.pageCount;
-        let showPageNumber = this._showPageNumber;
+        let showPageNumber = false;
         if(this.dataSource?.name == "vview" && this.dataSource.allPagesLoaded)
         {
             let { page } = this.dataSource.idList.getPageForMediaId(mediaId);
@@ -555,23 +508,15 @@ class ImageInfoWidget extends IllustWidget
         }
         setInfo(".page-count", pageText);
 
-        setInfo(".title", mediaInfo.illustTitle);
+        this.header = mediaInfo.illustTitle;
     
-        let showFolder = helpers.mediaId.isLocal(this._mediaId);
-        this.root.querySelector(".folder-block").hidden = !showFolder;
-        if(showFolder)
-        {
-            let {id} = helpers.mediaId.parse(this._mediaId);
-            this.root.querySelector(".folder-text").innerText = helpers.strings.getPathSuffix(id, 1, 1); // parent directory
-        }
-
         // If we're on the first page then we only requested early info, and we can use the dimensions
         // on it.  Otherwise, get dimensions from mangaPages from illust data.  If we're displaying a
         // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
         // it's loaded.
         let info = "";
         
-        let { width, height } = ppixiv.mediaCache.getImageDimensions(mediaInfo, this._mediaId);
+        let { width, height } = ppixiv.mediaCache.getImageDimensions(mediaInfo, mediaId);
         if(width != null && height != null)
             info += width + "x" + height;
         setInfo(".image-info-text", info);
@@ -580,6 +525,13 @@ class ImageInfoWidget extends IllustWidget
         let age = helpers.strings.ageToString(secondsOld);
         this.root.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
         setInfo(".post-age", age);
+
+        let elementComment = this.querySelector(".description");
+        elementComment.hidden = mediaInfo.illustComment == "";
+        elementComment.innerHTML = mediaInfo.illustComment;
+        helpers.pixiv.fixPixivLinks(elementComment);
+        if(!ppixiv.native)
+            helpers.pixiv.makePixivLinksInternal(elementComment);
     }
 
     setDataSource(dataSource)

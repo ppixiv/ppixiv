@@ -907,6 +907,9 @@ input, textarea, [contenteditable] {
 }
 
 .avatar-widget-follow-container {
+    width: fit-content;
+    height: fit-content;
+
     // Set relative so we're the positioning container for the follow dropdown.
     position: relative;
     --avatar-width: 50px;
@@ -2510,7 +2513,6 @@ a.box-link, span.box-link
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding-top: calc(env(safe-area-inset-top));
 
     // This node is for positioning and covers the whole screen, so don't eat pointer events.
     pointer-events: none;
@@ -2526,114 +2528,25 @@ a.box-link, span.box-link
     --frame-bg-color: rgba(0,0,0,.65);
     --box-link-bg-color: none;
 
-    .context-menu-image-info-container {
-        display: contents;
-    }
+    .avatar-widget-follow-container
+    {
+        opacity: var(--menu-bar-pos);
 
-    // The image info in the top-right is a separate element from the UI pages.
-    .context-menu-image-info-container {
-        // Center this on phones, and put it in the top-right otherwise.
-        html.phone & {
-            width: 100%;
-        }
-        html:not(.phone) & {
-            right: calc(max(5vmin, env(safe-area-inset-right)));
-            max-width: calc(100vw - 100px);
-        }
+        background-color: var(--frame-bg-color);
+        border-radius: 5px;
+        padding: 0.25em;
+        pointer-events: var(--pointer-events);
 
-        // The background and padding for the tag list goes on the individual tags.
-        .image-info
-        {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 0.5em;
-            margin: .25em;
-            font-size: .8em;
-            font-weight: bold;
-            opacity: var(--menu-bar-pos);
-    
-            .info-text {
-                width: 100%;
-                translate: 0 scale_clamp_value(var(--menu-bar-pos), 0, 1, -25px, 0px);
-                transform-origin: center top;
-                border-radius: 15px;
-                padding: .25em;
+        margin-left: 1em;
+        margin-bottom: 2em;
 
-                backdrop-filter: blur(5px) contrast(60%) brightness(0.5);
-                -webkit-backdrop-filter: blur(5px) contrast(60%) brightness(0.5);
-
-                .title-text-block {
-                    overflow: hidden;
-                    white-space: nowrap;
-                    text-overflow: ellipsis;
-                    max-width: 100%;
-                    > .folder-block {
-                        color: #aaa;
-                        .slash {
-                            font-size: 12px;
-                        }
-                    }
-                }
-            }
-
-            > .avatar
-            {
-                align-self: flex-start;
-
-                > .avatar-widget-follow-container
-                {
-                    margin: .25em;
-                    background-color: var(--frame-bg-color);
-                    border-radius: 5px;
-                    padding: 0.25em;
-                    pointer-events: var(--pointer-events);
-                    scale: scale_clamp_value(var(--menu-bar-pos), 0, 1, 0.85, 1);
-                    transform-origin: center bottom;
-
-                    .avatar-link {
-                        --avatar-width: min(170px, 50vmin);
-                    }
-
-                    // Remove the shadow that's put around avatars by default.
-                    .avatar {
-                        box-shadow: none;
-                    }
-                }
-            }
+        .avatar-link {
+            --avatar-width: min(170px, 50vmin);
         }
 
-        .mobile-tag-overlay
-        {
-            html.phone & {
-                display: none;
-            }
-    
-            .bookmark-tags
-            {
-                margin-top: 0.25em;
-                display: flex;
-                flex-wrap: wrap;
-                flex-direction: row;
-                gap: 0.25em 0.5em;
-                justify-content: center;
-                pointer-events: auto;
-
-                .mobile-ui-tag-entry {
-                    // Only wrap between tags, not in the middle.
-                    white-space: nowrap;
-                    background-color: var(--frame-bg-color);
-                    padding: .5em 0.75em;
-                    border-radius: .5em;
-                    line-height: 1.5em;
-
-                    .bookmark-tag-icon {
-                        vertical-align: middle;
-                    }
-                }
-            }
+        // Remove the shadow that's put around avatars by default.
+        .avatar {
+            box-shadow: none;
         }
     }
 
@@ -2641,27 +2554,29 @@ a.box-link, span.box-link
         width: 100%;
         bottom: 0;
 
-        // Note that the background color extends into the top safe area, so if we're overlapping
-        // a statusbar (avoid-statusbar mode), we'll dim under the statusbar so the menu isn't floating.
-        padding-top: 0.5em;
-        padding-bottom: calc(max(env(safe-area-inset-bottom), 0.5em));
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-
-        display: flex;
-        flex-direction: row;
-        justify-content: space-evenly;
-
-        pointer-events: auto;
-
         user-select: none;
         -webkit-user-select: none;
 
-        // This controls the icon size.
-        font-size: 65%;
-
         opacity: var(--menu-bar-pos);
-        translate: 0 calc(100% * (1 - var(--menu-bar-pos)));
+        translate: 0 #{scale_value(var(--menu-bar-pos), 0, 1, var(--menu-bar-height), 0px)};
+
+        .menu-bar {
+            pointer-events: var(--pointer-events);
+
+            // Note that the background color extends into the top safe area, so if we're overlapping
+            // a statusbar (avoid-statusbar mode), we'll dim under the statusbar so the menu isn't floating.
+            padding-top: 0.5em;
+            padding-bottom: calc(max(env(safe-area-inset-bottom), 0.5em));
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+
+            // This controls the icon size.
+            font-size: 65%;
+
+            display: flex;
+            flex-direction: row;
+            justify-content: space-evenly;
+        }
     }
 
     .item {
@@ -2700,6 +2615,64 @@ a.box-link, span.box-link
         }
         .font-icon {
             font-size: 200%;
+        }
+    }
+}
+
+// The background and padding for the tag list goes on the individual tags.
+.mobile-image-info
+{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+    .author-block {
+        display: inline-flex;
+        align-items: center;
+
+        .avatar-widget-follow-container
+        {
+            padding-right: 0.5em;
+
+            // Remove the shadow that's put around avatars by default.
+            .avatar {
+                box-shadow: none;
+            }
+        }
+    }
+
+    .description {
+        display: inline-block;
+        width: 100%;
+        background-color: #000;
+        padding: .5em .5em;
+        margin: .5em 0;
+        border: 1px solid #aaa;
+        border-radius: .5em;
+        overflow-wrap: break-word;
+    }
+
+    .bookmark-tags
+    {
+        margin-top: 0.25em;
+        display: flex;
+        flex-wrap: wrap;
+        flex-direction: row;
+        gap: 0.25em 0.5em;
+        justify-content: center;
+
+        .mobile-ui-tag-entry {
+            // Only wrap between tags, not in the middle.
+            white-space: nowrap;
+            background-color: var(--frame-bg-color);
+            padding: .5em 0.75em;
+            border-radius: .5em;
+            line-height: 1.5em;
+
+            .bookmark-tag-icon {
+                vertical-align: middle;
+            }
         }
     }
 }

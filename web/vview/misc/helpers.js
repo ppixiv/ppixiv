@@ -327,44 +327,53 @@ export class helpers
         }, { signal });
     }
 
-    // Force all external links to target=_blank.
+    // Force all external links to target=_blank on mobile.
     //
-    // We do this on iOS to improve clicking links.  If we're running as a PWA on iOS, opening links will
-    // cause the Safari UI to appear.  Setting target=_blank looks the same to the user, except it opens
-    // it in a separate context, so closing the link will return to where we were.  If we don't do this,
-    // the link will replace us instead, so we'll be restarted when the user returns.
+    // This improves links on iOS, especially when running as a PWA: the link will open in a nested Safari
+    // context and then return to us without reloading when the link is closed.
     //
     // We currently only look at links when they're first added to the document and don't listen for
     // changes to href.
-    static forceTargetBlank()
+    static forceTargetBlankOnElement(node)
     {
-        if(!ppixiv.ios)
+        if(node.href == "" || node.getAttribute("target") == "_blank")
             return;
 
-        function update_node(node)
+        let url;
+        try {
+            url = new URL(node.href);
+
+            if(url.origin == document.location.origin)
+                return;
+        } catch(e) {
+            // Ignore invalid URLs.
+            return;
+        }
+
+        node.setAttribute("target", "_blank");
+    }
+
+    static forceTargetBlank()
+    {
+        if(!ppixiv.mobile)
+            return;
+
+        function updateNode(node)
         {
             if(node.querySelectorAll == null)
                 return;
 
-            for(let a of node.querySelectorAll("A:not([target])"))
-            {
-                if(a.href == "" || a.hasAttribute("target"))
-                    continue;
-
-                let url = new URL(a.href);
-                if(url.origin == document.location.origin)
-                    continue;
-
-                a.setAttribute("target", "_blank");
-            }
+            helpers.forceTargetBlankOnElement(node);
+            for(let a of node.querySelectorAll("A:not([target='_blank'])"))
+                helpers.forceTargetBlankOnElement(a);
         }
-        update_node(document.documentElement);
+        updateNode(document.documentElement);
 
         let observer = new MutationObserver((mutations) => {
             for(let mutation of mutations)
             {
                 for(let node of mutation.addedNodes)
-                    update_node(node);
+                    updateNode(node);
             }
         });
         observer.observe(document.documentElement, { subtree: true, childList: true });
