@@ -1288,7 +1288,14 @@ export default class ContextMenu extends Widget
     // Return the illust ID whose parent the parent button will go to.
     get _folderIdForParent()
     {
-        return this._effectiveMediaId || this.dataSource.viewingFolder;
+        if(this._effectiveMediaId != null)
+            return this._effectiveMediaId;
+
+        let dataSourceMediaId = this.dataSource?.uiInfo.mediaId;
+        if(helpers.mediaId.isLocal(dataSourceMediaId))
+            return dataSourceMediaId;
+
+        return null;
     }
 
     // Return the folder ID that the parent button goes to.

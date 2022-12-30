@@ -300,37 +300,6 @@ class IllustBottomMenuBar extends Widget
         }
     }
 
-    // Return the illust ID whose parent the parent button will go to.
-    get folderIdForParent()
-    {
-        return this._mediaId || this.dataSource?.viewingFolder;
-    }
-
-    // Return the folder ID that the parent button goes to.
-    // XXX: merge somewhere with ContextMenu
-    get parentFolderId()
-    {
-        let folder_id = this.folderIdForParent;
-        let isLocal = helpers.mediaId.isLocal(folder_id);
-        if(!isLocal)
-            return null;
-
-        // Go to the parent of the item that was clicked on. 
-        let parentFolderId = LocalAPI.getParentFolder(folder_id);
-
-        // If the user right-clicked a thumbnail and its parent is the folder we're
-        // already displaying, go to the parent of the folder instead (otherwise we're
-        // linking to the page we're already on).  This makes the parent button make
-        // sense whether you're clicking on an image in a search result (go to the
-        // location of the image), while viewing an image (also go to the location of
-        // the image), or in a folder view (go to the folder's parent).
-        let currentlyDisplayingId = LocalAPI.getLocalIdFromArgs(helpers.args.location);
-        if(parentFolderId == currentlyDisplayingId)
-            parentFolderId = LocalAPI.getParentFolder(parentFolderId);
-
-        return parentFolderId;
-    }
-
     clickedViewManga = (e) =>
     {
         ppixiv.app.navigateOut();

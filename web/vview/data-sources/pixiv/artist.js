@@ -175,6 +175,7 @@ export default class DataSources_Artist extends DataSource
         }
 
         return {
+            mediaId: `user:${this.viewingUserId}`,
             userId: this.viewingUserId,
 
             // Override the title on the mobile search menu.

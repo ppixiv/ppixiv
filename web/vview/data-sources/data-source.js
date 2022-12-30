@@ -274,9 +274,6 @@ export default class DataSource extends EventTarget
         return parseInt(page) || 1;
     }
 
-    // If we're viewing a folder, return its ID.  This is used for local searches.
-    get viewingFolder() { return null; }
-
     // Return the page title to use.
     get pageTitle()
     {
@@ -385,6 +382,7 @@ export default class DataSource extends EventTarget
     // Return info useful for the container's UI elements:
     //
     // {
+    //     mediaId,                   // media ID associated with the search, for restoring search scroll position
     //     imageUrl,                  // URL for an image related to this search
     //     imageLinkUrl,              // a URL where imageUrl should link to
     //     userId,                    // a user ID whose avatar should be displayed

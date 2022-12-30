@@ -31,6 +31,14 @@ export default class DataSource_VView extends DataSource
     // should display page numbers.
     get allPagesLoaded() { return this._allPagesLoaded; }
 
+    get uiInfo()
+    {
+        let args = new helpers.args(this.url);
+        let mediaId = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
+
+        return { mediaId };
+    }
+
     async loadPageInternal(page)
     {
         // If the last result was at the end, stop.
@@ -173,12 +181,6 @@ export default class DataSource_VView extends DataSource
         let lowestPage = this.idList.getLowestLoadedPage();
         let highestPage = this.idList.getHighestLoadedPage();
         return page >= lowestPage && page <= highestPage+1;
-    }
-
-    get viewingFolder()
-    {
-        let args = new helpers.args(this.url);
-        return LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
     }
 
     setPageIcon()
