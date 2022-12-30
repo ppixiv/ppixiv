@@ -74,7 +74,7 @@ export default class MobileImageUI extends Widget
             // Put the --menu-bar-pos property up high, since the video UI also uses it.
             nodes: [this.transitionTarget],
             dragNode: this.root.parentNode,
-            size: () => 150,
+            size: () => this.querySelector(".menu-bar").offsetHeight,
             animatedProperty: "--menu-bar-pos",
             direction: "up",
 
