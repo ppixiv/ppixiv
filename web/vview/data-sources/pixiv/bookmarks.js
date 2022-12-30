@@ -483,17 +483,15 @@ class UI extends Widget
     constructor({ dataSource, ...options })
     {
         super({ ...options, template: `
-            <div class=box-button-row>
-                <div class=box-button-row>
+            <div class="box-button-row group">
+                <div class="box-button-row bookmark-type">
                     <!-- These are hidden if you're viewing somebody else's bookmarks. -->
-                    <span class=bookmarks-public-private style="margin-right: 25px;">
-                        ${ helpers.createBoxLink({label: "All",        popup: "Show all bookmarks",       dataType: "all" }) }
-                        ${ helpers.createBoxLink({label: "Public",     popup: "Show public bookmarks",    dataType: "public" }) }
-                        ${ helpers.createBoxLink({label: "Private",    popup: "Show private bookmarks",   dataType: "private" }) }
-                    </span>
-
-                    ${ helpers.createBoxLink({ popup: "Shuffle", icon: "shuffle",   dataType: "order-shuffle" }) }
+                    ${ helpers.createBoxLink({label: "All",        popup: "Show all bookmarks",       dataType: "all" }) }
+                    ${ helpers.createBoxLink({label: "Public",     popup: "Show public bookmarks",    dataType: "public" }) }
+                    ${ helpers.createBoxLink({label: "Private",    popup: "Show private bookmarks",   dataType: "private" }) }
                 </div>
+
+                ${ helpers.createBoxLink({ popup: "Shuffle", icon: "shuffle",   dataType: "order-shuffle" }) }
 
                 ${ helpers.createBoxLink({label: "All bookmarks",    popup: "Bookmark tags",  icon: "ppixiv:tag", classes: ["bookmark-tag-button"] }) }
             </div>
@@ -505,7 +503,7 @@ class UI extends Widget
         this.dataSource.addEventListener("updated", () => this.tagDropdown.setButtonPopupHighlight(), this._signal);
 
         // The public/private button only makes sense when viewing your own bookmarks.
-        let publicPrivateButtonContainer = this.querySelector(".bookmarks-public-private");
+        let publicPrivateButtonContainer = this.querySelector(".bookmark-type");
         publicPrivateButtonContainer.hidden = !this.dataSource.viewingOwnBookmarks();
 
         // Set up the public and private buttons.  The "all" button also removes shuffle, since it's not

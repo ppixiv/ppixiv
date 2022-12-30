@@ -1,7 +1,7 @@
-import Widget from 'vview/widgets/widget.js';
 import Screen from 'vview/screen.js';
-import DesktopSearchUI from 'vview/screen-search/desktop-search-ui.js';
-import MobileSearchUI from 'vview/screen-search/mobile-search-ui.js';
+import DesktopSearchUI from 'vview/screen-search/search-ui-desktop.js';
+import SearchUIMobile from 'vview/screen-search/search-ui-mobile.js';
+import MobileMenuBar from 'vview/screen-search/mobile-menu-bar.js';
 import ScrollListener from 'vview/actors/scroll-listener.js';
 import LocalNavigationTreeWidget from 'vview/widgets/folder-tree.js';
 import SearchView from 'vview/screen-search/search-view.js';
@@ -66,32 +66,12 @@ export default class ScreenSearch extends Screen
 
         if(ppixiv.mobile)
         {
-            this.titleBarWidget = new class extends Widget {
-                constructor({...options}={})
-                {
-                    super({
-                        ...options,
-                        template: `
-                            <div class=title-bar>
-                                <div class=title-stretch>
-                                    <div class=title></div>
-                                </div>
-                                <div class=data-source-ui></div>
-                            </div>
-                        `
-                    });
-                }
-
-                applyVisibility()
-                {
-                    helpers.html.setClass(this.root, "shown", this._visible);
-                }
-            }({
+            this.mobileSearchUi = new SearchUIMobile({
                 container: this.root.querySelector(".title-bar-container"),
             });
 
             let navigationBarContainer = this.root.querySelector(".mobile-navigation-bar-container");
-            this.thumbnailUiMobile = new MobileSearchUI({
+            this.mobileMenuBar = new MobileMenuBar({
                 container: navigationBarContainer,
             });
 
@@ -100,7 +80,7 @@ export default class ScreenSearch extends Screen
                 ...this._signal,
                 target: this.root,
             });
-            helpers.html.setHeightAsProperty(this.thumbnailUiMobile.root, "--nav-bar-height", {
+            helpers.html.setHeightAsProperty(this.mobileMenuBar.root, "--nav-bar-height", {
                 ...this._signal,
                 target: this.root,
             });
@@ -110,8 +90,8 @@ export default class ScreenSearch extends Screen
                 // Hide the UI when scrolling down, and also hide the menu bar if a
                 // dialog is open.
                 let shown = !this.scrollListener.scrolledForwards;
-                this.thumbnailUiMobile.visible = shown && OpenWidgets.singleton.empty;
-                this.titleBarWidget.visible = shown;
+                this.mobileMenuBar.visible = shown && OpenWidgets.singleton.empty;
+                this.mobileSearchUi.visible = shown;
             };
             
             let scroller = this.querySelector(".search-results");
@@ -223,30 +203,15 @@ export default class ScreenSearch extends Screen
         this.searchView.setDataSource(dataSource, { targetMediaId });
         if(this.desktopSearchUi)
             this.desktopSearchUi.setDataSource(dataSource);
+        if(this.mobileSearchUi)
+            this.mobileSearchUi.setDataSource(dataSource);
 
-        if(this._currentDataSourceUi)
-        {
-            this._currentDataSourceUi.shutdown();
-            this._currentDataSourceUi = null;
-        }
-    
         if(this.dataSource == null)
         {
             this.refreshUi();
             return;
         }
 
-        if(ppixiv.mobile)
-        {
-            if(this.dataSource.ui)
-            {
-                let dataSourceUiContainer = this.root.querySelector(".title-bar .data-source-ui");
-                this._currentDataSourceUi = new this.dataSource.ui({
-                    dataSource: this.dataSource,
-                    container: dataSourceUiContainer,
-                });
-            }
-        }
         // Listen to the data source loading new pages, so we can refresh the list.
         this.dataSource.addEventListener("updated", this.dataSourceUpdated);
         this.refreshUi();
@@ -269,23 +234,12 @@ export default class ScreenSearch extends Screen
         
     refreshUi = () =>
     {
-        // Update the title even if we're not active, so it's up to date for transitions.
-        if(this.titleBarWidget)
-        {
-            if(this.dataSource?.getDisplayingText != null)
-            {
-                let text = this.dataSource?.getDisplayingText();
-                this.titleBarWidget.root.querySelector(".title").replaceChildren(text);
-            }
-        }
-
-        if(!this.active)
-            return;
-
         if(this.desktopSearchUi)
             this.desktopSearchUi.refreshUi();
-        if(this.thumbnailUiMobile)
-            this.thumbnailUiMobile.refreshUi();
+        if(this.mobileSearchUi)
+            this.mobileSearchUi.refreshUi();
+        if(this.mobileMenuBar)
+            this.mobileMenuBar.refreshUi();
 
         this.dataSource.setPageIcon();
         helpers.setPageTitle(this.dataSource.pageTitle || "Loading...");

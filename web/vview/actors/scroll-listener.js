@@ -232,12 +232,8 @@ class ImmediateChildrenListener extends Actor
             this._watching.add(node);
             this._mutationObserver.observe(node, { childList: true });
 
-            console.log("adding children of", node);
             for(let child of node.children)
-            {
-                console.log("more children", child);
                 this._nodeAdded(child, {isRoot: false});
-            }
         }
     }
 

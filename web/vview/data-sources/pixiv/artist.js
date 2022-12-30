@@ -280,12 +280,10 @@ class UI extends Widget
     {
         super({ ...options, template: `
             <div>
-                <div class="box-button-row search-options-row">
+                <div class="box-button-row" style="align-items: flex-start">
                     ${ helpers.createBoxLink({label: "Search mode",    classes: ["search-type-button"] }) }
                     ${ helpers.createBoxLink({label: "Tags",     popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] }) }
                 </div>
-
-                <vv-container class=avatar-container></vv-container>
             </div>
         `});
 
@@ -298,8 +296,8 @@ class UI extends Widget
 
         let urlFormat = "users/id/type";
         dataSource.setupDropdown(this.querySelector(".search-type-button"), [{
-            createOptions: { label: "Works" },
-            setupOptions:  { urlFormat, fields: {"/type": "artworks"} },
+            createOptions: { label: "Works", dataset: { default: "1" } },
+            setupOptions:  { urlFormat, fields: {"/type": null}, defaults: {"/type": "artworks"} },
         }, {
             createOptions: { label: "Illusts" },
             setupOptions:  { urlFormat, fields: {"/type": "illustrations"} },
@@ -307,17 +305,6 @@ class UI extends Widget
             createOptions: { label: "Manga" },
             setupOptions:  { urlFormat, fields: {"/type": "manga"} },
         }]);
-
-        // On mobile, create our own avatar display for the search popup.
-        if(ppixiv.mobile)
-        {
-            let avatarWidget = new AvatarWidget({
-                container: this.root.querySelector(".avatar-container"),
-                big: true,
-                mode: "dropdown",
-            });
-            avatarWidget.setUserId(dataSource.viewingUserId);
-        }
 
         class TagDropdown extends TagDropdownWidget
         {

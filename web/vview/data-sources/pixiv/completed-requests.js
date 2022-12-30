@@ -66,19 +66,19 @@ class UI extends Widget
     {
         super({ ...options, template: `
             <div>
-                <div class="box-button-row">
-                    <div style="margin-right: 25px;">
+                <div class="box-button-row group">
+                    <div class=box-button-row>
                         ${ helpers.createBoxLink({label: "Latest",        popup: "Show latest completed requests",       dataType: "completed-requests-latest" }) }
                         ${ helpers.createBoxLink({label: "Recommended",   popup: "Show recommmended completed requests", dataType: "completed-requests-recommended" }) }
                     </div>
 
-                    <div style="margin-right: 25px;">
+                    <div class=box-button-row>
                         ${ helpers.createBoxLink({label: "Illustrations", popup: "Show latest completed requests",       dataType: "completed-requests-illust" }) }
                         ${ helpers.createBoxLink({label: "Animations",    popup: "Show animations only",                 dataType: "completed-requests-ugoira" }) }
                         ${ helpers.createBoxLink({label: "Manga",         popup: "Show manga only",                      dataType: "completed-requests-manga" }) }
                     </div>
 
-                    <div>
+                    <div class=box-button-row>
                         ${ helpers.createBoxLink({label: "All",           popup: "Show all works",                       dataType: "completed-requests-all" }) }
                         ${ helpers.createBoxLink({label: "All ages",      popup: "Show all-ages works",                  dataType: "completed-requests-safe" }) }
                         ${ helpers.createBoxLink({label: "R18",           popup: "Show R18 works",                       dataType: "completed-requests-r18", classes: ["r18"] }) }

@@ -295,7 +295,7 @@ class UI extends Widget
                     ${ helpers.createBoxLink({label: "Related tags",    icon: "bookmark", classes: ["related-tags-button"] }) }
                 </div>
 
-                <div class="box-button-row search-options-row">
+                <div class=box-button-row>
                     ${ helpers.createBoxLink({label: "Ages",    classes: ["ages-button"] }) }
                     ${ helpers.createBoxLink({label: "Sort",    classes: ["sort-button"] }) }
                     ${ helpers.createBoxLink({label: "Type",    classes: [["search-type-button"]] }) }

@@ -26,7 +26,7 @@ export default class DesktopSearchUI extends Widget
 
                 <div class=title-with-button-row-container>
                     <div class=title-with-button-row>
-                        <div class="displaying title-font"></div>
+                        <div class="title title-font"></div>
                         <div style="flex: 1;"></div>
                         <div class=user-links>
                             ${ helpers.createIcon("info", { classes: ["button", "user-info-hint"]  }) }
@@ -202,7 +202,7 @@ export default class DesktopSearchUI extends Widget
 
     refreshUi()
     {
-        this.root.querySelector(".refresh-search-from-page-button").hidden = !this.dataSource.supportsStartPage;
+        this.root.querySelector(".refresh-search-from-page-button").hidden = !this.dataSource?.supportsStartPage;
         if(this.dataSource)
         {
             let { userId, imageUrl, imageLinkUrl } = this.dataSource.uiInfo;
@@ -217,12 +217,12 @@ export default class DesktopSearchUI extends Widget
             this.avatarWidget.setUserId(userId);
         }
 
-        let elementDisplaying = this.root.querySelector(".displaying");
-        elementDisplaying.hidden = this.dataSource?.getDisplayingText == null;
+        let elementTitle = this.root.querySelector(".title");
+        elementTitle.hidden = this.dataSource?.getDisplayingText == null;
         if(this.dataSource?.getDisplayingText != null)
         {
             let text = this.dataSource.getDisplayingText();
-            elementDisplaying.replaceChildren(text);
+            elementTitle.replaceChildren(text);
         }
 
         if(this.toggleLocalNavigationButton)
