@@ -328,15 +328,12 @@ export class DropdownMenuOpener extends DropdownBoxOpener
     {
         super.visible = value;
 
-        if(this._dropdown)
-        {
-            // If we're inside ScreenSearch's top-ui-box container, set .force-open on that element
-            // while we're open.  This prevents it from being hidden while a dropdown inside it is
-            // open.
-            let top_ui_box = this.parent.closest(".top-ui-box");
-            if(top_ui_box)
-                helpers.html.setClass(top_ui_box, "force-open", value);
-        }
+        // If we're inside ScreenSearch's top-ui-box container, set .force-open on that element
+        // while we're open.  This prevents it from being hidden while a dropdown inside it is
+        // open.
+        let topUiBox = this.parent.closest(".top-ui-box");
+        if(topUiBox)
+            helpers.html.setClass(topUiBox, "force-open", value);
     }
 
     get visible() { return super.visible; }
