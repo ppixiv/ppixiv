@@ -90,10 +90,10 @@ export default class MobileImageUI extends Widget
                 // Prevent IsolatedTapHandler, so it doesn't trigger from this press and reopen us.
                 IsolatedTapHandler.preventTaps();
             },
-            onbeforeshown: () => this.visibilityChanged(),
-            onafterhidden: () => this.visibilityChanged(),
-            onactive: () => this.visibilityChanged(),
-            oninactive: () => this.visibilityChanged(),
+            onbeforeshown: () => this.callVisibilityChanged(),
+            onafterhidden: () => this.callVisibilityChanged(),
+            onactive: () => this.callVisibilityChanged(),
+            oninactive: () => this.callVisibilityChanged(),
         });
 
         this._mediaId = null;
@@ -136,15 +136,6 @@ export default class MobileImageUI extends Widget
         this.refresh();
     }
 
-    // Hide if our tree becomes hidden.
-    visibleRecursivelyChanged()
-    {
-        super.visibleRecursivelyChanged();
-
-        if(!this.visibleRecursively)
-            this.hide();
-    }
-
     set mediaId(mediaId)
     {
         if(this._mediaId == mediaId)
@@ -165,6 +156,10 @@ export default class MobileImageUI extends Widget
     visibilityChanged()
     {
         super.visibilityChanged();
+
+        // Hide if our tree becomes hidden.
+        if(!this.visibleRecursively)
+            this.hide();
 
         let visible = this.actuallyVisible;
 
@@ -404,12 +399,6 @@ class MoreOptionsDialog extends DialogWidget
         this.visible = false;
     }
 }
-
-
-
-
-
-
 
 class MobileIllustInfoDialog extends DialogWidget
 {

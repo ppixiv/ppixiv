@@ -66,9 +66,9 @@ export class DropdownBoxOpener extends Actor
     };
 
     // Hide if our tree becomes hidden.
-    visibleRecursivelyChanged()
+    visibilityChanged()
     {
-        super.visibleRecursivelyChanged();
+        super.visibilityChanged();
 
         if(!this.visibleRecursively)
             this.visible = false;

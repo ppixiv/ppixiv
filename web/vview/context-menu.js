@@ -638,7 +638,7 @@ export default class ContextMenu extends Widget
     set hideTemporarily(value)
     {
         this._hiddenTemporarily = value;
-        this.applyVisibility();
+        this.callVisibilityChanged();
     }
 
     // True if the widget is active (eg. RMB is pressed) and we're not hidden
@@ -651,7 +651,6 @@ export default class ContextMenu extends Widget
     visibilityChanged()
     {
         super.visibilityChanged();
-        this.applyVisibility();
         OpenWidgets.singleton.set(this, this.visible);
     }
 

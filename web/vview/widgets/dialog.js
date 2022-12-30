@@ -155,7 +155,8 @@ export default class DialogWidget extends Widget
                 duration: 200,
                 animatedProperty: "--dialog-visible",
                 direction: "up", // up opens, down closes
-                onafterhidden: () => this.visibilityChanged(),
+                onbeforeshown: () => this.callVisibilityChanged(),
+                onafterhidden: () => this.callVisibilityChanged(),
 
                 confirmDrag: ({event}) => {
                     // This is still used for transitions even if it's not used for drags, but only

@@ -3,7 +3,7 @@ import { helpers } from 'vview/misc/helpers.js';
 
 // bookmark_detail.php
 //
-// This lists the users who publically bookmarked an illustration, linking to each users' bookmarks.
+// This lists the users who publically bookmarked an illustration, linking to each user's bookmarks.
 export default class DataSource_RelatedFavorites extends DataSourceFromPage
 {
     get name() { return "illust-bookmarks"; }

@@ -84,9 +84,9 @@ export class LocalSearchBoxWidget extends Widget
     }
 
     // Hide if our tree becomes hidden.
-    visibleRecursivelyChanged()
+    visibilityChanged()
     {
-        super.visibleRecursivelyChanged();
+        super.visibilityChanged();
 
         if(!this.visibleRecursively)
             this.dropdownOpener.visible = false;

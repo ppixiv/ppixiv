@@ -98,6 +98,14 @@ export default class Widget extends Actor
     {
     }
 
+    // Set whether the widget should be visible.
+    //
+    // This is usually only set by a widget's parent and not the widget itself, and tells us
+    // whether we should be visible.  The widget may not become visible or hidden immediately
+    // if it's animated.
+    //
+    // This only knows about this actor.  To find out if an actor and all of its ancestors are
+    // visible, use visibleRecursively.
     get visible()
     {
         return this._visible;
@@ -109,12 +117,23 @@ export default class Widget extends Actor
             return;
 
         this._visible = value;
+        this.callVisibilityChanged();
+    }
+
+    // Return true if this widget is actually visible in the document.  If visible is false but
+    // we're still animating away, we're actually still visible until the animation finishes.
+    //
+    // This only knows about this actor.  To find out if an actor and all of its ancestors are
+    // actually visible, use actuallyVisibleRecursively.
+    get actuallyVisible()
+    {
+        return this.visible;
+    }
+
+    visibilityChanged()
+    {
+        super.visibilityChanged();
         this.applyVisibility();
-
-        this.visibilityChanged();
-
-        // Let descendants know that visibleRecursively may have changed.
-        this._callVisibleRecursivelyChanged();
     }
 
     shutdown()
@@ -133,17 +152,14 @@ export default class Widget extends Actor
         helpers.html.setClass(this.root, "hidden-widget", !this._visible);
     }
 
-    // this.visible sets whether or not we want to be visible, but other things might influence
-    // it too, like animations.  Setting visible = false on an animated widget will start its
-    // hide animation, but actuallyVisible will return true until the animation finishes.
-    get actuallyVisible()
-    {
-        return this.visible;
-    }
-
-    // This is called when actuallyVisible changes.  The subclass can override this.
+    // This is called (via callVisibilityChanged) when visible, actuallyVisible or their recursive
+    // versions may have changed value.
     visibilityChanged()
     {
+        super.visibilityChanged();
+
+        this.applyVisibility();
+
         if(this.actuallyVisible)
         {
             // Create an AbortController that will be aborted when the widget is hidden.

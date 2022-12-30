@@ -74,9 +74,9 @@ export class TagSearchBoxWidget extends widget
     }
 
     // Hide the dropdowns if our tree becomes hidden.
-    visibleRecursivelyChanged()
+    visibilityChanged()
     {
-        super.visibleRecursivelyChanged();
+        super.visibilityChanged();
 
         if(!this.visibleRecursively)
             this._dropdownOpener.visible = false;

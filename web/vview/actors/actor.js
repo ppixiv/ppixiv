@@ -232,8 +232,9 @@ export default class Actor extends EventTarget
         return result;
     }
 
-    // Non-widget actors are always visible.
+    // See Widget for information about visibility.  Non-widget actors are always visible.
     get visible() { return true; }
+    get actuallyVisible() { return true; }
 
     // Return true if we and all of our ancestors are visible.
     //
@@ -252,16 +253,26 @@ export default class Actor extends EventTarget
         return this.parent.visibleRecursively;
     }
 
-    // Call visibleRecursivelyChanged on the hierarchy.
-    _callVisibleRecursivelyChanged()
+    get actuallyVisibleRecursively()
+    {
+        if(!this.actuallyVisible)
+            return false;
+
+        if(this.parent == null)
+            return true;
+        
+        return this.parent.actuallyVisibleRecursively;
+    }
+
+    // Call this when this.visible or this.actuallyVisible may have changed.
+    callVisibilityChanged()
     {
         for(let actor of this.descendents({includeSelf: true}))
         {
-            if(actor.visibleRecursivelyChanged)
-                actor.visibleRecursivelyChanged(this);
+            actor.visibilityChanged();
         }
     }
 
-    // This is called when visibleRecursively may have changed.
-    visibleRecursivelyChanged() { }
+    // This is called when visibleRecursively or actuallyVisibleRecursively may have changed.
+    visibilityChanged() { }
 }
