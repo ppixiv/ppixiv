@@ -449,10 +449,9 @@ input, textarea, [contenteditable] {
     position: absolute;
     bottom: 0;
 
-    // On mobile, move this above the image menu.  This UI needs a rework for mobile, this is
-    // just to make it usable for now.
+    // On mobile, move this above the menu bar.
     html.mobile & {
-        bottom: var(--menu-bar-height);
+        bottom: 0;
     }
 
     left: 0px;
@@ -486,9 +485,8 @@ input, textarea, [contenteditable] {
     // On mobile, we're displayed when the menu is visible and .show-ui is set.  Disable
     // pointer-events if we're not visible.
     html.mobile & {
-        // On mobile, follow the menu bar dragger's position.
+        // On mobile, use the menu bar's visibility.
         opacity: var(--menu-bar-pos);
-        transform: translateY(calc(25px * (1 - var(--menu-bar-pos))));
         
         .seek-bar[data-position="top"] > .seek-parts
         {
