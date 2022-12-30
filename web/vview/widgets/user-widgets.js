@@ -1,7 +1,7 @@
 import Widget from 'vview/widgets/widget.js';
 import Actions from 'vview/misc/actions.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
-import { TextPrompt } from 'vview/widgets/prompts.js';
+import { ConfirmPrompt, TextPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 export class AvatarWidget extends Widget
@@ -571,6 +571,15 @@ class FollowWidget extends Widget
 
     async _clickedUnfollow()
     {
+        // Confirm unfollowing when on mobile.
+        if(ppixiv.mobile)
+        {
+            let userInfo = ppixiv.userCache.getUserInfoSync(this.userId);
+            let result = await (new ConfirmPrompt({ header: userInfo? `Unfollow ${userInfo.name}?`:"Unfollow?" })).result;
+            if(!result)
+                return;
+        }
+
         await Actions.unfollow(this.userId);
     }
 
