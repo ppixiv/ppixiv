@@ -157,6 +157,11 @@ export class AvatarWidget extends Widget
         this.root.classList.remove("loading");
         this.root.querySelector(".follow-icon").hidden = true;
 
+        // If we're not actually visible to the user right now, fill in the avatar image if we
+        // know it, but don't request user info.
+        if(!this.actuallyVisibleRecursively)
+            return;
+
         let userData = await ppixiv.userCache.getUserInfo(this.userId);
         this.userData = userData;
         if(userData == null)
@@ -167,14 +172,9 @@ export class AvatarWidget extends Widget
 
         // If we don't have an image because we're loaded from a source that doesn't give us them,
         // just hide the avatar image.
-        let key = "imageBig";
-        if(this.userData[key])
-            this.img.src = this.userData[key];
-        else
-            this.img.src = helpers.other.blankImage;
+        this.img.src = cachedProfileUrl ?? this.userData.imageBig ?? helpers.other.blankImage;
     }
 };
-
 
 // Filter an image to a canvas.
 //
