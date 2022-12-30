@@ -560,49 +560,6 @@ export default class DataSource extends EventTarget
         return { args, buttonIsSelected };
     }
 
-    // Like setItem for query and hash parameters, this sets parameters in the URL.
-    //
-    // Pixiv used to have clean, consistent URLs with page parameters in the query where
-    // they belong, but recently they've started encoding them in an ad hoc way into the
-    // path.  For example, what used to look like "/users/12345?type=illust" is now
-    // "/users/12345/illustrations", so they can't be accessed in a generic way.
-    //
-    // index is the index into the path to replace.  In "/users/12345/abcd", "users" is
-    // 0 and "abcd" is 2.  If the index doesn't exist, the path will be extended, so
-    // replacing index 2 in "/users/12345" will become "/users/12345/abcd".  This only
-    // makes sense when adding a single entry.
-    //
-    // Pixiv URLs can optionally have the language prefixed (which doesn't make sense).
-    // This is handled automatically by getPathPart and setPathPart, and index should
-    // always be for URLs without the language.
-    setPathItem(container, type, index, value)
-    {
-        let link = container.querySelector("[data-type='" + type + "']");
-        if(link == null)
-        {
-            console.warn("Couldn't find button with selector", type);
-            return;
-        }
-
-        // Adjust the URL for this button.
-        let url = new URL(this.url);
-        url = helpers.pixiv.getUrlWithoutLanguage(url);
-
-        // Don't include the page number in search buttons, so clicking a filter goes
-        // back to page 1.
-        url.searchParams.delete("p");
-
-        // This button is selected if the given value was already set.
-        let buttonIsSelected = helpers.strings.getPathPart(url, index) == value;
-
-        // Replace the path part.
-        url = helpers.strings.setPathPart(url, index, value);
-
-        helpers.html.setClass(link, "selected", buttonIsSelected);
-
-        link.href = url.toString();
-    };
-
     // Return true of the thumbnail view should show bookmark icons for this source.
     get showBookmarkIcons()
     {

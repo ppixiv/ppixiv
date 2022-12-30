@@ -272,9 +272,7 @@ class UI extends Widget
         super({ ...options, template: `
             <div>
                 <div class="box-button-row search-options-row">
-                    ${ helpers.createBoxLink({label: "Works",    popup: "Show all works",            dataType: "artist-works" }) }
-                    ${ helpers.createBoxLink({label: "Illusts",  popup: "Show illustrations only",   dataType: "artist-illust" }) }
-                    ${ helpers.createBoxLink({label: "Manga",    popup: "Show manga only",           dataType: "artist-manga" }) }
+                    ${ helpers.createBoxLink({label: "Search mode",    classes: ["search-type-button"] }) }
                     ${ helpers.createBoxLink({label: "Tags",     popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] }) }
                 </div>
 
@@ -289,9 +287,17 @@ class UI extends Widget
             this.tagDropdown.setButtonPopupHighlight();
         }, this._signal);
 
-        dataSource.setPathItem(this.root, "artist-works", 2, "artworks");
-        dataSource.setPathItem(this.root, "artist-illust", 2, "illustrations");
-        dataSource.setPathItem(this.root, "artist-manga", 2, "manga");
+        let urlFormat = "users/id/type";
+        dataSource.setupDropdown(this.querySelector(".search-type-button"), [{
+            createOptions: { label: "Works" },
+            setupOptions:  { urlFormat, fields: {"/type": "artworks"} },
+        }, {
+            createOptions: { label: "Illusts" },
+            setupOptions:  { urlFormat, fields: {"/type": "illustrations"} },
+        }, {
+            createOptions: { label: "Manga" },
+            setupOptions:  { urlFormat, fields: {"/type": "manga"} },
+        }]);
 
         // On mobile, create our own avatar display for the search popup.
         if(ppixiv.mobile)
