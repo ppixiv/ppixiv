@@ -62,12 +62,9 @@ export default class DataSources_Artist extends DataSource
             this.callUpdateListeners();
         }
 
-        // Make sure the user info is loaded.  This should normally be preloaded by globalInitData
-        // in main.js, and this won't make a request.
-        this.userInfo = await ppixiv.userCache.getUserInfo(this.viewingUserId, { full: true });
-
-        // Update to refresh our page title, which uses userInfo.
-        this.callUpdateListeners();
+        // Make sure the user info is loaded.  Don't wait for this to finish here, so we can start
+        // other requests in parallel.
+        let userInfoPromise = this._loadUserInfo();
 
         let args = new helpers.args(this.url);
         let tag = args.query.get("tag") || "";
@@ -84,13 +81,9 @@ export default class DataSources_Artist extends DataSource
                 this.pages = PaginateMediaIds(allMediaIds, this.estimatedItemsPerPage);
             }
 
-            // Tell media_cache to start loading these media IDs.  This will happen anyway if we don't
-            // do it here, but we know these posts are all from the same user ID, so kick it off here
-            // to hint batchGetMediaInfoPartial to use the user-specific API.  Don't wait for this
-            // to complete, since we don't need to and it'll cause the search view to take longer to
-            // appear.
+            // Load media info for this page.
             let mediaIds = this.pages[page-1] || [];
-            ppixiv.mediaCache.batchGetMediaInfoPartial(mediaIds, { userId: this.viewingUserId });
+            await ppixiv.mediaCache.batchGetMediaInfoPartial(mediaIds, { userId: this.viewingUserId });
 
             // Register this page.
             this.addPage(page, mediaIds);
@@ -107,12 +100,16 @@ export default class DataSources_Artist extends DataSource
                 type == "illust"?"illusts":
                 "manga";
 
-            let requestUrl = "/ajax/user/" + this.viewingUserId + "/" + typeForUrl + "/tag";
+            let requestUrl = `/ajax/user/${this.viewingUserId}/${typeForUrl}/tag`;
             let result = await helpers.pixivRequest.get(requestUrl, {
                 tag: tag,
                 offset: (page-1)*48,
                 limit: 48,
             });
+
+            // Wait until we have user info.  Doing this here allows the two API requests to run
+            // in parallel, but we need the result below.
+            await userInfoPromise;
 
             // This data doesn't have profileImageUrl or userName.  That's presumably because it's
             // used on user pages which get that from user data, but this seems like more of an
@@ -134,11 +131,17 @@ export default class DataSources_Artist extends DataSource
         }
     }
     
+    async _loadUserInfo()
+    {
+        this.userInfo = await ppixiv.userCache.getUserInfo(this.viewingUserId, { full: true });
+        this.callUpdateListeners();
+    }
+
     async loadAllResults()
     {
         let type = this.viewingType;
 
-        let result = await helpers.pixivRequest.get("/ajax/user/" + this.viewingUserId + "/profile/all", {});
+        let result = await helpers.pixivRequest.get(`/ajax/user/${this.viewingUserId}/profile/all`);
 
         let illustIds = [];
         if(type == "artworks" || type == "illustrations")
