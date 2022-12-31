@@ -17,7 +17,7 @@ export default class DesktopSearchUI extends Widget
             template: `
             <div class=thumbnail-ui-box data-context-menu-target=off>
                 <!-- The images for the artist view (avatar) and related images, which shows the starting image. -->
-                <div class=avatar-container></div>
+                <vv-container class=avatar-container></vv-container>
 
                 <a href=# class=image-for-suggestions>
                     <!-- A blank image, so we don't load anything: -->
@@ -139,7 +139,6 @@ export default class DesktopSearchUI extends Widget
 
         this.avatarWidget = new AvatarWidget({
             container: this.querySelector(".avatar-container"),
-            big: true,
             mode: "dropdown",
 
             // Disable the avatar widget unless the data source enables it.

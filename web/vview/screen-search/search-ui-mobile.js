@@ -20,7 +20,6 @@ export default class SearchUIMobile extends Widget
 
         this.avatarWidget = new AvatarWidget({
             container: this.querySelector(".avatar-container"),
-            big: true,
             mode: "dropdown",
 
             // Disable the avatar widget unless the data source enables it.

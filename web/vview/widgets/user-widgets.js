@@ -121,9 +121,6 @@ export class GetUserInfo extends Actor
 export class AvatarWidget extends Widget
 {
     constructor({
-        // If true, show the big avatar instead of the small one.
-        big=false,
-
         // This is called when the follow dropdown visibility changes.
         dropdownvisibilitychanged=() => { },
 
@@ -131,15 +128,13 @@ export class AvatarWidget extends Widget
     }={})
     {
         super({...options, template: `
-            <div class=avatar-widget-follow-container>
-                <a href=# class=avatar-link data-scroll-to-top>
-                    <canvas class=avatar></canvas>
+            <a href=# class=avatar-widget data-scroll-to-top>
+                <canvas class=avatar></canvas>
 
-                    <div class=follow-icon>
-                        <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
-                    </div>
-                </a>
-            </div>
+                <div class=follow-icon>
+                    <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
+                </div>
+            </a>
         `});
 
         this.options = options;
@@ -151,10 +146,8 @@ export class AvatarWidget extends Widget
             onrefresh: (args) => this.onrefresh(args),
         });
 
-        helpers.html.setClass(this.root, "big", big);
-
         let avatarElement = this.root.querySelector(".avatar");
-        let avatarLink = this.root.querySelector(".avatar-link");
+        let avatarLink = this.root;
 
         this.followDropdownOpener = new DropdownBoxOpener({
             button: avatarLink,
@@ -240,8 +233,6 @@ export class AvatarWidget extends Widget
     {
         if(userId == null || userId == -1)
         {
-            this.root.classList.add("loading");
-
             // Set the avatar image to a blank image, so it doesn't flash the previous image
             // the next time we display it.  It should never do this, since we set a new image
             // before displaying it, but Chrome doesn't do this correctly at least with canvas.
@@ -255,7 +246,7 @@ export class AvatarWidget extends Widget
         this.img.src = cachedProfileUrl ?? userInfo?.imageBig ?? helpers.other.blankImage;
 
         // Set up stuff that we don't need user info for.
-        this.root.querySelector(".avatar-link").href = `/users/${userId}/artworks#ppixiv`;
+        this.root.href = `/users/${userId}/artworks#ppixiv`;
 
         // Hide the popup in dropdown mode, since it covers the dropdown.
         if(this.options.mode == "dropdown")
@@ -265,7 +256,6 @@ export class AvatarWidget extends Widget
         helpers.html.setClass(this.root, "followed", false);
         this.root.querySelector(".avatar").dataset.popup = "";
 
-        this.root.classList.remove("loading");
         this.root.querySelector(".follow-icon").hidden = !(userInfo?.isFollowed ?? false);
         this.root.querySelector(".avatar").dataset.popup = userInfo?.name ?? "";
     }

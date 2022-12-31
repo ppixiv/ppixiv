@@ -78,7 +78,7 @@ export default class ContextMenu extends Widget
                 </div>
                 <div class=button-strip>
                     <div class=button-block>
-                        <div class="avatar-widget-container"></div>
+                        <vv-container class="avatar-widget-container"></vv-container>
 
                         <div class="button button-parent-folder enabled" data-popup="Parent folder" hidden>
                             ${ helpers.createIcon("folder") }

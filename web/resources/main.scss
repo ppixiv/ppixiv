@@ -750,6 +750,7 @@ input, textarea, [contenteditable] {
         .avatar-popup
         {
             position: absolute;
+            width: 4em;
             top: 1em;
             right: 1em;
         }
@@ -906,25 +907,11 @@ input, textarea, [contenteditable] {
     cursor: pointer;
 }
 
-.avatar-widget-follow-container {
-    width: fit-content;
-    height: fit-content;
+.avatar-widget {
+    display: block;
 
     // Set relative so we're the positioning container for the follow dropdown.
     position: relative;
-    --avatar-width: 50px;
-
-    &.big .avatar-link { --avatar-width: 100px; }
-
-    // For the avatar in the popup menu, use the same size as the other popup menu buttons.
-    .avatar-link {
-        position: relative;
-        width: var(--avatar-width);
-        height: auto;
-        display: block;
-
-        .avatar-widget-container & { --avatar-width: 44px; }
-    }
 
     .avatar {
         transition: filter .25s;
@@ -933,12 +920,8 @@ input, textarea, [contenteditable] {
         border-radius: 5px;
         object-fit: cover;
         aspect-ratio: 1;
-        width: var(--avatar-width);
-        height: auto;
-
-        &.loaded {
-            box-shadow: 0 0 10px 4px #000;
-        }
+        width: 100%;
+        height: 100%;
 
         @media(hover: hover) {
             &:hover {
@@ -947,21 +930,12 @@ input, textarea, [contenteditable] {
         }
     }
 
-    // Hide the avatar while we're waiting for user data to load, since the follow icon isn't
-    // updated until then.
-    &.loading {
-        visibility: hidden;
-        pointer-events: none;
-    }
-    
     .follow-icon {
         position: absolute;
-        bottom: 0;
-        text-align: center;
-        height: auto;
+        bottom: 5%;
+        right: 5%;
         width: 50%; /* half the size of the container */
-        max-width: 50px; /* limit the size for larger avatar displays */
-        right: 0;
+        max-width: 2em; /* limit the size for larger avatar displays */
 
         > svg {
             display: block;
@@ -1207,6 +1181,10 @@ body.hide-r18g .r18g { display: none; }
             }
         }
 
+        .avatar-widget {
+            width: 100px;
+        }
+
         .data-source-ui {
             // The data source UIs are mostly box-button-rows, sometimes nested inside another
             // box-button-row to indicate where the smaller rows should be wrapped.
@@ -1335,6 +1313,28 @@ body.hide-r18g .r18g { display: none; }
             }
         }
 
+        .avatar-container {
+            > .avatar-widget {
+                float: right;
+                width: 100px;
+                margin-left: 25px;
+            }
+        }
+        
+        .image-for-suggestions {
+            float: right;
+            margin-left: 25px;
+        
+            & > img {
+                display: block;
+                height: 100px;
+                width: 100px;
+                object-fit: cover;
+                object-position: 50% 0;
+                border-radius: 5px; /* matches the avatar display */
+            }
+        }
+        
         // Flip the icon to point to the left.
         .clear-local-search .icon {
             transform: scale(-1, 1);
@@ -2051,28 +2051,6 @@ a.box-link, span.box-link
     }
 }
 
-.thumbnail-ui-box .avatar-container {
-    float: right;
-    position: relative;
-    > .avatar-widget-follow-container {
-        margin-left: 25px;
-    }
-}
-
-.image-for-suggestions {
-    float: right;
-    margin-left: 25px;
-
-    & > img {
-        display: block;
-        height: 100px;
-        width: 100px;
-        object-fit: cover;
-        object-position: 50% 0;
-        border-radius: 5px; /* matches the avatar display */
-    }
-}
-
 .viewer-error {
     .muted-image {
         position: absolute;
@@ -2312,6 +2290,9 @@ a.box-link, span.box-link
         display: none;
     }
 
+    // Set the avatar icon to the same size as the other popup menu buttons.
+    .avatar-widget { width: 100%; height: 100%; }
+
     .tooltip-display {
         display: flex;
         align-items: stretch;
@@ -2335,7 +2316,7 @@ a.box-link, span.box-link
         display: flex;
         align-items: stretch;
 
-        & > .button-block {
+        > .button-block {
             display: inline-block;
             background-color: var(--context-menu-bg-color);
             padding: 12px;
@@ -2523,7 +2504,7 @@ a.box-link, span.box-link
     --frame-bg-color: rgba(0,0,0,.65);
     --box-link-bg-color: none;
 
-    .avatar-widget-follow-container
+    .avatar-widget
     {
         opacity: var(--menu-bar-pos);
 
@@ -2534,15 +2515,7 @@ a.box-link, span.box-link
 
         margin-left: 1em;
         margin-bottom: 2em;
-
-        .avatar-link {
-            --avatar-width: min(170px, 50vmin);
-        }
-
-        // Remove the shadow that's put around avatars by default.
-        .avatar {
-            box-shadow: none;
-        }
+        width: min(170px, 50vmin);
     }
 
     .mobile-illust-ui-page {
@@ -2626,14 +2599,10 @@ a.box-link, span.box-link
         display: inline-flex;
         align-items: center;
 
-        .avatar-widget-follow-container
+        .avatar-widget
         {
-            padding-right: 0.5em;
-
-            // Remove the shadow that's put around avatars by default.
-            .avatar {
-                box-shadow: none;
-            }
+            height: 4em;
+            margin-right: 0.5em;
         }
     }
 
