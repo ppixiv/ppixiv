@@ -135,6 +135,7 @@ export default class ScrollListener extends Actor
     _updateScrolledForwards({callOnchange})
     {
         let newScrollTop = this._currentScrollPosition;
+        let newScrollBottom = newScrollTop + this._scroller.offsetHeight;
 
         // If we've moved far enough in either direction, set it as the scrolling direction.
         let scrolledForwards = this._scrolledForwards;
@@ -144,16 +145,13 @@ export default class ScrollListener extends Actor
         else if(Math.abs(this._motion) >= this._threshold)
             scrolledForwards = true;
 
-        if(!ppixiv.ios)
-        {
-            // If we're at the very top or very bottom, the user can't scroll any further to reach
-            // the threshold, so force the direction to up or down.  This isn't needed on iOS, since
-            // overscroll means we can always scroll.
-            if(newScrollTop == 0)
-                scrolledForwards = false;
-            else if(newScrollTop >= this._scroller.scrollHeight - 1)
-                scrolledForwards = true;
-        }
+        // If we're at the very top or very bottom, the user can't scroll any further to reach
+        // the threshold, so force the direction to up or down.  This also keeps the navigation
+        // bar hidden if we're at the bottom, so it doesn't overlap content.
+        if(newScrollTop == 0)
+            scrolledForwards = false;
+        else if(newScrollBottom >= this._scroller.scrollHeight - 1)
+            scrolledForwards = true;
 
         if(this._stickyUiNode)
         {

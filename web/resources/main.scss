@@ -1154,6 +1154,9 @@ body.hide-r18g .r18g { display: none; }
     // navigation bar.
     --nav-bar-reserved-height: 1em;
 
+    // The height of the top search bar on mobile.
+    --title-height: 0px;
+
     .title-bar {
         position: fixed;
         top: 0;
@@ -1279,19 +1282,11 @@ body.hide-r18g .r18g { display: none; }
     .search-results {
         // If the nav box is open, shift the search results to make room for it.
         margin-left: var(--navigation-box-reserved-width);
-
         height: 100%;
 
-        // Make room for system UI, plus our navigation bar overlay at the bottom.
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: calc(env(safe-area-inset-bottom) + var(--nav-bar-reserved-height));
-
-        // Make space for the navigation bar.  It isn't inside the scroller, so we can't use
-        // position: sticky for this.
-        html.mobile & {
-            padding-top: var(--title-height);
-            padding-bottom: var(--nav-bar-height);
-        }
+        // Make room for system UI, plus the navigation bar at the top on mobile.
+        padding-top: calc(env(safe-area-inset-top) + var(--title-height));
+        padding-bottom: calc(env(safe-area-inset-bottom));
     }
 
     .thumbnail-ui-box-container {
