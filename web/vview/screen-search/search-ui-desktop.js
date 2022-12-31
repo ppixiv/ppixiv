@@ -106,7 +106,7 @@ export default class DesktopSearchUI extends Widget
         this.userLinks.addEventListener("click", () => {
             ppixiv.message.show("Artist links are now in the avatar dropdown");
 
-            let target = this.querySelector(".avatar-container");
+            let target = this.querySelector(".avatar-container > .avatar-widget");
             let node = this.userLinks.querySelector(".over-there");
             let { left, top, height } = target.getBoundingClientRect();
             node.style.left = `${left - 10}px`;
