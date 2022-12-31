@@ -85,13 +85,13 @@ export default class ContextMenu extends Widget
                         </div>
                     </div>
 
-                    <div class="button-block button-container view-in-explorer" hidden></div>
+                    <div class="button-block view-in-explorer" hidden></div>
 
-                    <div class="button-block button-container">
+                    <div class="button-block">
                         <vv-container class=button-bookmark data-bookmark-type=public></vv-container>
                     </div>
 
-                    <div class="button-block button-container">
+                    <div class="button-block private-bookmark-button">
                         <vv-container class=button-bookmark data-bookmark-type=private></vv-container>
                     </div>
                     
@@ -1229,6 +1229,7 @@ export default class ContextMenu extends Widget
             folderButton.hidden = !isLocal;
             authorButton.hidden = isLocal;
             helpers.html.setClass(folderButton, "enabled", this._parentFolderId != null);
+            this.querySelector(".private-bookmark-button").hidden = isLocal;
         }
 
         if(this._isZoomUiEnabled)

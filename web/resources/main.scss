@@ -2267,6 +2267,10 @@ a.box-link, span.box-link
         transform ease 0.15s;
     --context-menu-bg-color: #000;
 
+    // Most of this can just scale based on the size of the button, but we need to set the icon
+    // size directly.
+    --button-size: 32px;
+
     // Override the default hidden-widget hiding behavior.
     &.hidden-widget
     {
@@ -2279,10 +2283,6 @@ a.box-link, span.box-link
     &:not(.hidden-widget)
     {
         opacity: 1;
-    }
-
-    & > * {
-        transform-origin: unset;
     }
 
     /* Hide the normal tooltips.  The context menu shows them differently. */
@@ -2314,12 +2314,18 @@ a.box-link, span.box-link
 
     .button-strip {
         display: flex;
-        align-items: stretch;
 
         > .button-block {
-            display: inline-block;
+            display: inline-flex;
+            flex-direction: column;
             background-color: var(--context-menu-bg-color);
             padding: 12px;
+
+            width: calc(var(--button-size) + 12px);
+            height: calc(var(--button-size) + 12px);
+            box-sizing: content-box;
+            justify-content: stretch;
+            align-items: center;
         }
 
         /* Remove the double horizontal padding: */
@@ -2334,8 +2340,10 @@ a.box-link, span.box-link
         & > .button-block:last-child { border-radius: 0 5px 5px 0; }
 
         .button {
+            flex: 1;
             border-radius: 4px;
             padding: 6px;
+            width: 100%;
             height: 100%;
             text-align: center;
             cursor: pointer;
@@ -2345,6 +2353,10 @@ a.box-link, span.box-link
             background-color: var(--toggle-button-bg-dim-color);
             color: var(--toggle-button-fg-dim-color);
 
+            .font-icon {
+                font-size: var(--button-size);
+            }
+    
             /* Grey out the buttons if this strip isn't enabled. */
             &:not(.enabled)
             {
@@ -2352,12 +2364,9 @@ a.box-link, span.box-link
                 color: var(--toggle-button-fg-disabled-color);
             }
 
-            & > * {
-                min-width: 32px;
-            }
             & > svg {
-                width: 32px;
-                height: 32px;
+                width: 100%;
+                height: 100%;
             }
 
             @media(hover: hover) {
@@ -2386,12 +2395,9 @@ a.box-link, span.box-link
             }
         }
 
-        > .button-block.shift-right { margin-left: 56px; }
-        > .button-block.shift-left { margin-left: -56px; }
-
-        .button-block > .button > .font-icon {
-            font-size: 200%;
-        }
+        // size + left padding + right padding
+        > .button-block.shift-right { margin-left: calc(var(--button-size) + 12px + 12px); }
+        > .button-block.shift-left { margin-left: calc(-1 * (var(--button-size) + 12px + 12px)); }
     }
 
     .context-menu-image-info-container {
