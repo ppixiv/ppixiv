@@ -18,7 +18,7 @@ export default class DataSources_VViewSimilar extends DataSource
         // We can be given a local path or a URL to an image to search for.
         let args = new helpers.args(this.url);
         let path = args.hash.get("search_path");
-        let url = args.hash.get("searchUrl");
+        let url = args.hash.get("search_url");
 
         let result = await LocalAPI.localPostRequest(`/api/similar/search`, {
             path,
