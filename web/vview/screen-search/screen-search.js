@@ -76,7 +76,7 @@ export default class ScreenSearch extends Screen
             });
 
             // Set the height on the nav bar and title for transitions to use.
-            helpers.html.setHeightAsProperty(this.querySelector(".title-bar"), "--title-height", {
+            helpers.html.setHeightAsProperty(this.mobileSearchUi.root, "--title-height", {
                 ...this._signal,
                 target: this.root,
             });
@@ -90,7 +90,7 @@ export default class ScreenSearch extends Screen
                 scroller,
                 parent: this,
                 onchange: () => this._refreshMenuBarVisible(),
-                stickyUiNode: this.querySelector(".title-bar"),
+                stickyUiNode: this.mobileSearchUi.root,
             });
 
             OpenWidgets.singleton.addEventListener("changed", this._refreshMenuBarVisible(), this._signal);

@@ -9,7 +9,7 @@ export default class SearchUIMobile extends Widget
         super({
             ...options,
             template: `
-                <div class=title-bar>
+                <div class=search-ui-mobile>
                     <div class=avatar-container style="float: right;"></div>
 
                     <div class=title></div>
