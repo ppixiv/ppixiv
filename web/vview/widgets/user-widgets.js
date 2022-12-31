@@ -99,13 +99,15 @@ export class GetUserInfo extends Actor
             // and reset the widget.  This can give the widget an illust ID without data, which is
             // OK.
             if(info.userInfo == null)
+            {
                 await this._onrefresh(info);
 
-            // Don't make API requests for data if we're not visible to the user.
-            if(!this._loadWhileNotVisible && !this.actuallyVisibleRecursively)
-                return;
+                // Don't make API requests for data if we're not visible to the user.
+                if(!this._loadWhileNotVisible && !this.actuallyVisibleRecursively)
+                    return;
 
-            info.userInfo = await ppixiv.userCache.getUserInfo(this._userId, { full });
+                info.userInfo = await ppixiv.userCache.getUserInfo(this._userId, { full });
+            }
         }
 
         // Stop if the media ID changed while we were async.
