@@ -382,10 +382,9 @@ export default class WidgetDragger extends Actor
 
             easing = Bezier2D.findCurveForVelocity({
                 distance: Math.abs(propertyEnd - propertyStart),
-                duration: duration / 1000, // in seconds
+                duration,
                 targetVelocity: Math.abs(propertyVelocity),
-                returnObject: true,
-            });
+            }).curve;
         }
 
         let promise = this._animationPromise = this._dragAnimation.play({endPosition, easing, duration});

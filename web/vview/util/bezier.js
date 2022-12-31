@@ -24,6 +24,8 @@ export default class Bezier2D
 
     constructor(a, b, c, d)
     {
+        // Store this first for debugging, so it shows up first in the inspector.
+        this.originalData = [a,b,c,d];
         this.X = new Quadratic(0, a, c, 1);
         this.Y = new Quadratic(0, b, d, 1);
     }
@@ -73,45 +75,38 @@ export default class Bezier2D
 
         // The duration the animation will be, in milliseconds:
         duration,
-
-        // If true, return a Bezier2D.  Otherwise, return a cubic-bezier string.
-        returnObject=false,
     }={})
     {
-        // Do a simple search ac
-        let bestError = null;
-        let bestT = 0;
-        for(let t = 0; t < 0.5; t += 0.05)
+        // We're searching from (0, 0.5, 0.5, 1), which eases in slowly: // https://cubic-bezier.com/#0,.5,.5,1
+        // to (0.5, 0.5, 0.5, 1), which starts immediately: // https://cubic-bezier.com/#.5,0,.5,1
+        //
+        // This is just searching the angle of the start of the curve which changes continuously from
+        // 0 to 0.5, so we can binary search this.  This could probably be calculated directly without
+        // searching.
+        let min = 0, max = 0.5;
+        while(max-min > 0.01)
         {
-            // We're searching from (0, 0.5, 0.5, 1), which eases in slowly: // https://cubic-bezier.com/#0,.5,.5,1
-            // to (0.5, 0.5, 0.5, 1), which starts immediately: // https://cubic-bezier.com/#.5,0,.5,1
-            //
-            // This can be tweaked, but we don't want to start much slower than this, since it doesn't
-            // make the curve appear to start slower, it just makes it appear to pause completely for
-            // a while.
+            let t = (max + min) / 2;
             let curve = new Bezier2D(t, 0.5-t, 0.5, 1);
 
             // Roughly estimate the velocity at the start of the curve by seeing how far we'd travel in the
             // first 60Hz frame.
             let sampleSeconds = 1/60; // one "frame"
-            let segmentDistance = distance * curve.evaluate(sampleSeconds / duration); // distance travelled in sampleSeconds
+            let segmentDistance = distance * curve.evaluate(sampleSeconds / (duration / 1000)); // distance travelled in sampleSeconds
             let actualDistancePerSecond = segmentDistance / sampleSeconds; // distance travelled in one second at that speed
 
-            let error = Math.abs(actualDistancePerSecond - targetVelocity);
-            // console.log(`${actualDistancePerSecond.toFixed(0)} from ${targetVelocity.toFixed(0)}`);
-            if(bestError == null || error < bestError)
-            {
-                bestError = error;
-                bestT = t;
-            }
-
-            // console.log(`t ${t} segment ${segment} segmentDistance ${segmentDistance} actualDistancePerSecond ${actualDistancePerSecond}`);
+            // Higher values give slower-starting curves.  Adjust min if we're too fast, otherwise
+            // adjust max.
+            if(actualDistancePerSecond > targetVelocity)
+                min = t;
+            else
+                max = t;
         }
 
-        if(returnObject)
-            return new Bezier2D(bestT, 0.5 - bestT, 0.45, 1.0);
-        else
-            return `cubic-bezier(${bestT}, ${0.5-bestT}, 0.45, 1)`;
+        let t = (max + min) / 2;
+        let curve = new Bezier2D(t, 0.5 - t, 0.45, 1.0);
+        let easing = `cubic-bezier(${t}, ${0.5-t}, 0.45, 1)`;
+        return { curve, easing, t };
     }
 }
 

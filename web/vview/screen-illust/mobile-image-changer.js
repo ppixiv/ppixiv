@@ -432,9 +432,9 @@ export default class DragImageChanger extends Actor
             let endX = this.viewerDistance * thisIdxd;
 
             // Estimate a curve to match the fling.
-            let easing = Bezier2D.findCurveForVelocity({
+            let { easing } = Bezier2D.findCurveForVelocity({
                 distance: Math.abs(endX - startX),
-                duration: duration / 1000, // in seconds
+                duration,
                 targetVelocity: Math.abs(recentVelocity),
             });
 
