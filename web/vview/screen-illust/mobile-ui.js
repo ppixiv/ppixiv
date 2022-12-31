@@ -441,7 +441,7 @@ class MobileIllustInfoDialog extends DialogWidget
         });
     }
 
-    refreshInternal({ mediaId, mediaInfo })
+    async refreshInternal({ mediaId, mediaInfo })
     {
         this.root.hidden = mediaInfo == null;
         if(this.root.hidden)
@@ -456,6 +456,12 @@ class MobileIllustInfoDialog extends DialogWidget
         let isLocal = helpers.mediaId.isLocal(mediaId);
         let tags = isLocal? mediaInfo.bookmarkData?.tags:mediaInfo.tagList;
         tags ??= [];
+        
+        // If this is a local image then the tags are bookmark tags, so don't try to get translations.
+        let translatedTags = {};
+        if(!isLocal)
+            translatedTags = await ppixiv.tagTranslations.getTranslations(tags, "en");
+
         for(let tag of tags)
         {
             let entry = this.createTemplate({name: "tag-entry", html: `
@@ -465,8 +471,12 @@ class MobileIllustInfoDialog extends DialogWidget
                 </a>
             `});
 
+            let translatedTag = tag;
+            if(translatedTags[tag])
+                translatedTag = translatedTags[tag]
+
             entry.href = helpers.getArgsForTagSearch(tag, ppixiv.plocation);
-            entry.querySelector(".tag-name").innerText = tag;
+            entry.querySelector(".tag-name").innerText = translatedTag;
             tagWidget.appendChild(entry);
         }
 
