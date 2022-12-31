@@ -85,26 +85,17 @@ export default class ScreenSearch extends Screen
                 target: this.root,
             });
     
-            let onchange = () =>
-            {
-                // Hide the UI when scrolling down, and also hide the menu bar if a
-                // dialog is open.
-                let shown = !this.scrollListener.scrolledForwards;
-                this.mobileMenuBar.visible = shown && OpenWidgets.singleton.empty;
-                this.mobileSearchUi.visible = shown;
-            };
-            
             let scroller = this.querySelector(".search-results");
             this.scrollListener = new ScrollListener({
                 scroller,
                 parent: this,
-                onchange,
+                onchange: () => this._refreshMenuBarVisible(),
                 stickyUiNode: this.querySelector(".title-bar"),
             });
 
-            OpenWidgets.singleton.addEventListener("changed", onchange, this._signal);
+            OpenWidgets.singleton.addEventListener("changed", this._refreshMenuBarVisible(), this._signal);
 
-            onchange();
+            this._refreshMenuBarVisible();
         }
 
         // Zoom the thumbnails on ctrl-mousewheel:
@@ -247,7 +238,17 @@ export default class ScreenSearch extends Screen
         // Refresh whether we're showing the local navigation widget and toggle button.
         helpers.html.setDataSet(this.root.dataset, "showNavigation", this.canShowLocalNavigation && this._localNavigationVisible);
     };
-    
+
+    _refreshMenuBarVisible()
+    {
+        // Hide the UI when scrolling down, and also hide the menu bar if a
+        // dialog is open.
+        let shown = !this.scrollListener.scrolledForwards;
+        console.log("--- changed", shown);
+        this.mobileMenuBar.visible = shown && this._active && OpenWidgets.singleton.empty;
+        this.mobileSearchUi.visible = shown;
+    }
+
     get canShowLocalNavigation()
     {
         return this.dataSource?.isVView && !LocalAPI?.localInfo?.bookmark_tag_searches_only;
