@@ -210,52 +210,54 @@ This can be enabled in preferences, and may become the default in a future relea
     },
     {
         version: 104,
-        text:
-            "Bookmarks can now be shuffled, to view them in random order. " +
-            "<p>" +
-            "Bookmarking an image now always likes it, like Pixiv's mobile app. " +
-            "(Having an option for this didn't seem useful.)" +
-            "<p>" +
-            "Added a Recent History search, to show recent search results.  This can be turned " +
-            "off in settings."
+        text: `
+            Bookmarks can now be shuffled, to view them in random order.
+            <p>
+            Bookmarking an image now always likes it, like Pixiv's mobile app.
+            (Having an option for this didn't seem useful.)
+            <p>
+            Added a Recent History search, to show recent search results.  This can be turned
+            off in settings.
+        `
     },
     {
         version: 102,
         boring: true,
-        text:
-            "Animations now start playing much faster."
+        text: "Animations now start playing much faster."
     },
     {
         version: 100,
-        text:
-            "Enabled auto-liking images on bookmark by default, to match the Pixiv mobile apps. " + 
-            "If you've previously changed this in preferences, your setting should stay the same." +
-            "<p>" +
-            "Added a download button for the current page when viewing manga posts."
+        text: `
+            Enabled auto-liking images on bookmark by default, to match the Pixiv mobile apps.
+            If you've previously changed this in preferences, your setting should stay the same.
+            <p>
+            Added a download button for the current page when viewing manga posts.
+        `
     },
     {
         version: 97,
-        text:
-            "Holding Ctrl now displays the popup menu, to make it easier to use for people on touchpads.<p>" +
-            "<p>" + 
-            "Keyboard hotkeys reworked, and can now be used while hovering over search results.<p>" +
-            "<pre>" +
-	    "Ctrl-V           - like image\n" +
-	    "Ctrl-B           - bookmark\n" +
-	    "Ctrl-Alt-B       - bookmark privately\n" +
-	    "Ctrl-Shift-B     - remove bookmark\n" +
-	    "Ctrl-Alt-Shift-M - add bookmark tag\n" +
-	    "Ctrl-F           - follow\n" +
-	    "Ctrl-Alt-F       - follow privately\n" +
-	    "Ctrl-Shift-F     - unfollow\n" +
-	    "</pre>"
+        text: `
+            Holding Ctrl now displays the popup menu, to make it easier to use for people on touchpads.<p>
+            <p>
+            Keyboard hotkeys reworked, and can now be used while hovering over search results.<p>
+    <pre>
+    Ctrl-V           - like image
+    Ctrl-B           - bookmark
+    Ctrl-Alt-B       - bookmark privately
+    Ctrl-Shift-B     - remove bookmark
+    Ctrl-Alt-Shift-M - add bookmark tag
+    Ctrl-F           - follow
+    Ctrl-Alt-F       - follow privately
+    Ctrl-Shift-F     - unfollow</pre>
+        `
     },
     {
         version: 89,
-        text:
-            "Reworked zooming to make it more consistent and easier to use.<p>" +
-            "<p>" +
-            "You can now zoom images to 100% to view them at actual size."
+        text: `
+            Reworked zooming to make it more consistent and easier to use.<p>
+            <p>
+            You can now zoom images to 100% to view them at actual size.
+        `
     },
     {
         version: 82,
@@ -269,80 +271,90 @@ This can be enabled in preferences, and may become the default in a future relea
     },
     {
         version: 77,
-        text:
-            "Added user searching." +
-            "<p>" +
-            "Commercial/subscription links in user profiles (Fanbox, etc.) now use a different icon."
+        text: `
+            Added user searching.
+            <p>
+            Commercial/subscription links in user profiles (Fanbox, etc.) now use a different icon.
+        `
     },
     {
         version: 74,
-        text:
-            "Viewing your followed users by tag is now supported." +
-            "<p>" +
-            "You can now view other people who bookmarked an image, to see what else they've bookmarked. " +
-            "This is available from the top-left hover menu."
+        text: `
+            Viewing your followed users by tag is now supported.
+            <p>
+            You can now view other people who bookmarked an image, to see what else they've bookmarked. 
+            This is available from the top-left hover menu.
+        `
     },
     {
         version: 72,
-        text:
-            "The followed users page now remembers which page you were on if you reload the page, to make " +
-            "it easier to browse your follows if you have a lot of them." +
-            "<p>" +
-            "Returning to followed users now flashes who you were viewing like illustrations do," +
-            "to make it easier to pick up where you left off." +
-            "<p>" +
-            "Added a browser back button to the context menu, to make navigation easier in fullscreen " +
-            "when the browser back button isn't available."
+        text: `
+            The followed users page now remembers which page you were on if you reload the page, to make 
+            it easier to browse your follows if you have a lot of them.
+            <p>
+            Returning to followed users now flashes who you were viewing like illustrations do,
+            to make it easier to pick up where you left off.
+            <p>
+            Added a browser back button to the context menu, to make navigation easier in fullscreen 
+            when the browser back button isn't available.
+        `
     },
     {
         version: 68,
-        text:
-            "You can now go to either the first manga page or the page list from search results. " +
-            "Click the image to go to the first page, or the page count to go to the page list." +
-            "<p>" +
-            "Our button is now in the bottom-left when we're disabled, since Pixiv now puts a menu " +
-            "button in the top-left and we were covering it up."
+        text: `
+            You can now go to either the first manga page or the page list from search results. 
+            Click the image to go to the first page, or the page count to go to the page list.
+            <p>
+            Our button is now in the bottom-left when we're disabled, since Pixiv now puts a menu 
+            button in the top-left and we were covering it up.
+        `
     },
     {
         version: 65,
-        text:
-            "Bookmark viewing now remembers which page you were on if the page is reloaded." +
-            "<p>"+
-            "Zooming is now in smaller increments, to make it easier to zoom to the level you want."
+        text: `
+            Bookmark viewing now remembers which page you were on if the page is reloaded.
+            <p>
+            Zooming is now in smaller increments, to make it easier to zoom to the level you want.
+        `
     },
     {
         version: 57,
-        text:
-            "Search for similar artists.  Click the recommendations item at the top of the artist page, " +
-            "or in the top-left when viewing an image." +
-            "<p>"+
-            "You can also now view suggested artists."
+        text: `
+            Search for similar artists.  Click the recommendations item at the top of the artist page, 
+            or in the top-left when viewing an image.
+            <p>
+            You can also now view suggested artists.
+        `
     },
     {
         version: 56,
-        text:
-            "Tag translations are now supported.  This can be turned off in preferences. " +
-            "<p>" +
-            "Added quick tag search editing.  After searching for a tag, click the edit button " +
-            "to quickly add and remove tags."
+        text: `
+            Tag translations are now supported.  This can be turned off in preferences.
+            <p>
+            Added quick tag search editing.  After searching for a tag, click the edit button
+            to quickly add and remove tags.
+        `
     },
     {
         version: 55,
-        text:
-            "The \"original\" view is now available in Rankings." +
-            "<p>" +
-            "Hiding the mouse cursor can now be disabled in preferences.",
+        text: `
+            The \"original\" view is now available in Rankings.
+            <p>
+            Hiding the mouse cursor can now be disabled in preferences.
+        `
     },
     {
         version: 49,
-        text:
-            "Add \"Hover to show UI\" preference, which is useful for low-res monitors."
+        text: `
+            Add \"Hover to show UI\" preference, which is useful for low-res monitors.
+        `
     },
     {
         version: 47,
-        text:
-            "You can now view the users you're following with \"Followed Users\".  This shows each " +
-            "user's most recent post."
+        text: `
+            You can now view the users you're following with \"Followed Users\".  This shows each
+            user's most recent post.
+        `
     },
 ];
 
