@@ -463,7 +463,18 @@ export default class DataSource extends EventTarget
 
     // Apply a search filter button to a search URL, activating or deactivating a search
     // filter.  Return { args, buttonIsSelected }.
-    setItemInUrl(args, { fields=null, defaults=null, toggle=false,
+    setItemInUrl(args, {
+        // The fields selected when this button is activated.  For example: { sort: "alpha" }
+        fields=null,
+
+        // An optional set of default fields: the values that will be used if the key isn't
+        // present.
+        defaults=null,
+        
+        // If true, pressing this button toggles its keys on and off instead of always setting
+        // them.
+        toggle=false,
+        
         // If provided, this allows modifying URLs that put parameters in URL segments instead
         // of the query where they belong.  If urlFormat is "abc/def/ghi", a key of "/abc" will modify
         // the first segment, and so on.
@@ -485,13 +496,6 @@ export default class DataSource extends EventTarget
             for(let idx = 0; idx < parts.length; ++idx)
                 urlParts["/" + parts[idx]] = "/" + idx;
         }
-
-        // Don't include the page number in search buttons, so clicking a filter goes
-        // back to page 1.
-        args.set("p", null);
-
-        // This button is selected if all of the keys it sets are present in the URL.
-        let buttonIsSelected = true;
 
         // Collect data for each key.
         let fieldData = {};
@@ -522,24 +526,23 @@ export default class DataSource extends EventTarget
             }
         }
 
-        for(let [key, {value}] of Object.entries(fieldData))
+        // This button is selected if all of the keys it sets are present in the URL.
+        let buttonIsSelected = true;
+
+        for(let [key, {value, defaultValue}] of Object.entries(fieldData))
         {
             // The value we're setting in the URL:
-            let thisValue = value;
-            if(thisValue == null && defaults != null)
-                thisValue = defaults[key];
+            let thisValue = value ?? defaultValue;
 
             // The value currently in the URL:
-            let selectedValue = args.get(key);
-            if(selectedValue == null && defaults != null)
-                selectedValue = defaults[key];
+            let selectedValue = args.get(key) ?? defaultValue;
 
             // If the URL didn't have the key we're setting, then it isn't selected.
             if(thisValue != selectedValue)
                 buttonIsSelected = false;
 
             // If the value we're setting is the default, delete it instead.
-            if(defaults != null && thisValue == defaults[key])
+            if(defaults != null && thisValue == defaultValue)
                 value = null;
 
             args.set(key, value);
@@ -552,6 +555,10 @@ export default class DataSource extends EventTarget
             for(let [key, { defaultValue }] of Object.entries(fieldData))
                 args.set(key, defaultValue);
         }
+
+        // Don't include the page number in search buttons, so clicking a filter goes
+        // back to page 1.
+        args.set("p", null);
 
         if(adjustUrl)
             adjustUrl(args);
