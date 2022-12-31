@@ -2510,31 +2510,43 @@ a.box-link, span.box-link
     --frame-bg-color: rgba(0,0,0,.65);
     --box-link-bg-color: none;
 
-    .avatar-widget
-    {
-        opacity: var(--menu-bar-pos);
-
-        background-color: var(--frame-bg-color);
-        border-radius: 5px;
-        padding: 0.25em;
-        pointer-events: var(--pointer-events);
-
-        margin-left: 1em;
-        margin-bottom: 2em;
-        width: min(170px, 50vmin);
-    }
-
     .mobile-illust-ui-page {
         width: 100%;
         bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
 
         user-select: none;
         -webkit-user-select: none;
 
-        opacity: var(--menu-bar-pos);
         translate: 0 #{scale_value(var(--menu-bar-pos), 0, 1, var(--menu-bar-height), 0px)};
 
+        .avatar {
+            align-self: center;
+        }
+        .avatar-widget
+        {
+            opacity: var(--menu-bar-pos);
+            pointer-events: var(--pointer-events);
+            margin-bottom: 1em;
+            width: min(170px, 50vmin);
+    
+            > .avatar
+            {
+                // Don't use a box-shadow here, since it causes stuttering during the transition.
+                border: 2px solid #000;
+                border-radius: 100%;
+            }
+    
+            .follow-icon {
+                bottom: 0;
+                right: 0;
+            }
+        }
+        
         .menu-bar {
+            opacity: var(--menu-bar-pos);
             pointer-events: var(--pointer-events);
 
             // Note that the background color extends into the top safe area, so if we're overlapping
