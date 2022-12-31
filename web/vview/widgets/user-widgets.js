@@ -132,7 +132,6 @@ export class AvatarWidget extends Widget
                 <canvas class=avatar></canvas>
 
                 <div class=follow-icon>
-                    <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
                 </div>
             </a>
         `});
@@ -165,10 +164,6 @@ export class AvatarWidget extends Widget
             e.preventDefault();
             e.stopPropagation();
             this.followDropdownOpener.visible = !this.followDropdownOpener.visible;
-        }, {
-            // Hack: capture this event so we get clicks even over the eye widget.  We can't
-            // set it to pointer-events: none since it reacts to mouse movement.
-            capture: true,
         });
 
         // Clicking the avatar used to go to the user page, but now it opens the follow dropdown.
@@ -197,7 +192,8 @@ export class AvatarWidget extends Widget
         }
 
         new CreepyEyeWidget({
-            container: this.root.querySelector(".follow-icon .eye-image")
+            container: this.root.querySelector(".follow-icon"),
+            pointerTarget: this.root,
         });
     }
 
@@ -356,6 +352,7 @@ class ImageCanvasFilter
 class CreepyEyeWidget extends Widget
 {
     constructor({
+        pointerTarget,
         ...options
     }={})
     {
@@ -363,20 +360,27 @@ class CreepyEyeWidget extends Widget
             <ppixiv-inline src="resources/eye-icon.svg"></ppixiv-inline>
         `});
 
-        this.root.addEventListener("mouseenter", this.onevent);
-        this.root.addEventListener("mouseleave", this.onevent);
-        this.root.addEventListener("mousemove", this.onevent);
+        pointerTarget.addEventListener("mouseover", this.onevent, { capture: true, ...this._signal });
+        pointerTarget.addEventListener("mouseout", this.onevent, { capture: true, ...this._signal });
+        pointerTarget.addEventListener("pointermove", this.onevent, { capture: true, ...this._signal });
     }
 
     onevent = (e) =>
     {
-        if(e.type == "mouseenter")
+
+        // We're set to pointer-events: none so we don't steal clicks from our container, so we have
+        // to figure out if the cursor is over us manually.
+        let { left, top, right, bottom } = this.root.getBoundingClientRect();
+        this.hover =
+            left <= e.clientX && e.clientX <= right &&
+            top <= e.clientY && e.clientY <= bottom;
+
+        if(e.type == "mouseover")
             this.hover = true;
-        if(e.type == "mouseleave")
+        if(e.type == "mouseout")
             this.hover = false;
 
         let eyeMiddle = this.root.querySelector(".middle");
-
         if(!this.hover)
         {
             eyeMiddle.style.transform = "";

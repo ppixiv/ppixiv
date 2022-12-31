@@ -936,6 +936,7 @@ input, textarea, [contenteditable] {
         right: 5%;
         width: 50%; /* half the size of the container */
         max-width: 2em; /* limit the size for larger avatar displays */
+        pointer-events: none;
 
         > svg {
             display: block;
