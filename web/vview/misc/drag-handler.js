@@ -70,8 +70,8 @@ export default class DragHandler extends Actor
         signal ??= (new AbortController().signal);
 
         this._touchListener = new TouchListener({
+            parent: this,
             element,
-            signal,
             multi: true,
             callback: this._pointerevent,
         });

@@ -2,26 +2,27 @@
 // and a bunch of browser weirdness around context menus and other things that a lot of
 // UI doesn't need.  TouchListener is a simpler interface that only listens for left-clicks.
 // Touch inputs will see multitouch if the multi flag is true.
-export default class TouchListener
+import Actor from 'vview/actors/actor.js';
+
+export default class TouchListener extends Actor
 {
     // callback(event) will be called each time buttons change.  The event will be the event
     // that actually triggered the state change, and can be preventDefaulted, etc.
     constructor({
         element,
+        parent,
         callback,
         multi=false,
-        signal,
     }={})
     {
+        super({ parent });
+
         this.element = element;
         this.callback = callback;
         this.multi = multi;
         this.pressedPointerIds = new Set();        
-        this.eventOptions = { };
-        if(signal)
-            this.eventOptions.signal = signal;
 
-        this.element.addEventListener("pointerdown", this.onpointerevent, this.eventOptions);
+        this.element.addEventListener("pointerdown", this.onpointerevent, this._signal);
     }
 
     // Register events that we only register while one or more buttons are pressed.
@@ -35,13 +36,13 @@ export default class TouchListener
         {
             // These need to go on window, so if a mouse button is pressed and that causes
             // the element to be hidden, we still get the pointerup.
-            window.addEventListener("pointerup", this.onpointerevent, { capture: true, ...this.eventOptions });
-            window.addEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.eventOptions });
-            window.addEventListener("blur", this.onblur, this.eventOptions);
+            window.addEventListener("pointerup", this.onpointerevent, { capture: true, ...this._signal });
+            window.addEventListener("pointercancel", this.onpointerevent, { capture: true, ...this._signal });
+            window.addEventListener("blur", this.onblur, this._signal);
         } else {
-            window.removeEventListener("pointerup", this.onpointerevent, { capture: true, ...this.eventOptions });
-            window.removeEventListener("pointercancel", this.onpointerevent, { capture: true, ...this.eventOptions });
-            window.removeEventListener("blur", this.onblur, this.eventOptions);
+            window.removeEventListener("pointerup", this.onpointerevent, { capture: true });
+            window.removeEventListener("pointercancel", this.onpointerevent, { capture: true });
+            window.removeEventListener("blur", this.onblur);
         }
     }
 
