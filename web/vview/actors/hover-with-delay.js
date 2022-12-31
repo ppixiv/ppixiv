@@ -5,42 +5,50 @@
 // This is used when hovering the top bar when in ui-on-hover mode, to delay the transition
 // before the UI disappears.  transition-delay isn't useful for this, since it causes weird
 // hitches when the mouse enters and leaves the area quickly.
+import Actor from 'vview/actors/actor.js';
 import { helpers } from 'vview/misc/helpers.js';
 
-export default class HoverWithDelay
+export default class HoverWithDelay extends Actor
 {
-    constructor(element, delay_enter, delay_exit)
+    constructor({
+        parent,
+        element,
+        enterDelay=0,
+        exitDelay=0,
+    }={})
     {
-        this.element = element;
-        this.delay_enter = delay_enter * 1000.0;
-        this.delay_exit = delay_exit * 1000.0;
-        this.timer = -1;
-        this.pending_hover = null;
+        super({ parent });
 
-        element.addEventListener("mouseenter", (e) => { this.real_hover_changed(true); });
-        element.addEventListener("mouseleave", (e) => { this.real_hover_changed(false); });
+        this.element = element;
+        this.enterDelay = enterDelay * 1000.0;
+        this.exitDelay = exitDelay * 1000.0;
+        this.timer = -1;
+        this.pendingHover = null;
+
+        element.addEventListener("mouseenter", (e) => this.onHoverChanged(true), this._signal);
+        element.addEventListener("mouseleave", (e) => this.onHoverChanged(false), this._signal);
     }
 
-    real_hover_changed(hovering)
+    onHoverChanged(hovering)
     {
         // If we already have this event queued, just let it continue.
-        if(this.pending_hover != null && this.pending_hover == hovering)
+        if(this.pendingHover != null && this.pendingHover == hovering)
             return;
 
         // If the opposite event is pending, cancel it.
-        if(this.hover_timeout != null)
+        if(this.hoverTimeout != null)
         {
-            realClearTimeout(this.hover_timeout);
-            this.hover_timeout = null;
+            realClearTimeout(this.hoverTimeout);
+            this.hoverTimeout = null;
         }
 
-        this.real_hover_state = hovering;
-        this.pending_hover = hovering;
-        let delay = hovering? this.delay_enter:this.delay_exit;
-        this.hover_timeout = realSetTimeout(() => {
-            this.pending_hover = null;
-            this.hover_timeout = null;
-            helpers.html.setClass(this.element, "hover", this.real_hover_state);
+        this.realHoverState = hovering;
+        this.pendingHover = hovering;
+        let delay = hovering? this.enterDelay:this.exitDelay;
+        this.hoverTimeout = realSetTimeout(() => {
+            this.pendingHover = null;
+            this.hoverTimeout = null;
+            helpers.html.setClass(this.element, "hover", this.realHoverState);
         }, delay);
     }
 }

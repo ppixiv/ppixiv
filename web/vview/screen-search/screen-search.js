@@ -50,7 +50,7 @@ export default class ScreenSearch extends Screen
             // Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
             // of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
             // affect opening the UI.
-            new HoverWithDelay(topUiBox, 0, 0.25);
+            new HoverWithDelay({ parent: this, element: topUiBox, enterDelay: 0, exitDelay: 0.25 });
             
             // Set --ui-box-height to the container's height, which is used by the hover style.
             let resize = new ResizeObserver(() => {
