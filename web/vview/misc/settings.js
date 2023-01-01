@@ -38,6 +38,7 @@ export default class Settings extends EventTarget
         this.configure("slideshow_duration", { defaultValue: 15 });
         this.configure("auto_pan", { defaultValue: ppixiv.mobile });
         this.configure("auto_pan_duration", { defaultValue: 3 });
+        this.configure("slideshow_default", { defaultValue: "pan" });        
         this.configure("extraMutes", { defaultValue: [] });
         this.configure("slideshow_skips_manga", { defaultValue: false });
         this.configure("expand_manga_thumbnails", { defaultValue: false });
