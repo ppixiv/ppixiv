@@ -12,7 +12,7 @@ import Widget from 'vview/widgets/widget.js';
 import { BookmarkButtonWidget, LikeButtonWidget } from 'vview/widgets/illust-widgets.js';
 import { HideMouseCursorOnIdle } from 'vview/misc/hide-mouse-cursor-on-idle.js';
 import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
-import { AvatarWidget } from 'vview/widgets/user-widgets.js';
+import { AvatarWidget, GetUserIdFromMediaId } from 'vview/widgets/user-widgets.js';
 import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
 import FixChromeClicks from 'vview/misc/fix-chrome-clicks.js';
 import { ViewInExplorerWidget } from 'vview/widgets/local-widgets.js';
@@ -125,6 +125,16 @@ export default class ContextMenu extends Widget
         if(ppixiv.mobile)
             return;
             
+        this.getUserIdFromMediaId = new GetUserIdFromMediaId({
+            parent: this,
+            onrefresh: ({userId}) => {
+                this._cachedUserId = userId;
+                this.refresh();
+            }
+        });
+
+        this.root.ontransitionend = () => this.callVisibilityChanged();
+
         this.pointerListener = new PointerListener({
             element: window,
             buttonMask: 0b11,
@@ -645,7 +655,14 @@ export default class ContextMenu extends Widget
     // by a zoom.
     get actuallyVisible()
     {
-        return this.visible && !this._hiddenTemporarily;
+        if(this.visible)
+            return true;
+
+        // We're still visible if we're becoming hidden but we still have animations running.
+        if(this.root.getAnimations().length > 0)
+            return true;
+
+        return false;
     }
 
     visibilityChanged()
@@ -656,7 +673,7 @@ export default class ContextMenu extends Widget
 
     applyVisibility()
     {
-        let visible = this.actuallyVisible;
+        let visible = this.visible && !this._hiddenTemporarily;
         helpers.html.setClass(this.root, "hidden-widget", !visible);
         helpers.html.setClass(this.root, "visible", visible);
     }
@@ -666,13 +683,6 @@ export default class ContextMenu extends Widget
         // For debugging, this can be set to temporarily force the context menu to stay open.
         if(window.keepContextMenuOpen)
             return;
-
-        this._clickedMediaId = null;
-        this.cachedUserId = null;
-
-        // Don't refresh yet, so we try to not change the display while it fades out.
-        // We'll do the refresh the next time we're displayed.
-        // this.refresh();
 
         if(!this.visible)
             return;
@@ -777,48 +787,8 @@ export default class ContextMenu extends Widget
 
     get _effectiveUserId()
     {
-        let mediaId = this._clickedMediaId ?? this._mediaId;
-        if(mediaId == null)
-            return null;
-
-        // If the media ID is a user, use it.
-        let { type, id } = helpers.mediaId.parse(mediaId);
-        if(type == "user")
-            return id;
-
-        // See if _loadUserId has loaded the user ID.
-        if(this._cachedUserId)
-            return this._cachedUserId;
-
-        return null;
-    }
-
-    set cachedUserId(userId)
-    {
-        if(this._cachedUserId == userId)
-            return;
-
-        this._cachedUserId = userId;
-        this.refresh();
-    }
-
-    // If our media ID is an illust, load its info to get the user ID.
-    async _loadUserId()
-    {
-        let mediaId = this._effectiveMediaId;
-        if(!this.visible)
-        {
-            this.cachedUserId = null;
-            return;
-        }
-
-        let userId = await ppixiv.userCache.getUserIdForMediaId(mediaId);
-
-        // Stop if the media ID changed.
-        if(mediaId != this._effectiveMediaId)
-            return;
-
-        this.cachedUserId = userId;
+        // See if getUserIdFromMediaId has loaded the user ID.
+        return this.getUserIdFromMediaId.info.userId;
     }
 
     setMediaId(mediaId)
@@ -827,6 +797,7 @@ export default class ContextMenu extends Widget
             return;
 
         this._mediaId = mediaId;
+        this.getUserIdFromMediaId.id = this._clickedMediaId ?? this._mediaId;
         this.refresh();
     }
 
@@ -1164,8 +1135,7 @@ export default class ContextMenu extends Widget
             return;
 
         this._clickedMediaId = mediaId;
-        this.cachedUserId = null;
-
+        this.getUserIdFromMediaId.id = this._clickedMediaId ?? this._mediaId;
         this.refresh();
     }
 
@@ -1180,10 +1150,6 @@ export default class ContextMenu extends Widget
         if(!this.visible && mediaId != null)
             return;
 
-        // If we haven't loaded the user ID yet, start it now.  This is async and we won't wait
-        // for it here.  It'll call refresh() again when it finishes.
-        this._loadUserId();
-            
         let userId = this._effectiveUserId;
         let info = mediaId? ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }):null;
 

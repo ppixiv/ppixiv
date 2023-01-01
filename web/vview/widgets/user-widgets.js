@@ -5,7 +5,7 @@ import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
 import { ConfirmPrompt, TextPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
 
-// This is GetMediaInfo for user info, looking up user info from a user ID.
+// AsyncLookup to look up user info from a user ID.
 export class GetUserInfo extends AsyncLookup
 {
     constructor({
@@ -75,6 +75,60 @@ export class GetUserInfo extends AsyncLookup
             return;
 
         await this._onrefresh(info);
+    }    
+}
+
+// Async lookups to get user IDs from media IDs.
+//
+// If a media ID is a user ("user:1234"), return it.  If it's an illust, look up the illust
+// and return its author's user ID.
+export class GetUserIdFromMediaId extends AsyncLookup
+{
+    constructor({
+        ...options
+    })
+    {
+        super({...options});
+
+        this._id = null;
+    }
+
+    async _refreshInner()
+    {
+        let mediaId = this._id;
+        this._info = { };
+        
+        if(this._id != null)
+        {
+            // If the media ID is a user ID, use it.
+            let { type, id } = helpers.mediaId.parse(mediaId);
+            if(type == "user")
+                this._info.userId = id;
+            else
+            {
+                // See if we can get media ID synchronously.
+                let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._id, { full: false });
+                this._info.userId = mediaInfo?.userId;
+
+                if(this._info.userId == null)
+                {
+                    await this._onrefresh(this._info);
+
+                    // Don't make API requests for data if we're not visible to the user.
+                    if(!this._loadWhileNotVisible && !this.actuallyVisibleRecursively)
+                        return;
+
+                    mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._id, { full: false });
+                    this._info.userId = mediaInfo?.userId;
+                }
+            }
+        }
+
+        // Stop if the media ID changed while we were async.
+        if(this._id != mediaId)
+            return;
+
+        await this._onrefresh(this._info);
     }    
 }
 
