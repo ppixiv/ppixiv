@@ -105,7 +105,7 @@ export default class DataSource_Search extends DataSource
         if(tags)
         {
             tags = await ppixiv.tagTranslations.translateTagList(tags, "en");
-            let tagList = document.createElement("span");
+            let tagList = document.createElement("vv-container");
             for(let tag of tags)
             {
                 // Force "or" lowercase.

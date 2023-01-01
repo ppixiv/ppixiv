@@ -817,9 +817,6 @@ input, textarea, [contenteditable] {
         flex-direction: row;
         align-items: start;
     }
-    * {
-        text-overflow: ellipsis;
-    }
 
     @media(hover: hover) {
         // Limit the title row to one line, and show the full text as an overlay on hover.
@@ -1152,29 +1149,8 @@ body.hide-r18g .r18g { display: none; }
             opacity: 1;
         }
 
-        .title {
-            // width: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: stretch;
-            align-items: center;
-
-            padding-bottom: .25em;
-            font-size: 1.1rem;
-
-            line-height: 1.5em;
-            white-space: nowrap;
-            overflow: hidden;
-
-            > span {
-                display: contents;
-            }
-
-            .word.or {
-                font-size: 60%;
-                padding: 0;
-                color: #bbb;
-            }
+        .search-title {
+            text-align: center;
         }
 
         .avatar-widget {
@@ -1186,6 +1162,30 @@ body.hide-r18g .r18g { display: none; }
             // box-button-row to indicate where the smaller rows should be wrapped.
             .box,-button-row, .box-button-row-group {
                 justify-content: center;
+            }
+        }
+    }
+
+    .search-title {
+        .word {
+            padding: 0px 5px;
+            vertical-align: middle;
+
+            // Fix the line height so lines with CJK text aren't different from ones that don't, but enough
+            // so lines aren't too close together.
+            line-height: 1.5em;
+
+            // Parentheses:
+            &.paren { font-weight: 400; }
+
+            &:first-child {
+                padding-left: 0px; /* remove left padding from the first item */
+            }
+
+            &.or {
+                font-size: 60%;
+                padding: 0;
+                color: #bbb;
             }
         }
     }
@@ -1278,36 +1278,7 @@ body.hide-r18g .r18g { display: none; }
         background-color: var(--ui-bg-color);
         color: var(--ui-fg-color);
         border-radius: 4px;
-
-        html:not(.mobile) & {
-            box-shadow: 0 0 15px 10px #000;
-        }
-
-        .title {
-            padding-bottom: 4px;
-
-            .word {
-                padding: 0px 5px;
-                vertical-align: middle;
-
-                // Fix the line height so lines with CJK text aren't different from ones that don't, but enough
-                // so lines aren't too close together.
-                line-height: 1.5em;
-
-                // Parentheses:
-                &.paren { font-weight: 400; }
-    
-                &:first-child {
-                    padding-left: 0px; /* remove left padding from the first item */
-                }
-    
-                &.or {
-                    font-size: 60%;
-                    padding: 0;
-                    color: #bbb;
-                }
-            }
-        }
+        box-shadow: 0 0 15px 10px #000;
 
         .avatar-container {
             > .avatar-widget {
