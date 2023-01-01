@@ -241,10 +241,11 @@ export default class ScreenSearch extends Screen
 
     _refreshMenuBarVisible()
     {
-        // Hide the UI when scrolling down, and also hide the menu bar if a
-        // dialog is open.
+        // Hide the UI when scrolling down, and also hide the menu bar if a dialog is
+        // open.  Do allow the menu bar to be opened while not active, so we set the
+        // correct initial state.
         let shown = !this.scrollListener.scrolledForwards;
-        this.mobileMenuBar.visible = shown && this._active && OpenWidgets.singleton.empty;
+        this.mobileMenuBar.visible = shown && OpenWidgets.singleton.empty;
         this.mobileSearchUi.visible = shown;
     }
 

@@ -116,6 +116,7 @@ export default class ScrollListener extends Actor
         {
             console.log("Ignoring scroll after scroller change");
             this._lastScrollHeight = this._scroller.scrollHeight;
+            this._lastScrollY = this._currentScrollPosition;
             return;
         }
 
