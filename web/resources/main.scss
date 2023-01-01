@@ -1994,13 +1994,6 @@ body.hide-r18g .r18g { display: none; }
     }
 }
 
-// box-link buttons that are A or SPAN don't have children, so put the padding on the box itself.
-a.box-link, span.box-link
-{
-    padding-top: 0.5em;
-    padding-bottom: 0.5em;
-}
-
 .search-box {
     display: flex;
 }
