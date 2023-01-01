@@ -79,6 +79,12 @@ export default class DragHandler extends Actor
         signal.addEventListener("abort", () => this.cancelDrag());
     }
 
+    shutdown()
+    {
+        RunningDrags.remove(this);
+        super.shutdown();
+    }
+
     _pointerevent = (e) =>
     {
         // Ignore presses while another dragger is active.
