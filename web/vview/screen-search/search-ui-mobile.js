@@ -12,7 +12,7 @@ export default class SearchUIMobile extends Widget
                 <div class=search-ui-mobile>
                     <div class=avatar-container style="float: right;"></div>
 
-                    <div class=title></div>
+                    <div class=search-title></div>
                     <div class=data-source-ui></div>
                 </div>
             `
@@ -62,7 +62,7 @@ export default class SearchUIMobile extends Widget
             this.avatarWidget.setUserId(userId);
         }
 
-        let elementTitle = this.querySelector(".title");
+        let elementTitle = this.querySelector(".search-title");
         elementTitle.hidden = this.dataSource?.getDisplayingText == null;
         if(this.dataSource?.getDisplayingText != null)
         {

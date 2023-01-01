@@ -26,7 +26,7 @@ export default class DesktopSearchUI extends Widget
 
                 <div class=title-with-button-row-container>
                     <div class=title-with-button-row>
-                        <div class="title title-font"></div>
+                        <div class="search-title title-font"></div>
                         <div style="flex: 1;"></div>
                         <div class=user-links>
                             ${ helpers.createIcon("info", { classes: ["button", "user-info-hint"]  }) }
@@ -216,7 +216,7 @@ export default class DesktopSearchUI extends Widget
             this.avatarWidget.setUserId(userId);
         }
 
-        let elementTitle = this.root.querySelector(".title");
+        let elementTitle = this.root.querySelector(".search-title");
         elementTitle.hidden = this.dataSource?.getDisplayingText == null;
         if(this.dataSource?.getDisplayingText != null)
         {
