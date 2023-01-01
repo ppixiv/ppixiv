@@ -656,6 +656,9 @@ class FollowWidget extends Widget
     async _clickedFollow(followPrivately)
     {
         await Actions.follow(this.userId, followPrivately);
+
+        // The public/private follow state needs to be refreshed explicitly.
+        this._requestFollowInfo();
     }
 
     async _clickedUnfollow()
