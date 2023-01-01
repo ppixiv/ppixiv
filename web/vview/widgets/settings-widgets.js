@@ -464,6 +464,10 @@ export class SettingsDialog extends DialogWidget
         this.root.querySelector(".sections").appendChild(pageButton);
         this._pageButtons[name] = pageButton;
 
+        // Mark all buttons as selected on the phone UI so they're always highlighted.
+        if(this.phone)
+            helpers.html.setClass(pageButton, "selected", true);
+
         return pageButton;
     }
 
