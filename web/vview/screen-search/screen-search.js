@@ -93,7 +93,7 @@ export default class ScreenSearch extends Screen
                 stickyUiNode: this.mobileSearchUi.root,
             });
 
-            OpenWidgets.singleton.addEventListener("changed", this._refreshMenuBarVisible(), this._signal);
+            OpenWidgets.singleton.addEventListener("changed", () => this._refreshMenuBarVisible(), this._signal);
 
             this._refreshMenuBarVisible();
         }
@@ -244,7 +244,6 @@ export default class ScreenSearch extends Screen
         // Hide the UI when scrolling down, and also hide the menu bar if a
         // dialog is open.
         let shown = !this.scrollListener.scrolledForwards;
-        console.log("--- changed", shown);
         this.mobileMenuBar.visible = shown && this._active && OpenWidgets.singleton.empty;
         this.mobileSearchUi.visible = shown;
     }
