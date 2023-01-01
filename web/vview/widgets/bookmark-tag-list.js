@@ -244,7 +244,7 @@ export class BookmarkTagListWidget extends IllustWidget
             return;
         
         // Save the tags.  If the image wasn't bookmarked, this will create a public bookmark.
-        console.log(`Tag list closing and tags have changed: ${oldTags.join(",")} -> ${newTags.join(",")}`);
+        console.log(`Tag list closing and tags have changed: "${oldTags.join(",")}" -> "${newTags.join(",")}"`);
         await Actions.bookmarkAdd(this._mediaId, {
             tags: newTags,
         });

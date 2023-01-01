@@ -18,8 +18,6 @@ export default class Actions
         if(options == null)
             options = {};
 
-        console.log("Add bookmark:", options);
-
         // If auto-like is enabled, like an image when we bookmark it.
         if(!options.disableAutoLike)
         {
@@ -63,7 +61,7 @@ export default class Actions
         // Even if we weren't given tags, we still know that they're unset, so set tags so
         // we won't need to request bookmark details later.
         ppixiv.extraCache.updateCachedBookmarkTags(mediaId, request.tags);
-        console.log("Updated bookmark data:", mediaId, newBookmarkId, request.restrict, request.tags);
+        console.log(`Updated bookmark data for ${mediaId}: id: ${newBookmarkId}, tags: ${request.restrict? "private":"public"} ${request.tags.join(" ")}`);
 
         if(!wasBookmarked)
         {
@@ -104,7 +102,7 @@ export default class Actions
 
         let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
 
-        console.log("Add bookmark for", mediaId, "options:", options);
+        console.log(`Add bookmark for ${mediaId}, options:`, options);
 
         // This is a mess, since Pixiv's APIs are all over the place.
         //
