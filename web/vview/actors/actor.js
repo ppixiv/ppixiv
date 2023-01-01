@@ -8,6 +8,8 @@
 // for helpers that want to live in the actor tree, but don't have content of their own.
 import { helpers } from 'vview/misc/helpers.js';
 
+let templatesCache = new Map();
+
 export default class Actor extends EventTarget
 {
     // If true, stack traces will be logged if shutdown() is called more than once.  This takes
@@ -136,21 +138,32 @@ export default class Actor extends EventTarget
     // using name as a key.
     createTemplate({name=null, html, makeSVGUnique=true})
     {
-        // Cache templates on the class.  This doesn't share cache between subclasses, but
-        // it lets us reuse templates between instances.
-        let cls = this.__proto__;
-        cls.templates ??= {};
-        let template = name? cls.templates[name]:null;
+        let template = name? this._templatesCache[name]:null;
         if(!template)
         {
             template = document.createElement("template");
             template.innerHTML = html;
             helpers.replaceInlines(template.content);
             
-            cls.templates[name] = template;
+            if(name)
+                this._templatesCache[name] = template;
         }
 
         return helpers.html.createFromTemplate(template, { makeSVGUnique });
+    }
+
+    // Cache templates separately for each class.  This doesn't share cache between subclasses,
+    // but it lets us reuse templates between instances.
+    get _templatesCache()
+    {
+        let cache = templatesCache.get(this.constructor)
+        if(cache != null)
+            return cache;
+
+        cache = {};
+        templatesCache.set(this.constructor, cache);
+
+        return cache;
     }
 
     // For convenience, return options to add to an event listener and other objects that
