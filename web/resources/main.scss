@@ -3063,7 +3063,6 @@ svg.heart-image .delete {
         .center-header-helper {
             // --icon-size is 2em each, plus the 1em padding-right on the icon:
             width: calc(1em * var(--icon-size) + 1em);
-            height: 1em;
             flex: 1;
             flex-shrink: 100000;
         }
