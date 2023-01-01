@@ -58,7 +58,7 @@ export default class ViewerImages extends Viewer
 
         // Restore the most recent zoom mode.
         if(ppixiv.mobile)
-            this._zoomLevel = 0;
+            this._zoomLevel = "cover";
         else
         {
             this.setLockedZoom(ppixiv.settings.get("zoom-mode") == "locked");
