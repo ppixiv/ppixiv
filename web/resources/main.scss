@@ -3026,6 +3026,7 @@ svg.heart-image .delete {
     .header {
         --icon-size: 2;
 
+        line-height: 2em;
         display: flex;
         align-items: center;
 
@@ -3660,7 +3661,6 @@ svg.heart-image .delete {
         display: flex;
         flex-direction: column;
         overflow-y: auto;
-        padding-top: 0.5em;
 
         > .box-link {
             padding: 0.5em;
