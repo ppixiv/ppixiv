@@ -917,14 +917,6 @@ input, textarea, [contenteditable] {
     }
 }
 
-.menu-slider input {
-    vertical-align: middle;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-    cursor: pointer;
-}
-
 .avatar-widget {
     display: block;
 
@@ -4118,4 +4110,67 @@ svg.heart-image .delete {
     {
         flex: 1;
     }
+}
+
+.slider
+{
+    display: flex;
+    align-items: center;
+
+    // To position the thumb:
+    position: relative;
+    min-width: 10em;
+    cursor: pointer;
+
+    // This is set by the widget.
+    --fill: 75%;
+
+    // These are in px and not em to guarantee an even number of pixels for centering.
+    --track-height: 8px;
+    --thumb-height: 24px;
+
+    --on-color: #07F;
+    --off-color: #fff;
+
+    // We can be made taller and our touch zone will expand, but make sure we're at least as tall as
+    // the thumb.
+    min-height: var(--thumb-height);
+
+    // Make room for the thumbs to overlap the edges.
+    margin: 0 calc(var(--thumb-height) / 2);
+
+    @include hover_or_active {
+        --on-color: #0AF;
+    }
+
+    .track-left
+    {
+        width: var(--fill);
+        height: var(--track-height);
+        border-radius: 2px 0 0 2px;
+        background-color: var(--on-color);
+    }
+
+    .track-right
+    {
+        flex: 1;
+        height: var(--track-height);
+        border-radius: 0 2px 2px 0;
+        background-color: var(--off-color);
+    }
+
+    .thumb
+    {
+        height: var(--thumb-height);
+        aspect-ratio: 1;
+        background-color: var(--on-color);
+        position: absolute;
+        left: var(--fill);
+        translate: -50% 0;
+        border-radius: 100%;
+    }
+}
+
+.menu-slider .slider {
+    flex: 1;
 }

@@ -26,9 +26,7 @@ function createSettingsWidget({ globalOptions })
                 classes: ["size-slider"],
                 min: 0,
                 max: 7,
-            }),
-    
-            button.root.querySelector(".size-slider").style.flexGrow = .25;
+            });
         },
 
         mangaThumbnailSize: () => {
@@ -43,9 +41,7 @@ function createSettingsWidget({ globalOptions })
                 classes: ["size-slider"],
                 min: 0,
                 max: 7,
-            }),
-    
-            button.root.querySelector(".size-slider").style.flexGrow = .25;
+            });
         },
 
         disabledByDefault: () => {
@@ -265,8 +261,6 @@ function createSettingsWidget({ globalOptions })
                 refresh: () => button.refresh(),
             });
 
-            button.root.querySelector(".size-slider").style.flexGrow = .25;
-    
             return button;
         },
 
@@ -289,8 +283,6 @@ function createSettingsWidget({ globalOptions })
                 // Refresh the label when the value changes.
                 refresh: () => { button.refresh(); },
             });
-
-            button.root.querySelector(".size-slider").style.flexGrow = .25;
         },
 
         slideshowDefaultAnimation: () => {

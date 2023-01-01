@@ -1,5 +1,5 @@
 import Widget from 'vview/widgets/widget.js';
-import { CheckboxWidget } from 'vview/widgets/simple.js';
+import { CheckboxWidget, SliderWidget } from 'vview/widgets/simple.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 // Simple menu settings widgets.
@@ -92,7 +92,7 @@ export class MenuOptionButton extends MenuOption
         `});
 
         // Set the box-link label to flex, to push buttons to the right:
-        this.root.querySelector(".label-box").style.flex = "1";
+        this.root.querySelector(".label-box").style.flex = "1.25";
 
         this._clickHandler = onclick;
         this._enabled = true;
@@ -259,39 +259,31 @@ export class MenuOptionSlider extends MenuOption
     })
     {
         super({...options, template: `
-            <div class="menu-slider thumbnail-size-box">
-                <span class=value></span>
-                <input class=thumbnail-size type=range>
-            </div>
+            <vv-container class=menu-slider></vv-container>
         `});
 
+        this.slider = new SliderWidget({
+            container: this.root,
+            onchange: ({value}) => {
+                this.value = this.sliderValue;
+            }
+        });
+
         this.list = list;
-
-        this.root.addEventListener("input", this.oninput);
-        this.root.addEventListener("click", (e) => { e.stopPropagation(); });
-
-        this.slider = this.root.querySelector("input");
         if(this.list != null)
         {
-            this.slider.min = 0;
-            this.slider.max = this.list.length - 1;
+            min = 0;
+            max = this.list.length - 1;
         }
-        else
-        {
-            this.slider.min = min;
-            this.slider.max = max;
-        }
+
+        this.slider.min = min;
+        this.slider.max = max;
     }
     
     refresh()
     {
         this.sliderValue = this.value;
         super.refresh();
-    }
-
-    oninput = (e) =>
-    {
-        this.value = this.sliderValue;
     }
 
     get value()
