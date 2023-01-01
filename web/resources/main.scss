@@ -2,12 +2,30 @@
 // l2-h2.
 @function scale_value($x, $l1, $h1, $l2, $h2)
 {
-    @return calc(($x - $l1) * ($h2 - $l2) / ($h1 - $l1) + $l2)
+    @return calc(($x - $l1) * ($h2 - $l2) / ($h1 - $l1) + $l2);
 }
 
 @function scale_clamp_value($x, $l1, $h1, $l2, $h2)
 {
-    @return calc(min($h2, max($l2, scale_value($x, $l1, $h1, $l2, $h2))))
+    @return calc(min($h2, max($l2, scale_value($x, $l1, $h1, $l2, $h2))));
+}
+
+// Apply a style while an element is active or hovered.  This handles feedback for both
+// desktop and mobile.
+//
+// Hovering needs an explicit @media check every single time to avoid it being fired in
+// nonsensical ways on mobile.
+@mixin hover_or_active
+{
+    @media(hover: hover) {
+        &:hover {
+            @content;
+        }
+    }
+
+    &:active {
+        @content;
+    }
 }
 
 * {
@@ -21,7 +39,7 @@
 
     // Disable images getting highlighted in blue on tap on mobile Chrome.   It would be
     // nicer to use something like a border...
-    -webkit-tap-highlight-color:  rgba(255, 255, 255, 0);
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
     -webkit-touch-callout: none;
 }
 
@@ -1925,8 +1943,8 @@ body.hide-r18g .r18g { display: none; }
         background-color: var(--box-link-selected-color);
     }
 
-    @media(hover: hover) {
-        &:hover:not(.disabled) {
+    &:not(.disabled) {
+        @include hover_or_active {
             background-color: var(--box-link-hover-color);
             &.selected { background-color: var(--box-link-selected-hover-color); }    
         }
