@@ -1,18 +1,14 @@
 import Widget from 'vview/widgets/widget.js';
-import Actor from 'vview/actors/actor.js';
 import Actions from 'vview/misc/actions.js';
+import AsyncLookup from 'vview/actors/async-lookup.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
 import { ConfirmPrompt, TextPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
 
-
 // This is GetMediaInfo for user info, looking up user info from a user ID.
-export class GetUserInfo extends Actor
+export class GetUserInfo extends AsyncLookup
 {
     constructor({
-        // 
-        userId=null,
-
         // The data this widget needs.  This can be:
         // - userId - Just the ID itself
         // - partial - Partial user info.
@@ -24,75 +20,39 @@ export class GetUserInfo extends Actor
         // page.
         neededData="full",
 
-        // If false, we won't make API requests to load data if we're not active.  If we already
-        // have data it'll still be provided.
-        loadWhileNotVisible=false,
-
-        // This is called when the media ID changes or new media info becomes available.
-        onrefresh=async ({userId, userInfo}) => { },
-
         ...options
     })
     {
         super({...options});
 
-        this._userId = userId;
         this._neededData = neededData;
-        this._loadWhileNotVisible = loadWhileNotVisible;
         if(!(this._neededData instanceof Function))
             this._neededData = () => neededData;
-        this._onrefresh = onrefresh;
 
         // Refresh when the user data changes.  We don't watch for changes to media IDs since
         // we don't expect the user for an image to change.
         ppixiv.mediaCache.addEventListener("usermodified", (e) => {
-            if(e.userId == this._userId)
+            if(e.userId == this._id)
                 this.refresh();
         }, this._signal);
-
-        // If we have an initial media ID, refresh with it.  Defer this so we don't call
-        // onrefresh before the constructor returns.
-        if(this._userId != null)
-            helpers.other.defer(() => this.refresh());
     }
 
-    get userId() { return this._userId; }
-    set userId(userId)
-    {
-        if(this._userId == userId)
-            return;
-
-        this._userId = userId;
-        this.refresh();
-    }
-
-    visibilityChanged()
-    {
-        super.visibilityChanged();
-
-        // If we might have skipped loading while not visible, refresh now.  Use visibleRecursively
-        // for this and not actuallyVisibleRecursively so we don't refresh while we're transitioning
-        // away.
-        if(!this._loadWhileNotVisible && this.visibleRecursively)
-            this.refresh();
-    }
-
-    async refresh()
+    async _refreshInner()
     {
         if(this.hasShutdown)
             return;
 
-        let userId = this._userId;
-        let info = { userId: this._userId };
+        let userId = this._id;
+        let info = { userId: this._id };
         
         // If we have a user ID and we want user info (not just the user ID itself), load it.
         let neededData = this._neededData();
-        if(this._userId != null && neededData != "userId")
+        if(this._id != null && neededData != "userId")
         {
             let full = neededData == "full";
 
             // See if we have the data the widget wants already.
-            info.userInfo = ppixiv.userCache.getUserInfoSync(this._userId, { full });
+            info.userInfo = ppixiv.userCache.getUserInfoSync(this._id, { full });
 
             // If we need to load data, clear the widget while we load, so we don't show the old
             // data while we wait for data.  Skip this if we don't need to load, so we don't clear
@@ -106,12 +66,12 @@ export class GetUserInfo extends Actor
                 if(!this._loadWhileNotVisible && !this.actuallyVisibleRecursively)
                     return;
 
-                info.userInfo = await ppixiv.userCache.getUserInfo(this._userId, { full });
+                info.userInfo = await ppixiv.userCache.getUserInfo(this._id, { full });
             }
         }
 
         // Stop if the media ID changed while we were async.
-        if(this._userId != userId)
+        if(this._id != userId)
             return;
 
         await this._onrefresh(info);
@@ -172,7 +132,7 @@ export class AvatarWidget extends Widget
             e.preventDefault();
             e.stopPropagation();
 
-            let args = new helpers.args(`/users/${this.getUserInfo.userId}/artworks#ppixiv`);
+            let args = new helpers.args(`/users/${this.getUserInfo.id}/artworks#ppixiv`);
             helpers.navigate(args, { scrollToTop: true });
         });
 
@@ -212,16 +172,16 @@ export class AvatarWidget extends Widget
 
     get userId()
     {
-        return this.getUserInfo.userId;
+        return this.getUserInfo.id;
     }
 
     async setUserId(userId)
     {
         // Close the dropdown if the user is changing.
-        if(this.getUserInfo.userId != userId && this.followDropdownOpener)
+        if(this.getUserInfo.id != userId && this.followDropdownOpener)
             this.followDropdownOpener.visible = false;
 
-        this.getUserInfo.userId =  userId;
+        this.getUserInfo.id =  userId;
         this.refresh();
     }
 

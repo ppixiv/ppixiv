@@ -229,7 +229,7 @@ export default class MobileImageUI extends Widget
         if(this.dragger.isAnimationPlaying)
             return;
 
-        this.getMediaInfo.mediaId = this._mediaId;
+        this.getMediaInfo.id = this._mediaId;
 
         // Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
         // open.
@@ -436,7 +436,7 @@ class MobileIllustInfoDialog extends DialogWidget
 
         this.getMediaInfo = new GetMediaInfo({
             parent: this,
-            mediaId,
+            id: mediaId,
             onrefresh: async(info) => this.refreshInternal(info),
         });
     }

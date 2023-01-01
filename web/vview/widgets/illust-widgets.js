@@ -1,6 +1,7 @@
 import Widget from 'vview/widgets/widget.js';
 import Actor from 'vview/actors/actor.js';
 import Actions from 'vview/misc/actions.js';
+import AsyncLookup from 'vview/actors/async-lookup.js';
 import { ConfirmPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -10,7 +11,7 @@ import { helpers } from 'vview/misc/helpers.js';
 // let getMediaInfo = new GetMediaInfo({
 //     onrefresh=({mediaId, mediaInfo}) { /* update with the new data */ }
 // });
-// getMediaInfo.mediaId = mediaId;
+// getMediaInfo.id = mediaId;
 // 
 // onrefresh will be called when the media ID changes, media info becomes available
 // or changes.
@@ -18,78 +19,53 @@ import { helpers } from 'vview/misc/helpers.js';
 // If a media ID is set but media info isn't available immediately, onrefresh will be
 // called with mediaInfo == null to allow the display to be cleared, and then called
 // again once data is available.
-export class GetMediaInfo extends Actor
+export class GetMediaInfo extends AsyncLookup
 {
     constructor({
-        mediaId=null,
-
         // The data this widget needs.  This can be mediaId (nothing but the ID), full or partial.
         //
         // This can change dynamically.  Some widgets need media info only when viewing a manga
         // page.
         neededData="full",
 
-        // This is called when the media ID changes or new media info becomes available.
-        onrefresh=async ({mediaId, mediaInfo}) => { },
-
         ...options
     })
     {
         super({...options});
 
-        this._mediaId = mediaId;
         this._neededData = neededData;
         if(!(this._neededData instanceof Function))
             this._neededData = () => neededData;
-        this._onrefresh = onrefresh;
 
         // Refresh when the image data changes.
         ppixiv.mediaCache.addEventListener("mediamodified", (e) => {
-            if(e.mediaId == this._mediaId)
+            if(e.mediaId == this._id)
                 this.refresh();
         }, this._signal);
-
-        // Defer the initial refresh so we don't call onrefresh before the constructor returns.
-        helpers.other.defer(() => this.refresh());
-    }
-
-    setMediaId(mediaId) { this.mediaId = mediaId; }
-    get mediaId() { return this._mediaId; }
-
-    set mediaId(mediaId)
-    {
-        if(this._mediaId == mediaId)
-            return;
-
-        this._mediaId = mediaId;
-        this.refresh();
     }
 
     // For convenience, return the current manga page.
     get mangaPage()
     {
-        let [illustId, page] = helpers.mediaId.toIllustIdAndPage(this.mediaId);
+        let [illustId, page] = helpers.mediaId.toIllustIdAndPage(this._id);
         return page;
     }
 
-    async refresh()
+    async _refreshInner()
     {
-        if(this.hasShutdown)
-            return;
-
         // Grab the illust info.
-        let mediaId = this._mediaId;
-        let info = { mediaId: this._mediaId };
+        let mediaId = this._id;
+        let info = { mediaId: this._id };
         
         // If we have a media ID and we want media info (not just the media ID itself), load
         // the info.
         let neededData = this._neededData();
-        if(this._mediaId != null && neededData != "mediaId")
+        if(this._id != null && neededData != "mediaId")
         {
             let full = neededData == "full";
 
             // See if we have the data the widget wants already.
-            info.mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._mediaId, { full });
+            info.mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._id, { full });
 
             // If we need to load data, clear the widget while we load, so we don't show the old
             // data while we wait for data.  Skip this if we don't need to load, so we don't clear
@@ -98,11 +74,11 @@ export class GetMediaInfo extends Actor
             if(info.mediaInfo == null)
                 await this._onrefresh(info);
 
-            info.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId, { full });
+            info.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._id, { full });
         }
 
         // Stop if the media ID changed while we were async.
-        if(this._mediaId != mediaId)
+        if(this._id != mediaId)
             return;
 
         await this._onrefresh(info);
@@ -125,9 +101,9 @@ export class IllustWidget extends Widget
 
     get neededData() { return "full"; }
 
-    get _mediaId() { return this.getMediaInfo.mediaId; }
-    setMediaId(mediaId) { this.getMediaInfo.mediaId = mediaId; }
-    get mediaId() { return this.getMediaInfo.mediaId; }
+    get _mediaId() { return this.getMediaInfo.id; }
+    setMediaId(mediaId) { this.getMediaInfo.id = mediaId; }
+    get mediaId() { return this.getMediaInfo.id; }
     get mangaPage() { return this.getMediaInfo.mangaPage; }
 
     async refreshInternal({ mediaId, mediaInfo })
