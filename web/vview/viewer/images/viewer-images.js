@@ -533,7 +533,7 @@ export default class ViewerImages extends Viewer
         if(level == "cover")
             return this._zoomLevelCover;
         else if(level == "actual")
-            return this.__zoomLevelActual;
+            return this._zoomLevelActual;
         else
             return level;
     }
@@ -567,7 +567,7 @@ export default class ViewerImages extends Viewer
 
     // The zoom level for "actual" mode.  This inverts the base scaling.
     get _zoomFactorActual() { return 1 / this._imageToCoverRatio; }
-    get __zoomLevelActual() { return this.zoomFactorToZoomLevel(this._zoomFactorActual); }
+    get _zoomLevelActual() { return this.zoomFactorToZoomLevel(this._zoomFactorActual); }
 
     // Zoom in or out.  If zoom_in is true, zoom in by one level, otherwise zoom out by one level.
     changeZoom(zoomOut, { stopAnimation=true }={})
@@ -588,7 +588,7 @@ export default class ViewerImages extends Viewer
         // image and view size.
 
         let coverZoomLevel = this._zoomLevelCover;
-        let actualZoomLevel = this.__zoomLevelActual;
+        let actualZoomLevel = this._zoomLevelActual;
 
         // Increase or decrease relative_zoom_level by snapping to the next or previous increment.
         // We're usually on a multiple of increment, moving from eg. 0.5 to 0.75, but if we're on
