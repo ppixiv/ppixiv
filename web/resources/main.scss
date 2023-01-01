@@ -2839,15 +2839,14 @@ svg.heart-image .delete {
     // --dialog-bg-alpha is the background of the dialog itself.  In fullscreen, put the dialog
     // background on the container, so we can transition it separately from the dialog animation.
     // Note that these overlap, and --dialog-bg-alpha will be applied on top of --dialog-backdrop-alpha.
-    @if $dark {
-        // total brightness .125: (1-0.5) * (1-0.75)
-        --dialog-bg-alpha: 0.75;
-        --dialog-backdrop-alpha: 0.5;
-    }
-    @else
-    {
+    &:not(.floating) {
         // total brightness .25: (1-0.5) * (1-0.5)
         --dialog-bg-alpha: 0.5;
+        --dialog-backdrop-alpha: 0.5;
+    }
+    &.floating {
+        // total brightness .125: (1-0.5) * (1-0.75)
+        --dialog-bg-alpha: 0.75;
         --dialog-backdrop-alpha: 0.5;
     }
 
