@@ -146,8 +146,9 @@ export class helpers
                     <div class=label-box>
                         <span hidden class=icon></span>
                         <span hidden class=label></span>
-                        <span hidden class=explanation></span>
+                        <vv-container class=widget-box></vv-container>
                     </div>
+                    <span hidden class=explanation></span>
                 </a>
             `;
 

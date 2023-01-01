@@ -91,13 +91,10 @@ export class MenuOptionButton extends MenuOption
             })}
         `});
 
-        // Set the box-link label to flex, to push buttons to the right:
-        this.root.querySelector(".label-box").style.flex = "1.25";
-
         this._clickHandler = onclick;
         this._enabled = true;
-        this.explanationEnabled = explanationEnabled;
-        this.explanationDisabled = explanationDisabled;
+        this.explanationEnabled = helpers.other.makeFunction(explanationEnabled);
+        this.explanationDisabled = helpers.other.makeFunction(explanationDisabled ?? explanationEnabled);
         this.getLabel = getLabel;
 
         if(this._clickHandler != null)
@@ -128,7 +125,7 @@ export class MenuOptionButton extends MenuOption
 
     get explanationText()
     {
-        return this.enabled? this.explanationEnabled:this.explanationDisabled;
+        return this.enabled? this.explanationEnabled():this.explanationDisabled();
     }
 
     onclick = (e) =>
@@ -178,7 +175,7 @@ export class MenuOptionToggle extends MenuOptionButton
     {
         super({...options});
 
-        this.checkbox = new CheckboxWidget({ container: this.root });
+        this.checkbox = new CheckboxWidget({ container: this.querySelector(".widget-box") });
         this.checkbox.checked = checked;
     }
 
@@ -390,20 +387,16 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
         this.setting = setting;
         this.values = values;
         this.slider = new MenuOptionSliderSetting({
-            container: this.root,
+            container: this.root.querySelector(".widget-box"),
             label: "xxx",
             setting: setting,
             min: 0,
             max: values.length,
             list: values,
-            classes: ["slider"],
             
             // Refresh the label when the value changes.
             refresh: () => { this.refresh(); },
         });
-    
-
-        this.root.querySelector(".slider").style.flexGrow = .25;        
     }
 
     get explanationText()

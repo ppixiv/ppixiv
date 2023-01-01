@@ -1902,18 +1902,21 @@ body.hide-r18g .r18g { display: none; }
 
     background-color: var(--box-link-bg-color);
 
+    .label-box {
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+
     .label {
         // This is so the label text aligns correctly with .icon .material-icons.
         vertical-align: middle;
+        flex: 1;
         // white-space: nowrap;
     }
 
     &:not(.allow-wrap) {
         white-space: nowrap;
-    }
-
-    .explanation {
-        // white-space: normal;
     }
 
     &.selected {
@@ -3687,30 +3690,21 @@ svg.heart-image .delete {
         height: 100%;
 
         .settings-row {
-            padding: 0.5em 0em;
-            gap: 1em;
+            padding: 0.5em;
         }
     
         .box-link {
             // Disable some regular box-link styles:
             height: auto;
-            background-color: inherit;
-        
+            align-items: stretch;
+            flex-direction: column;
+            --box-link-bg-color: #00000000;
+
             // Extra buttons (the linked tabs "edit" button):
             > .buttons > .box-link {
                 padding: 0.35em .75em;
             }
-    
-            &.button {
-                background-color: var(--box-link-bg-color);
-            }
-    
-            @media(hover: hover) {
-                &.clickable:hover:not(.disabled) {
-                    background-color: var(--box-link-hover-color);
-                }
-            }
-                
+
             // If this isn't a clickable row, such as a slider, disable effects on hover.
             &:not(.clickable):hover {
                 cursor: inherit;
@@ -3718,22 +3712,17 @@ svg.heart-image .delete {
             }
         }            
     
-        // Top-level box-links inside settings pages put their explanation underneath the
-        // label.
-        > .box-link > .label-box {
-            margin-left: .25em;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: .25em;
-            .label {
-                padding-top: .25em; // adjust for descenders
-                margin: 0; // disable regular margin
+        > .box-link {
+            > .label-box {
+                .label {
+                    white-space: nowrap;
+                    flex: 1;
+                }
             }
 
-            .explanation {
-                font-size: 16px;
-                opacity: 0.75;
+            > .explanation {
+                font-size: 80%;
+                color: #ccc;
             }
         }
     }
@@ -4103,7 +4092,7 @@ svg.heart-image .delete {
 
     // To position the thumb:
     position: relative;
-    min-width: 10em;
+    min-width: 4em;
     cursor: pointer;
 
     // This is set by the widget.

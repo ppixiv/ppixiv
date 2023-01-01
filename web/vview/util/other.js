@@ -63,6 +63,14 @@ export function makePromise()
     return promise;
 }
 
+export function makeFunction(value)
+{
+    if(value instanceof Function)
+        return value;
+    else
+        return () => value;
+}
+
 // Like Promise.all, but takes a dictionary of {key: promise}, returning a
 // dictionary of {key: result}.
 export async function awaitMap(map)

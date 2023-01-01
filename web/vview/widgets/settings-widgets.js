@@ -21,7 +21,7 @@ function createSettingsWidget({ globalOptions })
             });
 
             new MenuOptionsThumbnailSizeSlider({
-                container: button.root,
+                container: button.querySelector(".widget-box"),
                 setting: "thumbnail-size",
                 classes: ["size-slider"],
                 min: 0,
@@ -36,7 +36,7 @@ function createSettingsWidget({ globalOptions })
             });
 
             new MenuOptionsThumbnailSizeSlider({
-                container: button.root,
+                container: button.querySelector(".widget-box"),
                 setting: "manga-thumbnail-size",
                 classes: ["size-slider"],
                 min: 0,
@@ -107,7 +107,7 @@ function createSettingsWidget({ globalOptions })
         disableTranslations: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
-                label: "Show tag translations when available",
+                label: "Show tag translations",
                 setting: "disable-translations",
                 invertDisplay: true,
             });
@@ -142,10 +142,10 @@ function createSettingsWidget({ globalOptions })
         bookmarkPrivatelyByDefault: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
-                label: "Bookmark and follow privately by default",
+                label: "Bookmark and follow privately",
                 setting: "bookmark_privately_by_default",
-                explanationDisabled: "Pressing Ctrl-B will bookmark publically",
-                explanationEnabled: "Pressing Ctrl-B will bookmark privately",
+                explanationDisabled: ppixiv.mobile? null: "Pressing Ctrl-B will bookmark publically",
+                explanationEnabled: ppixiv.mobile? null: "Pressing Ctrl-B will bookmark privately",
             });
         },
 
@@ -234,14 +234,15 @@ function createSettingsWidget({ globalOptions })
             let button = new MenuOptionButton({
                 ...globalOptions,
                 label: "Time per image",
-                getLabel: () => {
+                getLabel: () => "Pan duration",
+                explanationEnabled: (value) => {
                     let seconds = ppixiv.settings.get("auto_pan_duration");;
-                    return `Pan duration: ${seconds} ${seconds != 1? "seconds":"second"}`;                                        
+                    return `${seconds} ${seconds != 1? "seconds":"second"}`;                                        
                 },
             });
 
             new MenuOptionSliderSetting({
-                container: button,
+                container: button.querySelector(".widget-box"),
                 setting: "auto_pan_duration",
                 list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60],
                 classes: ["size-slider"],
@@ -257,14 +258,15 @@ function createSettingsWidget({ globalOptions })
             let button = new MenuOptionButton({
                 ...globalOptions,
                 label: "Time per image",
-                getLabel: () => {
+                getLabel: () => "Slideshow duration",
+                explanationEnabled: (value) => {
                     let seconds = ppixiv.settings.get("slideshow_duration");;
-                    return `Slideshow duration: ${seconds} ${seconds != 1? "seconds":"second"}`;
+                    return `${seconds} ${seconds != 1? "seconds":"second"}`;
                 },
             });
     
             new MenuOptionSliderSetting({
-                container: button,
+                container: button.querySelector(".widget-box"),
                 setting: "slideshow_duration",
                 list: [1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180],
                 classes: ["size-slider"],
@@ -321,7 +323,7 @@ function createSettingsWidget({ globalOptions })
         expandMangaPosts: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
-                label: "Expand manga posts in search results",
+                label: "Expand manga posts",
                 setting: "expand_manga_thumbnails",
             });
         },
@@ -638,7 +640,9 @@ export class SettingsDialog extends DialogWidget
                 }
         
                 settingsWidgets.bookmarkPrivatelyByDefault();
-                settingsWidgets.limitSlideshowFramerate();
+
+                if(!ppixiv.mobile)
+                    settingsWidgets.limitSlideshowFramerate();
         
                 // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
                 // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
