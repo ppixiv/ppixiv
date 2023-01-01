@@ -870,7 +870,7 @@ export default class ViewerImages extends Viewer
         let roundedBoxReposition = this.querySelector(".rounded-box-reposition");
 
         // This isn't used if we're not in notch mode.
-        if(document.documentElement.dataset.fullscreenMode != "notch")
+        if(document.documentElement.dataset.displayMode != "notch")
         {
             roundedBox.style.translate = "";
             roundedBoxReposition.style.translate = "";

@@ -105,7 +105,7 @@ export default class App
         helpers.html.setClass(document.body, "hide-r18g", !ppixiv.pixivInfo.include_r18g);
 
         this._setDeviceProperties();
-        ppixiv.settings.addEventListener("avoid-statusbar", this._setDeviceProperties);
+        ppixiv.settings.addEventListener("display_mode", this._setDeviceProperties);
         window.addEventListener("orientationchange", this._setDeviceProperties);
         new ResizeObserver(this._setDeviceProperties).observe(document.documentElement);
 
@@ -329,22 +329,33 @@ export default class App
 
         // Set the fullscreen mode.  See the device styling rules in main.scss for more
         // info.
-        //
-        // Try to figure out if we're on a device with a notch.  There's no way to query this,
-        // and if we're on an iPhone we can't even directly query which model it is, so we have
-        // to guess.  For iPhones, assume that we have a notch if we have a bottom inset, since
-        // all current iPhones with a notch also have a bottom inset for the ugly pointless white
-        // line at the bottom of the screen.
-        //
-        // - When in Safari in top navigation bar mode, the bottom bar isn't reported as a safe area,
-        // even though content goes under it.  This is probably due to the UI that appears based on
-        // scrolling.  In this mode, we don't need to avoid a notch when in portrait since we're not
-        // overlapping it, but we won't enter rounded mode either, so we'll have a round bottom and
-        // square top.
-        let notch = false;
+        let displayMode = ppixiv.settings.get("display_mode", "auto");
+        if(["auto", "normal", "notch", "safe-area"].indexOf(displayMode) == -1)
+            displayMode = "auto";
+        
+        if(displayMode == "auto")
+            displayMode = this.autoDisplayMode;
+
+        document.documentElement.dataset.displayMode = displayMode;
+    }
+
+    // Return the display mode that will be used if "auto" is selected.
+    //
+    // Try to figure out if we're on a device with a notch.  There's no way to query this,
+    // and if we're on an iPhone we can't even directly query which model it is, so we have
+    // to guess.  For iPhones, assume that we have a notch if we have a bottom inset, since
+    // all current iPhones with a notch also have a bottom inset for the ugly pointless white
+    // line at the bottom of the screen.
+    //
+    // We'd like to default to notch mode if we're in a current iPhone in top navigation bar
+    // mode, but that's hard to detect.
+    get autoDisplayMode()
+    {
+        let insets = helpers.html.getSafeAreaInsets();
         if(ppixiv.ios && navigator.platform.indexOf('iPhone') != -1)
         {
-            notch = insets.bottom > 0;
+            if(insets.bottom > 0)
+                return "notch";
 
             // Work around an iOS bug: when running in Safari (not as a PWA) in landscape with the
             // toolbar hidden, the content always overlaps the navigation line, but it doesn't report
@@ -352,16 +363,10 @@ export default class App
             // safe area on the left or right, and incorrectly reports a matching safe area on the right
             // (there's nothing there to need a safe area), so check for this as a special case.
             if(!navigator.standalone && (insets.left > 20 && insets.right == insets.left))
-                notch = true;
+                return "notch";
         }
 
-        // Set the fullscreen mode.
-        if(notch)
-            document.documentElement.dataset.fullscreenMode = "notch";
-        else if(ppixiv.settings.get("avoid-statusbar"))
-            document.documentElement.dataset.fullscreenMode = "safe-area";
-        else
-            document.documentElement.dataset.fullscreenMode = "none";
+        return "normal";
     }
 
     // This is called early in initialization.  If we're running natively and

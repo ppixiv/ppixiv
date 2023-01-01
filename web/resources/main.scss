@@ -84,41 +84,26 @@ html {
     
     // Device-specific styling
     //
-    // We handle a few different types of displays, based on data-fullscreen-mode.
+    // We handle a few different types of displays, based on data-display-mode.
     //
-    // - "none": The image will fill the screen completely.
+    // - "normal": The image will fill the screen completely.
     // - "safe-area": Keep the image entirely in the safe area, not overlapping the status bar
     // if we have one.  It's ugly on white tablets, since it creates an ugly black bar at
     // the top of the screen, but it can be preferable on black tablets where the extra space is
     // mostly invisible.
     // - "notch": We're on a phone with a notch or cutout and we don't want the image to
-    // overlap it.  This is similar to avoid-statusbar, but only avoids the side we think
+    // overlap it.  This is similar to safe-area, but only avoids the side we think
     // the notch is on.  This avoids the notch, but not the iOS navigation bar line.
-    //
     // In landscape, the notch is on the left or right and the adjustments are rotated accordingly.
-    //
-    // We can't detect everything about the device automatically.  The safe zone tells us if
-    // there's an obstruction at each edge, but we don't know if it's a status bar, notch, cutout,
-    // iOS's weird pointless horizontal line, etc.  We have to figure that out for ourself on
-    // a device-by-device basis.
-    //
-    // When running as a web app, we're stuck with the iOS weird pointless horizontal line.
-    // There's no way to get rid of it without running as a native app.  We don't avoid overlapping
-    // it, since that usually only looks worse.
-    //
-    // Set --fullscreen-* to the offset we need to push content by to avoid a notch.
     --fullscreen-left: 0; --fullscreen-top: 0; --fullscreen-right: 0;--fullscreen-bottom: 0;
-    &[data-fullscreen-mode="notch"] {
+    &[data-display-mode="notch"] {
         &[data-orientation="0"] {   --fullscreen-top:    env(safe-area-inset-top); }
         &[data-orientation="90"] {  --fullscreen-left:   env(safe-area-inset-left); }
         &[data-orientation="-90"] { --fullscreen-right:  env(safe-area-inset-right); }
         &[data-orientation="180"] { --fullscreen-bottom: env(safe-area-inset-bottom); }
     }
 
-    // If we're on a device with an overlaid status bar and no notch, we may or may not want
-    // to let the image overlay the status bar.  This is just a matter of preference.  If avoid-status-bar
-    // is set, 
-    &[data-fullscreen-mode="avoid-statusbar"] {
+    &[data-display-mode="safe-area"] {
         --fullscreen-top:    env(safe-area-inset-top);
     }
 
@@ -130,7 +115,7 @@ html {
     // The radius is based on the iPhone 14.  If this is used on other phones, we should probably
     // just let the user set it.
     --device-edge-radius: 0;
-    &[data-fullscreen-mode="notch"] {
+    &[data-display-mode="notch"] {
         // Use a relative unit for this, so it's proportional to the device size and not devicePixelRatio.
         // Don't use percentages, since that causes it to become elliptical.
         --device-edge-radius: 14vmin;
@@ -2554,7 +2539,7 @@ body.hide-r18g .r18g { display: none; }
             pointer-events: var(--pointer-events);
 
             // Note that the background color extends into the top safe area, so if we're overlapping
-            // a statusbar (avoid-statusbar mode), we'll dim under the statusbar so the menu isn't floating.
+            // a statusbar (safe-area mode), we'll dim under the statusbar so the menu isn't floating.
             padding-top: 0.5em;
             padding-bottom: calc(max(env(safe-area-inset-bottom), 0.5em));
             padding-left: env(safe-area-inset-left);

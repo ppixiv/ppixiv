@@ -104,17 +104,6 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
-        theme: () => {
-            return new MenuOptionToggleSetting({
-                ...globalOptions,
-                label: "Light mode",
-                setting: "theme",
-                onValue: "light",
-                offValue: "dark",
-                explanationEnabled: "FLASHBANG",
-            });
-        },
-
         disableTranslations: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
@@ -308,6 +297,24 @@ function createSettingsWidget({ globalOptions })
                 setting: "slideshow_skips_manga",
                 explanationEnabled: "Slideshow mode will only show the first page.",
                 explanationDisabled: "Slideshow mode will show all pages.",
+            });
+        },
+
+        displayMode: () => {
+            return new MenuOptionOptionsSetting({
+                ...globalOptions,
+                setting: "display_mode",
+                label: "Display mode",
+                values: ["auto", "normal", "notch", "safe-area"],
+                explanation: (value) => {
+                    switch(value)
+                    {
+                    case "auto": return "Detect automatically";
+                    case "normal": return "Fill the whole screen";
+                    case "notch": return "Rounded display for iPhones";
+                    case "safe-area": return "Avoid the status bar";
+                    }
+                },
             });
         },
 
@@ -589,6 +596,9 @@ export class SettingsDialog extends DialogWidget
                 settingsWidgets.slideshowDefaultAnimation();
                 if(!ppixiv.native) // native mode doesn't support manga pages
                     settingsWidgets.slideshowSkipsManga();
+
+                if(ppixiv.mobile)
+                    settingsWidgets.displayMode();
                 
                 settingsWidgets.viewMode();
                 if(!ppixiv.mobile)
@@ -627,7 +637,6 @@ export class SettingsDialog extends DialogWidget
                     settingsWidgets.enableTransitions();
                 }
         
-                // settingsWidgets.theme();
                 settingsWidgets.bookmarkPrivatelyByDefault();
                 settingsWidgets.limitSlideshowFramerate();
         
