@@ -50,8 +50,6 @@ export default class InpaintEditor extends Widget
             </div>
         `});
 
-        this.shutdownSignal = new AbortController();
-
         this.width = 100;
         this.height = 100;
         this.lines = [];

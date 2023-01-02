@@ -46,8 +46,6 @@ export default class PanEditor extends Widget
             </div>
         `});
 
-        this.shutdownSignal = new AbortController();
-
         this.width = this.height = 100;
         this.dragging = false;
         this._dragStart = null;
