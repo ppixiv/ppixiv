@@ -78,6 +78,15 @@ export default class MobileImageUI extends Widget
             animatedProperty: "--menu-bar-pos",
             direction: "up",
 
+            confirmDrag: () => {
+                // Don't start if MobileImageDismiss is animating, so dragging up during the
+                // transition back to ScreenIllust doesn't open the menu.
+                if(this.parent.mobileImageDismiss.isAnimating)
+                    return false;
+
+                return true;
+            },
+
             oncancelled: ({otherDragger}) => {
                 if(!this.dragger.visible)
                     return;
