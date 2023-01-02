@@ -19,7 +19,7 @@ export default class ImageEditor extends IllustWidget
     {
         // Set our default visibility to the image_editing setting.
         if(visible == null)
-            visible = ppixiv.settings.get("image_editing");
+            visible = ppixiv.settings.get("image_editing", false);
 
         super({...options,
             visible,
