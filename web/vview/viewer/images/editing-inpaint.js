@@ -96,13 +96,13 @@ export default class InpaintEditor extends Widget
         this._downscaleSlider.addEventListener("change", (e) => {
             this.parent.saveUndo();
             this.downscaleRatio = parseFloat(this._downscaleSlider.value);
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         this._blurSlider = this.root.querySelector(".inpaint-blur");
         this._blurSlider.addEventListener("change", (e) => {
             this.parent.saveUndo();
             this.blur = parseFloat(this._blurSlider.value);
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
         
         let viewInpaintButton = this.root.querySelector(".view-inpaint");
         new PointerListener({
@@ -110,7 +110,7 @@ export default class InpaintEditor extends Widget
             callback: (e) => {
                 this.visible = !e.pressed;
             },
-            signal: this.shutdownSignal.signal,
+            signal: this.shutdownSignal,
         });
 
         // "Save default" buttons:
@@ -120,7 +120,7 @@ export default class InpaintEditor extends Widget
             let value = parseInt(this._lineWidthSlider.value);
             ppixiv.settings.set("inpaint_default_thickness", value);
             console.log("Saved default line thickness:", value);
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         this.root.querySelector(".save-default-downscale").addEventListener("click", (e) => {
             e.stopPropagation();
@@ -128,7 +128,7 @@ export default class InpaintEditor extends Widget
             let value = parseFloat(this._downscaleSlider.value);
             ppixiv.settings.set("inpaint_default_downscale", value);
             console.log("Saved default downscale:", value);
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         this.root.querySelector(".save-default-soften").addEventListener("click", (e) => {
             e.stopPropagation();
@@ -136,12 +136,12 @@ export default class InpaintEditor extends Widget
             let value = parseFloat(this._blurSlider.value);
             ppixiv.settings.set("inpaint_default_blur", value);
             console.log("Saved default blur:", value);
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         new PointerListener({
             element: this._editorOverlay,
             callback: this.pointerevent,
-            signal: this.shutdownSignal.signal,
+            signal: this.shutdownSignal,
         });
 
         // This is a pain.  We want to handle clicks when modifier buttons are pressed, and
@@ -156,15 +156,15 @@ export default class InpaintEditor extends Widget
                 this._ctrlPressed = pressed;
                 this._refreshPointerEvents();
             }, {
-                signal: this.shutdownSignal.signal
+                signal: this.shutdownSignal
             });
         }
 
         this._createLines = ppixiv.settings.get("inpaint_create_lines", false);
 
         // Prevent fullscreening if a UI element is double-clicked.
-        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal.signal });
-        this._editorOverlay.addEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal.signal });
+        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal });
+        this._editorOverlay.addEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal });
 
         this._refreshPointerEvents();
     }
@@ -382,9 +382,9 @@ export default class InpaintEditor extends Widget
         // we won't see any event if the element that's being hovered is removed from the
         // document while it's being hovered.
         if(over)
-            window.addEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal.signal });
+            window.addEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal });
         else
-            window.removeEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal.signal });
+            window.removeEventListener("mouseover", this.onmousehover, { signal: this.shutdownSignal });
     }
 
     get createLines() { return this._createLines; }

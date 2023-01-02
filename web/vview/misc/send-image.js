@@ -456,7 +456,7 @@ export class LinkThisTabPopup extends DialogWidget
 
             dialog = new LinkThisTabPopup({ message });
 
-            dialog.shutdownSignal.signal.addEventListener("abort", () => {
+            dialog.shutdownSignal.addEventListener("abort", () => {
                 hideTimer.clear();
                 dialog = null;
             });
@@ -551,7 +551,7 @@ export class SendImagePopup extends DialogWidget
             console.assert(this.visible);
 
             ppixiv.sendImage.sendMessage({ message: "show-send-image" });
-        }, 1000, this.shutdownSignal.signal);
+        }, 1000, this.shutdownSignal);
 
         ppixiv.sendImage.messages.addEventListener("take-image", ({message}) => {
             let tabId = message.from;
@@ -587,7 +587,7 @@ export class SendHerePopup extends DialogWidget
             if(dialog == null)
             {
                 dialog = new SendHerePopup();
-                dialog.shutdownSignal.signal.addEventListener("abort", () => {
+                dialog.shutdownSignal.addEventListener("abort", () => {
                     hideTimer.clear();
                     dialog = null;
                 });
@@ -613,7 +613,7 @@ export class SendHerePopup extends DialogWidget
                 ${ helpers.createBoxLink({ label: "Click to send image here", classes: ["link-this-tab"]}) }
         `});
 
-        window.addEventListener("click", this.takeImage, { signal: this.shutdownSignal.signal });
+        window.addEventListener("click", this.takeImage, { signal: this.shutdownSignal });
     }
 
     takeImage = (e) =>

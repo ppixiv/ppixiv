@@ -135,7 +135,7 @@ export default class DesktopSearchUI extends Widget
 
         // Refresh the "Refresh search from page" tooltip if the page in the URL changes.  Use statechange
         // rather than popstate for this, so it responds to all URL changes.
-        window.addEventListener("pp:statechange", (e) => this.refreshRefreshSearchFromPage(), { signal: this.shutdownSignal.signal });
+        window.addEventListener("pp:statechange", (e) => this.refreshRefreshSearchFromPage(), { signal: this.shutdownSignal });
 
         this.avatarWidget = new AvatarWidget({
             container: this.querySelector(".avatar-container"),

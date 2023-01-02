@@ -58,9 +58,9 @@ export default class ScreenIllust extends Screen
         if(ppixiv.mobile)
             uiContainer.hidden = true;
 
-        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal.signal });        
-        ppixiv.mediaCache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdownSignal.signal });
-        ppixiv.settings.addEventListener("recent-bookmark-tags", this.refreshUi, { signal: this.shutdownSignal.signal });
+        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal });        
+        ppixiv.mediaCache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdownSignal });
+        ppixiv.settings.addEventListener("recent-bookmark-tags", this.refreshUi, { signal: this.shutdownSignal });
 
         this.viewContainer = this.root.querySelector(".view-container");
 

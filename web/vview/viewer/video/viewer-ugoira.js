@@ -27,7 +27,7 @@ export default class ViewerUgoira extends ViewerVideoBase
         // from this.wantPlaying so we stay paused after seeking if we were paused at the start.
         this.seeking = false;
 
-        window.addEventListener("visibilitychange", this.refreshFocus.bind(this), { signal: this.shutdownSignal.signal });
+        window.addEventListener("visibilitychange", this.refreshFocus.bind(this), { signal: this.shutdownSignal });
     }
 
     async load()

@@ -26,7 +26,7 @@ export default class SeekBar extends Widget
 
         this.dragger = new DragHandler({
             element: this.root,
-            signal: this.shutdownSignal.signal,
+            signal: this.shutdownSignal,
             name: "seek-bar",
 
             // Don't delay the start of seek bar drags until the first pointer movement.

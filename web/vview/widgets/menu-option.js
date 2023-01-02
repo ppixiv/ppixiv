@@ -219,7 +219,7 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
         this.onValue = onValue;
         this.offValue = offValue;
         if(this.setting)
-            ppixiv.settings.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdownSignal.signal });
+            ppixiv.settings.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdownSignal });
     }
 
     refresh()

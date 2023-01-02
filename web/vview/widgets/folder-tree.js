@@ -30,7 +30,7 @@ class TreeWidget extends Widget
         this.items = this.root.querySelector(".items");
 
         // Listen to illust changes so we can refresh nodes.
-        ppixiv.mediaCache.addEventListener("mediamodified", this._mediaModified, { signal: this.shutdownSignal.signal });
+        ppixiv.mediaCache.addEventListener("mediamodified", this._mediaModified, { signal: this.shutdownSignal });
 
         // Create the root item.  This is TreeWidgetItem or a subclass.
         if(addRoot)

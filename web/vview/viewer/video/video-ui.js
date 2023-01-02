@@ -48,7 +48,7 @@ export default class VideoUI extends Widget
         // listen for data-mobile-ui-visible and show our UI
         ClassFlags.get.addEventListener("mobile-ui-visible", (e) => {
             this.refreshShowUi();
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         // Set .dragging to stay visible during drags.
         new PointerListener({
@@ -106,14 +106,14 @@ export default class VideoUI extends Widget
         this.root.querySelector(".play-button").addEventListener("click", () => {
             if(this.player != null)
                 this.player.setWantPlaying(!this.player.wantPlaying);
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         for(let button of this.root.querySelectorAll("[data-volume]"))
             button.addEventListener("click", () => {
                 if(this.video == null)
                     return;
                 this.video.muted = !this.video.muted;
-            }, { signal: this.shutdownSignal.signal });
+            }, { signal: this.shutdownSignal });
 
         this.root.querySelector(".pip-button").addEventListener("click", async () => {
             if(this.video == null)
@@ -128,22 +128,22 @@ export default class VideoUI extends Widget
             } catch(e) {
                 return false;
             }
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         document.addEventListener("fullscreenchange", (e) => {
             this._setSeekBarPos();
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         window.addEventListener("resize", (e) => {
             this._setSeekBarPos();
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         // Set up the fullscreen button.  Disable this on mobile, since it doesn't make sense there.
         let fullscreenButton = this.root.querySelector(".fullscreen");
         fullscreenButton.hidden = ppixiv.mobile;
         fullscreenButton.addEventListener("click", () => {
             helpers.toggleFullscreen();
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         this.videoChanged();
     }

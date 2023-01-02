@@ -15,7 +15,7 @@ export default class ViewerImagesDesktop extends ViewerImages
         this._pointerListener = new PointerListener({
             element: this.root,
             buttonMask: 1,
-            signal: this.shutdownSignal.signal,
+            signal: this.shutdownSignal,
             callback: this._pointerevent,
         });
     }

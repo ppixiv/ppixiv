@@ -157,7 +157,7 @@ export default class DesktopImageInfo extends Widget
             container: this.root.querySelector(".tag-list-container")
         });
 
-        ppixiv.mediaCache.addEventListener("mediamodified", this.refresh, { signal: this.shutdownSignal.signal });
+        ppixiv.mediaCache.addEventListener("mediamodified", this.refresh, { signal: this.shutdownSignal });
         
         this.likeButton = new LikeButtonWidget({
             container: this.root.querySelector(".button-like-container"),

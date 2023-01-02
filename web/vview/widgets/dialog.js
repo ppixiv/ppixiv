@@ -220,7 +220,7 @@ export default class DialogWidget extends Widget
         this.root.querySelector(".close-button").hidden = !allowClose || !showCloseButton;
         this.header = header;
 
-        window.addEventListener("keydown", this._onkeypress.bind(this), { signal: this.shutdownSignal.signal });
+        window.addEventListener("keydown", this._onkeypress.bind(this), { signal: this.shutdownSignal });
 
         if(this.allowClose)
         {
@@ -241,14 +241,14 @@ export default class DialogWidget extends Widget
             // shutdown() directly instead of setting visible, since we don't want to trigger animations here.
             window.addEventListener("screenchanged", (e) => {
                 this.shutdown();
-            }, { signal: this.shutdownSignal.signal });
+            }, { signal: this.shutdownSignal });
 
             if(this._close_on_popstate)
             {
                 // Hide on any state change.
                 window.addEventListener("pp:popstate", (e) => {
                     this.shutdown();
-                }, { signal: this.shutdownSignal.signal });
+                }, { signal: this.shutdownSignal });
             }
         }
 

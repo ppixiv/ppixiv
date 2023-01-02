@@ -63,7 +63,7 @@ export default class TouchScroller extends Actor
         this._state = "idle";
 
         // Cancel any running fling if we're shut down while a fling is active.
-        this.shutdownSignal.signal.addEventListener("abort", (e) => this.cancelFling(), { once: true });
+        this.shutdownSignal.addEventListener("abort", (e) => this.cancelFling(), { once: true });
 
         this.dragger = new DragHandler({
             parent: this,

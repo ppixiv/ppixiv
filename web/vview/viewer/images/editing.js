@@ -100,7 +100,7 @@ export default class ImageEditor extends IllustWidget
 
         this.overlayContainer = overlayContainer;
 
-        OpenWidgets.singleton.addEventListener("changed", this._refreshTemporarilyHidden, { signal: this.shutdownSignal.signal });
+        OpenWidgets.singleton.addEventListener("changed", this._refreshTemporarilyHidden, { signal: this.shutdownSignal });
 
         window.addEventListener("keydown", (e) => {
             if(!this.visible)
@@ -129,7 +129,7 @@ export default class ImageEditor extends IllustWidget
                 e.stopPropagation();
                 this.paste();
             }
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         // Refresh when these settings change.
         for(let setting of ["image_editing", "image_editing_mode"])
@@ -139,7 +139,7 @@ export default class ImageEditor extends IllustWidget
                 // Let our parent know that we may have changed editor visibility, since this
                 // affects whether image cropping is active.
                 this.onvisibilitychanged();
-            }, { signal: this.shutdownSignal.signal });
+            }, { signal: this.shutdownSignal });
 
         // Stop propagation of pointerdown at the container, so clicks inside the UI don't
         // move the image.
@@ -154,25 +154,25 @@ export default class ImageEditor extends IllustWidget
         this._saveEdits.addEventListener("click", async (e) => {
             e.stopPropagation();
             this.save();
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         this._closeEditor = this.root.querySelector(".close-editor");
         this._closeEditor.addEventListener("click", async (e) => {
             e.stopPropagation();
             ppixiv.settings.set("image_editing", null);
             ppixiv.settings.set("image_editing_mode", null);
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         this._undoButton = this.root.querySelector(".undo");
         this._redoButton = this.root.querySelector(".redo");
         this._undoButton.addEventListener("click", async (e) => {
             e.stopPropagation();
             this.undo();            
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
         this._redoButton.addEventListener("click", async (e) => {
             e.stopPropagation();
             this.redo();            
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         // Hotkeys:
         window.addEventListener("keydown", (e) => {
@@ -196,7 +196,7 @@ export default class ImageEditor extends IllustWidget
                 e.preventDefault();
                 this.redo();
             }
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
     }
 
     // Return true if the crop editor is active.

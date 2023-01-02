@@ -330,7 +330,7 @@ export class MutedTagsForPostDialog extends DialogWidget
 
         this.root.querySelector(".close-button").addEventListener("click", (e) => {
             this.shutdown();
-        }, { signal: this.shutdownSignal.signal });
+        }, { signal: this.shutdownSignal });
 
         this.root.querySelector(".mute-warning-button").addEventListener("click", (e) => {
             e.preventDefault();

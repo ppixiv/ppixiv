@@ -85,7 +85,7 @@ export default class PanEditor extends Widget
         this._zoomSlider = this.ui.querySelector(".zoom-slider");
 
         // Use watchEdits to save undo at the start of inputs being dragged.
-        helpers.watchEdits(this._zoomSlider, { signal: this.shutdownSignal.signal });
+        helpers.watchEdits(this._zoomSlider, { signal: this.shutdownSignal });
         this._zoomSlider.addEventListener("editbegin", (e) => { this.parent.saveUndo(); this._isSet = true; });
         this._zoomSlider.addEventListener("edit", (e) => {
             // console.log(e);
@@ -119,11 +119,11 @@ export default class PanEditor extends Widget
         this.pointerListener = new PointerListener({
             element: this._editorOverlay,
             callback: this.pointerevent,
-            signal: this.shutdownSignal.signal,
+            signal: this.shutdownSignal,
         });
 
         // Prevent fullscreening if a UI element is double-clicked.
-        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal.signal });
+        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal });
     }
 
     // Return 0 if we're editing the start point, or 1 if we're editing the end point.

@@ -47,7 +47,7 @@ export default class IsolatedTapHandler extends Actor
         this._allPresses = new Set();
 
         IsolatedTapHandler.handlers.add(this);
-        this.shutdownSignal.signal.addEventListener("abort", () => IsolatedTapHandler.handlers.delete(this));
+        this.shutdownSignal.addEventListener("abort", () => IsolatedTapHandler.handlers.delete(this));
 
         this._eventNamesDuringTouch = ["pointerup", "pointercancel", "pointermove", "blur", "dblclick"];
         this._node.addEventListener("pointerdown", this._handleEvent, this._signal);

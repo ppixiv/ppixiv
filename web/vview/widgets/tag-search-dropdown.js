@@ -46,7 +46,7 @@ export class TagSearchBoxWidget extends widget
 
                 // Save the scroll position when the dropdown closes, so we can restore it the
                 // next time we open it.
-                dropdown.shutdownSignal.signal.addEventListener("abort", () => {
+                dropdown.shutdownSignal.addEventListener("abort", () => {
                     this._savedDropdownPosition = dropdown._saveSearchPosition();
                 });
                 return dropdown;
@@ -161,13 +161,13 @@ class TagSearchDropdownWidget extends widget
 
         this._inputElement.addEventListener("keydown", this._inputKeydown);
         this._inputElement.addEventListener("input", this.inputOnInput);
-        document.addEventListener("selectionchange", this._inputSelectionChange, { signal: this.shutdownSignal.signal });
+        document.addEventListener("selectionchange", this._inputSelectionChange, { signal: this.shutdownSignal });
 
         // Refresh the dropdown when the tag search history changes.
-        window.addEventListener("recent-tag-searches-changed", this._populateDropdown, { signal: this.shutdownSignal.signal });
+        window.addEventListener("recent-tag-searches-changed", this._populateDropdown, { signal: this.shutdownSignal });
 
         // Update the selection if the page is navigated while we're open.
-        window.addEventListener("pp:popstate", this._selectCurrentSearch, { signal: this.shutdownSignal.signal });
+        window.addEventListener("pp:popstate", this._selectCurrentSearch, { signal: this.shutdownSignal });
 
         this.root.addEventListener("click", this._dropdownClick);
 

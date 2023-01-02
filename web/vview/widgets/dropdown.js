@@ -121,7 +121,7 @@ export class DropdownBoxOpener extends Actor
                     parent: this,
                     template: `<div></div>`,
                 });
-                this._dropdownDialog.shutdownSignal.signal.addEventListener("abort", () => {
+                this._dropdownDialog.shutdownSignal.addEventListener("abort", () => {
                     console.log("DIalog dropdown closed");
 
                     // The dropdown shut itself down and the dropdown with it.  Clear them so

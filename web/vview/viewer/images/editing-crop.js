@@ -38,12 +38,12 @@ export default class CropEditor extends Widget
         this._editorOverlay.remove();
         this._currentCrop = null;
 
-        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal.signal });
+        this._editorOverlay.addEventListener("dblclick", this.ondblclick, { signal: this.shutdownSignal });
 
         new PointerListener({
             element: this._editorOverlay,
             callback: this.pointerevent,
-            signal: this.shutdownSignal.signal,
+            signal: this.shutdownSignal,
         });
         
         this.box = this._editorOverlay.querySelector(".crop-box");

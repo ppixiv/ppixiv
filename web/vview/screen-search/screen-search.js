@@ -31,7 +31,7 @@ export default class ScreenSearch extends Screen
             </div>
         `});
 
-        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal.signal });        
+        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal });        
         
         this.searchView = new SearchView({
             container: this.root.querySelector(".thumbnail-container-box"),
@@ -56,11 +56,11 @@ export default class ScreenSearch extends Screen
             let resize = new ResizeObserver(() => {
                 topUiBox.style.setProperty('--ui-box-height', `${topUiBox.offsetHeight}px`);
             }).observe(topUiBox);
-            this.shutdownSignal.signal.addEventListener("abort", () => resize.disconnect());
+            this.shutdownSignal.addEventListener("abort", () => resize.disconnect());
 
             // The ui-on-hover class enables the hover style if it's enabled.
             let refreshUiOnHover = () => helpers.html.setClass(topUiBox, "ui-on-hover", ppixiv.settings.get("ui-on-hover") && !ppixiv.mobile);
-            ppixiv.settings.addEventListener("ui-on-hover", refreshUiOnHover, { signal: this.shutdownSignal.signal });
+            ppixiv.settings.addEventListener("ui-on-hover", refreshUiOnHover, { signal: this.shutdownSignal });
             refreshUiOnHover();
         }
 

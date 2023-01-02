@@ -125,8 +125,8 @@ export class ConfirmPrompt extends DialogWidget
             this._completed = completed;
         });
 
-        this.root.querySelector(".yes").addEventListener("click", () => this.submit(true), { signal: this.shutdownSignal.signal });
-        this.root.querySelector(".no").addEventListener("click", () => this.submit(false), { signal: this.shutdownSignal.signal });
+        this.root.querySelector(".yes").addEventListener("click", () => this.submit(true), { signal: this.shutdownSignal });
+        this.root.querySelector(".no").addEventListener("click", () => this.submit(false), { signal: this.shutdownSignal });
     }
 
     onkeydown = (e) =>

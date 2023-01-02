@@ -59,7 +59,7 @@ export default class ScrollListener extends Actor
             this._resizeObserver = new ResizeObserver(() => {
                 this._refreshAfterScroll();
             });
-            this.shutdownSignal.signal.addEventListener("abort", () => this._resizeObserver.disconnect());
+            this.shutdownSignal.addEventListener("abort", () => this._resizeObserver.disconnect());
             this._resizeObserver.observe(this._stickyUiNode);
         }
 
@@ -210,7 +210,7 @@ class ImmediateChildrenListener extends Actor
                     this._nodeRemoved(node);
             }
         });
-        this.shutdownSignal.signal.addEventListener("abort", () => this._mutationObserver.disconnect());
+        this.shutdownSignal.addEventListener("abort", () => this._mutationObserver.disconnect());
 
         this._nodeAdded(root, { isRoot: true });
     }
@@ -275,7 +275,7 @@ class ScrollDimensionsListener extends Actor
         this._resizeObserver = new ResizeObserver(() => {
             this.onchange(this);
         });
-        this.shutdownSignal.signal.addEventListener("abort", () => this._resizeObserver.disconnect());
+        this.shutdownSignal.addEventListener("abort", () => this._resizeObserver.disconnect());
 
         this._childrenListener = new ImmediateChildrenListener({
             parent: this,

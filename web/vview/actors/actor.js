@@ -64,12 +64,13 @@ export default class Actor extends EventTarget
 
         // Create our shutdownSignal.  We'll abort this if we're shut down to shut down our children.
         // This is always shut down by us when shutdown() is called (it isn't used to shut us down).
-        this.shutdownSignal = new AbortController();
+        this._shutdownSignalController = new AbortController();
+        this.shutdownSignal = this._shutdownSignalController.signal;
 
         // If we weren't given a shutdown signal explicitly and we have a parent actor, inherit
         // its signal, so we'll shut down when the parent does.
         if(signal == null && this.parent != null)
-            signal = this.parent.shutdownSignal.signal;
+            signal = this.parent.shutdownSignal;
 
         // If we were given a parent shutdown signal, shut down if it aborts.
         if(signal)
@@ -89,7 +90,7 @@ export default class Actor extends EventTarget
 
     get hasShutdown()
     {
-        return this.shutdownSignal.signal.aborted;
+        return this.shutdownSignal.aborted;
     }
 
     shutdown()
@@ -113,7 +114,7 @@ export default class Actor extends EventTarget
         }
 
         // This will shut down everything associated with this actor, as well as any child actors.
-        this.shutdownSignal.abort();
+        this._shutdownSignalController.abort();
 
         // All of our children should have shut down and removed themselves from our child list.
         if(this.children.length != 0)
@@ -173,7 +174,7 @@ export default class Actor extends EventTarget
     // node.addEventListener("event", func, { capture: true, ...this._signal });
     get _signal()
     {
-        return { signal: this.shutdownSignal.signal };
+        return { signal: this.shutdownSignal };
     }
 
     _childAdded(child)

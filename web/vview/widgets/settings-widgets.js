@@ -508,7 +508,7 @@ export class SettingsDialog extends DialogWidget
         if(!this.phone)
             this.header = pageTitles[settingsPage];
 
-        this._pageWidget.shutdownSignal.signal.addEventListener("abort", () => {
+        this._pageWidget.shutdownSignal.addEventListener("abort", () => {
             this._pageWidget = null;
             helpers.html.setClass(this._pageButtons[settingsPage], "selected", false);
         });
@@ -527,7 +527,7 @@ export class SettingsDialog extends DialogWidget
         await this.visibilityChangePromise();
 
         let dialog = new SettingsPageDialog({ settingsPage });
-        dialog.shutdownSignal.signal.addEventListener("abort", () => {
+        dialog.shutdownSignal.addEventListener("abort", () => {
             new SettingsDialog();
         });
     }
@@ -563,7 +563,7 @@ export class SettingsDialog extends DialogWidget
         let globalOptions = {
             classes: ["settings-row"],
             container: pageContainer,
-            pageRemovedSignal: pageWidget.shutdownSignal.signal,
+            pageRemovedSignal: pageWidget.shutdownSignal,
 
             // Settings widgets can call this to close the window.
             closeSettings: () => {

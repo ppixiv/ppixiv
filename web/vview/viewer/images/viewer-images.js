@@ -73,7 +73,7 @@ export default class ViewerImages extends Viewer
         // Use a ResizeObserver to update our size and position if the window size changes.
         let resizeObserver = new ResizeObserver(this._onresize);
         resizeObserver.observe(this.root);
-        this.shutdownSignal.signal.addEventListener("abort", () => resizeObserver.disconnect());
+        this.shutdownSignal.addEventListener("abort", () => resizeObserver.disconnect());
 
         this.root.addEventListener("dragstart", (e) => e.preventDefault(), this._signal);
         this.root.addEventListener("selectstart", (e) => e.preventDefault(), this._signal);
@@ -136,7 +136,7 @@ export default class ViewerImages extends Viewer
         await ppixiv.mediaCache.getMediaInfo(this.mediaId);
 
         // Stop if we were shutdown while we were async.
-        if(this.shutdownSignal.signal.aborted)
+        if(this.shutdownSignal.aborted)
             return;
 
         // In case we only had preview info, refresh with the info we just loaded.
