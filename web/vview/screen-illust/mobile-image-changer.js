@@ -78,6 +78,10 @@ export default class DragImageChanger extends Actor
     {
         this.dragger.cancelDrag();
         this.cancelAnimation();
+
+        // If a drag was running then cancelDrag will have run ondragend and cleaned up,
+        // but if we're in the middle of an animation we need to removeViewers ourself.
+        this.removeViewers();
     }
 
     ondragstart({event})
