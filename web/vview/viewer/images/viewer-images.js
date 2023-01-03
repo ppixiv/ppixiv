@@ -19,6 +19,10 @@ import { helpers, FixedDOMRect, OpenWidgets, GuardedRunner } from 'vview/misc/he
 // - View coordinates, with 0x0 in the top-left of the view.  On desktop, this is usually
 // the same as the window, but it doesn't have to be (on mobile it may be adjusted to avoid
 // the statusbar).
+//
+// All sizing is relative to the view, so for most things we only need to know the aspect ratio
+// of the image and not its resolution.  This allows us to start viewing a thumbnail and then
+// transition cleanly into viewing the full-size size when we only know the thumbnail's resolution.
 export default class ViewerImages extends Viewer
 {
     constructor({
@@ -48,9 +52,11 @@ export default class ViewerImages extends Viewer
 
         this._refreshImageRunner = new GuardedRunner(this._signal);
 
-        this._originalWidth = 1;
-        this._originalHeight = 1;
-        this._croppedSize = null;
+        this._imageAspectRatio = 1;
+
+        // The size of the real image, or null if we don't know it yet.
+        this._actualWidth = null;
+        this._actualHeight = null;
         this._ranPanAnimation = false;
         this._centerPos = [0, 0];
         this._dragMovement = [0,0];
@@ -160,80 +166,156 @@ export default class ViewerImages extends Viewer
     // Update this._image with as much information as we have so far and refresh the image.
     _refreshFromMediaInfo()
     {
-        // See if full info is available.
-        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this.mediaId);
-        let page = this._page;
-
-        // If we don't have full data yet and this is the first page, see if we have partial
-        // data.
-        if(mediaInfo == null && page == 0)
-            mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this.mediaId, { full: false });
-
-        // Stop if we don't have any info yet.
-        if(mediaInfo == null)
+        let imageInfo = this._getCurrentMediaInfo();
+        if(imageInfo == null)
             return;
 
-        let imageInfo;
-        if(!mediaInfo.full)
-        {
-            // If we only have partial info, we only have the preview URL, so we'll display that
-            // until full info finishes loading.
-            imageInfo = {
-                previewUrl: mediaInfo.previewUrls[0],
-                width: mediaInfo.width,
-                height: mediaInfo.height,
-            };
-        }
-        else
-        {
-            let mangaPage = mediaInfo.mangaPages[page];
-            let { url, width, height } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
-            imageInfo = {
-                url,
-                previewUrl: mangaPage.urls.small,
-                inpaintUrl: mangaPage.urls.inpaint,
-                width,
-                height,
-            };
-        }
+        let { mediaInfo } = imageInfo;
 
-        let extraData = ppixiv.mediaCache.getExtraData(mediaInfo, this.mediaId, page);
-        imageInfo = {
-            crop: extraData?.crop,
-            pan: extraData?.pan,
-            ...imageInfo,
-        };
+        // If width is null, we only have the aspect ratio and not the actual size.
+        let haveActualResolution = imageInfo.width != null;
 
-        this._refreshImageRunner.call(this._refreshImage.bind(this), {imageInfo});
-    }
+        // If we're in "actual" zoom, we can't display anything until we have the real image
+        // resolution.
+        if(this.zoomActive && this._zoomLevel == "actual" && !haveActualResolution)
+            return;
 
-    // Refresh the image from imageInfo.
-    async _refreshImage({ imageInfo, signal })
-    {
-        let {
-            url, previewUrl, inpaintUrl,
-            width, height,
+        // Get the pan and crop.
+        let { pan, crop } = ppixiv.mediaCache.getExtraData(mediaInfo, this.mediaId);
 
-            // If set, this is a FixedDOMRect to crop the image to.
-            crop,
+        // Cropping is saved based on the real resolution, so if we have cropping, don't display
+        // anything until we know the actual resolution.
+        if(crop && !haveActualResolution)
+            return;
 
-            // If set, this is a pan created by PanEditor.
-            pan
-        } = imageInfo;
+        // Update any custom pan created by PanEditor.
+        this._custom_animation = pan;
 
         // Disable cropping if the crop editor is active.
         if(this._imageEditor?.editingCrop)
             crop = null;
 
-        this._originalWidth = width;
-        this._originalHeight = height;
-        this._croppedSize = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
-        this._custom_animation = pan;
+        let croppedSize = crop && crop.length == 4? new FixedDOMRect(crop[0], crop[1], crop[2], crop[3]):null;
+
+        // If this is the real image size and not the thumbnail, store it.  Once we have this, "actual"
+        // zoom mode is available.
+        if(imageInfo.width != null)
+        {
+            this._actualWidth = imageInfo.width;
+            this._actualHeight = imageInfo.height;
+        }
+
+        // Set _imageAspectRatio.  Use the crop size if we have one, otherwise the aspect ratio
+        // we got from imageInfo.
+        this._imageAspectRatio = imageInfo.aspectRatio;
+        if(croppedSize)
+            this._imageAspectRatio = croppedSize.width / croppedSize.height; 
+
+        // Set the size of the crop box.
+        this._updateCrop(croppedSize);
 
         // Set the size of the image box and crop.
         this._setImageBoxSize();
-        this._updateCrop();
 
+        // Set the initial zoom and image position if we haven't yet.
+        if(!this._initialPositionSet)
+        {
+            this._setInitialImagePosition(this._shouldRestoreHistory);
+            this._initialPositionSet = true;
+        }
+
+        this._reposition();
+
+        // Start refreshing the image with this data.
+        let { url, previewUrl, inpaintUrl } = imageInfo;
+        this._refreshImageRunner.call(this._refreshImage.bind(this), { url, previewUrl, inpaintUrl });
+    }
+
+    // Return what we know of:
+    //
+    // { mediaInfo, url, previewUrl, inpaintUrl, aspectRatio, width, height }
+    _getCurrentMediaInfo()
+    {
+        // See if full info is available.
+        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this.mediaId);
+        let page = helpers.mediaId.parse(this.mediaId).page;
+        if(mediaInfo != null)
+        {
+            let mangaPage = mediaInfo.mangaPages[page];
+            let { url, width, height } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
+            return {
+                mediaInfo, width, height,
+                url,
+                previewUrl: mangaPage.urls.small,
+                inpaintUrl: mangaPage.urls.inpaint,
+                aspectRatio: width / height,
+            };
+        }
+
+        // We don't have full data yet, so see if we have partial data.
+        mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this.mediaId, { full: false });
+        if(mediaInfo == null)
+            return null;
+
+        // Partial info has the image resolution and preview URL for the first page.
+        let previewUrl = mediaInfo.previewUrls[page];
+        if(page == 0)
+        {
+            let { width, height } = mediaInfo;
+            return {
+                mediaInfo, width, height,
+                previewUrl,
+                aspectRatio: width / height,
+            };
+        }
+
+        // For other pages, see if we have the aspect ratio in ExtraCache.  If we're in "actual" zoom
+        // then we need the actual resolution, so we can't display anything until it's available.
+        let aspectRatio = ppixiv.extraCache.getMediaAspectRatioSync(this.mediaId);
+        if(aspectRatio == null)
+            return null;
+
+        return {
+            mediaInfo,
+            previewUrl,
+            aspectRatio,
+        };
+    }
+
+    // Update this._cropBox to reflect the current crop.
+    _updateCrop(croppedSize)
+    {
+        helpers.html.setClass(this._imageBox, "cropping", croppedSize != null);
+
+        // If we're not cropping, just turn the crop box off entirely.
+        if(croppedSize == null)
+        {
+            this._cropBox.style.width = "100%";
+            this._cropBox.style.height = "100%";
+            this._cropBox.style.transformOrigin = "0 0";
+            this._cropBox.style.transform = "";
+            return;
+        }
+
+        // We should always have the real image dimensions if we're displaying a cropped image.
+        console.assert(this._actualWidth != null);
+
+        // Crop the image by scaling up cropBox to cut off the right and bottom,
+        // then shifting left and up.  The size is relative to imageBox, so this
+        // doesn't actually increase the image size.
+        let cropWidth = croppedSize.width / this._actualWidth;
+        let cropHeight = croppedSize.height / this._actualHeight;
+        let cropLeft = croppedSize.left / this._actualWidth;
+        let cropTop = croppedSize.top / this._actualHeight;
+        this._cropBox.style.width = `${(1/cropWidth)*100}%`;
+        this._cropBox.style.height = `${(1/cropHeight)*100}%`;
+        this._cropBox.style.transformOrigin = "0 0";
+        this._cropBox.style.transform = `translate(${-cropLeft*100}%, ${-cropTop*100}%)`;
+    }
+
+    // Refresh the image from imageInfo.
+    async _refreshImage({ url, previewUrl, inpaintUrl, signal })
+    {
         // When quick view displays an image on mousedown, we want to see the mousedown too
         // now that we're displayed.
         if(this._pointerListener)
@@ -250,15 +332,6 @@ export default class ViewerImages extends Viewer
 
         // Set the image URLs.
         this._imageContainer.setImageUrls(url, inpaintUrl, previewUrl);
-
-        // Set the initial zoom and image position if we haven't yet.
-        if(!this._initialPositionSet)
-        {
-            this._setInitialImagePosition(this._shouldRestoreHistory);
-            this._initialPositionSet = true;
-        }
-
-        this._reposition();
 
         // If the main image is already displayed, the image was already displayed and we're just
         // refreshing.
@@ -390,11 +463,6 @@ export default class ViewerImages extends Viewer
         this._cancelSaveToHistory();
     }
 
-    get _page()
-    {
-        return helpers.mediaId.parse(this.mediaId).page;
-    }
-
     onkeydown = async(e) =>
     {
         if(e.ctrlKey || e.altKey || e.metaKey)
@@ -432,7 +500,8 @@ export default class ViewerImages extends Viewer
         // Figure out whether the image is relatively portrait or landscape compared to the view.
         let viewWidth = Math.max(this.viewWidth, 1); // might be 0 if we're hidden
         let viewHeight = Math.max(this.viewHeight, 1);
-        return (viewWidth/this.croppedSize.width) > (viewHeight/this.croppedSize.height)? "portrait":"landscape";
+        let viewAspectRatio = viewWidth / viewHeight;
+        return viewAspectRatio > this._imageAspectRatio? "portrait":"landscape";
     }
 
     _setImageBoxSize()
@@ -443,6 +512,10 @@ export default class ViewerImages extends Viewer
 
     _onresize = (e) =>
     {
+        // Ignore resizes if we aren't displaying anything yet.
+        if(this._imageContainer.displayedImage == null)
+            return;
+
         this._setImageBoxSize();
         this._reposition();
 
@@ -504,10 +577,8 @@ export default class ViewerImages extends Viewer
         // Convert from an exponential zoom level to a linear zoom factor.
         let linear = Math.pow(1.5, level);
 
-        // If linear == 1 (level 0), we want the image to fit inside the view ("contain" mode),
-        // but the image is actually scaled to cover the view.
-        let factor = linear * this._imageToContainRatio / this._imageToCoverRatio;
-        return factor;
+        // A factor of 1 is "cover" mode.  Scale linear so linear == 1 results in "contain".
+        return linear * this.containToCoverRatio;
     }
 
     zoomFactorToZoomLevel(factor)
@@ -519,7 +590,7 @@ export default class ViewerImages extends Viewer
             factor = 1;
         }
         
-        factor /= this._imageToContainRatio / this._imageToCoverRatio;
+        factor /= this.containToCoverRatio;
         return Math.log2(factor) / Math.log2(1.5);
     }
 
@@ -565,9 +636,19 @@ export default class ViewerImages extends Viewer
     }
     get _zoomLevelContain() { return this.zoomFactorToZoomLevel(this._zoomFactorContain); }
 
-    // The zoom level for "actual" mode.  This inverts the base scaling.
-    get _zoomFactorActual() { return 1 / this._imageToCoverRatio; }
+    // The zoom factor for "actual" zoom.
+    //
+    // If we don't know the image dimensions yet, return 1.  The caller should check _actualZoomAvailable
+    // if needed.
+    get _zoomFactorActual()
+    {
+        if(this._actualWidth == null)
+            return 1;
+        else
+            return this._actualWidth / this.width;
+    }
     get _zoomLevelActual() { return this.zoomFactorToZoomLevel(this._zoomFactorActual); }
+    get _actualZoomAvailable() { return this._actualWidth != null; }
 
     // Zoom in or out.  If zoom_in is true, zoom in by one level, otherwise zoom out by one level.
     changeZoom(zoomOut, { stopAnimation=true }={})
@@ -587,9 +668,6 @@ export default class ViewerImages extends Viewer
         // out the zoom levels that correspond to "cover" and "actual".  This changes depending on the
         // image and view size.
 
-        let coverZoomLevel = this._zoomLevelCover;
-        let actualZoomLevel = this._zoomLevelActual;
-
         // Increase or decrease relative_zoom_level by snapping to the next or previous increment.
         // We're usually on a multiple of increment, moving from eg. 0.5 to 0.75, but if we're on
         // a non-increment value from a special zoom level, this puts us back on the zoom increment.
@@ -608,14 +686,14 @@ export default class ViewerImages extends Viewer
             return (oldValue < threshold && newValue > threshold) ||
                    (newValue < threshold && oldValue > threshold);
         };
-        if(crossed(oldLevel, newLevel, coverZoomLevel))
+        if(crossed(oldLevel, newLevel, this._zoomLevelCover))
         {
-            // console.log("Selected cover zoom");
+            console.log("Selected cover zoom");
             newLevel = "cover";
         }
-        else if(crossed(oldLevel, newLevel, actualZoomLevel))
+        else if(this._actualZoomAvailable && crossed(oldLevel, newLevel, this._zoomLevelActual))
         {
-            // console.log("Selected actual zoom");
+            console.log("Selected actual zoom");
             newLevel = "actual";
         }
         else
@@ -710,7 +788,7 @@ export default class ViewerImages extends Viewer
         // This is a hack to keep the same panning sensitivity.  The sensitivity was based on
         // _zoomFactorCurrent being relative to "contain" mode, but it changed to "cover".
         // Adjust the panning speed so it's not affected by this change.
-        zoomFactor /= this._imageToContainRatio / this._imageToCoverRatio;
+        zoomFactor /= this.containToCoverRatio;
 
         xOffset *= zoomFactor;
         yOffset *= zoomFactor;
@@ -728,8 +806,11 @@ export default class ViewerImages extends Viewer
     }
 
     // Return the ratio to scale from the image's natural dimensions to cover the view,
-    // filling it in both dimensions and only overflowing on one axis.  We use this
-    // as the underlying image size.
+    // filling it in both dimensions and only overflowing on one axis.  This is zoom factor 1.
+    //
+    // The base dimensions of the image are (this._imageAspectRatio, 1), so we only need
+    // the aspect ratio and not the dimensions.  Use this.width and this.height to get dimensions
+    // that are easier to work with.
     get _imageToCoverRatio()
     {
         let { viewWidth, viewHeight } = this;
@@ -738,7 +819,7 @@ export default class ViewerImages extends Viewer
         if(viewWidth == 0 || viewHeight == 0)
             return 1;
 
-        return Math.max(viewWidth/this.croppedSize.width, viewHeight/this.croppedSize.height);
+        return Math.max(viewWidth/this._imageAspectRatio, viewHeight);
     }
 
     // Return the ratio to scale from the image's natural dimensions to contain it to the
@@ -751,22 +832,19 @@ export default class ViewerImages extends Viewer
         if(viewWidth == 0 || viewHeight == 0)
             return 1;
 
-        return Math.min(viewWidth/this.croppedSize.width, viewHeight/this.croppedSize.height);
+        return Math.min(viewWidth/this._imageAspectRatio, viewHeight);
     }
 
-    // Return the DOMRect of the cropped size of the image.  If we're not cropping, this
-    // is the size of the image itself.
-    get croppedSize()
+    // Return the ratio from "contain" (fit the image in the view) to "cover" (cover the entire
+    // view).
+    get containToCoverRatio()
     {
-        if(this._croppedSize != null)
-            return this._croppedSize;
-        else
-            return new FixedDOMRect(0, 0, this._originalWidth, this._originalHeight);
+        return this._imageToContainRatio / this._imageToCoverRatio;
     }
-    
-    // Return the width and height of the image when at 1x zoom.
-    get width() { return this.croppedSize.width * this._imageToCoverRatio; }
-    get height() { return this.croppedSize.height * this._imageToCoverRatio; }
+
+    // Return the width and height of the image when at zoom factor 1.
+    get width() { return this._imageToCoverRatio * this._imageAspectRatio; }
+    get height() { return this._imageToCoverRatio; }
 
     // The actual size of the image with its current zoom.
     get currentWidth() { return this.width * this._zoomFactorCurrent; }
@@ -830,7 +908,7 @@ export default class ViewerImages extends Viewer
 
     _reposition({clampPosition=true}={})
     {
-        if(this._imageContainer == null)
+        if(this._imageContainer == null || !this._initialPositionSet)
             return;
 
         // Stop if we're being called after being disabled, or if we have no container
@@ -987,7 +1065,7 @@ export default class ViewerImages extends Viewer
         // if we're viewing a 1920x1080 image on a 1920x1080 screen and we're in "cover" mode.
         // If we're scaling the image at all due to zooming, allow it to be fractional to allow
         // smoother panning.
-        let inActualZoomMode = Math.abs(this._zoomFactorCurrent - this._zoomFactorActual) < 0.001;
+        let inActualZoomMode = this._actualZoomAvailable && Math.abs(this._zoomFactorCurrent - this._zoomFactorActual) < 0.001;
         if(inActualZoomMode)
         {
             x = Math.round(x);
@@ -995,33 +1073,6 @@ export default class ViewerImages extends Viewer
         }
 
         return { zoomPos, zoomFactor, imagePosition: {x,y} };
-    }
-
-    _updateCrop()
-    {
-        helpers.html.setClass(this._imageBox, "cropping", this._croppedSize != null);
-
-        // If we're not cropping, just turn the crop box off entirely.
-        if(this._croppedSize == null)
-        {
-            this._cropBox.style.width = "100%";
-            this._cropBox.style.height = "100%";
-            this._cropBox.style.transformOrigin = "0 0";
-            this._cropBox.style.transform = "";
-            return;
-        }
-
-        // Crop the image by scaling up cropBox to cut off the right and bottom,
-        // then shifting left and up.  The size is relative to imageBox, so this
-        // doesn't actually increase the image size.
-        let cropWidth = this._croppedSize.width / this._originalWidth;
-        let cropHeight = this._croppedSize.height / this._originalHeight;
-        let cropLeft = this._croppedSize.left / this._originalWidth;
-        let cropTop = this._croppedSize.top / this._originalHeight;
-        this._cropBox.style.width = `${(1/cropWidth)*100}%`;
-        this._cropBox.style.height = `${(1/cropHeight)*100}%`;
-        this._cropBox.style.transformOrigin = "0 0";
-        this._cropBox.style.transform = `translate(${-cropLeft*100}%, ${-cropTop*100}%)`;
     }
 
     // Restore the pan and zoom state from history.
@@ -1438,6 +1489,13 @@ export default class ViewerImages extends Viewer
     // Set the zoom level, keeping the given view position stationary if possible.
     zoomSetLevel(level, {x, y})
     {
+        // Ignore requests for actual zooming if we don't know the actual image size yet.
+        if(level == "actual" && this._actualWidth == null)
+        {
+            console.log("Can't display actual zoom yet");
+            return;
+        }
+        
         this._stopAnimation();
 
         // If the zoom level that's already selected is clicked and we're already zoomed,
