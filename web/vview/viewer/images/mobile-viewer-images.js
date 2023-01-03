@@ -93,7 +93,7 @@ export default class ViewerImagesMobile extends ViewerImages
             onanimationfinished: () => {
                 // We could do this to save the current zoom level, since we didn't use it during the
                 // fling, but for now we don't save the zoom level on mobile anyway.
-                // this.setZoomLevel(this._zoomLevel);
+                // this.setZoom({ level: this._zoomLevel });
             },
 
             // Return the bounding box of where we want the position to stay.
@@ -250,8 +250,4 @@ export default class ViewerImagesMobile extends ViewerImages
 
         return super._reposition({clampPosition, ...options});
     }
-
-    // The mobile UI is always in locked zoom mode.
-    getLockedZoom() { return true; }
-    setLockedZoom(enable) { }
 }

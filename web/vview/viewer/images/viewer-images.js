@@ -67,8 +67,9 @@ export default class ViewerImages extends Viewer
             this._zoomLevel = "cover";
         else
         {
-            this.setLockedZoom(ppixiv.settings.get("zoom-mode") == "locked");
-            this._zoomLevel = ppixiv.settings.get("zoom-level", "cover");
+            let enabled = ppixiv.settings.get("zoom-mode") == "locked";
+            let level = ppixiv.settings.get("zoom-level", "cover");
+            this.setZoom({ enabled, level });
         }
 
         this._imageContainer = new ImagesContainer({ container: this._cropBox });
@@ -530,18 +531,29 @@ export default class ViewerImages extends Viewer
         return this._lockedZoom;
     }
 
-    // Select between click-pan zooming and sticky, filled-screen zooming.
-    setLockedZoom(enable, { stopAnimation=true }={})
+    // Set the zoom level and whether zooming is enabled.  If zooming is disabled, we still
+    // remember the zoom level but display as if we're in "contain" mode.
+    setZoom({ enabled=null, level=null, stopAnimation=true }={})
     {
-        // Zoom lock is always disabled on mobile.
-        if(ppixiv.mobile)
-            enable = false;
-
         if(stopAnimation)
             this._stopAnimation();
 
-        this._lockedZoom = enable;
-        ppixiv.settings.set("zoom-mode", enable? "locked":"normal");
+        if(enabled != null)
+        {
+            // Zoom lock is always enabled on mobile.
+            if(ppixiv.mobile)
+                enabled = true;
+
+            this._lockedZoom = enabled;
+            ppixiv.settings.set("zoom-mode", enabled? "locked":"normal");
+        }
+
+        if(level != null)
+        {
+            this._zoomLevel = level;
+            ppixiv.settings.set("zoom-level", level);
+        }
+
         this._reposition();
     }
 
@@ -550,18 +562,6 @@ export default class ViewerImages extends Viewer
     getZoomLevel()
     {
         return this._zoomLevel;
-    }
-
-    setZoomLevel(value, { stopAnimation=true }={})
-    {
-        if(stopAnimation)
-            this._stopAnimation();
-
-        this._zoomLevel = value;
-        if(!ppixiv.mobile)
-            ppixiv.settings.set("zoom-level", this._zoomLevel);
-
-        this._reposition();
     }
 
     // Convert between zoom levels and zoom factors.
@@ -703,7 +703,7 @@ export default class ViewerImages extends Viewer
             newLevel = helpers.math.clamp(newLevel, -8, +8);
         }
 
-        this.setZoomLevel(newLevel);
+        this.setZoom({ level: newLevel });
     }
 
     // Return the image coordinate at a given view coordinate.
@@ -1089,11 +1089,13 @@ export default class ViewerImages extends Viewer
         if(args.state.zoom?.animating)
             this._refreshAnimation();
 
-        if(restoreHistory && args.state.zoom?.zoom != null)
-            this.setZoomLevel(args.state.zoom?.zoom);
-        if(restoreHistory && args.state.zoom?.lock != null)
-            this.setLockedZoom(args.state.zoom?.lock, { stopAnimation: false });
-
+        if(restoreHistory)
+        {
+            let level = args.state.zoom?.zoom;
+            let enabled = args.state.zoom?.lock;
+            this.setZoom({ level, enabled, stopAnimation: false });
+        }
+        
         // Similar to how we display thumbnails for portrait images starting at the top, default to the top
         // if we'll be panning vertically when in cover mode.
         let aspect = this._relativeAspect;
@@ -1424,14 +1426,14 @@ export default class ViewerImages extends Viewer
         // Apply the current zoom and pan position.  If the zoom level is 0 then just disable
         // zoom, and use "cover" if the zoom level matches it.  The zoom we set here doesn't
         // have to be one that's selectable in the UI.  Be sure to set stopAnimation, so these
-        // setLockedZoom, etc. calls don't recurse into here.
-        this.setLockedZoom(true, { stopAnimation: false });
+        // setZoom, etc. calls don't recurse into here.
+        this.setZoom({ enabled: true, stopAnimation: false });
         if(Math.abs(zoomLevel) < 0.001)
-            this.setLockedZoom(false, { stopAnimation: false });
+            this.setZoom({ enabled: false, stopAnimation: false });
         else if(Math.abs(zoomLevel - this._zoomLevelCover) < 0.01)
-            this.setZoomLevel("cover", { stopAnimation: false });
+            this.setZoom({ level: "cover", stopAnimation: false });
         else
-            this.setZoomLevel(zoomLevel, { stopAnimation: false });
+            this.setZoom({ level: zoomLevel, stopAnimation: false });
 
         // Set the image position to match where the animation left it.
         this.setImagePosition([left, top], [0,0]);
@@ -1481,7 +1483,7 @@ export default class ViewerImages extends Viewer
         }
 
         let center = this.getImagePosition([x, y]);
-        this.setLockedZoom(!this.getLockedZoom());
+        this.setZoom({ enabled: !this.getLockedZoom() });
         this.setImagePosition([x, y], center);
         this._reposition();
     }
@@ -1502,7 +1504,7 @@ export default class ViewerImages extends Viewer
         // just toggle zoom as if the toggle zoom button was pressed.
         if(this.getZoomLevel() == level && this.getLockedZoom())
         {
-            this.setLockedZoom(false);
+            this.setZoom({ enabled: false });
             this._reposition();
             return;
         }
@@ -1511,8 +1513,7 @@ export default class ViewerImages extends Viewer
         
         // Each zoom button enables zoom lock, since otherwise changing the zoom level would
         // only have an effect when click-dragging, so it looks like the buttons don't do anything.
-        this.setZoomLevel(level);
-        this.setLockedZoom(true);
+        this.setZoom({ enabled: true, level });
         this.setImagePosition([x, y], center);
 
         this._reposition();
@@ -1535,10 +1536,7 @@ export default class ViewerImages extends Viewer
         // If mousewheel zooming is used while not zoomed, turn on zooming and set
         // a 1x zoom factor, so we zoom relative to the previously unzoomed image.
         if(!this.zoomActive)
-        {
-            this.setZoomLevel(0);
-            this.setLockedZoom(true);
-        }
+            this.setZoom({ enabled: true, level: 0 });
 
         let previousZoomLevel = this._zoomLevelCurrent;
         this.changeZoom(down);
@@ -1553,10 +1551,7 @@ export default class ViewerImages extends Viewer
         // That displays the same thing, since 0 zoom is the same as unzoomed, but clicking the
         // image will zoom to cover, which is more natural.
         if(this.getZoomLevel() == 0)
-        {
-            this.setZoomLevel("cover");
-            this.setLockedZoom(false);
-        }
+            this.setZoom({ enabled: false, level: "cover" });
 
         this.setImagePosition([x, y], center);
         this._reposition();        
