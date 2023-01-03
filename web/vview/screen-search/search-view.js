@@ -1765,6 +1765,9 @@ export default class SearchView extends Widget
             element.classList.remove("muted");
             LocalAPI.thumbnailWasLoaded(url);
 
+            // Let ExtraCache know about this image, so we'll learn the image's aspect ratio.
+            ppixiv.extraCache.registerLoadingThumbnail(mediaId, thumb);
+
             // Try to set up the aspect ratio.
             this.thumbImageLoadFinished(element, { cause: "setup" });
         }

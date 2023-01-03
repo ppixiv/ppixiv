@@ -368,7 +368,7 @@ export default class LocalAPI
         // cache: only-if-cached argument, but that causes browsers to obnoxiously spam the console
         // with errors every time it fails.  That doesn't make sense (errors are normal with
         // only-if-cached) and the log spam is too annoying to use it here.
-        if(LocalAPI._wasThumbnailLoadedRecently(url))
+        if(url != null && LocalAPI._wasThumbnailLoadedRecently(url))
             return true;
 
         // We're on desktop, the image is local, and the thumbnail hasn't been loaded recently.

@@ -9,6 +9,9 @@ export default class ExtraCache
         this._bookmarkedImageTags = { };
         this._recentLikes = { }
         this._quickUserData = { };
+
+        this._getMediaAspectRatioLoads = {};
+        this._mediaIdAspectRatio = { };
     }
 
     // Remember when we've liked an image recently, so we don't spam API requests.
@@ -137,5 +140,107 @@ export default class ExtraCache
     getQuickUserData(userId)
     {
         return this._quickUserData[userId];
+    }
+
+    // Image aspect ratios from thumbnails
+    //
+    // Pixiv doesn't include image dimensions for manga pages in most APIs, so it takes an extra
+    // round trip to get them, and we don't want to do that in bulk and spam the server.  For
+    // anything we can make do with just the aspect ratio, we can load the thumbnail and just
+    // look at its size.  This is a lot more reasonable to load in bulk (that's what they're for),
+    // and we're usually loading them anyway.
+    //
+    // By default this requires that media info already be cached.  This is done when we add data
+    // from data sources, where we should already be caching this info, and this makes sure we don't
+    // accidentally make hundreds of individual media info lookups if that doesn't happen.
+    //
+    // Note that the aspect ratio from this is approximate, since it's quantized by the thumbnail
+    // resolution.
+    getMediaAspectRatio(mediaId, { allowMediaInfoLoad=false }={})
+    {
+        if(this._mediaIdAspectRatio[mediaId] != null)
+            return this._mediaIdAspectRatio[mediaId];
+
+        if(this._getMediaAspectRatioLoads[mediaId])
+            return this._getMediaAspectRatioLoads[mediaId];
+
+        let promise = this._getMediaAspectRatioInner(mediaId, { allowMediaInfoLoad });
+        this._getMediaAspectRatioLoads[mediaId] = promise;
+        promise.then((result) => {
+            this._mediaIdAspectRatio[mediaId] = result;
+        });
+        promise.finally(() => {
+            delete this._getMediaAspectRatioLoads[mediaId];
+        });
+        return promise;
+    }
+
+    getMediaAspectRatioSync(mediaId)
+    {
+        return this._mediaIdAspectRatio[mediaId];
+    }
+
+    async _getMediaAspectRatioInner(mediaId, { allowMediaInfoLoad=false }={})
+    {
+        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
+        if(mediaInfo == null)
+        {
+            if(!allowMediaInfoLoad)
+            {
+                console.error(`getMediaResolution(${mediaId}): media info wasn't loaded`);
+                return null;
+            }
+
+            mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
+        }
+
+        // We always have the resolution for local images.
+        if(helpers.mediaId.isLocal(mediaId))
+            return mediaInfo.width / mediaInfo.height;
+
+        let page = helpers.mediaId.parse(mediaId).page;
+        let url = mediaInfo.previewUrls[page];
+
+        let img = document.createElement("img");
+        img.src = url;
+
+        return await this.registerLoadingThumbnail(mediaId, img);
+    }
+
+    // Return { aspectRatios, promise }.  aspectRatios is a dictionary of IDs to aspect
+    // ratios we already know.  If any aren't known and a lookup is started, promise will
+    // resolve when the lookups complete, otherwise promise is null.
+    batchGetMediaAspectRatio(mediaIds)
+    {
+        let aspectRatios = {};
+        let promises = [];
+        for(let mediaId of mediaIds)
+        {
+            let aspectRatio = this.getMediaAspectRatioSync(mediaId);
+            if(aspectRatio != null)
+                aspectRatios[mediaId] = aspectRatio;
+            else
+                promises.push(this.getMediaAspectRatio(mediaId));
+        }
+
+        let promise = promises.length > 0? Promise.all(promises):null;
+        return { aspectRatios, promise };
+    }
+
+    // Register a thumbnail image that's being loaded.  This can be called if we're loading an
+    // image thumbnail, so we'll remember its resolution for future calls to getMediaAspectRatio.
+    async registerLoadingThumbnail(mediaId, img)
+    {
+        await helpers.other.waitForImageLoad(img);
+
+        // If the image load fails, waitForImageLoad will still resolve.  Store a fallback aspect
+        // ratio, so we can't end up getting stuck trying to load a broken image over and over.
+        // waitForImageLoad will still resolve if the image load fails
+        let aspectRatio = img.naturalWidth / img.naturalHeight;
+        if(img.naturalHeight == 0)
+            aspectRatio = 0;
+
+        this._mediaIdAspectRatio[mediaId] = aspectRatio;
+        return aspectRatio;
     }
 }
