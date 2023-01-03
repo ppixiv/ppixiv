@@ -594,12 +594,25 @@ export default class ViewerImages extends Viewer
         return Math.log2(factor) / Math.log2(1.5);
     }
 
-    // Get the effective zoom level, translating "cover" and "actual" to actual values.
-    get _zoomLevelCurrent()
+    // Get the effective zoom level.  If zoom isn't active, the effective zoom level is 0
+    // (zoom factor 1).
+    get _zoomLevelEffective()
     {
         if(!this.zoomActive)
             return 0;
+        else
+            return this._zoomLevelCurrent;
+    }
 
+    // Return the active zoom ratio.  A zoom of 1x corresponds to "cover" zooming.
+    get _zoomFactorEffective()
+    {
+        return this.zoomLevelToZoomFactor(this._zoomLevelEffective);
+    }
+
+    // Get this._zoomLevel with translating "cover" and "actual" translated to actual values.
+    get _zoomLevelCurrent()
+    {
         let level = this._zoomLevel;
         if(level == "cover")
             return this._zoomLevelCover;
@@ -609,7 +622,6 @@ export default class ViewerImages extends Viewer
             return level;
     }
 
-    // Return the active zoom ratio.  A zoom of 1x corresponds to "cover" zooming.
     get _zoomFactorCurrent()
     {
         return this.zoomLevelToZoomFactor(this._zoomLevelCurrent);
@@ -671,7 +683,7 @@ export default class ViewerImages extends Viewer
         // Increase or decrease relative_zoom_level by snapping to the next or previous increment.
         // We're usually on a multiple of increment, moving from eg. 0.5 to 0.75, but if we're on
         // a non-increment value from a special zoom level, this puts us back on the zoom increment.
-        let oldLevel = this._zoomLevelCurrent;
+        let oldLevel = this._zoomLevelEffective;
         let newLevel = oldLevel;
 
         let increment = 0.25;
@@ -783,10 +795,10 @@ export default class ViewerImages extends Viewer
 
         // Scale movement by the zoom factor, so we move faster if we're zoomed
         // further in.
-        let zoomFactor = this._zoomFactorCurrent;
+        let zoomFactor = this._zoomFactorEffective;
 
         // This is a hack to keep the same panning sensitivity.  The sensitivity was based on
-        // _zoomFactorCurrent being relative to "contain" mode, but it changed to "cover".
+        // _zoomFactorEffective being relative to "contain" mode, but it changed to "cover".
         // Adjust the panning speed so it's not affected by this change.
         zoomFactor /= this.containToCoverRatio;
 
@@ -847,8 +859,8 @@ export default class ViewerImages extends Viewer
     get height() { return this._imageToCoverRatio; }
 
     // The actual size of the image with its current zoom.
-    get currentWidth() { return this.width * this._zoomFactorCurrent; }
-    get currentHeight() { return this.height * this._zoomFactorCurrent; }
+    get currentWidth() { return this.width * this._zoomFactorEffective; }
+    get currentHeight() { return this.height * this._zoomFactorEffective; }
 
     // The dimensions of the image viewport.  This can be 0 if the view is hidden.
     get viewWidth() { return this.root.offsetWidth || 1; }
@@ -1021,7 +1033,7 @@ export default class ViewerImages extends Viewer
         let viewWidth = Math.max(this.viewWidth, 1);
         let viewHeight = Math.max(this.viewHeight, 1);
 
-        let zoomFactor = this._zoomFactorCurrent;
+        let zoomFactor = this._zoomFactorEffective;
         let zoomedWidth = width * zoomFactor;
         let zoomedHeight = height * zoomFactor;
 
@@ -1065,7 +1077,7 @@ export default class ViewerImages extends Viewer
         // if we're viewing a 1920x1080 image on a 1920x1080 screen and we're in "cover" mode.
         // If we're scaling the image at all due to zooming, allow it to be fractional to allow
         // smoother panning.
-        let inActualZoomMode = this._actualZoomAvailable && Math.abs(this._zoomFactorCurrent - this._zoomFactorActual) < 0.001;
+        let inActualZoomMode = this._actualZoomAvailable && Math.abs(this._zoomFactorEffective - this._zoomFactorActual) < 0.001;
         if(inActualZoomMode)
         {
             x = Math.round(x);
@@ -1538,18 +1550,19 @@ export default class ViewerImages extends Viewer
         if(!this.zoomActive)
             this.setZoom({ enabled: true, level: 0 });
 
-        let previousZoomLevel = this._zoomLevelCurrent;
+        let oldZoomLevel = this._zoomLevelEffective;
         this.changeZoom(down);
+        let newZoomLevel = this._zoomLevelEffective;
 
         // If the zoom level didn't change, try one more time.  For example, if cover mode
         // is equal to zoom level 2 and we just switched between them, we've changed zoom
         // modes but nothing will actually change, so we should skip to the next level.
-        if(Math.abs(previousZoomLevel - this._zoomLevelCurrent) < 0.01)
+        if(Math.abs(oldZoomLevel - newZoomLevel) < 0.01)
             this.changeZoom(down);
 
-        // If we're selecting zoom level 0, turn off zoom lock and set the zoom level to cover.
-        // That displays the same thing, since 0 zoom is the same as unzoomed, but clicking the
-        // image will zoom to cover, which is more natural.
+        // If we're selecting zoom level 0 (contain), set the zoom level to cover and turn
+        // off zoom lock.  That displays the same thing, but clicking the image will zoom
+        // to cover, which is more natural.
         if(this.getZoomLevel() == 0)
             this.setZoom({ enabled: false, level: "cover" });
 
