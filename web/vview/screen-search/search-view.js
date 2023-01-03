@@ -8,32 +8,6 @@ import StopAnimationAfter from 'vview/actors/stop-animation-after.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import { helpers, GuardedRunner } from 'vview/misc/helpers.js';
 
-// JavaScript objects are ordered, but for some reason there's no way to actually manipulate
-// the order, such as adding to the beginning.  We have to make a copy of the object, add
-// our new entry, then add everything else.
-function addToBeginning(object, key, value)
-{
-    let result = {};
-    result[key] = value;
-    for(let [oldKey, oldValue] of Object.entries(object))
-    {
-        if(oldKey != key)
-            result[oldKey] = oldValue;
-    }
-    return result;
-}
-
-// Similar to addToBeginning, this adds at the end.  Note that while addToBeginning returns a
-// new object, this edits the object in-place.  We need to be careful with this, but it avoids making
-// a copy of the thumb dictionary every time we append to the end.  To make it clearer that this
-// differs from addToBeginning, this doesn't return the object.
-function addToEnd(object, key, value)
-{
-    // Remove the key if it exists, so it's moved to the end.
-    delete object[key];
-    object[key] = value;
-}
-
 export default class SearchView extends Widget
 {
     constructor({...options})
@@ -910,7 +884,7 @@ export default class SearchView extends Widget
                let node = this.createThumb(mediaId, searchPage, { cachedNodes: removedNodes });
                firstMatchingNode.insertAdjacentElement("beforebegin", node);
                firstMatchingNode = node;
-               this.thumbs = addToBeginning(this.thumbs, mediaId, node);
+               this.thumbs = helpers.other.addToBeginning(this.thumbs, mediaId, node);
            }
         }
 
@@ -925,7 +899,7 @@ export default class SearchView extends Widget
             let searchPage = mediaIdPages[mediaId];
             let node = this.createThumb(mediaId, searchPage, { cachedNodes: removedNodes });
             this.thumbnailBox.appendChild(node);
-            addToEnd(this.thumbs, mediaId, node);
+            helpers.other.addToEnd(this.thumbs, mediaId, node);
         }
 
         // If this data source supports a start page and we started after page 1, show the "load more"

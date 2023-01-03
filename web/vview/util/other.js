@@ -350,6 +350,31 @@ export function createUuid()
     for(let i = 10; i < 16; ++i) result += data[i].toString(16).padStart(2, "0");
     return result;
 }
+// JavaScript objects are ordered, but for some reason there's no way to actually manipulate
+// the order, such as adding to the beginning.  We have to make a copy of the object, add
+// our new entry, then add everything else.
+export function addToBeginning(object, key, value)
+{
+    let result = {};
+    result[key] = value;
+    for(let [oldKey, oldValue] of Object.entries(object))
+    {
+        if(oldKey != key)
+            result[oldKey] = oldValue;
+    }
+    return result;
+}
+
+// Similar to addToBeginning, this adds at the end.  Note that while addToBeginning returns a
+// new object, this edits the object in-place.  We need to be careful with this, but it avoids making
+// a copy of the thumb dictionary every time we append to the end.  To make it clearer that this
+// differs from addToBeginning, this doesn't return the object.
+export function addToEnd(object, key, value)
+{
+    // Remove the key if it exists, so it's moved to the end.
+    delete object[key];
+    object[key] = value;
+}
 
 export function shuffleArray(array)
 {
