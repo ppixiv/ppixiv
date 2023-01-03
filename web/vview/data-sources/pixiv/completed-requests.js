@@ -56,7 +56,7 @@ export default class DataSources_CompletedRequests extends DataSource
         }
 
         // Register the new page of data.
-        this.addPage(page, mediaIds);
+        await this.addPage(page, mediaIds);
     }
 }
 

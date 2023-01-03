@@ -384,7 +384,7 @@ export class Bookmarks extends DataSource_BookmarksBase
         // If mediaIds is empty but result.empty is false, we had results in the list but we
         // filtered them all out.  Set allowEmpty to true in this case so we add the empty page,
         // or else it'll look like we're at the end of the results when we know we aren't.
-        this.addPage(page, mediaIds, {
+        await this.addPage(page, mediaIds, {
             allowEmpty: !result.empty,
         });
 

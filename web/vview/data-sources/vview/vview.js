@@ -119,7 +119,7 @@ export default class DataSource_VView extends DataSource
     
             this.reachedEnd = true;
             this._allPagesLoaded = true;            
-            this.addPage(page, resultIds.ids);
+            await this.addPage(page, resultIds.ids);
             return;
         }
 

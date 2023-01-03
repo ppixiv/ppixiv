@@ -92,7 +92,7 @@ export default class DataSource_Follows extends DataSource
         await ppixiv.mediaCache.addMediaInfosPartial(illusts, "normal");
 
         // Register the new page of data.
-        this.addPage(page, mediaIds);
+        await this.addPage(page, mediaIds);
     }
 
     get uiInfo()

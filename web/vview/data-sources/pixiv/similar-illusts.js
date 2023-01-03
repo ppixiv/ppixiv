@@ -63,7 +63,7 @@ export default class DataSource_SimilarIllusts extends DataSource
             mediaIds.push(helpers.mediaId.fromIllustId(thumb.id));
 
         ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
-        this.addPage(page, mediaIds);
+        await this.addPage(page, mediaIds);
     };
 
     get uiInfo()

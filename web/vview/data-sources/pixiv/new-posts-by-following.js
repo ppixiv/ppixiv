@@ -47,7 +47,7 @@ export default class DataSource_NewPostsByFollowing extends DataSource
             mediaIds.push(helpers.mediaId.fromIllustId(illust.id));
 
         // Register the new page of data.
-        this.addPage(page, mediaIds);
+        await this.addPage(page, mediaIds);
     }
 };
 

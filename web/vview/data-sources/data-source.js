@@ -333,7 +333,7 @@ export default class DataSource extends EventTarget
     getThumbnailAspectRatio() { return null; }
 
     // Register a page of data.
-    addPage(page, mediaIds, {...options}={})
+    async addPage(page, mediaIds, {...options}={})
     {
         // If an image view is reloaded, it may no longer be on the same page in the underlying
         // search.  New posts might have pushed it onto another page, or the search might be
@@ -701,7 +701,7 @@ export class DataSourceFromPage extends DataSource
             this.itemsPerPage = Math.max(mediaIds.length, this.itemsPerPage);
 
         // Register the new page of data.
-        this.addPage(page, mediaIds);
+        await this.addPage(page, mediaIds);
     }
 
     // Parse the loaded document and return the media IDs.
@@ -728,7 +728,7 @@ export class DataSourceFakePagination extends DataSource
 
         // Register this page.
         let mediaIds = this.pages[page-1] || [];
-        this.addPage(page, mediaIds);
+        await this.addPage(page, mediaIds);
     }
 
     // Implemented by the subclass.  Load all results, and return the resulting IDs.
