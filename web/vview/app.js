@@ -234,6 +234,16 @@ export default class App
             document.head.appendChild(meta);
         }
 
+        // Add <meta name=theme-color> to tell iOS how to color the UI.  If "Allow Website Tinting" is
+        // enabled and the navigation bar is hidden, Safari tries to guess the UI color and sometimes
+        // randomly gets it wrong.  We always want black.
+        {
+            let meta = document.createElement("meta");
+            meta.setAttribute("name", "theme-color");
+            meta.setAttribute("content", "#000");
+            document.head.appendChild(meta);
+        }
+
         // Now that we've cleared the document and added our style so our background color is
         // correct, we can unhide the document.
         this._undoTemporarilyHideDocument();
