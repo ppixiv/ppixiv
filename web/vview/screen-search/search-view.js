@@ -1678,22 +1678,7 @@ export default class SearchView extends Widget
         if(!force && !("pending" in element.dataset))
             return;
 
-        let [illustId, illustPage] = helpers.mediaId.toIllustIdAndPage(mediaId);
-
         let { id: thumbId, type: thumbType } = helpers.mediaId.parse(mediaId);
-
-        // For illustrations, get thumbnail info.  If we don't have it yet, skip the image (leave it pending)
-        // and we'll come back once we have it.
-        let info = null;
-        if(thumbType == "illust" || thumbType == "file" || thumbType == "folder")
-        {
-            // Get thumbnail info.
-            info = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
-            if(info == null)
-                return;
-        }
-        
-        helpers.html.setDataSet(element.dataset, "pending", false);
 
         // On hover, use StopAnimationAfter to stop the animation after a while.
         this.addAnimationListener(element);
@@ -1703,6 +1688,7 @@ export default class SearchView extends Widget
             // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
             // of info.
             let userId = thumbId;
+            helpers.html.setDataSet(element.dataset, "pending", false);
 
             let link = element.querySelector("a.thumbnail-link");
             if(thumbType == "user")
@@ -1716,7 +1702,7 @@ export default class SearchView extends Widget
             if(quickUserData == null)
             {
                 // We should always have this data for users if the data source asked us to display this user.
-                throw "Missing quick user data for user ID " + userId;
+                throw new Error(`Missing quick user data for user ID ${userId}`);
             }
             
             let thumb = element.querySelector(".thumb");
@@ -1732,10 +1718,20 @@ export default class SearchView extends Widget
         if(thumbType != "illust" && thumbType != "file" && thumbType != "folder")
             throw "Unexpected thumb type: " + thumbType;
 
+        // Get media info.  If we don't have it yet, it'll be loaded by loadMediaInfoForMediaIds.
+        // Most data sources register this with the search results, but it's loaded on-demand for
+        // DataSource_VView when it's in fast listing mode.
+        let info = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
+        if(info == null)
+            return;
+
+        helpers.html.setDataSet(element.dataset, "pending", false);
+
         // Set this thumb.
         let { page } = helpers.mediaId.parse(mediaId);
         let url = info.previewUrls[page];
         let thumb = element.querySelector(".thumb");
+        let [illustId, illustPage] = helpers.mediaId.toIllustIdAndPage(mediaId);
 
         // Check if this illustration is muted (blocked).
         let mutedTag = ppixiv.muting.anyTagMuted(info.tagList);
@@ -1829,13 +1825,6 @@ export default class SearchView extends Widget
         // New media info is available, so we might be able to fill in thumbnails that we couldn't
         // before.
         this.setVisibleThumbs();
-
-        // If media info wasn't available when we refreshed a thumbnail and we're displaying
-        // manga pages, we weren't able to tell that the illust had manga pages and inserted
-        // a single page for it.  Refresh thumbnails when we get new media info so we'll correct
-        // this.  This only happens with data sources that don't provide media info along with
-        // results (currently this is only the artist view), 
-        this.dataSourceUpdated();
     }
 
     // Scroll to mediaId if it's available.  This is called when we display the thumbnail view
