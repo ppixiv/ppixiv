@@ -47,6 +47,7 @@ export default class SearchView extends Widget
         // existing thumbs faster than iterating the nodes.
         this.thumbs = {};
 
+        // A map of media IDs that the user has manually expanded or collapsed.
         this.expandedMediaIds = new Map();
 
         // Refresh the "load previous page" link when the URL changes.
@@ -71,18 +72,14 @@ export default class SearchView extends Widget
         // When a bookmark is modified, refresh the heart icon.
         ppixiv.mediaCache.addEventListener("mediamodified", (e) => this.refreshThumbnail(e.mediaId), this._signal);
 
+        // Call thumbImageLoadFinished when a thumbnail image finishes loading.
         this.root.addEventListener("load", (e) => {
             if(e.target.classList.contains("thumb"))
                 this.thumbImageLoadFinished(e.target.closest(".thumbnail-box"), { cause: "onload" });
         }, { capture: true } );
 
-        // Work around a browser bug: even though it's document.documentElement.scrollTop is
-        // changing, it doesn't receive onscroll and we have to listen on window instead.
-        this.scrollContainer.addEventListener("scroll", (e) => {
-            this.scheduleStoreScrollPosition();
-        }, {
-            passive: true,
-        });
+        this.scrollContainer.addEventListener("scroll", (e) => this.scheduleStoreScrollPosition(), { passive: true });
+        this.thumbnailBox.addEventListener("click", (e) => this.thumbnailClick(e));
                 
         // As an optimization, start loading image info on mousedown.  We don't navigate until click,
         // but this lets us start loading image info a bit earlier.
@@ -104,8 +101,6 @@ export default class SearchView extends Widget
 
             await ppixiv.mediaCache.getMediaInfo(a.dataset.mediaId);
         }, { capture: true });
-
-        this.thumbnailBox.addEventListener("click", this.thumbnailClick);
 
         this.root.querySelector(".load-previous-button").addEventListener("click", (e) =>
         {
@@ -149,8 +144,7 @@ export default class SearchView extends Widget
             },
         });
 
-        // Create IntersectionObservers for thumbs that are completely onscreen, nearly onscreen (should
-        // be preloaded), and farther off (but not so far they should be unloaded).
+        // Create IntersectionObservers for thumbs that are fully onscreen and nearly onscreen.
         this.intersectionObservers = [];
         this.intersectionObservers.push(new IntersectionObserver((entries) => {
             for(let entry of entries)
@@ -199,7 +193,7 @@ export default class SearchView extends Widget
         helpers.html.setClass(document.body, "disable-thumbnail-zooming", ppixiv.settings.get("disable_thumbnail_zooming") || ppixiv.mobile);
     }
 
-    // Return the thumbnail
+    // Return the thumbnail container for mediaId.
     //
     // If mediaId is a manga page and fallbackOnPage1 is true, return page 1 if the exact page
     // doesn't exist.
@@ -219,9 +213,9 @@ export default class SearchView extends Widget
         return null;
     }
 
+    // Return the first thumb that's fully onscreen.
     getFirstFullyOnscreenThumb()
     {
-        // Find the first thumb that's fully onscreen.
         for(let element of Object.values(this.thumbs))
         {
             if(element.dataset.fullyOnScreen)
@@ -727,7 +721,7 @@ export default class SearchView extends Widget
         return [firstLoadedMediaId, lastLoadedMediaId];
     }
 
-    refreshImages = ({forcedMediaId=null, forceMore=false}={}) =>
+    refreshImages({forcedMediaId=null, forceMore=false}={})
     {
         if(this.dataSource == null)
             return;
@@ -992,6 +986,7 @@ export default class SearchView extends Widget
         return {columns: bestColumns, padding, thumbWidth, thumbHeight, containerWidth};
     }
     
+    // Verify that thumbs we've created are in sync with this.thumbs.
     sanityCheckThumbList()
     {
         let actual = [];
@@ -1005,8 +1000,8 @@ export default class SearchView extends Widget
             console.log("expected", expected);
         }
     }
-    // Start loading data pages that we need to display visible thumbs, and start
-    // loading thumbnail data for nearby thumbs.
+
+    // Start loading a data source page if needed.
     async loadDataSourcePage({cause="thumbnails"}={})
     {
         // We load pages when the last thumbs on the previous page are loaded, but the first
@@ -1044,8 +1039,9 @@ export default class SearchView extends Widget
             noResults.hidden = false;
     }
 
-    thumbnailClick = async(e) =>
+    thumbnailClick(e)
     {
+        // See if this is a click on the manga page toggle.
         let pageCountBox = e.target.closest(".manga-info-box");
         if(pageCountBox)
         {
