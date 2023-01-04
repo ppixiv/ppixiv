@@ -327,6 +327,10 @@ export default class DataSource extends EventTarget
     // Some data sources can restart the search at a page.
     get supportsStartPage() { return false; }
 
+    // Most searches will only auto-load forwards and display "Load Previous Results" at the top.
+    // If this is true, the search is allowed to automatically load backwards too.
+    get autoLoadPreviousPages() { return false; }
+
     // Return the "15 / 100" page text to use.  This is only used by DataSource_VView.
     getPageTextForMediaId(mediaId) { return null; }
 

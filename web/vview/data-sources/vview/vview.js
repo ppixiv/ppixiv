@@ -12,6 +12,7 @@ export default class DataSource_VView extends DataSource
     get isVView() { return true; }
     get supportsStartPage() { return true; }
     get ui() { return UI; }
+    get autoLoadPreviousPages() { return true; }
 
     constructor(url)
     {

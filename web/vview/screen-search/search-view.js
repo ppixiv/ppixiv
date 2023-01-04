@@ -57,7 +57,6 @@ export default class SearchView extends Widget
         this._mediaIdExpandedCache = null;
         ppixiv.muting.addEventListener("mutes-changed", () => this._mediaIdExpandedCache = null, this._signal);
 
-        ppixiv.mediaCache.addEventListener("infoloaded", () => this.mediaInfoLoaded(), this._signal);
         new ResizeObserver(() => this.refreshImages()).observe(this.root);
 
         // The scroll position may not make sense when if scroller changes size (eg. the window was resized
@@ -332,14 +331,31 @@ export default class SearchView extends Widget
         let loadPage = null;
         if(this.dataSource && !this.dataSource.isPageLoadedOrLoading(this.dataSource.initialPage))
             loadPage = this.dataSource.initialPage;
-        else
+
+        if(loadPage == null)
         {
             // Load the next page when the last nearby thumbnail (set by the "nearby" IntersectionObserver)
             // is the last thumbnail in the list.
             let thumbs = this.getLoadedThumbs();
-            let lastThumb = thumbs[thumbs.length-1]; // may be null
-            if(lastThumb?.dataset?.nearby)
-                loadPage = parseInt(lastThumb.dataset.searchPage)+1;
+            if(thumbs.length > 0)
+            {
+                let lastThumb = thumbs[thumbs.length-1];
+                if(lastThumb.dataset.nearby)
+                    loadPage = parseInt(lastThumb.dataset.searchPage)+1;
+
+                // If autoLoadPreviousPages is true, do the same at the start: load the previous page when the first
+                // nearby thumbnail is the first thumbnail in the list.
+                if(loadPage == null && this.dataSource?.autoLoadPreviousPages)
+                {
+                    let firstThumb = thumbs[0];
+                    let searchPage = parseInt(firstThumb.dataset.searchPage);
+                    if(firstThumb.dataset.nearby && searchPage > 1)
+                    {
+                        loadPage = searchPage - 1;
+                        console.log("Auto-loading backwards:", loadPage);
+                    }
+                }
+            }
         }
 
         // Hide "no results" if it's shown while we load data.
@@ -678,60 +694,7 @@ export default class SearchView extends Widget
             `forced idx: ${forcedMediaIdIdx}, returning: ${startIdx} to ${endIdx}`);
         */
 
-        let mediaIds = allMediaIds.slice(startIdx, endIdx+1);
-
-        // Load thumbnail info for the results.  We don't wait for this to finish.
-        this.loadMediaInfoForMediaIds(allMediaIds, startIdx, endIdx);
-
-        return mediaIds;
-    }
-
-    loadMediaInfoForMediaIds(allMediaIds, startIdx, endIdx)
-    {
-        // Stop if the range is already loaded.
-        let mediaIds = allMediaIds.slice(startIdx, endIdx+1);
-        if(ppixiv.mediaCache.areAllMediaIdsLoadedOrLoading(mediaIds))
-            return;
-
-        // Make a list of IDs that need to be loaded, removing ones that are already
-        // loaded.
-        let mediaIdsToLoad = [];
-        for(let mediaId of mediaIds)
-        {
-            if(!ppixiv.mediaCache.isMediaIdLoadedOrLoading(mediaId))
-                mediaIdsToLoad.push(mediaId);
-        }
-
-        if(mediaIdsToLoad.length == 0)
-            return;
-
-        // Try not to request thumbnail info in tiny chunks.  If we load them as they
-        // scroll on, we'll make dozens of requests for 4-5 thumbnails each and spam
-        // the API.  Avoid this by extending the list outwards, so we load a bigger chunk
-        // in one request and then stop for a while.
-        //
-        // Don't do this for the local API.  Making lots of tiny requests is harmless
-        // there since it's all local, and requesting file info causes the file to be
-        // scanned if it's not yet cached, so it's better to make fine-grained requests.
-        let minToLoad = this.dataSource?.isVView? 10: 30;
-
-        let loadStartIdx = startIdx;
-        let loadEndIdx = endIdx;
-        while(mediaIdsToLoad.length < minToLoad && (loadStartIdx >= 0 || loadEndIdx < allMediaIds.length))
-        {
-            let mediaId = allMediaIds[loadStartIdx];
-            if(mediaId != null && !ppixiv.mediaCache.isMediaIdLoadedOrLoading(mediaId))
-                mediaIdsToLoad.push(mediaId);
-
-            mediaId = allMediaIds[loadEndIdx];
-            if(mediaId != null && !ppixiv.mediaCache.isMediaIdLoadedOrLoading(mediaId))
-                mediaIdsToLoad.push(mediaId);
-
-            loadStartIdx--;
-            loadEndIdx++;
-        }
-
-        ppixiv.mediaCache.batchGetMediaInfoPartial(mediaIdsToLoad);
+        return allMediaIds.slice(startIdx, endIdx+1);
     }
 
     // Return the first and last media IDs that are nearby (or all of them if all is true).
@@ -935,8 +898,10 @@ export default class SearchView extends Widget
         }
 
         // If this data source supports a start page and we started after page 1, show the "load more"
-        // button.
+        // button.  Hide it if we're auto-loading backwards too.
         this.loadPreviousPageButton.hidden = this.dataSource == null || this.dataSource.initialPage == 1;
+        if(this.dataSource?.autoLoadPreviousPages)
+            this.loadPreviousPageButton.hidden = true;
 
         this.restoreScrollPosition(savedScroll);
 
@@ -1006,8 +971,6 @@ export default class SearchView extends Widget
             </div>
         `});
 
-        // Mark that this thumb hasn't been filled in yet.
-        entry.dataset.pending = true;
         entry.dataset.id = mediaId;
 
         if(searchPage != null)
@@ -1024,14 +987,10 @@ export default class SearchView extends Widget
     //
     // If force is true, always reconfigure the thumbnail.  This is used when something like mutes
     // have changed and we want to refresh all thumbnails.
-    setupThumb(element, {force=false}={})
+    setupThumb(element)
     {
         let mediaId = element.dataset.id;
         if(mediaId == null)
-            return;
-
-        // Leave it alone if it's already been loaded.
-        if(!force && !("pending" in element.dataset))
             return;
 
         let { id: thumbId, type: thumbType } = helpers.mediaId.parse(mediaId);
@@ -1044,7 +1003,6 @@ export default class SearchView extends Widget
             // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
             // of info.
             let userId = thumbId;
-            helpers.html.setDataSet(element.dataset, "pending", false);
 
             let link = element.querySelector("a.thumbnail-link");
             if(thumbType == "user")
@@ -1074,14 +1032,10 @@ export default class SearchView extends Widget
         if(thumbType != "illust" && thumbType != "file" && thumbType != "folder")
             throw "Unexpected thumb type: " + thumbType;
 
-        // Get media info.  If we don't have it yet, it'll be loaded by loadMediaInfoForMediaIds.
-        // Most data sources register this with the search results, but it's loaded on-demand for
-        // DataSource_VView when it's in fast listing mode.
+        // Get media info.  This should always be registered by the data source.
         let info = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
         if(info == null)
-            return;
-
-        helpers.html.setDataSet(element.dataset, "pending", false);
+            throw new Error(`Missing media info data for ${mediaId}`);
 
         // Set this thumb.
         let { page } = helpers.mediaId.parse(mediaId);
@@ -1526,13 +1480,6 @@ export default class SearchView extends Widget
         previousPageLink.href = args.url;
     }
 
-    // Try to populate all unpopulated thumbnails.
-    setVisibleThumbs({force=false}={})
-    {
-        for(let element of Object.values(this.thumbs))
-            this.setupThumb(element, {force});
-    }
-
     // Set things up based on the image dimensions.  We can do this immediately if we know the
     // thumbnail dimensions already, otherwise we'll do it based on the thumbnail once it loads.
     thumbImageLoadFinished(element, { cause })
@@ -1802,24 +1749,16 @@ export default class SearchView extends Widget
         thumbnailElement.querySelector(".heart.private").hidden = !showBookmarkHeart || !mediaInfo.bookmarkData.private;
     }
 
-    // Force all thumbnails to refresh after the mute list changes, to refresh mutes.
+    // Refresh all thumbs after the mute list changes.
     refreshAfterMuteChange()
     {
-        // Force the update to refresh thumbs that have already been created.
-        this.setVisibleThumbs({force: true});
+        for(let element of Object.values(this.thumbs))
+            this.setupThumb(element);
     }
 
     getLoadedThumbs()
     {
         return Object.values(this.thumbs);
-    }
-
-    // This is called when MediaCache has loaded more image info.
-    mediaInfoLoaded()
-    {
-        // New media info is available, so we might be able to fill in thumbnails that we couldn't
-        // before.
-        this.setVisibleThumbs();
     }
 
     // Scroll to mediaId if it's available.  This is called when we display the thumbnail view
