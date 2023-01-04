@@ -797,23 +797,20 @@ export default class SearchView extends Widget
         });
 
         // If we're adding thumbs to the beginning, always try to add a multiple of the
-        // column count, so images stay on the same column.
-        let avoidJumps = true;
+        // column count, so images stay on the same column.  Only do this if the first
+        // thumb is past page 1.  Once we reach page 1 we have to allow the jump or we'll
+        // never display the first couple images.
+        //
+        // Skip this if _loadingPreviousPage is true, so we allow jumps when loading with
+        // the "load previous page" button.
         let [firstLoadedMediaId, lastLoadedMediaId] = this.getLoadedMediaIds();
         let firstLoadedMediaIdIdx = allMediaIds.indexOf(firstLoadedMediaId);
-        if(avoidJumps && firstLoadedMediaIdIdx != -1)
+        if(!this._loadingPreviousPage && firstLoadedMediaIdIdx != -1 && mediaIdPages[firstLoadedMediaId] > 1)
         {
-            // Only do this if the first thumb is past page 1.  Once we reach page 1 we have
-            // to allow the jump or we'll never display the first couple images.
             // The number of thumbs we're adding to the beginning:
             let addedThumbs = firstLoadedMediaIdIdx - startIdx;
             let trim = addedThumbs % columns;
-            if(mediaIdPages[firstLoadedMediaId] > 1)
-            {
-                startIdx += trim;
-            } else if(trim) {
-                // console.log("Jumping by", trim);
-            }
+            startIdx += trim;
         }
 
         let mediaIds = allMediaIds.slice(startIdx, endIdx+1);
@@ -839,59 +836,42 @@ export default class SearchView extends Widget
             mediaIdIndex[mediaId] = i;
         }
 
-        function getNodeIdx(node)
-        {
-            if(node == null)
-                return null;
+        let getNodeIdx = (node) => mediaIdIndex[node.dataset.id];
 
-            let mediaId = node.dataset.id;
-            return mediaIdIndex[mediaId];
+        // Find the first match (4 in the above example), removing any thumbs before it.
+        while(this.thumbnailBox.firstElementChild != null)
+        {
+            if(getNodeIdx(this.thumbnailBox.firstElementChild) != null)
+                break;
+            
+            removeNode(this.thumbnailBox.firstElementChild);
         }
 
-        // Find the first match (4 in the above example).
-        let firstMatchingNode = this.thumbnailBox.firstElementChild;
-        while(firstMatchingNode && getNodeIdx(firstMatchingNode) == null)
-            firstMatchingNode = firstMatchingNode.nextElementSibling;
-
-        // If we have a firstMatchingNode, walk forward to find the last matching node (6 in
-        // the above example).
-        let lastMatchingNode = firstMatchingNode;
+        // Find the last contiguous matching node (6 in the above example).
+        let lastMatchingNode = this.thumbnailBox.firstElementChild;
         if(lastMatchingNode != null)
         {
-            // Make sure the range is contiguous.  firstMatchingNode and all nodes through lastMatchingNode
-            // should match a range exactly.  If there are any missing entries, stop.
-            let nextExpectedIdx = getNodeIdx(lastMatchingNode) + 1;
-            while(lastMatchingNode && getNodeIdx(lastMatchingNode.nextElementSibling) == nextExpectedIdx)
+            while(lastMatchingNode.nextElementSibling &&
+                getNodeIdx(lastMatchingNode.nextElementSibling) == getNodeIdx(lastMatchingNode) + 1)
             {
                 lastMatchingNode = lastMatchingNode.nextElementSibling;
-                nextExpectedIdx++;
             }
         }
 
-        // If we have a range, delete all items outside of it.  Otherwise, just delete everything.
-        while(firstMatchingNode && firstMatchingNode.previousElementSibling)
-            removeNode(firstMatchingNode.previousElementSibling);
-
+        // Remove everything after lastMatchingNode.
         while(lastMatchingNode && lastMatchingNode.nextElementSibling)
             removeNode(lastMatchingNode.nextElementSibling);
 
-        if(!firstMatchingNode && !lastMatchingNode)
-        {
-            while(this.thumbnailBox.firstElementChild != null)
-                removeNode(this.thumbnailBox.firstElementChild);
-        }
-
         // If we have a matching range, add any new elements before it.
-        if(firstMatchingNode)
+        if(this.thumbnailBox.firstElementChild)
         {
-           let firstIdx = getNodeIdx(firstMatchingNode);
+           let firstIdx = getNodeIdx(this.thumbnailBox.firstElementChild);
            for(let idx = firstIdx - 1; idx >= 0; --idx)
            {
                let mediaId = mediaIds[idx];
                let searchPage = mediaIdPages[mediaId];
                let node = this.createThumb(mediaId, searchPage, { cachedNodes: removedNodes });
-               firstMatchingNode.insertAdjacentElement("beforebegin", node);
-               firstMatchingNode = node;
+               this.thumbnailBox.firstElementChild.insertAdjacentElement("beforebegin", node);
                this.thumbs = helpers.other.addToBeginning(this.thumbs, mediaId, node);
            }
         }
@@ -1266,7 +1246,13 @@ export default class SearchView extends Widget
             return false;
         
         console.log("Loading page:", page);
-        await this.dataSource.loadPage(page, { cause: "previous page" });
+        this._loadingPreviousPage = true;
+        try {
+            await this.dataSource.loadPage(page, { cause: "previous page" });
+        } finally {
+            this._loadingPreviousPage = false;
+        }
+
         return true;
     }
 
