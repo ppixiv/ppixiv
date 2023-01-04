@@ -215,12 +215,12 @@ export default class ScreenSearch extends Screen
 
     refreshSearch()
     {
-        ppixiv.app.refreshCurrentDataSource({removeSearchPage: true});
+        ppixiv.app.refreshCurrentDataSource({startAtBeginning: true});
     }
 
     refreshSearchFromPage()
     {
-        ppixiv.app.refreshCurrentDataSource({removeSearchPage: false});
+        ppixiv.app.refreshCurrentDataSource({startAtBeginning: false});
     }
         
     refreshUi = () =>

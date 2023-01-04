@@ -1358,30 +1358,17 @@ class ImageInfoWidget extends IllustWidget
         
         // Add the page count for manga.  If the data source is dataSource.vview, show
         // the index of the current file if it's loaded all results.
-        let currentPage = this.mangaPage;
         let pageCount = mediaInfo.pageCount;
-        let showPageNumber = this._showPageNumber;
-        if(this.dataSource?.name == "vview" && this.dataSource.allPagesLoaded)
+        let pageText = this.dataSource.getPageTextForMediaId(mediaId);
+        if(pageText == null && pageCount > 1)
         {
-            let { page } = this.dataSource.idList.getPageForMediaId(mediaId);
-            let ids = this.dataSource.idList.mediaIdsByPage.get(page);
-            if(ids != null)
-            {
-                currentPage = ids.indexOf(mediaId);
-                pageCount = ids.length;
-                showPageNumber = true;
-            }
-        }
-
-        let pageText = "";
-        if(pageCount > 1)
-        {
-            if(showPageNumber || currentPage > 0)
+            let currentPage = this.mangaPage;
+            if(this._showPageNumber || currentPage > 0)
                 pageText = `Page ${currentPage+1}/${pageCount}`;
             else
                 pageText = `${pageCount} pages`;
         }
-        setInfo(".page-count", pageText);
+        setInfo(".page-count", pageText ?? "");
 
         if(this.showTitle)
         {

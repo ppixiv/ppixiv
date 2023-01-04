@@ -306,7 +306,7 @@ export default class App
          });
     }
 
-    async refreshCurrentDataSource({removeSearchPage=false, scrollToTop=false}={})
+    async refreshCurrentDataSource({startAtBeginning=false, scrollToTop=false}={})
     {
         if(this._dataSource == null)
             return;
@@ -315,7 +315,7 @@ export default class App
         // This returns the data source, but just call setCurrentDataSource so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.plocation.toString());
-        DataSources.createDataSourceForUrl(ppixiv.plocation, {force: true, removeSearchPage});
+        DataSources.createDataSourceForUrl(ppixiv.plocation, {force: true, startAtBeginning});
 
         // Screens store their scroll position in args.state.scroll.  On refresh, clear it
         // so we scroll to the top when we refresh.
@@ -451,8 +451,9 @@ export default class App
             targetMediaId = null;
         }
 
-        // Get the data source for the current URL.
+        // Get the data source for the current URL and initialize it if needed.
         let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation);
+        await dataSource.init();
 
         // Figure out which screen to display.
         let newScreenName;

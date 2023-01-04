@@ -149,10 +149,10 @@ export function createDataSourceForUrl(url, {
     // previously created one.
     force=false,
 
-    // If removeSearchPage is true, the data source page number in url will be
+    // If startAtBeginning is true, the data source page number in url will be
     // ignored, returning to page 1.  This only matters for data sources that support
     // a start page.
-    removeSearchPage=false,
+    startAtBeginning=false,
 }={})
 {
     let args = new helpers.args(url);
@@ -166,7 +166,7 @@ export function createDataSourceForUrl(url, {
 
     // Canonicalize the URL to see if we already have a data source for this URL.  We only
     // keep one data source around for each canonical URL (eg. search filters).
-    let canonicalUrl = helpers.getCanonicalUrl(url, { removeSearchPage: true }).url.toString();
+    let canonicalUrl = helpers.getCanonicalUrl(url, { startAtBeginning: true }).url.toString();
     if(!force && canonicalUrl in dataSourcesByUrl)
     {
         // console.log("Reusing data source for", url.toString());
@@ -187,7 +187,7 @@ export function createDataSourceForUrl(url, {
     
     // The search page isn't part of the canonical URL, but keep it in the URL we create
     // the data source with, so it starts at the current page.
-    let baseUrl = helpers.getCanonicalUrl(url, { removeSearchPage }).url.toString();
+    let baseUrl = helpers.getCanonicalUrl(url, { startAtBeginning }).url.toString();
     let dataSource = new dataSourceClass(baseUrl);
     dataSourcesByUrl[canonicalUrl] = dataSource;
     return dataSource;

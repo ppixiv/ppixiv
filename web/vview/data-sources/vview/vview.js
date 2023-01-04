@@ -1,5 +1,5 @@
 import Widget from 'vview/widgets/widget.js';
-import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
+import DataSource, { PaginateMediaIds, TagDropdownWidget } from 'vview/data-sources/data-source.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import { LocalSearchBoxWidget } from 'vview/widgets/local-widgets.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
@@ -22,14 +22,85 @@ export default class DataSource_VView extends DataSource
         this.nextPageUuid = null;
         this.nextPageOffset = null;
         this.bookmarkTagCounts = null;
-        this._allPagesLoaded = false;
-
-        this.loadPage(this.initialPage, { cause: "preload" });
+        this._allIds = null;
     }
 
-    // If we've loaded all pages, this is true to let the context menu know it
-    // should display page numbers.
-    get allPagesLoaded() { return this._allPagesLoaded; }
+    async init()
+    {
+        if(this._initialized)
+            return;
+        this._initialized = true;
+
+        this.fetchBookmarkTagCounts();
+        
+        let args = new helpers.args(this.url);
+        let { searchOptions } = LocalAPI.getSearchOptionsForArgs(args);
+
+        // If we have no search options, we're viewing a single directory.  Load the whole
+        // ID list with /ids.  This only returns media IDs, but returns the entire directory,
+        // and we can register the whole thing as one big page.  This lets us handle local
+        // files better: if you load a random file in a big directory and then back out to
+        // the search, we can show the file you were on instead of going back to the top.
+        // ScreenSearch will load media info as needed when they're actually displayed.
+        //
+        // If we have access restrictions (eg. we're guest and can only access certain tags),
+        // this API is disabled, since all listings are bookmark searches.
+        if(searchOptions == null && !LocalAPI.localInfo.bookmark_tag_searches_only)
+        {
+            let folderId = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
+            console.log("Loading folder contents:", folderId);
+
+            let order = args.hash.get("order");
+            let resultIds = await LocalAPI.localPostRequest(`/api/ids/${folderId}`, {
+                ...searchOptions,
+                ids_only: true,
+                order,
+            });
+
+            if(!resultIds.success)
+            {
+                ppixiv.message.show("Error reading directory: " + resultIds.reason);
+                return;
+            }
+
+            this.pages = PaginateMediaIds(resultIds.ids, this.estimatedItemsPerPage);
+            this._allIds = resultIds.ids;
+
+            // If a file was present in the URL when we're created, try to start on the page
+            // containing it, overriding the starting page.
+            let startingMediaId = LocalAPI.getLocalIdFromArgs(args);
+            if(startingMediaId != null)
+            {
+                for(let page = 0; page < this.pages.length; ++page)
+                {
+                    let mediaIdsOnPage = this.pages[page];
+                    if(mediaIdsOnPage.indexOf(startingMediaId) != -1)
+                    {
+                        this.initialPage = page + 1;
+                        console.log(`Start on page ${this.initialPage}`);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // We set our own start page by looking for the starting ID, so don't pollute the URL
+    // with a page number that won't be sued.
+    setStartPage(args, page) { }
+
+    // If we've loaded all pages, we can display the file index as a page number.
+    getPageTextForMediaId(mediaId)
+    {
+        if(this._allIds == null)
+            return null;
+
+        let idx = this._allIds.indexOf(mediaId);
+        if(idx == -1)
+            return null;
+
+        return `Page ${idx+1}/${this._allIds.length}`;
+    }
 
     get uiInfo()
     {
@@ -45,8 +116,16 @@ export default class DataSource_VView extends DataSource
         if(this.reachedEnd)
             return;
 
-        this.fetchBookmarkTagCounts();
-        
+        if(this.pages != null)
+        {
+            let mediaIds = this.pages[page-1] || [];
+
+            // Load info for these images before returning them.
+            await ppixiv.mediaCache.batchGetMediaInfoPartial(mediaIds);
+            await this.addPage(page, mediaIds);
+            return;
+        }
+
         // We should only be called in one of three ways: a start page (any page, but only if we have
         // nothing loaded), or a page at the start or end of pages we've already loaded.  Figure out which
         // one this is.  "page" is set to result.next of the last page to load the next page, or result.prev
@@ -85,43 +164,10 @@ export default class DataSource_VView extends DataSource
             this.nextPageOffset = this.estimatedItemsPerPage * (page-1);
         }
 
-        // Use the search options if there's no path.  Otherwise, we're navigating inside
-        // the search, so just view the contents of where we navigated to.
         let args = new helpers.args(this.url);
         let { searchOptions } = LocalAPI.getSearchOptionsForArgs(args);
         let folderId = LocalAPI.getLocalIdFromArgs(args, { getFolder: true });
-
         let order = args.hash.get("order");
-
-        // If we have no search options, we're viewing a single directory.  Load the whole
-        // ID list with /ids.  This only returns media IDs, but returns the entire directory,
-        // and we can register the whole thing as one big page.  This lets us handle local
-        // files better: if you load a random file in a big directory and then back out to
-        // the search, we can show the file you were on instead of going back to the top.
-        // ScreenSearch will load media info as needed when they're actually displayed.
-        //
-        // If we have access restrictions (eg. we're guest and can only access certain tags),
-        // this API is disabled, since all listings are bookmark searches.
-        if(searchOptions == null && !LocalAPI.localInfo.bookmark_tag_searches_only)
-        {
-            console.log("Loading folder contents:", folderId);
-            let resultIds = await LocalAPI.localPostRequest(`/api/ids/${folderId}`, {
-                ...searchOptions,
-                ids_only: true,
-
-                order: args.hash.get("order"),
-            });
-            if(!resultIds.success)
-            {
-                ppixiv.message.show("Error reading directory: " + resultIds.reason);
-                return;
-            }
-    
-            this.reachedEnd = true;
-            this._allPagesLoaded = true;            
-            await this.addPage(page, resultIds.ids);
-            return;
-        }
 
         // Note that this registers the results with MediaCache automatically.
         let result = await ppixiv.mediaCache.localSearch(folderId, {

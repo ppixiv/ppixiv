@@ -563,9 +563,9 @@ export class helpers
     // a URL with all unrelated parts removed, and with query and hash parameters sorted
     // alphabetically.
     static getCanonicalUrl(url, {
-        // The search page doesn't affect the data source.  Set this to false to leave it
-        // in the URL anyway.
-        removeSearchPage=true
+        // If false, we'll leave the search page and current image in the URL so the data
+        // source will start where it left off.
+        startAtBeginning=true
     }={})
     {
         // Make a copy of the URL.
@@ -580,7 +580,7 @@ export class helpers
         // Remove parts of the URL that don't affect which data source instance is used.
         //
         // If p=1 is in the query, it's the page number, which doesn't affect the data source.
-        if(removeSearchPage)
+        if(startAtBeginning)
             args.query.delete("p");
 
         // The manga page doesn't affect the data source.
@@ -592,7 +592,8 @@ export class helpers
         // illust_id in the hash is always just telling us which image within the current
         // data source to view.  data_sources.current_illust is different and is handled in
         // the subclass.
-        args.hash.delete("illust_id");
+        if(startAtBeginning)
+            args.hash.delete("illust_id");
 
         // These are for temp view and don't affect the data source.
         args.hash.delete("virtual");
@@ -602,7 +603,8 @@ export class helpers
         args.hash.delete("view-muted");
 
         // Ignore filenames for local IDs.
-        args.hash.delete("file");
+        if(startAtBeginning)
+            args.hash.delete("file");
 
         // slideshow is used by the viewer and doesn't affect the data source.
         args.hash.delete("slideshow");

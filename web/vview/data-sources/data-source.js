@@ -19,17 +19,14 @@ export default class DataSource extends EventTarget
         // If this data source supports a start page, store the page we started on.
         // This isn't increased as we load more pages, but if we load earlier results
         // because the user clicks "load previous results", we'll reduce it.
-        if(this.supportsStartPage)
-        {
-            let args = new helpers.args(url);
-            
-            this.initialPage = this.getStartPage(args);
-            if(this.initialPage > 1)
-                console.log("Starting at page", this.initialPage);
-        }
-        else
-            this.initialPage = 1;
+        let args = new helpers.args(url);
+        
+        this.initialPage = this.getStartPage(args);
+        if(this.initialPage > 1)
+            console.log("Starting at page", this.initialPage);
     };
+
+    async init() { }
 
     // If a data source returns a name, we'll display any .data-source-specific elements in
     // the thumbnail view with that name.
@@ -270,6 +267,10 @@ export default class DataSource extends EventTarget
 
     getStartPage(args)
     {
+        // If the data source doesn't support this, the start page is always 1.
+        if(!this.supportsStartPage)
+            return 1;
+
         let page = args.query.get("p") || "1";
         return parseInt(page) || 1;
     }
@@ -326,8 +327,8 @@ export default class DataSource extends EventTarget
     // Some data sources can restart the search at a page.
     get supportsStartPage() { return false; }
 
-    // If true, all pages are loaded.  This is only used by DataSource_VView.
-    get allPagesLoaded() { return false; }
+    // Return the "15 / 100" page text to use.  This is only used by DataSource_VView.
+    getPageTextForMediaId(mediaId) { return null; }
 
     // The data source can override this to set the aspect ratio to use for thumbnails.
     getThumbnailAspectRatio() { return null; }
@@ -588,6 +589,7 @@ export default class DataSource extends EventTarget
         // We didn't have the new illustration, so we may need to load another page of search results.
         // See if we know which page mediaId is on.
         let page = mediaId != null? this.idList.getPageForMediaId(mediaId).page:null;
+        console.log("find", mediaId, page);
 
         // Find the page this illustration is on.  If we don't know which page to start on,
         // use the initial page.

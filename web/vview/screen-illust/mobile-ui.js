@@ -119,7 +119,8 @@ export default class MobileImageUI extends Widget
 
         this.querySelector(".button-info").addEventListener("click", (e) => {
             new MobileIllustInfoDialog({
-                mediaId: this._mediaId
+                mediaId: this._mediaId,
+                dataSource: this.dataSource,
             });
 
             this.dragger.hide();            
@@ -498,30 +499,17 @@ class MobileIllustInfoDialog extends DialogWidget
         
         // Add the page count for manga.  If the data source is dataSource.vview, show
         // the index of the current file if it's loaded all results.
-        let currentPage = this._page;
         let pageCount = mediaInfo.pageCount;
-        let showPageNumber = false;
-        if(this.dataSource?.name == "vview" && this.dataSource.allPagesLoaded)
+        let pageText = this.dataSource.getPageTextForMediaId(mediaId);
+        if(pageText == null && pageCount > 1)
         {
-            let { page } = this.dataSource.idList.getPageForMediaId(mediaId);
-            let ids = this.dataSource.idList.mediaIdsByPage.get(page);
-            if(ids != null)
-            {
-                currentPage = ids.indexOf(mediaId);
-                pageCount = ids.length;
-                showPageNumber = true;
-            }
-        }
-
-        let pageText = "";
-        if(pageCount > 1)
-        {
-            if(showPageNumber || currentPage > 0)
+            let currentPage = this._page;
+            if(currentPage > 0)
                 pageText = `Page ${currentPage+1}/${pageCount}`;
             else
                 pageText = `${pageCount} pages`;
         }
-        setInfo(".page-count", pageText);
+        setInfo(".page-count", pageText ?? "");
 
         this.header = mediaInfo.illustTitle;
     
