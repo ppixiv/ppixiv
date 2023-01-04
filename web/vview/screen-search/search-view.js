@@ -554,12 +554,11 @@ export default class SearchView extends Widget
     getMediaIdsToDisplay({
         allMediaIds,
         forcedMediaId,
-        columns,
         forceMore=false,
     })
     {
         if(allMediaIds.length == 0)
-            return [];
+            return { startIdx: 0, endIdx: 0 };
 
         // Figure out the range of allMediaIds that we want to have loaded.
         let startIdx = 999999;
@@ -681,20 +680,13 @@ export default class SearchView extends Widget
             }
         }
 
-        // Snap the start of the range to the column count, so images always stay on the
-        // same column if we add entries to the beginning of the list.  This only works if
-        // the data source provides all IDs at once, but if it doesn't then we won't
-        // auto-load earlier images anyway.
-        if(columns != null)
-            startIdx -= startIdx % columns;
-
         /*
         console.log(
             `Nearby range: ${firstNearbyMediaIdIdx} to ${lastNearbyMediaIdIds}, loaded: ${firstLoadedMediaIdIdx} to ${lastLoadedMediaIdIdx}, ` +
             `forced idx: ${forcedMediaIdIdx}, returning: ${startIdx} to ${endIdx}`);
         */
 
-        return allMediaIds.slice(startIdx, endIdx+1);
+        return { startIdx, endIdx };
     }
 
     // Return the first and last media IDs that are nearby (or all of them if all is true).
@@ -798,12 +790,33 @@ export default class SearchView extends Widget
         }
 
         // Get the thumbnail media IDs to display.
-        let mediaIds = this.getMediaIdsToDisplay({
+        let { startIdx, endIdx } = this.getMediaIdsToDisplay({
             allMediaIds,
-            columns,
             forcedMediaId,
             forceMore,
         });
+
+        // If we're adding thumbs to the beginning, always try to add a multiple of the
+        // column count, so images stay on the same column.
+        let avoidJumps = true;
+        let [firstLoadedMediaId, lastLoadedMediaId] = this.getLoadedMediaIds();
+        let firstLoadedMediaIdIdx = allMediaIds.indexOf(firstLoadedMediaId);
+        if(avoidJumps && firstLoadedMediaIdIdx != -1)
+        {
+            // Only do this if the first thumb is past page 1.  Once we reach page 1 we have
+            // to allow the jump or we'll never display the first couple images.
+            // The number of thumbs we're adding to the beginning:
+            let addedThumbs = firstLoadedMediaIdIdx - startIdx;
+            let trim = addedThumbs % columns;
+            if(mediaIdPages[firstLoadedMediaId] > 1)
+            {
+                startIdx += trim;
+            } else if(trim) {
+                // console.log("Jumping by", trim);
+            }
+        }
+
+        let mediaIds = allMediaIds.slice(startIdx, endIdx+1);
 
         // Add thumbs.
         //
