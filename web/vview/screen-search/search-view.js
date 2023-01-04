@@ -323,6 +323,44 @@ export default class SearchView extends Widget
         this._restoreScrollForActivation({oldMediaId: targetMediaId});
     }
 
+    // Start loading a data source page if needed.
+    async loadDataSourcePage({cause="thumbnails"}={})
+    {
+        // We load pages when the last thumbs on the previous page are loaded, but the first
+        // time through there's no previous page to reach the end of.  Always make sure the
+        // first page is loaded (usually page 1).
+        let loadPage = null;
+        if(this.dataSource && !this.dataSource.isPageLoadedOrLoading(this.dataSource.initialPage))
+            loadPage = this.dataSource.initialPage;
+        else
+        {
+            // Load the next page when the last nearby thumbnail (set by the "nearby" IntersectionObserver)
+            // is the last thumbnail in the list.
+            let thumbs = this.getLoadedThumbs();
+            let lastThumb = thumbs[thumbs.length-1]; // may be null
+            if(lastThumb?.dataset?.nearby)
+                loadPage = parseInt(lastThumb.dataset.searchPage)+1;
+        }
+
+        // Hide "no results" if it's shown while we load data.
+        let noResults = this.root.querySelector(".no-results");
+        noResults.hidden = true;
+
+        if(loadPage != null)
+        {
+            let result = await this.dataSource.loadPage(loadPage, { cause });
+
+            // If this page didn't load, it probably means we've reached the end, so stop trying
+            // to load more pages.
+            if(!result)
+                this._disableLoadingMorePages = true;
+        }
+
+        // If we have no IDs and nothing is loading, the data source is empty (no results).
+        if(this.dataSource?.hasNoResults)
+            noResults.hidden = false;
+    }
+
     _restoreScrollForActivation({oldMediaId})
     {
         // If we have no saved scroll position or previous ID, scroll to the top.
@@ -825,7 +863,7 @@ export default class SearchView extends Widget
             mediaIdIndex[mediaId] = i;
         }
 
-        let getNodeIdx = function(node)
+        function getNodeIdx(node)
         {
             if(node == null)
                 return null;
@@ -903,6 +941,238 @@ export default class SearchView extends Widget
         this.restoreScrollPosition(savedScroll);
 
         // this.sanityCheckThumbList();
+    }
+
+    // Create a thumbnail.
+    //
+    // cachedNodes is a dictionary of previously-created nodes that we can reuse.
+    createThumb(mediaId, searchPage, { cachedNodes })
+    {
+        if(cachedNodes[mediaId] != null)
+        {
+            let result = cachedNodes[mediaId];
+            delete cachedNodes[mediaId];
+            return result;
+        }
+
+        // makeSVGUnique is disabled here as a small optimization, since these SVGs don't need it.
+        let entry = this.createTemplate({ name: "template-thumbnail", makeSVGUnique: false, html: `
+            <div class=thumbnail-box>
+                <a class=thumbnail-link href=#>
+                    <img class=thumb>
+                </a>
+
+                <div class=last-viewed-image-marker>
+                    <ppixiv-inline class=last-viewed-image-marker src="resources/last-viewed-image-marker.svg"></ppixiv-inline>
+                </div>
+
+                <div class=bottom-row>
+                    <div class=bottom-left-icon>
+                        <div class="heart button-bookmark public bookmarked" hidden>
+                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                        </div>
+                        <div class="heart button-bookmark private bookmarked" hidden>
+                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                        </div>
+                        <img class=ai-image src="ppixiv:resources/ai.png" hidden>
+                    </div>
+
+                    <div style="flex: 1;"></div>
+
+                    <div class=thumbnail-label hidden>
+                        <span class="thumbnail-ellipsis-box">
+                            <span class=label></span>
+                        </span>
+                    </div>
+
+                    <div style="flex: 1;"></div>
+
+                    <div class=bottom-right-icon>
+                        <div class=ugoira-icon hidden>
+                            <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
+                        </div>
+
+                        <div class=manga-info-box hidden>
+                            <img class="page-icon regular" src="ppixiv:resources/page-icon.png">
+                            <img class="page-icon hover" src="ppixiv:resources/page-icon-hover.png">
+                            <span class=page-count hidden>1234</span>
+                        </div>
+                    </div>
+                </div>
+                <div class=muted-text>
+                    <span>Muted:</span>
+                    <span class=muted-label></span>
+                </div>
+            </div>
+        `});
+
+        // Mark that this thumb hasn't been filled in yet.
+        entry.dataset.pending = true;
+        entry.dataset.id = mediaId;
+
+        if(searchPage != null)
+            entry.dataset.searchPage = searchPage;
+        for(let observer of this.intersectionObservers)
+            observer.observe(entry);
+
+        this.setupThumb(entry);
+
+        return entry;
+    }
+
+    // If element isn't loaded and we have media info for it, set it up.
+    //
+    // If force is true, always reconfigure the thumbnail.  This is used when something like mutes
+    // have changed and we want to refresh all thumbnails.
+    setupThumb(element, {force=false}={})
+    {
+        let mediaId = element.dataset.id;
+        if(mediaId == null)
+            return;
+
+        // Leave it alone if it's already been loaded.
+        if(!force && !("pending" in element.dataset))
+            return;
+
+        let { id: thumbId, type: thumbType } = helpers.mediaId.parse(mediaId);
+
+        // On hover, use StopAnimationAfter to stop the animation after a while.
+        this.addAnimationListener(element);
+
+        if(thumbType == "user" || thumbType == "bookmarks")
+        {
+            // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
+            // of info.
+            let userId = thumbId;
+            helpers.html.setDataSet(element.dataset, "pending", false);
+
+            let link = element.querySelector("a.thumbnail-link");
+            if(thumbType == "user")
+                link.href = `/users/${userId}/artworks#ppixiv`;
+            else
+                link.href = `/users/${userId}/bookmarks/artworks#ppixiv`;
+
+            link.dataset.userId = userId;
+
+            let quickUserData = ppixiv.extraCache.getQuickUserData(userId);
+            if(quickUserData == null)
+            {
+                // We should always have this data for users if the data source asked us to display this user.
+                throw new Error(`Missing quick user data for user ID ${userId}`);
+            }
+            
+            let thumb = element.querySelector(".thumb");
+            thumb.src = quickUserData.profileImageUrl;
+
+            let label = element.querySelector(".thumbnail-label");
+            label.hidden = false;
+            label.querySelector(".label").innerText = quickUserData.userName;
+
+            return;
+        }
+
+        if(thumbType != "illust" && thumbType != "file" && thumbType != "folder")
+            throw "Unexpected thumb type: " + thumbType;
+
+        // Get media info.  If we don't have it yet, it'll be loaded by loadMediaInfoForMediaIds.
+        // Most data sources register this with the search results, but it's loaded on-demand for
+        // DataSource_VView when it's in fast listing mode.
+        let info = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
+        if(info == null)
+            return;
+
+        helpers.html.setDataSet(element.dataset, "pending", false);
+
+        // Set this thumb.
+        let { page } = helpers.mediaId.parse(mediaId);
+        let url = info.previewUrls[page];
+        let thumb = element.querySelector(".thumb");
+        let [illustId, illustPage] = helpers.mediaId.toIllustIdAndPage(mediaId);
+
+        // Check if this illustration is muted (blocked).
+        let mutedTag = ppixiv.muting.anyTagMuted(info.tagList);
+        let mutedUser = ppixiv.muting.isUserIdMuted(info.userId);
+        if(mutedTag || mutedUser)
+        {
+            // The image will be obscured, but we still shouldn't load the image the user blocked (which
+            // is something Pixiv does wrong).  Load the user profile image instead.
+            thumb.src = ppixiv.mediaCache.getProfilePictureUrl(info.userId);
+            element.classList.add("muted");
+
+            let mutedLabel = element.querySelector(".muted-label");
+
+            // Quick hack to look up translations, since we're not async:
+            (async() => {
+                if(mutedTag)
+                    mutedTag = await ppixiv.tagTranslations.getTranslation(mutedTag);
+                mutedLabel.textContent = mutedTag? mutedTag:info.userName;
+            })();
+
+            // We can use this if we want a "show anyway' UI.
+            thumb.dataset.mutedUrl = url;
+        }
+        else
+        {
+            thumb.src = url;
+            element.classList.remove("muted");
+            LocalAPI.thumbnailWasLoaded(url);
+
+            // Let ExtraCache know about this image, so we'll learn the image's aspect ratio.
+            ppixiv.extraCache.registerLoadingThumbnail(mediaId, thumb);
+
+            // Try to set up the aspect ratio.
+            this.thumbImageLoadFinished(element, { cause: "setup" });
+        }
+
+        // Set the link.  Setting dataset.mediaId will allow this to be handled with in-page
+        // navigation, and the href will allow middle click, etc. to work normally.
+        let link = element.querySelector("a.thumbnail-link");
+        if(thumbType == "folder")
+        {
+            // This is a local directory.  We only expect to see this while on the local
+            // data source.  Clear any search when navigating to a subdirectory.
+            let args = new helpers.args("/");
+            LocalAPI.getArgsForId(mediaId, args);
+            link.href = args.url;
+        }
+        else
+        {
+            link.href = getUrlForMediaId(mediaId).url;
+        }
+
+        link.dataset.mediaId = mediaId;
+        link.dataset.userId = info.userId;
+
+        element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
+
+        helpers.html.setClass(element, "dot", helpers.pixiv.tagsContainDot(info.tagList));
+
+        // Set expanded-thumb if this is an expanded manga post.  This is also updated in
+        // setMediaIdExpanded.  Set the border to a random-ish value to try to make it
+        // easier to see the boundaries between manga posts.  It's hard to guarantee that it
+        // won't be the same color as a neighboring post, but that's rare.  Using the illust
+        // ID means the color will always be the same.  The saturation is a bit low so these
+        // colors aren't blinding.
+        this.refreshExpandedThumb(element);
+        helpers.html.setClass(link, "first-page", illustPage == 0);
+        helpers.html.setClass(link, "last-page", illustPage == info.pageCount-1);
+        link.style.borderBottomColor = `hsl(${illustId}deg 50% 50%)`;
+
+        this.refreshBookmarkIcon(element);
+
+        // Set the label.  This is only actually shown in following views.
+        let label = element.querySelector(".thumbnail-label");
+        if(thumbType == "folder")
+        {
+            // The ID is based on the filename.  Use it to show the directory name in the thumbnail.
+            let parts = mediaId.split("/");
+            let basename = parts[parts.length-1];
+            let label = element.querySelector(".thumbnail-label");
+            label.hidden = false;
+            label.querySelector(".label").innerText = basename;
+        } else {
+            label.hidden = true;
+        }
     }
 
     // Based on the dimensions of the container and a desired pixel size of thumbnails,
@@ -999,44 +1269,6 @@ export default class SearchView extends Widget
             console.log("actual  ", actual);
             console.log("expected", expected);
         }
-    }
-
-    // Start loading a data source page if needed.
-    async loadDataSourcePage({cause="thumbnails"}={})
-    {
-        // We load pages when the last thumbs on the previous page are loaded, but the first
-        // time through there's no previous page to reach the end of.  Always make sure the
-        // first page is loaded (usually page 1).
-        let loadPage = null;
-        if(this.dataSource && !this.dataSource.isPageLoadedOrLoading(this.dataSource.initialPage))
-            loadPage = this.dataSource.initialPage;
-        else
-        {
-            // Load the next page when the last nearby thumbnail (set by the "nearby" IntersectionObserver)
-            // is the last thumbnail in the list.
-            let thumbs = this.getLoadedThumbs();
-            let lastThumb = thumbs[thumbs.length-1]; // may be null
-            if(lastThumb?.dataset?.nearby)
-                loadPage = parseInt(lastThumb.dataset.searchPage)+1;
-        }
-
-        // Hide "no results" if it's shown while we load data.
-        let noResults = this.root.querySelector(".no-results");
-        noResults.hidden = true;
-
-        if(loadPage != null)
-        {
-            let result = await this.dataSource.loadPage(loadPage, { cause });
-
-            // If this page didn't load, it probably means we've reached the end, so stop trying
-            // to load more pages.
-            if(!result)
-                this._disableLoadingMorePages = true;
-        }
-
-        // If we have no IDs and nothing is loading, the data source is empty (no results).
-        if(this.dataSource?.hasNoResults)
-            noResults.hidden = false;
     }
 
     thumbnailClick(e)
@@ -1580,243 +1812,6 @@ export default class SearchView extends Widget
     getLoadedThumbs()
     {
         return Object.values(this.thumbs);
-    }
-
-    // Create a thumb placeholder.  This doesn't load the image yet.
-    //
-    // mediaId is the illustration this will be if it's displayed, or null if this
-    // is a placeholder for pages we haven't loaded.  page is the page this illustration
-    // is on (whether it's a placeholder or not).
-    //
-    // cachedNodes is a dictionary of previously-created nodes that we can reuse.
-    createThumb(mediaId, searchPage, { cachedNodes })
-    {
-        if(cachedNodes[mediaId] != null)
-        {
-            let result = cachedNodes[mediaId];
-            delete cachedNodes[mediaId];
-            return result;
-        }
-
-        // makeSVGUnique is disabled here as a small optimization, since these SVGs don't need it.
-        let entry = this.createTemplate({ name: "template-thumbnail", makeSVGUnique: false, html: `
-            <div class=thumbnail-box>
-                <a class=thumbnail-link href=#>
-                    <img class=thumb>
-                </a>
-
-                <div class=last-viewed-image-marker>
-                    <ppixiv-inline class=last-viewed-image-marker src="resources/last-viewed-image-marker.svg"></ppixiv-inline>
-                </div>
-
-                <div class=bottom-row>
-                    <div class=bottom-left-icon>
-                        <div class="heart button-bookmark public bookmarked" hidden>
-                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                        </div>
-                        <div class="heart button-bookmark private bookmarked" hidden>
-                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                        </div>
-                        <img class=ai-image src="ppixiv:resources/ai.png" hidden>
-                    </div>
-
-                    <div style="flex: 1;"></div>
-
-                    <div class=thumbnail-label hidden>
-                        <span class="thumbnail-ellipsis-box">
-                            <span class=label></span>
-                        </span>
-                    </div>
-
-                    <div style="flex: 1;"></div>
-
-                    <div class=bottom-right-icon>
-                        <div class=ugoira-icon hidden>
-                            <ppixiv-inline src="resources/play-button.svg"></ppixiv-inline>
-                        </div>
-
-                        <div class=manga-info-box hidden>
-                            <img class="page-icon regular" src="ppixiv:resources/page-icon.png">
-                            <img class="page-icon hover" src="ppixiv:resources/page-icon-hover.png">
-                            <span class=page-count hidden>1234</span>
-                        </div>
-                    </div>
-                </div>
-                <div class=muted-text>
-                    <span>Muted:</span>
-                    <span class=muted-label></span>
-                </div>
-            </div>
-        `});
-
-        // Mark that this thumb hasn't been filled in yet.
-        entry.dataset.pending = true;
-        entry.dataset.id = mediaId;
-
-        if(searchPage != null)
-            entry.dataset.searchPage = searchPage;
-        for(let observer of this.intersectionObservers)
-            observer.observe(entry);
-
-        this.setupThumb(entry);
-
-        return entry;
-    }
-
-
-    // If element isn't loaded and we have media info for it, set it up.
-    //
-    // If force is true, always reconfigure the thumbnail.  This is used when something like mutes
-    // have changed and we want to refresh all thumbnails.
-    setupThumb(element, {force=false}={})
-    {
-        let mediaId = element.dataset.id;
-        if(mediaId == null)
-            return;
-
-        // Leave it alone if it's already been loaded.
-        if(!force && !("pending" in element.dataset))
-            return;
-
-        let { id: thumbId, type: thumbType } = helpers.mediaId.parse(mediaId);
-
-        // On hover, use StopAnimationAfter to stop the animation after a while.
-        this.addAnimationListener(element);
-
-        if(thumbType == "user" || thumbType == "bookmarks")
-        {
-            // This is a user thumbnail rather than an illustration thumbnail.  It just shows a small subset
-            // of info.
-            let userId = thumbId;
-            helpers.html.setDataSet(element.dataset, "pending", false);
-
-            let link = element.querySelector("a.thumbnail-link");
-            if(thumbType == "user")
-                link.href = `/users/${userId}/artworks#ppixiv`;
-            else
-                link.href = `/users/${userId}/bookmarks/artworks#ppixiv`;
-
-            link.dataset.userId = userId;
-
-            let quickUserData = ppixiv.extraCache.getQuickUserData(userId);
-            if(quickUserData == null)
-            {
-                // We should always have this data for users if the data source asked us to display this user.
-                throw new Error(`Missing quick user data for user ID ${userId}`);
-            }
-            
-            let thumb = element.querySelector(".thumb");
-            thumb.src = quickUserData.profileImageUrl;
-
-            let label = element.querySelector(".thumbnail-label");
-            label.hidden = false;
-            label.querySelector(".label").innerText = quickUserData.userName;
-
-            return;
-        }
-
-        if(thumbType != "illust" && thumbType != "file" && thumbType != "folder")
-            throw "Unexpected thumb type: " + thumbType;
-
-        // Get media info.  If we don't have it yet, it'll be loaded by loadMediaInfoForMediaIds.
-        // Most data sources register this with the search results, but it's loaded on-demand for
-        // DataSource_VView when it's in fast listing mode.
-        let info = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
-        if(info == null)
-            return;
-
-        helpers.html.setDataSet(element.dataset, "pending", false);
-
-        // Set this thumb.
-        let { page } = helpers.mediaId.parse(mediaId);
-        let url = info.previewUrls[page];
-        let thumb = element.querySelector(".thumb");
-        let [illustId, illustPage] = helpers.mediaId.toIllustIdAndPage(mediaId);
-
-        // Check if this illustration is muted (blocked).
-        let mutedTag = ppixiv.muting.anyTagMuted(info.tagList);
-        let mutedUser = ppixiv.muting.isUserIdMuted(info.userId);
-        if(mutedTag || mutedUser)
-        {
-            // The image will be obscured, but we still shouldn't load the image the user blocked (which
-            // is something Pixiv does wrong).  Load the user profile image instead.
-            thumb.src = ppixiv.mediaCache.getProfilePictureUrl(info.userId);
-            element.classList.add("muted");
-
-            let mutedLabel = element.querySelector(".muted-label");
-
-            // Quick hack to look up translations, since we're not async:
-            (async() => {
-                if(mutedTag)
-                    mutedTag = await ppixiv.tagTranslations.getTranslation(mutedTag);
-                mutedLabel.textContent = mutedTag? mutedTag:info.userName;
-            })();
-
-            // We can use this if we want a "show anyway' UI.
-            thumb.dataset.mutedUrl = url;
-        }
-        else
-        {
-            thumb.src = url;
-            element.classList.remove("muted");
-            LocalAPI.thumbnailWasLoaded(url);
-
-            // Let ExtraCache know about this image, so we'll learn the image's aspect ratio.
-            ppixiv.extraCache.registerLoadingThumbnail(mediaId, thumb);
-
-            // Try to set up the aspect ratio.
-            this.thumbImageLoadFinished(element, { cause: "setup" });
-        }
-
-        // Set the link.  Setting dataset.mediaId will allow this to be handled with in-page
-        // navigation, and the href will allow middle click, etc. to work normally.
-        let link = element.querySelector("a.thumbnail-link");
-        if(thumbType == "folder")
-        {
-            // This is a local directory.  We only expect to see this while on the local
-            // data source.  Clear any search when navigating to a subdirectory.
-            let args = new helpers.args("/");
-            LocalAPI.getArgsForId(mediaId, args);
-            link.href = args.url;
-        }
-        else
-        {
-            link.href = getUrlForMediaId(mediaId).url;
-        }
-
-        link.dataset.mediaId = mediaId;
-        link.dataset.userId = info.userId;
-
-        element.querySelector(".ugoira-icon").hidden = info.illustType != 2 && info.illustType != "video";
-
-        helpers.html.setClass(element, "dot", helpers.pixiv.tagsContainDot(info.tagList));
-
-        // Set expanded-thumb if this is an expanded manga post.  This is also updated in
-        // setMediaIdExpanded.  Set the border to a random-ish value to try to make it
-        // easier to see the boundaries between manga posts.  It's hard to guarantee that it
-        // won't be the same color as a neighboring post, but that's rare.  Using the illust
-        // ID means the color will always be the same.  The saturation is a bit low so these
-        // colors aren't blinding.
-        this.refreshExpandedThumb(element);
-        helpers.html.setClass(link, "first-page", illustPage == 0);
-        helpers.html.setClass(link, "last-page", illustPage == info.pageCount-1);
-        link.style.borderBottomColor = `hsl(${illustId}deg 50% 50%)`;
-
-        this.refreshBookmarkIcon(element);
-
-        // Set the label.  This is only actually shown in following views.
-        let label = element.querySelector(".thumbnail-label");
-        if(thumbType == "folder")
-        {
-            // The ID is based on the filename.  Use it to show the directory name in the thumbnail.
-            let parts = mediaId.split("/");
-            let basename = parts[parts.length-1];
-            let label = element.querySelector(".thumbnail-label");
-            label.hidden = false;
-            label.querySelector(".label").innerText = basename;
-        } else {
-            label.hidden = true;
-        }
     }
 
     // This is called when MediaCache has loaded more image info.
