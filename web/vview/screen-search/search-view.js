@@ -304,6 +304,11 @@ export default class SearchView extends Widget
         await this.loadDataSourcePage({ cause: "initialization" });
         signal.throwIfAborted();
 
+        // If we weren't given a media ID to scroll to, see if we have a scroll position to restore.
+        // If so, tell refreshImages that we want it to be included.
+        let args = helpers.args.location;
+        let scrollMediaId = args.state.scroll?.scrollPosition?.mediaId;
+
         // Create the initial thumbnails.  Keep creating more until we have enough to allow the screen
         // to scroll a bit.  This will create targetMediaId if possible, so we can scroll to it, and allow
         // refreshHeader to scroll the header where we want it.  Only attempt this a couple times, since
@@ -316,10 +321,15 @@ export default class SearchView extends Widget
             if(this.scrollContainer.scrollHeight > this.scrollContainer.offsetHeight * 1.5)
                 break;
 
-            this.refreshImages({ forcedMediaId: targetMediaId, forceMore: true });
+            this.refreshImages({ targetMediaId: targetMediaId ?? scrollMediaId, forceMore: true });
         }
 
-        this._restoreScrollForActivation({oldMediaId: targetMediaId});
+        // If a media ID to display was given, try to scroll to it.  Otherwise try to restore the
+        // previous scroll position around scrollMediaId.
+        if(targetMediaId != null)
+            this.scrollToMediaId(targetMediaId);
+        else if(!this.restoreScrollPosition(args.state.scroll?.scrollPosition))
+            this.scrollContainer.scrollTop = 0;
     }
 
     // Start loading a data source page if needed.
@@ -377,34 +387,6 @@ export default class SearchView extends Widget
             noResults.hidden = false;
     }
 
-    _restoreScrollForActivation({oldMediaId})
-    {
-        // If we have no saved scroll position or previous ID, scroll to the top.
-        let args = helpers.args.location;
-        if(args.state.scroll == null && oldMediaId == null)
-        {
-            // console.log("Scroll to top for new search");
-            this.scrollContainer.scrollTop = 0;
-            return;
-        }
-
-        // If we have a previous media ID, try to scroll to it.
-        if(oldMediaId != null)
-        {
-            // If we're navigating backwards or toggling, and we're switching from the image UI to thumbnails,
-            // try to scroll the search screen to the image that was displayed.
-            if(this.scrollToMediaId(oldMediaId))
-            {
-                // console.log("Restored scroll position to:", oldMediaId);
-                return;
-            }
-
-            console.log("Couldn't restore scroll position for:", oldMediaId);
-        }
-
-        this.restoreScrollPosition(args.state.scroll?.scrollPosition);
-    }
-
     // Activate the view, waiting for the current data source to be displayed if needed.
     async activate()
     {
@@ -450,7 +432,6 @@ export default class SearchView extends Widget
         let args = helpers.args.location;
         args.state.scroll = {
             scrollPosition: this.saveScrollPosition(),
-            nearbyMediaIds: this.getNearbyMediaIds({all: true}),
         };
         helpers.navigate(args, { addToHistory: false, cause: "viewing-page", sendPopstate: false });
     }
@@ -483,13 +464,9 @@ export default class SearchView extends Widget
             let mediaIdsOnPage = idList.mediaIdsByPage.get(page);
             console.assert(mediaIdsOnPage != null);
 
-            // Create an image for each ID.
             for(let mediaId of mediaIdsOnPage)
             {
-                // If this is a multi-page post and manga expansion is enabled, add a thumbnail for
-                // each page.  We can only do this if the data source registers thumbnail info from
-                // its results, not if we have to look it up asynchronously, but almost all data sources
-                // do.
+                // Add expanded manga pages.
                 let mediaIdsOnPage = this._getExpandedPages(mediaId);
                 if(mediaIdsOnPage != null)
                 {
@@ -542,10 +519,10 @@ export default class SearchView extends Widget
     // benefit to unloading thumbs.  Creating thumbs can be expensive if we're creating thousands of
     // them, but once they're created, content-visibility keeps things fast.
     //
-    // If forcedMediaId is set and it's in the search results, always include it in the results,
-    // extending the list to include it.  If forcedMediaId is set and we also have thumbs already
+    // If targetMediaId is set and it's in the search results, always include it in the results,
+    // extending the list to include it.  If targetMediaId is set and we also have thumbs already
     // loaded, we'll extend the range to include both.  If this would result in too many images
-    // being added at once, we'll remove previously loaded thumbs so forcedMediaId takes priority.
+    // being added at once, we'll remove previously loaded thumbs so targetMediaId takes priority.
     //
     // If we have no nearby thumbs and no ID to force load, it's an initial load, so we'll just
     // start at the beginning.
@@ -553,60 +530,42 @@ export default class SearchView extends Widget
     // The result is always a contiguous subset of media IDs from the data source.
     getMediaIdsToDisplay({
         allMediaIds,
-        forcedMediaId,
+        targetMediaId,
         forceMore=false,
     })
     {
         if(allMediaIds.length == 0)
             return { startIdx: 0, endIdx: 0 };
 
+        // If we have a specific media ID to display and it's not already loaded, ignore what we
+        // have loaded and start around it instead.
+        if(targetMediaId && this.thumbs[targetMediaId] == null)
+        {
+            let targetMediaIdIdx = allMediaIds.indexOf(targetMediaId);
+            if(targetMediaIdIdx != -1)
+            {
+                let startIdx = targetMediaIdIdx - 20;
+                let endIdx = targetMediaIdIdx + 20;
+                return { startIdx, endIdx };
+            }
+        }
+
         // Figure out the range of allMediaIds that we want to have loaded.
         let startIdx = 999999;
         let endIdx = 0;
 
-        // If this is the initial refresh and we have a saved scroll position, restore the list
-        // of nearby media IDs, so we're able to scroll to the right place.
-        let isInitialRefresh = Object.keys(this.thumbs).length == 0;
-        let args = helpers.args.location;
-        if(isInitialRefresh && args.state.scroll?.nearbyMediaIds != null)
-        {
-            // nearbyMediaIds is all media IDs that were nearby.  Not all of them may be
-            // in the list now, eg. if we're only loading page 2 but some images from page 1
-            // were nearby before, so find the biggest matching range.
-            //
-            // Skip this if the result is too far apart, so if the new results aren't similar
-            // to the old ones, we won't try to load thousands of results.  This can happen on
-            // shuffled searches.
-            let firstIdx = helpers.other.findFirstIdx(args.state.scroll.nearbyMediaIds, allMediaIds);
-            let lastIdx = helpers.other.findLastIdx(args.state.scroll.nearbyMediaIds, allMediaIds);
-            if(firstIdx != -1 && lastIdx != -1 && Math.abs(firstIdx - lastIdx) < 100)
-            {
-                startIdx = firstIdx;
-                endIdx = lastIdx;
-            }
-        }
-
         // Start the range with thumbs that are already loaded, if any.
         let [firstLoadedMediaId, lastLoadedMediaId] = this.getLoadedMediaIds();
         let firstLoadedMediaIdIdx = allMediaIds.indexOf(firstLoadedMediaId);
-        if(firstLoadedMediaIdIdx != -1)
-            startIdx = Math.min(startIdx, firstLoadedMediaIdIdx);
-
         let lastLoadedMediaIdIdx = allMediaIds.indexOf(lastLoadedMediaId);
-        if(lastLoadedMediaIdIdx != -1)
-            endIdx = Math.max(endIdx, lastLoadedMediaIdIdx);
-
-        // If we have a specific media ID to display, extend the range to include it.
-        let forcedMediaIdIdx = allMediaIds.indexOf(forcedMediaId);
-        if(forcedMediaIdIdx != -1)
+        if(firstLoadedMediaIdIdx != -1 && lastLoadedMediaIdIdx != -1)
         {
-            startIdx = Math.min(startIdx, forcedMediaIdIdx);
-            endIdx = Math.max(endIdx, forcedMediaIdIdx);
+            startIdx = firstLoadedMediaIdIdx;
+            endIdx = lastLoadedMediaIdIdx;
         }
-
-        // Otherwise, start at the beginning.
-        if(startIdx == 999999)
+        else
         {
+            // Otherwise, start at the beginning.
             startIdx = 0;
             endIdx = 0;
         }
@@ -643,49 +602,6 @@ export default class SearchView extends Widget
                 startIdx -= chunkSizeBackwards;
         }
 
-        // Clamp the range.
-        startIdx = Math.max(startIdx, 0);
-        endIdx = Math.min(endIdx, allMediaIds.length-1);
-        endIdx = Math.max(startIdx, endIdx); // make sure startIdx <= endIdx
-
-        // If we're forcing an image to be included, and we also have images already
-        // loaded, we can end up with a huge range if the two are far apart.  For example,
-        // if an image is loaded from a search, the user navigates for a long time in the
-        // image view and then returns to the search, we'll load the image he ended up on
-        // all the way to the images that were loaded before.  Check the number of images
-        // we're adding, and if it's too big, ignore the previously loaded thumbs and just
-        // load IDs around forcedMediaId.
-        if(forcedMediaIdIdx != -1)
-        {
-            // See how many thumbs this would cause us to load.
-            let loadedThumbIds = new Set();
-            for(let node of this.getLoadedThumbs())
-                loadedThumbIds.add(node.dataset.id);
-    
-            let loadingThumbCount = 0;
-            for(let thumbId of allMediaIds.slice(startIdx, endIdx+1))
-            {
-                if(!loadedThumbIds.has(thumbId))
-                    loadingThumbCount++;
-            }
-
-            if(loadingThumbCount > 100)
-            {
-                console.log("Reducing loadingThumbCount from", loadingThumbCount);
-
-                startIdx = forcedMediaIdIdx - 10;
-                endIdx = forcedMediaIdIdx + 10;
-                startIdx = Math.max(startIdx, 0);
-                endIdx = Math.min(endIdx, allMediaIds.length-1);
-            }
-        }
-
-        /*
-        console.log(
-            `Nearby range: ${firstNearbyMediaIdIdx} to ${lastNearbyMediaIdIds}, loaded: ${firstLoadedMediaIdIdx} to ${lastLoadedMediaIdIdx}, ` +
-            `forced idx: ${forcedMediaIdIdx}, returning: ${startIdx} to ${endIdx}`);
-        */
-
         return { startIdx, endIdx };
     }
 
@@ -714,7 +630,7 @@ export default class SearchView extends Widget
         return [firstLoadedMediaId, lastLoadedMediaId];
     }
 
-    refreshImages({forcedMediaId=null, forceMore=false}={})
+    refreshImages({targetMediaId=null, forceMore=false}={})
     {
         if(this.dataSource == null)
             return;
@@ -762,10 +678,10 @@ export default class SearchView extends Widget
         if(allMediaIds.length != (new Set(allMediaIds)).size)
             throw Error("Duplicate media IDs");
 
-        // If forcedMediaId isn't in the list, this might be a manga page beyond the first that
+        // If targetMediaId isn't in the list, this might be a manga page beyond the first that
         // isn't displayed, so try the first page instead.
-        if(forcedMediaId != null && allMediaIds.indexOf(forcedMediaId) == -1)
-            forcedMediaId = helpers.mediaId.getMediaIdFirstPage(forcedMediaId);
+        if(targetMediaId != null && allMediaIds.indexOf(targetMediaId) == -1)
+            targetMediaId = helpers.mediaId.getMediaIdFirstPage(targetMediaId);
 
         // When we remove thumbs, we'll cache them here, so if we end up reusing it we don't have
         // to recreate it.
@@ -792,9 +708,14 @@ export default class SearchView extends Widget
         // Get the thumbnail media IDs to display.
         let { startIdx, endIdx } = this.getMediaIdsToDisplay({
             allMediaIds,
-            forcedMediaId,
+            targetMediaId,
             forceMore,
         });
+
+        // Clamp the range.
+        startIdx = Math.max(startIdx, 0);
+        endIdx = Math.min(endIdx, allMediaIds.length-1);
+        endIdx = Math.max(startIdx, endIdx); // make sure startIdx <= endIdx
 
         // If we're adding thumbs to the beginning, always try to add a multiple of the
         // column count, so images stay on the same column.  Only do this if the first
@@ -1764,8 +1685,11 @@ export default class SearchView extends Widget
     // after coming from an illustration.
     scrollToMediaId(mediaId)
     {
+        if(mediaId == null)
+            return false;
+
         // Make sure this image has a thumbnail created if possible.
-        this.refreshImages({ forcedMediaId: mediaId });
+        this.refreshImages({ targetMediaId: mediaId });
 
         let thumb = this.getThumbnailForMediaId(mediaId, { fallbackOnPage1: true });
         if(thumb == null)

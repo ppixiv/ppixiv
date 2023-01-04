@@ -441,10 +441,13 @@ export default class App
         // Remember what we were displaying before we start changing things.
         let oldScreen = this._screens[this._currentScreenName];
 
-        // If scrollToTop is true, scroll the search to the top instead of restoring the scroll
-        // position.  This can be set by putting data-scroll-to-top on a link or setting
+        // If scrollToTop is false and we're going from ScreenIllust to ScreenSearch,
+        // targetMediaId is the media ID that we were displaying and want ScreenSearch
+        // to try to scroll to.  Otherwise, it'll restore the scroll position normally.
+        //
+        // This can be disabled by putting data-scroll-to-top on a link or setting
         // scrollToTop when calling navigate().
-        let targetMediaId = oldScreen? oldScreen.displayedMediaId:null;
+        let targetMediaId = this._currentScreenName == "illust"? oldScreen.displayedMediaId:null;
         if(scrollToTop)
         {
             console.log("Scrolling to top instead of restoring ID");
