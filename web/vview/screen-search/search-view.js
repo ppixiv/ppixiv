@@ -693,19 +693,7 @@ export default class SearchView extends Widget
             delete this.thumbs[node.dataset.id];
         }
 
-        // Remove any thumbs that aren't present in allMediaIds, so we only need to 
-        // deal with adding thumbs below.  For example, this simplifies things when
-        // a manga post is collapsed.
-        {
-            let mediaIdSet = new Set(allMediaIds);
-            for(let [thumbMediaId, thumb] of Object.entries(this.thumbs))
-            {
-                if(!mediaIdSet.has(thumbMediaId))
-                    removeNode(thumb);
-            }
-        }
-
-        // Get the thumbnail media IDs to display.
+        // Get the range of media IDs to display.
         let { startIdx, endIdx } = this.getMediaIdsToDisplay({
             allMediaIds,
             targetMediaId,
