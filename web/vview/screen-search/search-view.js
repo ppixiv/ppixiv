@@ -483,6 +483,12 @@ export default class SearchView extends Widget
             }
         }
 
+        // Sanity check: there should never be any duplicate media IDs from the data source.
+        // Refuse to continue if there are duplicates, since it'll break our logic badly and
+        // can cause infinite loops.  This is always a bug.
+        if(allMediaIds.length != (new Set(allMediaIds)).size)
+            throw Error("Duplicate media IDs");
+
         return { allMediaIds, mediaIdPages };
     }
 
@@ -671,12 +677,6 @@ export default class SearchView extends Widget
 
         // Get all media IDs from the data source.
         let { allMediaIds, mediaIdPages } = this.getDataSourceMediaIds();
-
-        // Sanity check: there should never be any duplicate media IDs from the data source.
-        // Refuse to continue if there are duplicates, since it'll break our logic badly and
-        // can cause infinite loops.  This is always a bug.
-        if(allMediaIds.length != (new Set(allMediaIds)).size)
-            throw Error("Duplicate media IDs");
 
         // If targetMediaId isn't in the list, this might be a manga page beyond the first that
         // isn't displayed, so try the first page instead.
