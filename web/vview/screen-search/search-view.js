@@ -18,13 +18,6 @@ export default class SearchView extends Widget
                     <div class=message>No results</div>
                 </div>
 
-                <div class=load-previous-page hidden>
-                    <a class=load-previous-button href=#>
-                        <vv-container style="font-size: 150%;">${ helpers.createIcon("mat:expand_less") }</vv-container>
-                        Load previous results
-                    </a>
-                </div>
-
                 <div class=artist-header hidden>
                     <div class=shape>
                         <img class=bg>
@@ -38,7 +31,6 @@ export default class SearchView extends Widget
         // The node that scrolls to show thumbs.  This is normally the document itself.
         this.scrollContainer = this.root.closest(".scroll-container");
         this.thumbnailBox = this.root.querySelector(".thumbnails");
-        this.loadPreviousPageButton = this.root.querySelector(".load-previous-page");
         this._setDataSourceRunner = new GuardedRunner(this._signal);
 
         this.artistHeader = this.querySelector(".artist-header");
@@ -46,18 +38,16 @@ export default class SearchView extends Widget
         // A dictionary of thumbs in the view, in the same order.  This makes iterating
         // existing thumbs faster than iterating the nodes.
         this.thumbs = {};
+        this.rows = [];
 
         // A map of media IDs that the user has manually expanded or collapsed.
         this.expandedMediaIds = new Map();
-
-        // Refresh the "load previous page" link when the URL changes.
-        window.addEventListener("pp:statechange", (e) => this._refreshLoadPreviousButton(), this._signal);
 
         // This caches the results of isMediaIdExpanded.
         this._mediaIdExpandedCache = null;
         ppixiv.muting.addEventListener("mutes-changed", () => this._mediaIdExpandedCache = null, this._signal);
 
-        new ResizeObserver(() => this.refreshImages()).observe(this.root);
+        new ResizeObserver(() => this.refreshImages({cause: "resize"})).observe(this.root);
 
         // The scroll position may not make sense when if scroller changes size (eg. the window was resized
         // or we changed orientations).  Override it and restore from the latest scroll position that we
@@ -101,16 +91,6 @@ export default class SearchView extends Widget
             await ppixiv.mediaCache.getMediaInfo(a.dataset.mediaId);
         }, { capture: true });
 
-        this.root.querySelector(".load-previous-button").addEventListener("click", (e) =>
-        {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            let page = this.dataSource.idList.getLowestLoadedPage() - 1;
-            console.debug(`Load previous page button pressed, loading page ${page}`);
-            this.loadPage(page);
-        });
-
         // Handle quick view.
         new PointerListener({
             element: this.thumbnailBox,
@@ -153,14 +133,18 @@ export default class SearchView extends Widget
             this.firstVisibleThumbsChanged();
         }, {
             root: this.scrollContainer,
-            threshold: 1,
+
+            // We don't actually require the thumbs be completely onscreen, since that leads to
+            // edge cases when there are two visible rows and both of them are off the top and
+            // bottom of the screen, causing no thumbs to actually be fully onscreen.
+            threshold: 0.4,
         }));
         
         this.intersectionObservers.push(new IntersectionObserver((entries) => {
             for(let entry of entries)
                 helpers.html.setDataSet(entry.target.dataset, "nearby", entry.isIntersecting);
 
-            this.refreshImages();
+            this.refreshImages({cause: "nearby-observer"});
 
             // If the last thumbnail is now nearby, see if we need to load more search results.
             this.loadDataSourcePage();
@@ -178,6 +162,7 @@ export default class SearchView extends Widget
         ppixiv.settings.addEventListener("disable_thumbnail_zooming", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("disable_thumbnail_panning", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("expand_manga_thumbnails", () => this.updateFromSettings(), this._signal);
+        ppixiv.settings.addEventListener("thumbnail_style", () => this.updateFromSettings(), this._signal);
         ppixiv.muting.addEventListener("mutes-changed", () => this.refreshAfterMuteChange(), this._signal);
 
         this.updateFromSettings();
@@ -187,7 +172,7 @@ export default class SearchView extends Widget
     {
         this.refreshExpandedThumbAll();
         this.loadExpandedMediaIds(); // in case expand_manga_thumbnails has changed
-        this.refreshImages();
+        this.refreshImages({cause: "settings"});
 
         helpers.html.setClass(document.body, "disable-thumbnail-zooming", ppixiv.settings.get("disable_thumbnail_zooming") || ppixiv.mobile);
     }
@@ -265,26 +250,8 @@ export default class SearchView extends Widget
             if(this.dataSource != null)
                 this.dataSource.removeEventListener("pageadded", this.dataSourceUpdated);
 
-            // Clear the view when the data source changes.  If we leave old thumbs in the list,
-            // it confuses things if we change the sort and refreshThumbs tries to load thumbs
-            // based on what's already loaded.
-            while(this.thumbnailBox.firstElementChild != null)
-            {
-                let node = this.thumbnailBox.firstElementChild;
-                node.remove();
+            this._clearThumbs();
 
-                // We should be able to just remove the element and get a callback that it's no longer visible.
-                // This works in Chrome since IntersectionObserver uses a weak ref, but Firefox is stupid and leaks
-                // the node.
-                for(let observer of this.intersectionObservers)
-                    observer.unobserve(node);
-            }
-
-            // Don't leave the "load previous page" button displayed while we wait for the
-            // data source to load.
-            this.loadPreviousPageButton.hidden = true;
-
-            this.thumbs = {};
             this._mediaIdExpandedCache = null;
 
             this.dataSource = dataSource;
@@ -309,20 +276,11 @@ export default class SearchView extends Widget
         let args = helpers.args.location;
         let scrollMediaId = args.state.scroll?.scrollPosition?.mediaId;
 
-        // Create the initial thumbnails.  Keep creating more until we have enough to allow the screen
-        // to scroll a bit.  This will create targetMediaId if possible, so we can scroll to it, and allow
-        // refreshHeader to scroll the header where we want it.  Only attempt this a couple times, since
-        // we might not have enough images to fill the screen.  This is just a best effort, since we're
-        // not loading more data here and the data source's may not give enough data on the first page
-        // to fill the screen.
-        for(let i = 0; i < 4; ++i)
-        {
-            // Stop once the scroller is a bit taller than the screen.
-            if(this.scrollContainer.scrollHeight > this.scrollContainer.offsetHeight * 1.5)
-                break;
-
-            this.refreshImages({ targetMediaId: targetMediaId ?? scrollMediaId, forceMore: true });
-        }
+        // Create the initial thumbnails.
+        this.refreshImages({
+            cause: "initial",
+            targetMediaId: targetMediaId ?? scrollMediaId,
+        });
 
         // If a media ID to display was given, try to scroll to it.  Otherwise try to restore the
         // previous scroll position around scrollMediaId.
@@ -353,10 +311,10 @@ export default class SearchView extends Widget
                 if(lastThumb.dataset.nearby)
                     loadPage = parseInt(lastThumb.dataset.searchPage)+1;
 
-                // If autoLoadPreviousPages is true, do the same at the start: load the previous page when the first
-                // nearby thumbnail is the first thumbnail in the list.
-                if(loadPage == null && this.dataSource?.autoLoadPreviousPages)
+                if(loadPage == null)
                 {
+                    // Likewise, load the previous page when the first nearby thumbnail is the
+                    // first thumbnail in the list.
                     let firstThumb = thumbs[0];
                     let searchPage = parseInt(firstThumb.dataset.searchPage);
                     if(firstThumb.dataset.nearby && searchPage > 1)
@@ -436,6 +394,7 @@ export default class SearchView extends Widget
         helpers.navigate(args, { addToHistory: false, cause: "viewing-page", sendPopstate: false });
     }
 
+    // This is called when the data source has more results.
     dataSourceUpdated = () =>
     {
         // Don't load or refresh images if we're in the middle of setDataSource.
@@ -443,7 +402,7 @@ export default class SearchView extends Widget
             return;
 
         this.refreshHeader();
-        this.refreshImages();
+        this.refreshImages({cause: "data-source-updated"});
         this.loadDataSourcePage();
     }
 
@@ -537,75 +496,99 @@ export default class SearchView extends Widget
     getMediaIdsToDisplay({
         allMediaIds,
         targetMediaId,
-        forceMore=false,
     })
     {
         if(allMediaIds.length == 0)
             return { startIdx: 0, endIdx: 0 };
 
+        let startIdx = 0, endIdx = 0;
+    
         // If we have a specific media ID to display and it's not already loaded, ignore what we
         // have loaded and start around it instead.
-        if(targetMediaId && this.thumbs[targetMediaId] == null)
+        let targetMediaIdIdx = allMediaIds.indexOf(targetMediaId);
+        if(targetMediaId && this.thumbs[targetMediaId] == null && targetMediaIdIdx != -1)
         {
-            let targetMediaIdIdx = allMediaIds.indexOf(targetMediaId);
-            if(targetMediaIdIdx != -1)
-            {
-                let startIdx = targetMediaIdIdx - 20;
-                let endIdx = targetMediaIdIdx + 20;
-                return { startIdx, endIdx };
-            }
-        }
-
-        // Figure out the range of allMediaIds that we want to have loaded.
-        let startIdx = 999999;
-        let endIdx = 0;
-
-        // Start the range with thumbs that are already loaded, if any.
-        let [firstLoadedMediaId, lastLoadedMediaId] = this.getLoadedMediaIds();
-        let firstLoadedMediaIdIdx = allMediaIds.indexOf(firstLoadedMediaId);
-        let lastLoadedMediaIdIdx = allMediaIds.indexOf(lastLoadedMediaId);
-        if(firstLoadedMediaIdIdx != -1 && lastLoadedMediaIdIdx != -1)
-        {
-            startIdx = firstLoadedMediaIdIdx;
-            endIdx = lastLoadedMediaIdIdx;
+            startIdx = targetMediaIdIdx;
+            endIdx = targetMediaIdIdx;
         }
         else
         {
-            // Otherwise, start at the beginning.
-            startIdx = 0;
+            // Figure out the range of allMediaIds that we want to have loaded.
+            startIdx = 999999;
             endIdx = 0;
+
+            // Start the range with thumbs that are already loaded, if any.
+            let [firstLoadedMediaId, lastLoadedMediaId] = this.getLoadedMediaIds();
+            let firstLoadedMediaIdIdx = allMediaIds.indexOf(firstLoadedMediaId);
+            let lastLoadedMediaIdIdx = allMediaIds.indexOf(lastLoadedMediaId);
+            if(firstLoadedMediaIdIdx != -1 && lastLoadedMediaIdIdx != -1)
+            {
+                startIdx = firstLoadedMediaIdIdx;
+                endIdx = lastLoadedMediaIdIdx;
+            }
+            else
+            {
+                // Otherwise, start at the beginning.
+                startIdx = 0;
+                endIdx = 0;
+            }
+
+            // If the last loaded image is nearby,  we've scrolled near the end of what's loaded, so add
+            // another chunk of images to the list.
+            //
+            // The chunk size is the number of thumbs we'll create at a time.
+            //
+            // Note that this doesn't determine when we'll load another page of data from the server.  The
+            // "nearby" IntersectionObserver threshold controls that.  It does trigger media info loads
+            // if they weren't supplied by the data source (this happens with DataSsource_VView if we're
+            // using /api/ids).
+            let chunkSizeForwards = 25;
+            let [firstNearbyMediaId, lastNearbyMediaId] = this.getNearbyMediaIds();
+            let lastNearbyMediaIdIdx = allMediaIds.indexOf(lastNearbyMediaId);
+            if(lastNearbyMediaIdIdx != -1 && lastNearbyMediaIdIdx == lastLoadedMediaIdIdx)
+                endIdx += chunkSizeForwards;
+
+            // Similarly, if the first loaded image is nearby, we should load another chunk upwards.
+            //
+            // Use a larger chunk size when extending backwards on iOS.  Adding to the start of the
+            // scroller breaks smooth scrolling (is there any way to fix that?), so use a larger chunk
+            // size so it at least happens less often.
+            let chunkSizeBackwards = ppixiv.ios? 100:25;
+            let firstNearbyMediaIdIdx = allMediaIds.indexOf(firstNearbyMediaId);
+            if(firstNearbyMediaIdIdx != -1 && firstNearbyMediaIdIdx == firstLoadedMediaIdIdx)
+                startIdx -= chunkSizeBackwards;
         }
 
-        // If the last loaded image is nearby,  we've scrolled near the end of what's loaded, so add
-        // another chunk of images to the list.
-        //
-        // The chunk size is the number of thumbs we'll create at a time.
-        //
-        // Note that this doesn't determine when we'll load another page of data from the server.  The
-        // "nearby" IntersectionObserver threshold controls that.  It does trigger media info loads
-        // if they weren't supplied by the data source (this happens with DataSsource_VView if we're
-        // using /api/ids).
-        //
-        // If forceMore is true, always add a chunk to the end.
-        let chunkSizeForwards = 25;
-        let [firstNearbyMediaId, lastNearbyMediaId] = this.getNearbyMediaIds();
-        let lastNearbyMediaIdIds = allMediaIds.indexOf(lastNearbyMediaId);
-        if(lastNearbyMediaIdIds != -1 && lastNearbyMediaIdIds == lastLoadedMediaIdIdx)
-            endIdx += chunkSizeForwards;
-        else if(forceMore)
-            endIdx += chunkSizeForwards;
+        // Clamp the range.
+        startIdx = Math.max(startIdx, 0);
+        endIdx = Math.min(endIdx, allMediaIds.length-1);
+        endIdx = Math.max(startIdx, endIdx); // make sure startIdx <= endIdx
 
-        // Similarly, if the first loaded image is nearby, we should load another chunk upwards.
+        // Expand the list outwards so we have enough to fill the screen.  This is an approximation:
+        // we don't know how big thumbs will be, but we know they shouldn't be much bigger than
+        // desiredPixels in area, and we know the area of the screen.  If we have thumbs that will
+        // take more area than the screen, we know we have enough thumbs to fill it.
         //
-        // Use a larger chunk size when extending backwards on iOS.  Adding to the start of the
-        // scroller breaks smooth scrolling (is there any way to fix that?), so use a larger chunk
-        // size so it at least happens less often.
-        let chunkSizeBackwards = ppixiv.ios? 100:25;
-        if(firstLoadedMediaIdIdx != -1)
+        // We'll expand in both directions if possible, so if we have a targetMediaId and it's in
+        // the middle, it'll stay in the middle if possible.  Expand to twice the screen area, since
+        // some of the thumbs we'll create will only be partially onscreen.
+        let { desiredPixels, containerWidth } = this.sizingStyle;
+        let viewPixels = containerWidth * this.scrollContainer.offsetHeight;
+        viewPixels *= 2;
+        while(1)
         {
-            let firstNearbyMediaIdIdx = allMediaIds.indexOf(firstNearbyMediaId);
-            if(firstNearbyMediaId == null || firstNearbyMediaIdIdx == firstLoadedMediaIdIdx)
-                startIdx -= chunkSizeBackwards;
+            let totalThumbs = (endIdx - startIdx) + 1;
+            if(totalThumbs >= allMediaIds.length)
+                break;
+
+            let totalPixels = totalThumbs * desiredPixels;
+            if(totalPixels >= viewPixels)
+                break;
+
+            if(startIdx > 0)
+                startIdx--;
+            if(endIdx + 1 < allMediaIds.length)
+                endIdx++;
         }
 
         return { startIdx, endIdx };
@@ -636,44 +619,42 @@ export default class SearchView extends Widget
         return [firstLoadedMediaId, lastLoadedMediaId];
     }
 
-    refreshImages({targetMediaId=null, forceMore=false}={})
+    refreshImages({
+        targetMediaId=null,
+
+        // For diagnostics, this tells us what triggered this refresh.
+        cause
+    }={})
     {
         if(this.dataSource == null)
             return;
 
-        let isMangaView = this.dataSource?.name == "manga";
-
-        // Update the thumbnail size style.  This also tells us the number of columns being
-        // displayed.
-        let desiredSize = ppixiv.settings.get(isMangaView? "manga-thumbnail-size":"thumbnail-size", 4);
-        desiredSize = MenuOptionsThumbnailSizeSlider.thumbnailSizeForValue(desiredSize);
-
-        let {columns, padding, thumbWidth, thumbHeight, containerWidth} = SearchView.makeThumbnailSizingStyle({
-            container: this.thumbnailBox,
-            desiredSize,
-            ratio: this.dataSource.getThumbnailAspectRatio(),
-
-            // Limit the number of columns on most views, so we don't load too much data at once.
-            // Allow more columns on the manga view, since that never loads more than one image.
-            // Allow unlimited columns for local images, and on mobile where we're usually limited
-            // by screen space and showing lots of columns (but few rows) can be useful.
-            maxColumns: 
-                ppixiv.mobile? 30:
-                isMangaView? 15: 
-                this.dataSource?.isVView? 100:5,
-
-            // Pack images more tightly on mobile.
-            minPadding: ppixiv.mobile? 3:15,
-        });
+        // Update the thumbnail size style.
+        let oldSizingStyle = this.sizingStyle;
+        this.sizingStyle = this.makeThumbnailSizingStyle();
 
         // Save the scroll position relative to the first thumbnail.  Do this before making
         // any changes.
         let savedScroll = this.saveScrollPosition();
 
-        this.root.style.setProperty('--thumb-width', `${thumbWidth}px`);
-        this.root.style.setProperty('--thumb-height', `${thumbHeight}px`);
+        let {padding, containerWidth} = this.sizingStyle;
         this.root.style.setProperty('--thumb-padding', `${padding}px`);
         this.root.style.setProperty('--container-width', `${containerWidth}px`);
+
+        // These are overridden for each thumb, but the base size is used for the header.
+        this.root.style.setProperty("--thumb-width", `${this.sizingStyle.thumbWidth}px`);
+        this.root.style.setProperty("--row-height", `${this.sizingStyle.thumbHeight}px`);
+
+        // If the sizing style changes, clear thumbs and start over.
+        if(oldSizingStyle && JSON.stringify(oldSizingStyle) != JSON.stringify(this.sizingStyle))
+        {
+            // If we don't have a targetMediaId, set it to the scroll media ID so we'll recreate
+            // thumbs near where we were.
+            targetMediaId ??= savedScroll?.mediaId;
+
+            console.log(`Resetting view due to sizing change, target: ${targetMediaId}`);
+            this._clearThumbs();
+        }
 
         // Get all media IDs from the data source.
         let { allMediaIds, mediaIdPages } = this.getDataSourceMediaIds();
@@ -683,145 +664,205 @@ export default class SearchView extends Widget
         if(targetMediaId != null && allMediaIds.indexOf(targetMediaId) == -1)
             targetMediaId = helpers.mediaId.getMediaIdFirstPage(targetMediaId);
 
-        // When we remove thumbs, we'll cache them here, so if we end up reusing it we don't have
-        // to recreate it.
-        let removedNodes = {};
-        let removeNode = (node) =>
-        {
-            node.remove();
-            removedNodes[node.dataset.id] = node;
-            delete this.thumbs[node.dataset.id];
-        }
-
         // Get the range of media IDs to display.
         let { startIdx, endIdx } = this.getMediaIdsToDisplay({
             allMediaIds,
             targetMediaId,
-            forceMore,
         });
-
-        // Clamp the range.
-        startIdx = Math.max(startIdx, 0);
-        endIdx = Math.min(endIdx, allMediaIds.length-1);
-        endIdx = Math.max(startIdx, endIdx); // make sure startIdx <= endIdx
-
-        // If we're adding thumbs to the beginning, always try to add a multiple of the
-        // column count, so images stay on the same column.  Only do this if the first
-        // thumb is past page 1.  Once we reach page 1 we have to allow the jump or we'll
-        // never display the first couple images.
-        //
-        // Skip this if _loadingPreviousPage is true, so we allow jumps when loading with
-        // the "load previous page" button.
-        let [firstLoadedMediaId, lastLoadedMediaId] = this.getLoadedMediaIds();
-        let firstLoadedMediaIdIdx = allMediaIds.indexOf(firstLoadedMediaId);
-        if(!this._loadingPreviousPage && firstLoadedMediaIdIdx != -1 && mediaIdPages[firstLoadedMediaId] > 1)
-        {
-            // The number of thumbs we're adding to the beginning:
-            let addedThumbs = firstLoadedMediaIdIdx - startIdx;
-            let trim = addedThumbs % columns;
-            startIdx += trim;
-        }
 
         let mediaIds = allMediaIds.slice(startIdx, endIdx+1);
 
-        // Add thumbs.
-        //
-        // Most of the time we're just adding thumbs to the list.  Avoid removing or recreating
-        // thumbs that aren't actually changing, which reduces flicker.
-        //
-        // Do this by looking for a range of thumbnails that matches a range in mediaIds.
-        // If we're going to display [0,1,2,3,4,5,6,7,8,9], and the current thumbs are [4,5,6],
-        // then 4,5,6 matches and can be reused.  We'll add [0,1,2,3] to the beginning and [7,8,9]
-        // to the end.
-        //
-        // Most of the time we're just appending.  The main time that we add to the beginning is
-        // the "load previous results" button.
-
-        // Make a dictionary of all illust IDs and pages, so we can look them up quickly.
-        let mediaIdIndex = {};
-        for(let i = 0; i < mediaIds.length; ++i)
+        // If the new media ID list doesn't overlap the old list, clear out the list and start
+        // over.
+        let currentMediaIds = Object.keys(this.thumbs);
+        let firstExistingIdx = mediaIds.indexOf(currentMediaIds[0]);
+        let lastExistingIdx = mediaIds.indexOf(currentMediaIds[currentMediaIds.length-1]);
+        let incrementalUpdate = false;
+        if(firstExistingIdx != -1 && lastExistingIdx != -1)
         {
-            let mediaId = mediaIds[i];
-            mediaIdIndex[mediaId] = i;
+            let currentMediaIdsSubset = mediaIds.slice(firstExistingIdx, lastExistingIdx+1);
+            incrementalUpdate = helpers.other.arrayEqual(currentMediaIdsSubset, currentMediaIds);
         }
 
-        let getNodeIdx = (node) => mediaIdIndex[node.dataset.id];
-
-        // Find the first match (4 in the above example), removing any thumbs before it.
-        while(this.thumbnailBox.firstElementChild != null)
+        // If this isn't an incremental update, clear the list.
+        if(!incrementalUpdate)
         {
-            if(getNodeIdx(this.thumbnailBox.firstElementChild) != null)
-                break;
-            
-            removeNode(this.thumbnailBox.firstElementChild);
+            // This isn't an incremental update.  It's a new search, or something has happened that
+            // added or removed thumbs in the middle of the list, like expanding manga pages.
+            this._clearThumbs();
+    
+            lastExistingIdx = -1;
+            firstExistingIdx = 0;
         }
 
-        // Find the last contiguous matching node (6 in the above example).
-        let lastMatchingNode = this.thumbnailBox.firstElementChild;
-        if(lastMatchingNode != null)
-        {
-            while(lastMatchingNode.nextElementSibling &&
-                getNodeIdx(lastMatchingNode.nextElementSibling) == getNodeIdx(lastMatchingNode) + 1)
-            {
-                lastMatchingNode = lastMatchingNode.nextElementSibling;
-            }
-        }
-
-        // Remove everything after lastMatchingNode.
-        while(lastMatchingNode && lastMatchingNode.nextElementSibling)
-            removeNode(lastMatchingNode.nextElementSibling);
-
-        // If we have a matching range, add any new elements before it.
-        if(this.thumbnailBox.firstElementChild)
-        {
-           let firstIdx = getNodeIdx(this.thumbnailBox.firstElementChild);
-           for(let idx = firstIdx - 1; idx >= 0; --idx)
-           {
-               let mediaId = mediaIds[idx];
-               let searchPage = mediaIdPages[mediaId];
-               let node = this.createThumb(mediaId, searchPage, { cachedNodes: removedNodes });
-               this.thumbnailBox.firstElementChild.insertAdjacentElement("beforebegin", node);
-               this.thumbs = helpers.other.addToBeginning(this.thumbs, mediaId, node);
-           }
-        }
-
-        // Add any new elements after the range.  If we don't have a range, just add everything.
-        let lastIdx = -1;
-        if(lastMatchingNode)
-           lastIdx = getNodeIdx(lastMatchingNode);
-
-        for(let idx = lastIdx + 1; idx < mediaIds.length; ++idx)
+        // Add thumbs to the end.
+        for(let idx = lastExistingIdx + 1; idx < mediaIds.length; ++idx)
         {
             let mediaId = mediaIds[idx];
             let searchPage = mediaIdPages[mediaId];
-            let node = this.createThumb(mediaId, searchPage, { cachedNodes: removedNodes });
-            this.thumbnailBox.appendChild(node);
+            let node = this.createThumb(mediaId, searchPage);
             helpers.other.addToEnd(this.thumbs, mediaId, node);
+            this._addThumbToRow(node, {atEnd: true});
         }
 
-        // If this data source supports a start page and we started after page 1, show the "load more"
-        // button.  Hide it if we're auto-loading backwards too.
-        this.loadPreviousPageButton.hidden = this.dataSource == null || this.dataSource.initialPage == 1;
-        if(this.dataSource?.autoLoadPreviousPages)
-            this.loadPreviousPageButton.hidden = true;
+        // Add thumbs to the beginning.
+        for(let idx = firstExistingIdx - 1; idx >= 0; --idx)
+        {
+            let mediaId = mediaIds[idx];
+            let searchPage = mediaIdPages[mediaId];
+            let node = this.createThumb(mediaId, searchPage);
+            this.thumbs = helpers.other.addToBeginning(this.thumbs, mediaId, node);
+            this._addThumbToRow(node, {atEnd: false});
+        }
 
         this.restoreScrollPosition(savedScroll);
 
         // this.sanityCheckThumbList();
     }
 
-    // Create a thumbnail.
+    // Add a thumbnail to the first or last row, adding a new row if it's full.
     //
-    // cachedNodes is a dictionary of previously-created nodes that we can reuse.
-    createThumb(mediaId, searchPage, { cachedNodes })
+    // Thumbs are grouped into rows so it's easier for us to add to the edges without causing the
+    // rest to shift around, which is hard to do with just flex-wrap.
+    _addThumbToRow(node, {atEnd})
     {
-        if(cachedNodes[mediaId] != null)
+        // Create an initial row if we need one.
+        if(this.rows.length == 0)
+            this._createRow({atEnd});
+
+        // The row we'll try to add to:
+        let addToRow = atEnd? this.rows[this.rows.length-1]:this.rows[0];
+
+        // Add the thumb.  It doesn't have its own offsetWidth until we do this.
+        addToRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
+
+        // If this thumb doesn't fit on the row (adding it caused the scrollWidth to exceed
+        // offsetWidth), the row is full, so start a new one.
+        // If the thumb fit on the row, stop here.  The row can still have more thumbs added
+        // to it.
+        if(addToRow.scrollWidth <= addToRow.offsetWidth)
+            return;
+        
+        // Adding another thumb to it caused it to overflow, so this row is full.  Remove the
+        // thumb from the overfilled row and put it on a new one.
+        node.remove();
+        let newRow = this._createRow({atEnd});
+        newRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
+
+        // Do some finalization on the row that just finished to optimize its space usage.
+        //
+        // We often end up with a bunch of unused space when we have a mixture of aspect ratios.
+        // Portrait images cause the row to become taller, and we end up with empty horizontal
+        // space and landscape images that could fill it in.  It's hard to avoid this in CSS,
+        // so we do it programmatically.
+        //
+        // This isn't "fair": earlier thumbs have first chance at expanding, but that's OK.  After
+        // this pass, the row will have the same height, but have less of its horizontal space
+        // left unused.
+        for(let thumbToExpand of addToRow.children)
         {
-            let result = cachedNodes[mediaId];
-            delete cachedNodes[mediaId];
-            return result;
+            // Get the height of the tallest thumb.  We'll allow thumbs to expand up to this height.
+            let maxHeight = 0;
+            for(let thumb of addToRow.children)
+                maxHeight = Math.max(maxHeight, thumb.offsetHeight);
+            
+            // Get the amount of unused horizontal space.  We'll allow thumbs to expand by up to
+            // this much.
+            let availWidth = addToRow.offsetWidth;
+            availWidth -= this.sizingStyle.padding * (addToRow.children.length-1);
+            for(let thumb of addToRow.children)
+                availWidth -= thumb.offsetWidth;
+
+            // The maximum width of this thumb:
+            let maxWidth = thumbToExpand.offsetWidth + availWidth;
+
+            // Expand as much as we can in both dimensions without exceeding the maximum.
+            let expandBy = Math.min(maxHeight / thumbToExpand.offsetHeight, maxWidth / thumbToExpand.offsetWidth);
+            let height = thumbToExpand.offsetHeight * expandBy;
+            let width = thumbToExpand.offsetWidth * expandBy;
+            thumbToExpand.style.setProperty("--thumb-height", `${height}px`);
+            thumbToExpand.style.setProperty("--thumb-width", `${width}px`);
         }
 
+        // Next, enlarge all thumbs so they fill the row vertically.  This removes the empty space above
+        // thumbs when there are mixed aspect ratios.  It'll cause the row to be too big, so we'll scale
+        // it back down to fit below.  The effect is to evenly scale thumbs to a constant height, reducing
+        // the row's total height in the process.  When thumbs in the row already have the same aspect
+        // ratio, this will have no effect since we won't change anything.
+        {
+            let maxHeight = 0;
+            for(let thumb of addToRow.children)
+                maxHeight = Math.max(maxHeight, thumb.offsetHeight);
+
+            for(let thumb of addToRow.children)
+            {
+                let height = thumb.offsetHeight;
+                let width = thumb.offsetWidth;
+                let ratio = maxHeight / height;
+                height *= ratio;
+                width *= ratio;
+                thumb.style.setProperty("--thumb-height", `${height}px`);
+                thumb.style.setProperty("--thumb-width", `${width}px`);
+            }        
+        }
+
+        // Finally, scale the whole row to fill horizontally.
+        {
+            let width = 0;
+            width += this.sizingStyle.padding * (addToRow.children.length-1);
+            for(let thumb of addToRow.children)
+                width += thumb.offsetWidth;
+
+            let expandBy = addToRow.offsetWidth / width;
+            for(let thumbToExpand of addToRow.children)
+            {
+                let height = thumbToExpand.offsetHeight * expandBy;
+                let width = thumbToExpand.offsetWidth * expandBy;
+                thumbToExpand.style.setProperty("--thumb-height", `${height}px`);
+                thumbToExpand.style.setProperty("--thumb-width", `${width}px`);
+            }
+        }
+    }
+
+    // Create a new empty thumbnail row, and add it to the beginning or end.
+    _createRow({atEnd=true}={})
+    {
+        let row = document.realCreateElement("div");
+        row.className = "row";
+
+        if(atEnd)
+        {
+            this.thumbnailBox.insertAdjacentElement("beforeend", row);
+            this.rows.push(row);
+        }
+        else
+        {
+            this.thumbnailBox.insertAdjacentElement("afterbegin", row);
+            this.rows.splice(0, 0, row);
+        }
+
+        return row;
+    }
+
+    // Clear the view.
+    _clearThumbs()
+    {
+        for(let node of Object.values(this.thumbs))
+        {
+            node.remove();
+            for(let observer of this.intersectionObservers)
+                observer.unobserve(node);
+        }
+        for(let row of this.rows)
+            row.remove();
+
+        this.thumbs = {};
+        this.rows = [];
+    }
+
+    // Create a thumbnail.
+    createThumb(mediaId, searchPage)
+    {
         // makeSVGUnique is disabled here as a small optimization, since these SVGs don't need it.
         let entry = this.createTemplate({ name: "template-thumbnail", makeSVGUnique: false, html: `
             <div class=thumbnail-box>
@@ -885,10 +926,70 @@ export default class SearchView extends Widget
         return entry;
     }
 
+    // Return { thumbWidth, thumbHeight} for mediaId.
+    _thumbnailSize(mediaId)
+    {
+        // The sizing style gives us the base thumbnail size.
+        let { thumbWidth, thumbHeight, desiredPixels } = this.sizingStyle;
+
+        // Anything but illusts use the default width.
+        let { type } = helpers.mediaId.parse(mediaId);
+        if(type != "illust" && type != "file" && type != "folder")
+            return { thumbWidth, thumbHeight };
+
+        let mediaInfo;
+        if(this.dataSource?.name != "manga")
+        {
+            if(this.sizingStyle.thumbnailStyle == "square")
+                return { thumbWidth, thumbHeight };
+
+            // We don't know the dimensions of thumbnails in advance if we're not on the manga
+            // view.  Use the first page's size instead, since a lot of manga posts have similar
+            // dimensions across all pages.
+            let { page } = helpers.mediaId.parse(mediaId);
+            if(page > 0)
+            {
+                page = 0;
+                // return { thumbWidth, thumbHeight };
+            }
+            mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
+        }
+        else
+        {
+            // We'll know the size of each page when we're on the manga view, so use it.
+            mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId);
+        }
+
+        if(mediaInfo == null)
+            throw new Error(`Missing media info data for ${mediaId}`);
+
+        // In aspect ratio mode, use the height of the row and fit the width.
+        let { width, height } = ppixiv.mediaCache.getImageDimensions(mediaInfo, mediaId);
+
+        // Set the thumbnail size to have an area of desiredPixels with the aspect ratio we've chosen.
+        // This gives thumbnails a similar amount of screen space whether they're portrait or landscape,
+        // and keeps the overall number of thumbs on screen at once mostly predictable.
+        let aspectRatio = width / height;
+        thumbWidth = Math.sqrt(desiredPixels * aspectRatio);
+        thumbHeight = thumbWidth / aspectRatio;
+
+        thumbWidth = Math.round(thumbWidth);
+        thumbHeight = Math.round(thumbHeight);
+        return { thumbWidth, thumbHeight };
+    }
+
+    _setThumbnailSize(mediaId, element)
+    {
+        let { thumbWidth, thumbHeight } = this._thumbnailSize(mediaId);
+        element.style.setProperty("--thumb-width", `${thumbWidth}px`);
+        element.style.setProperty("--thumb-height", `${thumbHeight}px`);
+
+        // Store our preferred thumbnail size directly too to make it easier to access.
+        element.thumbWidth = thumbWidth;
+        element.thumbHeight = thumbHeight;
+    }
+
     // If element isn't loaded and we have media info for it, set it up.
-    //
-    // If force is true, always reconfigure the thumbnail.  This is used when something like mutes
-    // have changed and we want to refresh all thumbnails.
     setupThumb(element)
     {
         let mediaId = element.dataset.id;
@@ -899,6 +1000,8 @@ export default class SearchView extends Widget
 
         // On hover, use StopAnimationAfter to stop the animation after a while.
         this.addAnimationListener(element);
+
+        this._setThumbnailSize(mediaId, element);
 
         if(thumbType == "user" || thumbType == "bookmarks")
         {
@@ -1036,59 +1139,73 @@ export default class SearchView extends Widget
     // desired size.  Return the corresponding CSS style attributes.
     //
     // container is the containing block (eg. ul.thumbnails).
-    static makeThumbnailSizingStyle({
-        container,
-        minPadding,
-        desiredSize=300,
-        ratio=null,
-        maxColumns=5,
-    }={})
+    makeThumbnailSizingStyle()
     {
-        // The total pixel size we want each thumbnail to have:
-        ratio ??= 1;
+        // The thumbnail mode is included here so changes to it trigger a refresh.
+        let thumbnailStyle = ppixiv.settings.get("thumbnail_style", "square");
 
+        let isMangaView = this.dataSource?.name == "manga";
+        let desiredSize = ppixiv.settings.get(isMangaView? "manga-thumbnail-size":"thumbnail-size", 4);
+        desiredSize = MenuOptionsThumbnailSizeSlider.thumbnailSizeForValue(desiredSize);
+
+        // The thumbnail size setting controls the rough total pixel size of the thumbnails.
         let desiredPixels = desiredSize*desiredSize;
+
+        // The base aspect ratio of thumbnails.  All thumbs will use this if we're in fixed
+        // thumbnail size mode.  If we're in variable mode, landscape images will be wider and
+        // portrait images will be narrower, but this is treated as the average.
+        let ratio = this.dataSource.getThumbnailAspectRatio() ?? 1;
+
+        // Pack images more tightly on mobile.
+        let padding = ppixiv.mobile? 3:15;
+
+        // Limit the number of columns on most views, so we don't load too much data at once.
+        // Allow more columns on the manga view, since that never loads more than one image.
+        // Allow unlimited columns for local images, and on mobile where we're usually limited
+        // by screen space and showing lots of columns (but few rows) can be useful.
+        let maxColumns =
+            ppixiv.mobile? 30:
+            isMangaView? 15: 
+            this.dataSource?.isVView? 100:5;
 
         // The container might have a fractional size, and clientWidth will round it, which is
         // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
         // won't actually fit.  Get the bounding box instead, which isn't rounded.
         // let containerWidth = container.parentNode.clientWidth;
-        let containerWidth = Math.floor(container.parentNode.getBoundingClientRect().width);
-        let padding = minPadding;
+        let containerWidth = Math.floor(this.thumbnailBox.parentNode.getBoundingClientRect().width);
         
         let closestErrorToDesiredPixels = -1;
-        let bestSize = [0,0];
-        let bestColumns = 0;
+        let bestSize = { thumbWidth: 0, thumbHeight: 0, columns: 1 };
 
         // Find the greatest number of columns we can fit in the available width.
+        // should we try different heights
         for(let columns = maxColumns; columns >= 1; --columns)
         {
             // The amount of space in the container remaining for images, after subtracting
             // the padding around each image.  Padding is the flex gap, so this doesn't include
             // padding at the left and right edge.
             let remainingWidth = containerWidth - padding*(columns-1);
-            let maxWidth = remainingWidth / columns;
+            let thumbWidth = remainingWidth / columns;
 
-            let maxHeight = maxWidth;
+            let thumbHeight = thumbWidth;
             if(ratio < 1)
-                maxWidth *= ratio;
+                thumbWidth *= ratio;
             else if(ratio > 1)
-                maxHeight /= ratio;
+                thumbHeight /= ratio;
 
-            maxWidth = Math.floor(maxWidth);
-            maxHeight = Math.floor(maxHeight);
+            thumbWidth = Math.floor(thumbWidth);
+            thumbHeight = Math.floor(thumbHeight);
 
-            let pixels = maxWidth * maxHeight;
+            let pixels = thumbWidth * thumbHeight;
             let error = Math.abs(pixels - desiredPixels);
             if(closestErrorToDesiredPixels == -1 || error < closestErrorToDesiredPixels)
             {
                 closestErrorToDesiredPixels = error;
-                bestSize = [maxWidth, maxHeight];
-                bestColumns = columns;
+                bestSize = {thumbWidth, thumbHeight, columns};
             }
         }
 
-        let [thumbWidth, thumbHeight] = bestSize;
+        let {thumbWidth, thumbHeight, columns} = bestSize;
 
         // If we want a smaller thumbnail size than we can reach within the max column
         // count, we won't have reached desiredPixels.  In this case, just clamp to it.
@@ -1108,8 +1225,8 @@ export default class SearchView extends Widget
         }
 
         // Clamp the width of the container to the number of columns we expect.
-        containerWidth = bestColumns*thumbWidth + (bestColumns-1)*padding;
-        return {columns: bestColumns, padding, thumbWidth, thumbHeight, containerWidth};
+        containerWidth = columns*thumbWidth + (columns-1)*padding;
+        return {thumbnailStyle, columns, padding, thumbWidth, thumbHeight, containerWidth, desiredPixels};
     }
     
     // Verify that thumbs we've created are in sync with this.thumbs.
@@ -1154,13 +1271,7 @@ export default class SearchView extends Widget
         if(page > maxPage+1)
             return false;
         
-        console.log("Loading page:", page);
-        this._loadingPreviousPage = true;
-        try {
-            await this.dataSource.loadPage(page, { cause: "previous page" });
-        } finally {
-            this._loadingPreviousPage = false;
-        }
+        await this.dataSource.loadPage(page, { cause: "previous page" });
 
         return true;
     }
@@ -1224,7 +1335,7 @@ export default class SearchView extends Widget
         this.saveExpandedMediaIds();
 
         // This will cause thumbnails to be added or removed, so refresh.
-        this.refreshImages();
+        this.refreshImages({cause: "manga-expansion-change"});
 
         // Refresh whether we're showing the expansion border.  refreshImages sets this when it's
         // created, but it doesn't handle refreshing it.
@@ -1375,19 +1486,6 @@ export default class SearchView extends Widget
             this.refreshExpandedThumb(thumb);
     }
 
-    // Set the link for the "load previous page" button.
-    _refreshLoadPreviousButton()
-    {
-        if(this.dataSource == null)
-            return;
-
-        let page = this.dataSource.getStartPage(helpers.args.location);
-        let previousPageLink = this.loadPreviousPageButton.querySelector("a.load-previous-button");
-        let args = helpers.args.location;
-        this.dataSource.setStartPage(args, page-1);
-        previousPageLink.href = args.url;
-    }
-
     // Set things up based on the image dimensions.  We can do this immediately if we know the
     // thumbnail dimensions already, otherwise we'll do it based on the thumbnail once it loads.
     thumbImageLoadFinished(element, { cause })
@@ -1423,16 +1521,16 @@ export default class SearchView extends Widget
         if(width == null)
             return;
 
+        // We can't do this until the node is added to the document and it has a size.
+        if(element.offsetWidth == 0)
+            return;
+
         element.dataset.thumbLoaded = "1";
 
         // Set up the thumbnail panning direction, which is based on the image aspect ratio and the
-        // displayed thumbnail aspect ratio.  Ths thumbnail aspect ratio is usually 1 for square thumbs,
-        // but it can be different on the manga page.  Get this from the data source, since using offsetWidth
-        // causes a reflow.
-        let thumbAspectRatio = this.dataSource.getThumbnailAspectRatio() ?? 1;
-
-        // console.log(`Thumbnail ${mediaId} loaded at ${cause}: ${width} ${height} ${thumb.src}`);
-        SearchView.createThumbnailAnimation(thumb, width, height, thumbAspectRatio);
+        // displayed thumbnail aspect ratio.
+        let aspectRatio = element.offsetWidth / element.offsetHeight;
+        SearchView.createThumbnailAnimation(thumb, width, height, aspectRatio);
     }
 
     // If the aspect ratio is very narrow, don't use any panning, since it becomes too spastic.
@@ -1595,16 +1693,15 @@ export default class SearchView extends Widget
     // If the data source gives us a URL to use as a header image, update it.
     refreshHeader()
     {
+        let img = this.artistHeader.querySelector("img");
         let headerStripURL = this.dataSource?.uiInfo?.headerStripURL;
         if(headerStripURL == null)
         {
             this.artistHeader.hidden = true;
-            let img = this.artistHeader.querySelector("img");
             img.src = helpers.other.blankImage;
             return;
         }
 
-        let img = this.artistHeader.querySelector("img");
         if(img.src == headerStripURL)
             return;
 
@@ -1677,7 +1774,7 @@ export default class SearchView extends Widget
             return false;
 
         // Make sure this image has a thumbnail created if possible.
-        this.refreshImages({ targetMediaId: mediaId });
+        this.refreshImages({ targetMediaId: mediaId, cause: "scroll-to-id" });
 
         let thumb = this.getThumbnailForMediaId(mediaId, { fallbackOnPage1: true });
         if(thumb == null)

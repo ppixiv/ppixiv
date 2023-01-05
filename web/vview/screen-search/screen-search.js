@@ -173,11 +173,6 @@ export default class ScreenSearch extends Screen
         await this.searchView.activate();
     }
 
-    scrollToMediaId(mediaId)
-    {
-        this.searchView.scrollToMediaId(mediaId);
-    }
-
     getRectForMediaId(mediaId)
     {
         return this.searchView.getRectForMediaId(mediaId);

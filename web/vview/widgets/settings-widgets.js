@@ -113,6 +113,22 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
+        thumbnailStyle: () => {
+            return new MenuOptionOptionsSetting({
+                ...globalOptions,
+                setting: "thumbnail_style",
+                label: "Thumbnail style",
+                values: ["square", "aspect"],
+                explanation: (value) => {
+                    switch(value)
+                    {
+                    case "square": return "Square thumbs";
+                    case "aspect": return "Aspect ratio thumbs";
+                    }
+                },
+            });
+        },
+
         disableThumbnailPanning: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
@@ -580,6 +596,8 @@ export class SettingsDialog extends DialogWidget
                 settingsWidgets.thumbnailSize();
                 if(!ppixiv.native)
                     settingsWidgets.mangaThumbnailSize();
+
+                settingsWidgets.thumbnailStyle();
                 if(!ppixiv.mobile)
                 {
                     settingsWidgets.disableThumbnailPanning();

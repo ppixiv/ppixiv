@@ -811,8 +811,9 @@ export default class MediaCache extends EventTarget
             if(page > 0)
             {
                 // If this is partial info, we don't know the dimensions of pages past the first.
+                // Use the size of the first page as a fallback.
                 if(mediaInfo.mangaPages == null)
-                    return { width: 1, height: 1 };
+                    return { width: pageInfo.width, height: pageInfo.height };
 
                 pageInfo = mediaInfo.mangaPages[page];
             }

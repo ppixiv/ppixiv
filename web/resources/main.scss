@@ -1382,33 +1382,6 @@ body.hide-r18g .r18g { display: none; }
         margin: 0 1em;
     }
 
-    /* .thumbnails is the actual thumbnail list. */
-    .thumbnails {
-        user-select: none;
-        -webkit-user-select: none;
-        padding: 0;
-        text-align: center;
-        gap: var(--thumb-padding);
-        max-width: var(--container-width);
-
-        display: flex;
-        flex-wrap: wrap;
-
-        // Justify-content centers the thumbs within our max width, but margin: 0 auto
-        // centers us within the window if our max width is smaller than the window.
-        justify-content: center;
-
-        // Center thumbs if they don't fill the screen.
-        margin: 0 auto;
-
-        /* Add a stroke around the heart on thumbnails for visibility.  Don't
-         * change the black lock. */
-        .button-bookmark svg > .heart {
-            stroke: #000;
-            stroke-width: .5px;
-        }
-    }
-
     .flash a {
         animation-name: flash-thumbnail;
         animation-duration: 300ms;
@@ -1449,34 +1422,6 @@ body.hide-r18g .r18g { display: none; }
         display: none;
     }
 
-    .load-previous-page {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        margin: 10px 0;
-
-        > .load-previous-button {
-            max-width: 400px;
-            display: flex;
-            --icon-size: 1.5;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            background-color: #880;
-            border-radius: 4px;
-            padding: 10px;
-            color: var(--box-link-fg-color);
-            background-color: var(--box-link-bg-color);
-
-            @media(hover: hover) {
-                &:hover {
-                    background-color: var(--box-link-hover-color);
-                }
-            }
-        }
-    }
-
     .thumbnail-box.expanded-thumb a.thumbnail-link {
         border-bottom: 10px solid #a0a;
         border-bottom-width: 10px;
@@ -1485,13 +1430,47 @@ body.hide-r18g .r18g { display: none; }
         &.last-page { border-bottom-right-radius: 30px; }
     }
 
+    // A vertical strip of thumbnail rows:
+    .thumbnails {
+        user-select: none;
+        -webkit-user-select: none;
+        text-align: center;
+        row-gap: var(--thumb-padding);
+        width: var(--container-width);
+        display: flex;
+        flex-direction: column;
+
+        // Center thumbs if they don't fill the screen.
+        margin: 0 auto;
+
+        .row {
+            width: 100%;
+
+            // Rounding error can cause thumbs to be slightly outside our width.  Crop it off
+            // to make sure we don't trigger horizontal scrolling.
+            overflow: hidden;
+
+            display: flex;
+            flex-direction: row;
+            column-gap: var(--thumb-padding);
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        /* Add a stroke around the heart on thumbnails for visibility.  Don't
+         * change the black lock. */
+        .button-bookmark svg > .heart {
+            stroke: #000;
+            stroke-width: .5px;
+        }
+    }
+
     .thumbnail-box {
         position: relative;
         width: var(--thumb-width);
         height: var(--thumb-height);
-        content-visibility: auto;
-        contain-intrinsic-size: var(--thumb-width) var(--thumb-height);
-        contain: strict;
+        min-height: var(--thumb-height);
+        flex-shrink: 0;
 
         .thumb {
             object-fit: cover;
@@ -1750,7 +1729,7 @@ body.hide-r18g .r18g { display: none; }
 
             // Cap the header height to the size of thumbs, so if thumbnails are very small we
             // scale the header down with them.
-            height: min(20vh, var(--thumb-height));
+            height: min(20vh, var(--row-height));
 
             overflow: hidden;
             background-color: #333;

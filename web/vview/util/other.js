@@ -300,6 +300,16 @@ export function vsync({signal=null}={})
     });
 }
 
+export function arrayEqual(lhs, rhs)
+{
+    if(lhs.length != rhs.length)
+        return false;
+    for(let idx = 0; idx < lhs.length; ++idx)
+        if(lhs[idx] != rhs[idx])
+            return false;
+    return true;
+}
+
 // Return the index (in B) of the first value in A that exists in B.
 export function findFirstIdx(A, B)
 {
