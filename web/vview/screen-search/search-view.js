@@ -1356,15 +1356,15 @@ export default class SearchView extends Widget
 
         // Show the page count if this is a multi-page post (unless we're on the
         // manga view itself).
-        if(info && info.pageCount > 1 && this.dataSource?.name != "manga")
+        let showMangaPage = info && info.pageCount > 1 && this.dataSource?.name != "manga";
+        let pageCountBox = thumb.querySelector(".manga-info-box");
+        pageCountBox.hidden = !showMangaPage;
+        if(showMangaPage)
         {
-            let pageCountBox = thumb.querySelector(".manga-info-box");
-            pageCountBox.hidden = false;
-
             let text = showExpanded? `${illustPage+1}/${info.pageCount}`:info.pageCount;
-            thumb.querySelector(".manga-info-box .page-count").textContent = text;
-            thumb.querySelector(".manga-info-box .page-count").hidden = false;
-            helpers.html.setClass(thumb.querySelector(".manga-info-box"), "show-expanded", showExpanded);
+            pageCountBox.querySelector(".page-count").textContent = text;
+            pageCountBox.querySelector(".page-count").hidden = false;
+            helpers.html.setClass(pageCountBox, "show-expanded", showExpanded);
         }
     }
 
