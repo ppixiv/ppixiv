@@ -680,9 +680,22 @@ export default class SearchView extends Widget
             // This isn't an incremental update.  It's a new search, or something has happened that
             // added or removed thumbs in the middle of the list, like expanding manga pages.
             this._clearThumbs();
-    
-            lastExistingIdx = -1;
-            firstExistingIdx = 0;
+
+            // If we're targetting an image, set firstExistingIdx and lastExistingIdx so we'll add
+            // forwards starting at that image, then add the images before it backwards.  This way
+            // that image will always be at the start of a row, which makes restoring the scroll
+            // position much more consistent.  If we're not, just add all images forwards.
+            let restoreIdx = mediaIds.indexOf(targetMediaId);
+            if(restoreIdx != -1)
+            {
+                lastExistingIdx = restoreIdx-1;
+                firstExistingIdx = restoreIdx;
+            }
+            else
+            {
+                lastExistingIdx = -1;
+                firstExistingIdx = 0;
+            }
         }
 
         // Add thumbs to the end.
@@ -1270,19 +1283,7 @@ export default class SearchView extends Widget
     // The result can be used with restoreScrollPosition.
     saveScrollPosition()
     {
-        // Find a thumb near the middle of the screen to lock onto.  We don't need to read offsets
-        // and possibly trigger layout, just find all fully onscreen thumbs and take the one in the
-        // middle.  This gives a more stable scroll position when resizing than using the first one.
-        let centerThumbs = [];
-        for(let element of Object.values(this.thumbs))
-        {
-            if(!element.dataset.fullyOnScreen)
-                continue;
-
-            centerThumbs.push(element);
-        }
-
-        let firstVisibleThumbNode = centerThumbs[Math.floor(centerThumbs.length/2)];
+        let firstVisibleThumbNode = this.getFirstFullyOnscreenThumb();
         if(firstVisibleThumbNode == null)
             return null;
 
