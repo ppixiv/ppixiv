@@ -118,13 +118,9 @@ function createSettingsWidget({ globalOptions })
                 ...globalOptions,
                 setting: "thumbnail_style",
                 label: "Thumbnail style",
-                values: ["square", "aspect"],
-                explanation: (value) => {
-                    switch(value)
-                    {
-                    case "square": return "Square thumbs";
-                    case "aspect": return "Aspect ratio thumbs";
-                    }
+                values: {
+                    "square": "Square",
+                    "aspect": "Aspect",
                 },
             });
         },
@@ -297,7 +293,10 @@ function createSettingsWidget({ globalOptions })
                 ...globalOptions,
                 setting: "slideshow_default",
                 label: "Slideshow mode",
-                values: ["pan", "contain"],
+                values: {
+                    pan: "Pan",
+                    contain: "Fade",
+                },
                 explanation: (value) => {
                     switch(value)
                     {
@@ -323,15 +322,11 @@ function createSettingsWidget({ globalOptions })
                 ...globalOptions,
                 setting: "display_mode",
                 label: "Display mode",
-                values: ["auto", "normal", "notch", "safe-area"],
-                explanation: (value) => {
-                    switch(value)
-                    {
-                    case "auto": return "Detect automatically";
-                    case "normal": return "Fill the whole screen";
-                    case "notch": return "Rounded display for iPhones";
-                    case "safe-area": return "Avoid the status bar";
-                    }
+                values: {
+                    "auto": "Automatic",
+                    "normal": "Fill the screen",
+                    "notch": "Rounded display",
+                    "safe-area": "Avoid the status bar",
                 },
             });
         },

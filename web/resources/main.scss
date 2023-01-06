@@ -1032,7 +1032,7 @@ body.hide-r18g .r18g { display: none; }
 // ppixiv.dropdown_box_opener:
 .dropdown-box {
     position: absolute;
-    z-index: 100;
+    z-index: 1500; // over dialogs
     overflow-x: hidden;
     overflow-y: auto;
     border: 1px solid var(--frame-border-color);
@@ -4090,6 +4090,13 @@ svg.heart-image .delete {
         translate: -50% 0;
         border-radius: 100%;
     }
+}
+
+.menu-dropdown-button {
+    // Disable the background color on the box link used as the dropdown button.
+    --box-link-hover-color: transparent;
+    --box-link-selected-color: transparent;
+    --box-link-selected-hover-color: transparent;
 }
 
 .menu-slider .slider {

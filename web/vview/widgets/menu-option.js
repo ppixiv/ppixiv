@@ -1,5 +1,6 @@
 import Widget from 'vview/widgets/widget.js';
 import { CheckboxWidget, SliderWidget } from 'vview/widgets/simple.js';
+import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 // Simple menu settings widgets.
@@ -12,6 +13,9 @@ export class MenuOption extends Widget
     })
     {
         super(options);
+
+        this.explanationNode = this.querySelector(".explanation");
+
         for(let className of classes)
             this.root.classList.add(className);
 
@@ -32,16 +36,15 @@ export class MenuOption extends Widget
     // Update the explanation text, if any.
     refreshExplanation()
     {
+        if(this.explanationNode == null)
+            return;
+
         let text = this.explanationText;
         if(typeof(text) == "function")
             text = text();
 
-        let explanation = this.root.querySelector(".explanation");
-        if(explanation == null)
-            return;
-
-        explanation.hidden = text == null;
-        explanation.innerText = text;
+        this.explanationNode.hidden = text == null;
+        this.explanationNode.innerText = text;
     }
 }
 
@@ -383,25 +386,64 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
         });
 
         this._getExplanation = explanation;
-
         this.setting = setting;
-        this.values = values;
-        this.slider = new MenuOptionSliderSetting({
-            container: this.root.querySelector(".widget-box"),
-            label: "xxx",
-            setting: setting,
-            min: 0,
-            max: values.length,
-            list: values,
-            
-            // Refresh the label when the value changes.
-            refresh: () => { this.refresh(); },
+
+        this.button = helpers.createBoxLink({
+            label,
+            icon: "expand_more",
+            classes: ["menu-dropdown-button", "clickable"],
+            asElement: true,
         });
+
+        this.querySelector(".widget-box").appendChild(this.button);
+
+        this.opener = new DropdownMenuOpener({
+            button: this.button,
+            createDropdown: ({...options}) => {
+                let dropdown = new Widget({
+                    ...options,
+                    template: `<div class=vertical-list></div>`,
+                });
+
+                let currentValue = this.value;
+                for(let [value, label] of Object.entries(values))
+                {
+                    let link = helpers.createBoxLink({ label, asElement: true });
+                    helpers.html.setClass(link, "selected", value == currentValue);
+
+                    dropdown.root.appendChild(link);
+                    link.addEventListener("click", () => {
+                        this.value = value;
+                    });
+                }
+
+                return dropdown;
+            },
+        });
+    }
+
+    get value()
+    {
+        return ppixiv.settings.get(this.setting);
+    }
+
+    set value(value)
+    {
+        ppixiv.settings.set(this.setting, value);
+        this.refresh();
+    }
+
+    refresh()
+    {
+        super.refresh();
+        this.opener.setButtonPopupHighlight();
     }
 
     get explanationText()
     {
-        return this._getExplanation(this.slider.value);
+        if(!this._getExplanation)
+            return null;
+        return this._getExplanation(this.value);
     }
 };
 
