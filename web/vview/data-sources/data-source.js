@@ -123,6 +123,9 @@ export default class DataSource extends EventTarget
     // link when on page 2), we don't and instead create a new data source.
     canLoadPage(page)
     {
+        if(page < 0)
+            return false;
+
         // Most data sources can load any page if they haven't loaded a page yet.  Once
         // a page is loaded, they only load contiguous pages.
         if(!this.idList.anyPagesLoaded)

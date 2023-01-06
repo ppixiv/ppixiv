@@ -32,6 +32,7 @@ export default class SearchView extends Widget
         this.scrollContainer = this.root.closest(".scroll-container");
         this.thumbnailBox = this.root.querySelector(".thumbnails");
         this._setDataSourceRunner = new GuardedRunner(this._signal);
+        this._loadPageRunner = new GuardedRunner(this._signal);
 
         this.artistHeader = this.querySelector(".artist-header");
 
@@ -127,20 +128,6 @@ export default class SearchView extends Widget
         this.intersectionObservers = [];
         this.intersectionObservers.push(new IntersectionObserver((entries) => {
             for(let entry of entries)
-                helpers.html.setDataSet(entry.target.dataset, "fullyOnScreen", entry.isIntersecting);
-
-            this.loadDataSourcePage();
-        }, {
-            root: this.scrollContainer,
-
-            // We don't actually require the thumbs be completely onscreen, since that leads to
-            // edge cases when there are two visible rows and both of them are off the top and
-            // bottom of the screen, causing no thumbs to actually be fully onscreen.
-            threshold: 0.4,
-        }));
-        
-        this.intersectionObservers.push(new IntersectionObserver((entries) => {
-            for(let entry of entries)
                 helpers.html.setDataSet(entry.target.dataset, "nearby", entry.isIntersecting);
 
             this.refreshImages({cause: "nearby-observer"});
@@ -229,12 +216,7 @@ export default class SearchView extends Widget
     // scroll to if possible.
     setDataSource(dataSource, { targetMediaId }={})
     {
-        let promise = this._setDataSourceRunner.call(this._setDataSource.bind(this), { dataSource, targetMediaId });
-
-        // We ignore dataSourceUpdated calls while setting up, so run it once when it finishes.
-        promise.then(() => this.dataSourceUpdated());
-
-        return promise;
+        return this._setDataSourceRunner.call(this._setDataSource.bind(this), { dataSource, targetMediaId });
     }
 
     async _setDataSource({ dataSource, targetMediaId, signal }={})
@@ -245,7 +227,7 @@ export default class SearchView extends Widget
         {
             // Remove listeners from the old data source.
             if(this.dataSource != null)
-                this.dataSource.removeEventListener("pageadded", this.dataSourceUpdated);
+                this.dataSource.removeEventListener("updated", this.dataSourceUpdated);
 
             this._clearThumbs();
 
@@ -254,8 +236,9 @@ export default class SearchView extends Widget
             this.dataSource = dataSource;
 
             // Listen to the data source loading new pages, so we can refresh the list.
-            this.dataSource.addEventListener("pageadded", this.dataSourceUpdated);
+            this.dataSource.addEventListener("updated", this.dataSourceUpdated);
 
+            // Set the header now if it's already known.
             this.refreshHeader();
         }
 
@@ -284,8 +267,17 @@ export default class SearchView extends Widget
             this.scrollContainer.scrollTop = 0;
     }
 
+    loadDataSourcePage({cause="thumbnails"}={})
+    {
+        // Guard this against multiple concurrent calls.
+        if(this._loadPageRunner.isRunning)
+            return this._loadPageRunner.promise;
+
+        return this._loadPageRunner.call(this._loadDataSourcePageInner.bind(this), { cause });
+    }
+
     // Start loading a data source page if needed.
-    async loadDataSourcePage({cause="thumbnails"}={})
+    async _loadDataSourcePageInner({cause="thumbnails", signal}={})
     {
         // We'll only load the next or previous page if we have a thumbnail displayed.
         let loadPage = this._dataSourcePageToLoad;
@@ -296,14 +288,26 @@ export default class SearchView extends Widget
         let noResults = this.root.querySelector(".no-results");
         noResults.hidden = true;
 
-        if(loadPage != null)
-        {
-            let result = await this.dataSource.loadPage(loadPage, { cause });
-        }
+        await this.dataSource.loadPage(loadPage, { cause });
+
+        // Refresh the view with any new data.  Skip this if we're in the middle of setDataSource,
+        // since it wants to make the first refreshImages call.
+        if(!this._setDataSourceRunner.isRunning)
+            this.refreshImages({cause: "data-source-updated"});
+
+        signal.throwIfAborted();
 
         // If we have no IDs and nothing is loading, the data source is empty (no results).
         if(this.dataSource?.hasNoResults)
             noResults.hidden = false;
+
+        // See if there's another page we want to load.  This is async, since the current
+        // loadDataSourcePage call should complete as soon as we've loaded a single page.
+        (async() => {
+            // Delay briefly as a sanity check.
+            await helpers.other.sleep(100);
+            this.loadDataSourcePage();
+        })();
     }
 
     // Return the next data source page we want to load.
@@ -408,13 +412,7 @@ export default class SearchView extends Widget
     // This is called when the data source has more results.
     dataSourceUpdated = () =>
     {
-        // Don't load or refresh images if we're in the middle of setDataSource.
-        if(this._setDataSourceRunner.isRunning)
-            return;
-
         this.refreshHeader();
-        this.refreshImages({cause: "data-source-updated"});
-        this.loadDataSourcePage();
     }
 
     // Return all media IDs currently loaded in the data source, and the page
