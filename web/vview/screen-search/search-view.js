@@ -635,6 +635,9 @@ export default class SearchView extends Widget
     refreshImages({
         targetMediaId=null,
 
+        // If true, clear thumbs before refreshing, clearing out any accumulated offscreen thumbs.
+        purge=false,
+
         // For diagnostics, this tells us what triggered this refresh.
         cause
     }={})
@@ -658,8 +661,11 @@ export default class SearchView extends Widget
         this.root.style.setProperty("--thumb-width", `${this.sizingStyle.thumbWidth}px`);
         this.root.style.setProperty("--row-height", `${this.sizingStyle.thumbHeight}px`);
 
-        // If the sizing style changes, clear thumbs and start over.
+        // If purge is true or the sizing style changed, clear thumbs and start over.
         if(oldSizingStyle && JSON.stringify(oldSizingStyle) != JSON.stringify(this.sizingStyle))
+            purge = true;
+        
+        if(purge)
         {
             // If we don't have a targetMediaId, set it to the scroll media ID so we'll recreate
             // thumbs near where we were.
@@ -1349,7 +1355,6 @@ export default class SearchView extends Widget
     // current default.
     setMediaIdExpanded(mediaId, newValue)
     {
-        let page = helpers.mediaId.toIllustIdAndPage(mediaId)[1];
         mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
 
         this.expandedMediaIds.set(mediaId, newValue);
@@ -1360,24 +1365,15 @@ export default class SearchView extends Widget
 
         this.saveExpandedMediaIds();
 
-        // This will cause thumbnails to be added or removed, so refresh.
-        this.refreshImages({cause: "manga-expansion-change"});
-
-        // Refresh whether we're showing the expansion border.  refreshImages sets this when it's
-        // created, but it doesn't handle refreshing it.
-        let thumb = this.getThumbnailForMediaId(mediaId);
-        this.refreshExpandedThumb(thumb);
+        // This will cause thumbnails to be added or removed, so refresh.  Allow this to purge the
+        // thumbnail list.  This will trigger a full refresh since we're changing thumbs in the
+        // middle, which can be slow if it recreates a huge accumulated thumbnail list.
+        this.refreshImages({cause: "manga-expansion-change", purge: true});
 
         if(!newValue)
         {
-            mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
-
-            // If we're collapsing a manga post on the first page, we know we don't need to
-            // scroll since the user clicked the first page.  Leave it where it is so we don't
-            // move the button he clicked around.  If we're collapsing a later page, scroll
-            // the first page onscreen so we don't end up in a random scroll position two pages down.
-            if(page != 0)
-                this.scrollToMediaId(helpers.mediaId.getMediaIdFirstPage(mediaId));
+            // After collapsing a manga post, scroll the first page onscreen.
+            this.scrollToMediaId(helpers.mediaId.getMediaIdFirstPage(mediaId));
         }
     }
 
