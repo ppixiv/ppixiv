@@ -3,6 +3,13 @@ import widget from 'vview/widgets/widget.js';
 
 let updateHistory = [
     {
+        version: 204,
+        text: `
+            Thumbnails can now be set to square or aspect ratio.
+        `,
+    },
+
+    {
         version: 198,
         text: `
             Artist links have been moved to the avatar dropdown, and can be accessed directly
