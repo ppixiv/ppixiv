@@ -41,6 +41,7 @@ export default class Settings extends EventTarget
         this.configure("slideshow_default", { defaultValue: "pan" });        
         this.configure("extraMutes", { defaultValue: [] });
         this.configure("slideshow_skips_manga", { defaultValue: false });
+        this.configure("thumbnail_style", { defaultValue: "square" });
         this.configure("expand_manga_thumbnails", { defaultValue: false });
         this.configure("slideshow_framerate", { defaultValue: 60 });
         this.configure("animations_enabled", { defaultValue: ppixiv.mobile });

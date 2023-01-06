@@ -1186,7 +1186,7 @@ export default class SearchView extends Widget
     makeThumbnailSizingStyle()
     {
         // The thumbnail mode is included here so changes to it trigger a refresh.
-        let thumbnailStyle = ppixiv.settings.get("thumbnail_style", "square");
+        let thumbnailStyle = ppixiv.settings.get("thumbnail_style");
 
         let isMangaView = this.dataSource?.name == "manga";
         let desiredSize = ppixiv.settings.get(isMangaView? "manga-thumbnail-size":"thumbnail-size", 4);
