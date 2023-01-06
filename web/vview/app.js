@@ -306,31 +306,6 @@ export default class App
          });
     }
 
-    async refreshCurrentDataSource({startAtBeginning=false, scrollToTop=false}={})
-    {
-        if(this._dataSource == null)
-            return;
-
-        // Create a new data source for the same URL, replacing the previous one.
-        // This returns the data source, but just call setCurrentDataSource so
-        // we load the new one.
-        console.log("Refreshing data source for", ppixiv.plocation.toString());
-
-        let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation, {force: true, startAtBeginning});
-
-        // If we're going back to the start of the search, update the page URL to put it back
-        // at the start too, and remove any saved scroll position.
-        if(startAtBeginning)
-        {
-            let args = helpers.args.location;
-            delete args.state.scroll;
-            dataSource.setStartPage(args, dataSource.initialPage);
-            helpers.navigate(args, { addToHistory: false, cause: "refresh-data-source", sendPopstate: false });
-        }
-
-        await this.setCurrentDataSource({ cause: "refresh", scrollToTop });
-    }
-
     _setDeviceProperties = () =>
     {
         let insets = helpers.html.getSafeAreaInsets();
@@ -419,7 +394,7 @@ export default class App
     // Create a data source for the current URL and activate it.
     //
     // This is called on startup, and in onpopstate where we might be changing data sources.
-    async setCurrentDataSource({cause, scrollToTop=false}={})
+    async setCurrentDataSource(args)
     {
         // If we're called again before a previous call finishes, let the previous call
         // finish first.
@@ -433,7 +408,7 @@ export default class App
         if(token !== this._setCurrentDataSourceToken)
             return;
 
-        let promise = this._setCurrentDataSourcePromise = this._setCurrentDataSource({cause, scrollToTop});
+        let promise = this._setCurrentDataSourcePromise = this._setCurrentDataSource(args);
         promise.finally(() => {
             if(promise == this._setCurrentDataSourcePromise)
                 this._setCurrentDataSourcePromise = null;
@@ -441,7 +416,7 @@ export default class App
         return promise;
     }
 
-    async _setCurrentDataSource({cause, scrollToTop})
+    async _setCurrentDataSource({cause, refresh, scrollToTop, startAtBeginning})
     {
         // Remember what we were displaying before we start changing things.
         let oldScreen = this._screens[this._currentScreenName];
@@ -459,13 +434,26 @@ export default class App
             targetMediaId = null;
         }
 
-        // Get the data source for the current URL and initialize it if needed.
-        let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation);
-        await dataSource.init();
+        // Get the data source for the current URL and initialize it if needed.  If refresh is true,
+        // force a new data source to be created instead of reusing an existing one.
+        let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation, {
+            force: refresh,
+            startAtBeginning,
+        });
+        await dataSource.init({targetMediaId});
+        let args = helpers.args.location;
+
+        // If we're going back to the start of the search, update the page URL to put it back
+        // at the start too, and remove any saved scroll position.
+        if(startAtBeginning)
+        {
+            delete args.state.scroll;
+            dataSource.setStartPage(args, dataSource.initialPage);
+            helpers.navigate(args, { addToHistory: false, cause: "refresh-data-source", sendPopstate: false });
+        }
 
         // Figure out which screen to display.
         let newScreenName;
-        let args = helpers.args.location;
         if(!args.hash.has("view"))
             newScreenName = dataSource.defaultScreen;
         else
