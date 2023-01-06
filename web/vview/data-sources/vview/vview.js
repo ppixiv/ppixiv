@@ -297,7 +297,7 @@ export class VViewSearch extends VViewBase
         // If we've loaded pages 5-6, we can load anything between pages 4 and 7.
         let lowestPage = this.idList.getLowestLoadedPage();
         let highestPage = this.idList.getHighestLoadedPage();
-        return page >= lowestPage && page <= highestPage+1;
+        return page >= lowestPage-1 && page <= highestPage+1;
     }
 }
 

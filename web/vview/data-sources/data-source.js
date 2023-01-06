@@ -116,14 +116,9 @@ export default class DataSource extends EventTarget
     }
 
     // Return true if the data source can load the given page.
-    //
-    // This returns false for the page before the first loaded page, even if the data source
-    // is technically able to load it.  We can do that as a special case for the "load previous
-    // results" button, which ignores this, but in most cases (such as clicking a page 1
-    // link when on page 2), we don't and instead create a new data source.
     canLoadPage(page)
     {
-        if(page < 0)
+        if(page < 1)
             return false;
 
         // Most data sources can load any page if they haven't loaded a page yet.  Once
@@ -131,10 +126,10 @@ export default class DataSource extends EventTarget
         if(!this.idList.anyPagesLoaded)
             return true;
 
-        // If we've loaded pages 5-6, we can load anything between pages 5 and 7.
+        // If we've loaded pages 5-6, we can load anything between pages 4 and 7.
         let lowestPage = this.idList.getLowestLoadedPage();
         let highestPage = this.idList.getHighestLoadedPage();
-        return page >= lowestPage && page <= highestPage+1;
+        return page >= lowestPage-1 && page <= highestPage+1;
     }
 
     // Return true if we know page is past the end of this data source's results.
