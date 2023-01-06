@@ -1426,8 +1426,13 @@ body.hide-r18g .r18g { display: none; }
         border-bottom: 10px solid #a0a;
         border-bottom-width: 10px;
         border-bottom-style: solid;
-        &.first-page { border-bottom-left-radius: 30px; }
-        &.last-page { border-bottom-right-radius: 30px; }
+
+        // Round the edges to cue the start and end.  Don't do this on mobile, where
+        // we don't round thumbs as much.
+        html:not(.mobile) & {
+            &.first-page { border-bottom-left-radius: 30px; }
+            &.last-page { border-bottom-right-radius: 30px; }
+        }
     }
 
     // A vertical strip of thumbnail rows:
