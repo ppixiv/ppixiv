@@ -130,7 +130,6 @@ export default class SearchView extends Widget
                 helpers.html.setDataSet(entry.target.dataset, "fullyOnScreen", entry.isIntersecting);
 
             this.loadDataSourcePage();
-            this.firstVisibleThumbsChanged();
         }, {
             root: this.scrollContainer,
 
@@ -207,25 +206,6 @@ export default class SearchView extends Widget
         }
 
         return null;
-    }
-
-    // This is called as the user scrolls and different thumbs are fully onscreen,
-    // to update the page URL.
-    firstVisibleThumbsChanged()
-    {
-        // Find the first thumb that's fully onscreen.  Ignore elements not specific to a page (load previous results).
-        let firstThumb = this.getFirstFullyOnscreenThumb();
-        if(!firstThumb)
-            return;
-
-        // If the data source supports a start page, update the page number in the URL to reflect
-        // the first visible thumb.
-        if(this.dataSource == null || !this.dataSource.supportsStartPage || firstThumb.dataset.searchPage == null)
-            return;
-
-        let args = helpers.args.location;
-        this.dataSource.setStartPage(args, firstThumb.dataset.searchPage);
-        helpers.navigate(args, { addToHistory: false, cause: "viewing-page", sendPopstate: false });
     }
 
     // Change the data source.  If targetMediaId is specified, it's the media ID we'd like to
@@ -384,10 +364,20 @@ export default class SearchView extends Widget
         }, 100);
     }
 
-    // Save the current scroll position, so it can be restored from history.
+    // Save the current scroll position so it can be restored from history, and update the search
+    // page number.
     storeScrollPosition()
     {
         let args = helpers.args.location;
+
+        if(this.dataSource?.supportsStartPage)
+        {
+            // If the data source supports a start page, update the page number in the URL.
+            let firstThumb = this.getFirstFullyOnscreenThumb();
+            if(firstThumb?.dataset?.searchPage != null)
+                this.dataSource.setStartPage(args, firstThumb.dataset.searchPage);
+        }
+
         args.state.scroll = {
             scrollPosition: this.saveScrollPosition(),
         };
