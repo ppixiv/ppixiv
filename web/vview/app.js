@@ -315,13 +315,17 @@ export default class App
         // This returns the data source, but just call setCurrentDataSource so
         // we load the new one.
         console.log("Refreshing data source for", ppixiv.plocation.toString());
-        DataSources.createDataSourceForUrl(ppixiv.plocation, {force: true, startAtBeginning});
 
-        // Screens store their scroll position in args.state.scroll.  On refresh, clear it
-        // so we scroll to the top when we refresh.
-        let args = helpers.args.location;
-        delete args.state.scroll;
-        helpers.navigate(args, { addToHistory: false, cause: "refresh-data-source", sendPopstate: false });
+        let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation, {force: true, startAtBeginning});
+
+        // If we're going back to the start of the search, update the page URL to put it back
+        // at the start too.
+        if(startAtBeginning)
+        {
+            let args = helpers.args.location;
+            dataSource.setStartPage(args, dataSource.initialPage);
+            helpers.navigate(args, { addToHistory: false, cause: "refresh-data-source", sendPopstate: false });
+        }
 
         await this.setCurrentDataSource({ cause: "refresh", scrollToTop });
     }
