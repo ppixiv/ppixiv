@@ -35,11 +35,11 @@ export default class DataSource_MangaPages extends DataSource
         if(this.illustInfo == null)
             return;
 
-        let pageMediaIds = [];
+        let mediaIds = [];
         for(let page = 0; page < this.illustInfo.pageCount; ++page)
-            pageMediaIds.push(helpers.mediaId.getMediaIdForPage(this.mediaId, page));
+            mediaIds.push(helpers.mediaId.getMediaIdForPage(this.mediaId, page));
 
-        await this.addPage(page, pageMediaIds);
+        return { mediaIds };
     }
 
     get pageTitle()

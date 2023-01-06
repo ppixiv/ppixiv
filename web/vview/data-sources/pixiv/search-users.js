@@ -48,7 +48,7 @@ export default class DataSource_SearchUsers extends DataSource
             mediaIds.push(`user:${user.user_id}`);
         }
 
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     }
 
     get username()

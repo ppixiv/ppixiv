@@ -183,7 +183,7 @@ export class VView extends VViewBase
 
         // Load info for these images before returning them.
         await ppixiv.mediaCache.batchGetMediaInfoPartial(mediaIds);
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     }
 }
 
@@ -278,11 +278,11 @@ export class VViewSearch extends VViewBase
         if(result.pages.next == null)
             this.reachedEnd = true;
 
-        let foundMediaIds = [];
+        let mediaIds = [];
         for(let thumb of result.results)
-            foundMediaIds.push(thumb.mediaId);
+            mediaIds.push(thumb.mediaId);
 
-        this.addPage(page, foundMediaIds);
+        return { mediaIds };
     };
 
     // Override canLoadPage.  If we've already loaded a page, we've cached the next

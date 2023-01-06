@@ -49,7 +49,7 @@ export default class DataSources_VViewSimilar extends DataSource
             mediaIds.push(entry.mediaId);
         }
 
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     };
 
     // We only load one page of results.

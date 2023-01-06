@@ -215,8 +215,7 @@ export default class DataSource_Search extends DataSource
         for(let illust of illusts)
             mediaIds.push(helpers.mediaId.fromIllustId(illust.id));
 
-        // Register the new page of data.
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     }
 
     get pageTitle()

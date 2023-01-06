@@ -58,12 +58,13 @@ export default class DataSource_SimilarIllusts extends DataSource
         let thumbs = result.body.thumbnails.illust;
         await ppixiv.mediaCache.addMediaInfosPartial(thumbs, "normal");
 
+        ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
+
         let mediaIds = [];
         for(let thumb of thumbs)
             mediaIds.push(helpers.mediaId.fromIllustId(thumb.id));
 
-        ppixiv.tagTranslations.addTranslationsDict(result.body.tagTranslation);
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     };
 
     get uiInfo()

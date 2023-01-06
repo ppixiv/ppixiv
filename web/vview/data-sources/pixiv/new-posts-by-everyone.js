@@ -61,8 +61,7 @@ export default class DataSource_NewPostsByEveryone extends DataSource
 
         await ppixiv.mediaCache.addMediaInfosPartial(result.body.illusts, "normal");
 
-        // Register the new page of data.
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     }
 }
 

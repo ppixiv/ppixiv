@@ -45,7 +45,7 @@ export class DataSource_BookmarksBase extends DataSource
             this.callUpdateListeners();
         });
 
-        await this.continueLoadingPageInternal(page);
+        return await this.continueLoadingPageInternal(page);
     };
 
     get supportsStartPage()
@@ -378,18 +378,20 @@ export class Bookmarks extends DataSource_BookmarksBase
         
         await ppixiv.mediaCache.addMediaInfosPartial(result.works, "normal");
 
-        // Register the new page of data.  If we're shuffling, use the original page number, not the
-        // shuffled page.
-        //
-        // If mediaIds is empty but result.empty is false, we had results in the list but we
-        // filtered them all out.  Set allowEmpty to true in this case so we add the empty page,
-        // or else it'll look like we're at the end of the results when we know we aren't.
-        await this.addPage(page, mediaIds, {
-            allowEmpty: !result.empty,
-        });
-
         // Remember the total count, for display.
         this.totalBookmarks = result.total;
+
+        // Register the new page of data.  If we're shuffling, use the original page number, not the
+        // shuffled page.
+        return {
+            mediaIds,
+
+            // If mediaIds is empty but result.empty is false, we had results in the list but we
+            // filtered them all out.  Set allowEmpty to true in this case so we add the empty page,
+            // or else it'll look like we're at the end of the results when we know we aren't.
+            allowEmpty: !result.empty,
+        };
+
     }
 };
 
@@ -426,10 +428,10 @@ export class BookmarksMerged extends DataSource_BookmarksBase
             if(this.bookmarkMediaIds[i] != null && this.bookmarkMediaIds[i][page] != null)
                 mediaIds = mediaIds.concat(this.bookmarkMediaIds[i][page]);
         
-        this.addPage(page, mediaIds);
-
         // Combine the two totals.
         this.totalBookmarks = this.bookmarkTotals[0] + this.bookmarkTotals[1];
+
+        return { mediaIds };
     }
 
     async requestBookmarkType(page, rest)

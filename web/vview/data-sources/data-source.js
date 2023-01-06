@@ -170,7 +170,11 @@ export default class DataSource extends EventTarget
         await null;
 
         // Run the actual load.
-        await this.loadPageInternal(page);
+        let { mediaIds, allowEmpty } = await this.loadPageInternal(page) ?? { };
+
+        // Register the page if media IDs were returned.
+        if(mediaIds)
+            await this.addPage(page, mediaIds, { allowEmpty });
 
         // Reduce the start page, which will update the "load more results" button if any.
         if(this.supportsStartPage && page < this.initialPage)
@@ -709,8 +713,7 @@ export class DataSourceFromPage extends DataSource
         if(this.itemsPerPage == 1)
             this.itemsPerPage = Math.max(mediaIds.length, this.itemsPerPage);
 
-        // Register the new page of data.
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     }
 
     // Parse the loaded document and return the media IDs.
@@ -735,9 +738,8 @@ export class DataSourceFakePagination extends DataSource
             this.pages = PaginateMediaIds(mediaIds, this.estimatedItemsPerPage);
         }
 
-        // Register this page.
         let mediaIds = this.pages[page-1] || [];
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     }
 
     // Implemented by the subclass.  Load all results, and return the resulting IDs.

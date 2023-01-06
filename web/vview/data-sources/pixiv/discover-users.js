@@ -104,8 +104,7 @@ export default class DataSource_DiscoverUsers extends DataSource
                 mediaIds.push(helpers.mediaId.fromIllustId(illustId));
         }
 
-        // Register the new page of data.
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     }
 
     get estimatedItemsPerPage() { return 30; }

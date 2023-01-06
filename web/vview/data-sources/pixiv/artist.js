@@ -84,9 +84,7 @@ export default class DataSources_Artist extends DataSource
             // Load media info for this page.
             let mediaIds = this.pages[page-1] || [];
             await ppixiv.mediaCache.batchGetMediaInfoPartial(mediaIds, { userId: this.viewingUserId });
-
-            // Register this page.
-            await this.addPage(page, mediaIds);
+            return { mediaIds };
         }
         else
         {
@@ -126,8 +124,7 @@ export default class DataSources_Artist extends DataSource
 
             await ppixiv.mediaCache.addMediaInfosPartial(result.body.works, "normal");
 
-            // Register the new page of data.
-            await this.addPage(page, mediaIds);
+            return { mediaIds };
         }
     }
     

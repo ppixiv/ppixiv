@@ -166,8 +166,7 @@ export default class DataSource_Rankings extends DataSource
         this.nextDate = nextDate;
         this.callUpdateListeners();
 
-        // Register the new page of data.
-        await this.addPage(page, mediaIds);
+        return { mediaIds };
     };
 }
 
