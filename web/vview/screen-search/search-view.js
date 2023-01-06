@@ -273,38 +273,10 @@ export default class SearchView extends Widget
     // Start loading a data source page if needed.
     async loadDataSourcePage({cause="thumbnails"}={})
     {
-        // We load pages when the last thumbs on the previous page are loaded, but the first
-        // time through there's no previous page to reach the end of.  Always make sure the
-        // first page is loaded (usually page 1).
-        let loadPage = null;
-        if(this.dataSource && !this.dataSource.isPageLoadedOrLoading(this.dataSource.initialPage))
-            loadPage = this.dataSource.initialPage;
-
+        // We'll only load the next or previous page if we have a thumbnail displayed.
+        let loadPage = this._dataSourcePageToLoad;
         if(loadPage == null)
-        {
-            // Load the next page when the last nearby thumbnail (set by the "nearby" IntersectionObserver)
-            // is the last thumbnail in the list.
-            let thumbs = this.getLoadedThumbs();
-            if(thumbs.length > 0)
-            {
-                let lastThumb = thumbs[thumbs.length-1];
-                if(lastThumb.dataset.nearby)
-                    loadPage = parseInt(lastThumb.dataset.searchPage)+1;
-
-                if(loadPage == null)
-                {
-                    // Likewise, load the previous page when the first nearby thumbnail is the
-                    // first thumbnail in the list.
-                    let firstThumb = thumbs[0];
-                    let searchPage = parseInt(firstThumb.dataset.searchPage);
-                    if(firstThumb.dataset.nearby && searchPage > 1)
-                    {
-                        loadPage = searchPage - 1;
-                        console.log("Auto-loading backwards:", loadPage);
-                    }
-                }
-            }
-        }
+            return;
 
         // Hide "no results" if it's shown while we load data.
         let noResults = this.root.querySelector(".no-results");
@@ -323,6 +295,46 @@ export default class SearchView extends Widget
         // If we have no IDs and nothing is loading, the data source is empty (no results).
         if(this.dataSource?.hasNoResults)
             noResults.hidden = false;
+    }
+
+    // Return the next data source page we want to load.
+    get _dataSourcePageToLoad()
+    {
+        // We load pages when the last thumbs on the previous page are loaded, but the first
+        // time through there's no previous page to reach the end of.  Always make sure the
+        // first page is loaded (usually page 1).
+        if(this.dataSource && !this.dataSource.isPageLoadedOrLoading(this.dataSource.initialPage))
+            return this.dataSource.initialPage;
+
+        // After the first page, don't load anything if there are no thumbs.  This avoids uncontrolled
+        // loading: if we start on page 1000 and there's nothing there, we don't want to try loading
+        // 999, 998, 997 endlessly looking for content.  The only thing that triggers more loads is
+        // a previously loaded thumbnail coming nearby.
+        let thumbs = this.getLoadedThumbs();
+        if(thumbs.length == 0)
+            return null;
+
+        // Load the next page when the last nearby thumbnail (set by the "nearby" IntersectionObserver)
+        // is the last thumbnail in the list.
+        let lastThumb = thumbs[thumbs.length-1];
+        if(lastThumb.dataset.nearby)
+        {
+            let loadPage = parseInt(lastThumb.dataset.searchPage) + 1;
+            if(this.dataSource.canLoadPage(loadPage) && !this.dataSource.isPageLoadedOrLoading(loadPage))
+                return loadPage;
+        }
+
+        // Likewise, load the previous page when the first nearby thumbnail is the first thumbnail
+        // in the list.
+        let firstThumb = thumbs[0];
+        if(firstThumb.dataset.nearby)
+        {
+            let loadPage = parseInt(firstThumb.dataset.searchPage) - 1;
+            if(!this.dataSource.isPageLoadedOrLoading(loadPage))
+                return loadPage;
+        }
+
+        return null;
     }
 
     // Activate the view, waiting for the current data source to be displayed if needed.
