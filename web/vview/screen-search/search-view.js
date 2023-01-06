@@ -748,12 +748,8 @@ export default class SearchView extends Widget
     // rest to shift around, which is hard to do with just flex-wrap.
     _addThumbToRow(node, {atEnd})
     {
-        // Create an initial row if we need one.
-        if(this.rows.length == 0)
-            this._createRow({atEnd});
-
-        // The row we'll try to add to:
-        let addToRow = atEnd? this.rows[this.rows.length-1]:this.rows[0];
+        // Get the row to add to.
+        let addToRow = this._getOpenRow({atEnd});
 
         // Add the thumb.  It doesn't have its own offsetWidth until we do this.
         addToRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
@@ -766,22 +762,49 @@ export default class SearchView extends Widget
             return;
         
         // Adding another thumb to it caused it to overflow, so this row is full.  Remove the
-        // thumb from the overfilled row and put it on a new one.
+        // thumb from the overfilled row, close that row and put the thumb on a new one.
         node.remove();
-        let newRow = this._createRow({atEnd});
-        newRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
+        this._closeRow(addToRow);
 
-        this._finalizeRow(addToRow);
+        let newRow = this._getOpenRow({atEnd});
+        newRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
     }
 
-    _finalizeRow(row)
+    // Return a row at the beginning or end of the results which can have thumbs added
+    // to it, creating a new row if needed.
+    _getOpenRow({atEnd=true}={})
     {
-        if(row.finalized)
-            return;
-        row.finalized = true;
+        // Get the first or last row.  Only return it if it's still open.
+        let row = atEnd? this.rows[this.rows.length-1]:this.rows[0];
+        if(row?.dataset?.open)
+            return row;
 
-        // Do some finalization on the row that just finished to optimize its space usage.
-        //
+        // Create a new row.
+        row = document.realCreateElement("div");
+        row.className = "row";
+        row.dataset.open = "1";
+
+        if(atEnd)
+        {
+            this.thumbnailBox.insertAdjacentElement("beforeend", row);
+            this.rows.push(row);
+        }
+        else
+        {
+            this.thumbnailBox.insertAdjacentElement("afterbegin", row);
+            this.rows.splice(0, 0, row);
+        }
+
+        return row;
+    }
+
+    // Once a row is full and won't have items added to it, finalize it to optimize space usage.
+    _closeRow(row)
+    {
+        if(!row.dataset.open)
+            return;
+        delete row.dataset.open;
+
         // We often end up with a bunch of unused space when we have a mixture of aspect ratios.
         // Portrait images cause the row to become taller, and we end up with empty horizontal
         // space and landscape images that could fill it in.  It's hard to avoid this in CSS,
@@ -853,26 +876,6 @@ export default class SearchView extends Widget
                 thumbToExpand.style.setProperty("--thumb-width", `${width}px`);
             }
         }
-    }
-
-    // Create a new empty thumbnail row, and add it to the beginning or end.
-    _createRow({atEnd=true}={})
-    {
-        let row = document.realCreateElement("div");
-        row.className = "row";
-
-        if(atEnd)
-        {
-            this.thumbnailBox.insertAdjacentElement("beforeend", row);
-            this.rows.push(row);
-        }
-        else
-        {
-            this.thumbnailBox.insertAdjacentElement("afterbegin", row);
-            this.rows.splice(0, 0, row);
-        }
-
-        return row;
     }
 
     // Clear the view.
