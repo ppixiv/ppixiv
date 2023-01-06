@@ -87,7 +87,7 @@ html {
     // We handle a few different types of displays, based on data-display-mode.
     //
     // - "normal": The image will fill the screen completely.
-    // - "safe-area": Keep the image entirely in the safe area, not overlapping the status bar
+    // - "safe": Keep the image entirely in the safe area, not overlapping the status bar
     // if we have one.  It's ugly on white tablets, since it creates an ugly black bar at
     // the top of the screen, but it can be preferable on black tablets where the extra space is
     // mostly invisible.
@@ -103,7 +103,7 @@ html {
         &[data-orientation="180"] { --fullscreen-bottom: env(safe-area-inset-bottom); }
     }
 
-    &[data-display-mode="safe-area"] {
+    &[data-display-mode="safe"] {
         --fullscreen-top:    env(safe-area-inset-top);
     }
 

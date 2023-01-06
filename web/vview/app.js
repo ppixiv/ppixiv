@@ -340,7 +340,7 @@ export default class App
         // Set the fullscreen mode.  See the device styling rules in main.scss for more
         // info.
         let displayMode = ppixiv.settings.get("display_mode", "auto");
-        if(["auto", "normal", "notch", "safe-area"].indexOf(displayMode) == -1)
+        if(["auto", "normal", "notch", "safe"].indexOf(displayMode) == -1)
             displayMode = "auto";
         
         if(displayMode == "auto")

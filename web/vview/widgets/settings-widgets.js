@@ -119,8 +119,8 @@ function createSettingsWidget({ globalOptions })
                 setting: "thumbnail_style",
                 label: "Thumbnail style",
                 values: {
-                    "square": "Square",
-                    "aspect": "Aspect",
+                    square: "Square",
+                    aspect: "Aspect",
                 },
             });
         },
@@ -323,10 +323,10 @@ function createSettingsWidget({ globalOptions })
                 setting: "display_mode",
                 label: "Display mode",
                 values: {
-                    "auto": "Automatic",
-                    "normal": "Fill the screen",
-                    "notch": "Rounded display",
-                    "safe-area": "Avoid the status bar",
+                    auto: "Automatic",
+                    normal: "Fill the screen",
+                    notch: "Rounded display",
+                    safe: "Avoid the status bar",
                 },
             });
         },
