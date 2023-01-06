@@ -67,4 +67,14 @@ export default function installPolyfills()
     // at least one dblclick listener exists on the document.
     if(ppixiv.ios)
         document.addEventListener("dblclick", (e) => { });
+
+    // Old Firefox:
+    if(!("throwIfAborted" in AbortSignal.prototype))
+    {
+        AbortSignal.prototype.throwIfAborted = function()
+        {
+            if(this.aborted)
+                throw new DOMException(this.reason ?? "Signal was aborted");
+        }
+    }
 };
