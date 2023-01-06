@@ -499,7 +499,7 @@ export default class App
         if(newScreenName == "search")
             this._ignoreClicksUntil = Date.now() + 100;
 
-        console.log(`Showing screen: ${newScreenName}, data source: ${this._dataSource.name}, cause: ${cause}, media ID: ${mediaId ?? "(none)"}`);
+        console.log(`Showing screen: ${newScreenName}, data source: ${this._dataSource.name}, cause: ${cause}, media ID: ${mediaId ?? "(none)"}, scroll to: ${targetMediaId}`);
 
         let newScreen = this._screens[newScreenName];
         this._currentScreenName = newScreenName;

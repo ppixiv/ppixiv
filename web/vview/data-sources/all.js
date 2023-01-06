@@ -16,10 +16,11 @@ import RelatedFavorites from 'vview/data-sources/pixiv/related-favorites.js';
 import SearchUsers from 'vview/data-sources/pixiv/search-users.js';
 import CompletedRequests from 'vview/data-sources/pixiv/completed-requests.js';
 import EditedImages from 'vview/data-sources/pixiv/edited-images.js';
-import VView from 'vview/data-sources/vview/vview.js';
+import { VView, VViewSearch } from 'vview/data-sources/vview/vview.js';
 import VViewSimilar from 'vview/data-sources/vview/similar.js';
 import { Bookmarks, BookmarksMerged } from 'vview/data-sources/pixiv/bookmarks.js';
 
+import LocalAPI from 'vview/misc/local-api.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 let allDataSources = {
@@ -41,6 +42,7 @@ let allDataSources = {
     CompletedRequests,
     EditedImages,
     VView,
+    VViewSearch,
     VViewSimilar,
 };
 
@@ -58,8 +60,12 @@ export function getDataSourceForUrl(url)
         let args = new helpers.args(url);
         if(args.path == "/similar")
             return allDataSources.VViewSimilar;
-        else
+
+        let { searchOptions } = LocalAPI.getSearchOptionsForArgs(args);
+        if(searchOptions == null && !LocalAPI.localInfo.bookmark_tag_searches_only)
             return allDataSources.VView;
+        else
+            return allDataSources.VViewSearch;
     }
 
     let firstPart = helpers.pixiv.getPageTypeFromUrl(url);
