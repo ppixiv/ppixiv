@@ -199,12 +199,29 @@ export default class SearchView extends Widget
     // Return the first thumb that's fully onscreen.
     getFirstFullyOnscreenThumb()
     {
-        for(let element of Object.values(this.thumbs))
+        // Find the first row near the top-left of the screen.  This is used to save and
+        // restore scroll, so if there's no row exactly overlapping the top-left, prefer
+        // one below it rather than above it.  This doesn't use IntersectionObserver because
+        // it's async and sometimes doesn't update between resizes, causing the scroll position
+        // to be lost.
+        let screenTop = this.scrollContainer.scrollTop + this.scrollContainer.offsetHeight/4;
+        let centerRow = null;
+        let bestDistance = 999999;
+        for(let row of this.rows)
         {
-            if(element.dataset.fullyOnScreen)
-                return element;
+            let rowTop = row.offsetTop;
+            let distance = Math.abs(rowTop - screenTop);
+
+            if(distance < Math.abs(bestDistance))
+            {
+                bestDistance = distance;
+                centerRow = row;
+            }
         }
 
+        if(centerRow)
+            return centerRow.firstElementChild;
+        
         return null;
     }
 
