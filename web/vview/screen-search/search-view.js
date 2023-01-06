@@ -259,9 +259,6 @@ export default class SearchView extends Widget
             this.refreshHeader();
         }
 
-        // If we disabled loading more pages earlier, reenable it.
-        this._disableLoadingMorePages = false;
-
         this.loadExpandedMediaIds();
 
         // Load the initial page if we haven't yet.
@@ -302,11 +299,6 @@ export default class SearchView extends Widget
         if(loadPage != null)
         {
             let result = await this.dataSource.loadPage(loadPage, { cause });
-
-            // If this page didn't load, it probably means we've reached the end, so stop trying
-            // to load more pages.
-            if(!result)
-                this._disableLoadingMorePages = true;
         }
 
         // If we have no IDs and nothing is loading, the data source is empty (no results).
