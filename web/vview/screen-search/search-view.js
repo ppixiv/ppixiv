@@ -771,6 +771,15 @@ export default class SearchView extends Widget
         let newRow = this._createRow({atEnd});
         newRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
 
+        this._finalizeRow(addToRow);
+    }
+
+    _finalizeRow(row)
+    {
+        if(row.finalized)
+            return;
+        row.finalized = true;
+
         // Do some finalization on the row that just finished to optimize its space usage.
         //
         // We often end up with a bunch of unused space when we have a mixture of aspect ratios.
@@ -781,18 +790,18 @@ export default class SearchView extends Widget
         // This isn't "fair": earlier thumbs have first chance at expanding, but that's OK.  After
         // this pass, the row will have the same height, but have less of its horizontal space
         // left unused.
-        for(let thumbToExpand of addToRow.children)
+        for(let thumbToExpand of row.children)
         {
             // Get the height of the tallest thumb.  We'll allow thumbs to expand up to this height.
             let maxHeight = 0;
-            for(let thumb of addToRow.children)
+            for(let thumb of row.children)
                 maxHeight = Math.max(maxHeight, thumb.offsetHeight);
             
             // Get the amount of unused horizontal space.  We'll allow thumbs to expand by up to
             // this much.
-            let availWidth = addToRow.offsetWidth;
-            availWidth -= this.sizingStyle.padding * (addToRow.children.length-1);
-            for(let thumb of addToRow.children)
+            let availWidth = row.offsetWidth;
+            availWidth -= this.sizingStyle.padding * (row.children.length-1);
+            for(let thumb of row.children)
                 availWidth -= thumb.offsetWidth;
 
             // The maximum width of this thumb:
@@ -813,10 +822,10 @@ export default class SearchView extends Widget
         // ratio, this will have no effect since we won't change anything.
         {
             let maxHeight = 0;
-            for(let thumb of addToRow.children)
+            for(let thumb of row.children)
                 maxHeight = Math.max(maxHeight, thumb.offsetHeight);
 
-            for(let thumb of addToRow.children)
+            for(let thumb of row.children)
             {
                 let height = thumb.offsetHeight;
                 let width = thumb.offsetWidth;
@@ -831,12 +840,12 @@ export default class SearchView extends Widget
         // Finally, scale the whole row to fill horizontally.
         {
             let width = 0;
-            width += this.sizingStyle.padding * (addToRow.children.length-1);
-            for(let thumb of addToRow.children)
+            width += this.sizingStyle.padding * (row.children.length-1);
+            for(let thumb of row.children)
                 width += thumb.offsetWidth;
 
-            let expandBy = addToRow.offsetWidth / width;
-            for(let thumbToExpand of addToRow.children)
+            let expandBy = row.offsetWidth / width;
+            for(let thumbToExpand of row.children)
             {
                 let height = thumbToExpand.offsetHeight * expandBy;
                 let width = thumbToExpand.offsetWidth * expandBy;
