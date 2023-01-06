@@ -319,10 +319,11 @@ export default class App
         let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation, {force: true, startAtBeginning});
 
         // If we're going back to the start of the search, update the page URL to put it back
-        // at the start too.
+        // at the start too, and remove any saved scroll position.
         if(startAtBeginning)
         {
             let args = helpers.args.location;
+            delete args.state.scroll;
             dataSource.setStartPage(args, dataSource.initialPage);
             helpers.navigate(args, { addToHistory: false, cause: "refresh-data-source", sendPopstate: false });
         }
