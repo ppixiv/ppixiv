@@ -393,6 +393,10 @@ export default class SearchView extends Widget
     // page number.
     storeScrollPosition()
     {
+        // Don't do this if we're in the middle of setDataSource.
+        if(this._setDataSourceRunner.isRunning)
+            return;
+
         let args = helpers.args.location;
 
         if(this.dataSource?.supportsStartPage)
