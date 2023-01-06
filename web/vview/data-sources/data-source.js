@@ -126,32 +126,24 @@ export default class DataSource extends EventTarget
         if(!this.idList.anyPagesLoaded)
             return true;
 
+        // If we know a page is empty, don't try to load pages beyond it.
+        if(this.firstEmptyPage != -1 && page >= this.firstEmptyPage)
+            return false;
+
         // If we've loaded pages 5-6, we can load anything between pages 4 and 7.
         let lowestPage = this.idList.getLowestLoadedPage();
         let highestPage = this.idList.getHighestLoadedPage();
         return page >= lowestPage-1 && page <= highestPage+1;
     }
 
-    // Return true if we know page is past the end of this data source's results.
-    isPagePastEnd(page)
-    {
-        return this.firstEmptyPage != -1 && page >= this.firstEmptyPage;
-    }
-
     async _loadPageAsync(page, cause)
     {
-        // Check if we're trying to load backwards too far.
-        if(page < 1)
+        // Stop if this page is outside the range this data source can load.
+        if(!this.canLoadPage(page))
         {
-            console.info("No pages before page 1");
-            return false;
+            // console.log(`Data source can't load page ${page}`);
+            return;
         }
-
-        // If we know there's no data on this page (eg. we loaded an earlier page before and it
-        // was empty), don't try to load this one.  This prevents us from spamming empty page
-        // requests.
-        if(this.isPagePastEnd(page))
-            return false;
 
         // If the page is already loaded, stop.
         if(this.idList.isPageLoaded(page))
@@ -613,7 +605,7 @@ export default class DataSource extends EventTarget
         
         // Short circuit if we already know this is past the end.  This just avoids spamming
         // logs.
-        if(this.isPagePastEnd(page))
+        if(!this.canLoadPage(page))
             return null;
 
         console.log("Loading the next page of results:", page);
