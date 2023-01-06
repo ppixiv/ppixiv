@@ -1012,11 +1012,10 @@ export default class SearchView extends Widget
 
         // Set the thumbnail size to have an area of desiredPixels with the aspect ratio we've chosen.
         // This gives thumbnails a similar amount of screen space whether they're portrait or landscape,
-        // and keeps the overall number of thumbs on screen at once mostly predictable.  Put an upper
-        // limit on how wide landscape images will be displayed, so extremely wide strip images don't
-        // take over the row.
+        // and keeps the overall number of thumbs on screen at once mostly predictable.  Put a limit on
+        // how narrow are, so extremely wide strip images don't take over the row.
         let aspectRatio = width / height;
-        aspectRatio = Math.min(aspectRatio, 3);
+        aspectRatio = helpers.math.clamp(aspectRatio, 1/3, 3);
 
         thumbWidth = Math.sqrt(desiredPixels * aspectRatio);
         thumbHeight = thumbWidth / aspectRatio;
