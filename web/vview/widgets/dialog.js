@@ -335,7 +335,7 @@ export default class DialogWidget extends Widget
     // If a dragger animation is running, return its completion promise.
     visibilityChangePromise()
     {
-        return this._dialogDragger.finished;
+        return this._dialogDragger?.finished;
     }
 
     // Calling shutdown() directly will remove the dialog immediately.  To remove it and allow
