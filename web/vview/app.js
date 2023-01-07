@@ -66,6 +66,30 @@ export default class App
         // Set up iOS movementX/movementY handling.
         new PointerEventMovement();
 
+        // Device properties:
+        this._setDeviceProperties();
+        ppixiv.settings.addEventListener("display_mode", this._setDeviceProperties);
+        window.addEventListener("orientationchange", this._setDeviceProperties);
+        new ResizeObserver(this._setDeviceProperties).observe(document.documentElement);
+        
+        // Window focus:
+        let refreshFocus = () => { helpers.html.setClass(document.body, "focused", document.hasFocus()); };
+        window.addEventListener("focus", refreshFocus);
+        window.addEventListener("blur", refreshFocus);
+        refreshFocus();
+
+        // Don't restore the scroll position.  We handle this ourself.
+        window.history.scrollRestoration = "manual";  // not phistory
+
+        if(ppixiv.mobile)
+        {
+            // On mobile, disable long press opening the context menu and starting drags.
+            window.addEventListener("contextmenu", (e) => { e.preventDefault(); });
+            window.addEventListener("dragstart", (e) => { e.preventDefault(); });
+
+            helpers.forceTargetBlank();
+        }
+
         // If enabled, cache local info which tells us what we have access to.
         await LocalAPI.loadLocalInfo();
 
@@ -82,51 +106,39 @@ export default class App
         // not there, re-fetch the page to get it.
         if(!this._loadGlobalInfoFromDocument(document))
         {
-            if(!await this._loadGLobalDataAsync())
+            if(!await this._loadGlobalDataAsync())
                 return;
         }
-
-        // Set the .premium class on body if this is a premium account, to display features
-        // that only work with premium.
-        helpers.html.setClass(document.body, "premium", ppixiv.pixivInfo.premium);
-
-        // These are used to hide UI when running native or not native.
-        helpers.html.setClass(document.body, "native", ppixiv.native);
-        helpers.html.setClass(document.body, "pixiv", !ppixiv.native);
-
-        // These are used to hide buttons that the user has disabled.
-        helpers.html.setClass(document.body, "hide-r18", !ppixiv.pixivInfo.include_r18);
-        helpers.html.setClass(document.body, "hide-r18g", !ppixiv.pixivInfo.include_r18g);
-
-        this._setDeviceProperties();
-        ppixiv.settings.addEventListener("display_mode", this._setDeviceProperties);
-        window.addEventListener("orientationchange", this._setDeviceProperties);
-        new ResizeObserver(this._setDeviceProperties).observe(document.documentElement);
-
-        // On mobile, disable long press opening the context menu and starting drags.
-        if(ppixiv.mobile)
-        {
-            window.addEventListener("contextmenu", (e) => { e.preventDefault(); });
-            window.addEventListener("dragstart", (e) => { e.preventDefault(); });
-        }
-
-        if(ppixiv.mobile)
-            helpers.forceTargetBlank();
 
         // See if we want to adjust the initial URL.
         await this.setInitialUrl();
 
-        // See if the page has preload data.  This sometimes contains illust and user info
-        // that the page will display, which lets us avoid making a separate API call for it.
-        let preload = document.querySelector("#meta-preload-data");
-        if(preload != null)
+        if(!ppixiv.native)
         {
-            preload = JSON.parse(preload.getAttribute("content"));
-            for(let preloadUserId in preload.user)
-                ppixiv.userCache.addUserData(preload.user[preloadUserId]);
-            for(let preloadMediaId in preload.illust)
-                ppixiv.mediaCache.addMediaInfoFull(preload.illust[preloadMediaId]);
+            // Set the .premium class on body if this is a premium account, to display features
+            // that only work with premium.
+            helpers.html.setClass(document.body, "premium", ppixiv.pixivInfo.premium);
+
+            // These are used to hide buttons that the user has disabled.
+            helpers.html.setClass(document.body, "hide-r18", !ppixiv.pixivInfo.include_r18);
+            helpers.html.setClass(document.body, "hide-r18g", !ppixiv.pixivInfo.include_r18g);
+
+            // See if the page has preload data.  This sometimes contains illust and user info
+            // that the page will display, which lets us avoid making a separate API call for it.
+            let preload = document.querySelector("#meta-preload-data");
+            if(preload != null)
+            {
+                preload = JSON.parse(preload.getAttribute("content"));
+                for(let preloadUserId in preload.user)
+                    ppixiv.userCache.addUserData(preload.user[preloadUserId]);
+                for(let preloadMediaId in preload.illust)
+                    ppixiv.mediaCache.addMediaInfoFull(preload.illust[preloadMediaId]);
+            }
         }
+
+        // These are used to hide UI when running native or not native.
+        helpers.html.setClass(document.body, "native", ppixiv.native);
+        helpers.html.setClass(document.body, "pixiv", !ppixiv.native);
 
         window.addEventListener("click", this._windowClickCapture);
         window.addEventListener("popstate", this._windowRedirectPopstate, true);
@@ -138,13 +150,6 @@ export default class App
 
         window.addEventListener("keydown", this._windowKeydown);
 
-        let refreshFocus = () => { helpers.html.setClass(document.body, "focused", document.hasFocus()); };
-        window.addEventListener("focus", refreshFocus);
-        window.addEventListener("blur", refreshFocus);
-        refreshFocus();
-
-        this._currentScreenName = null;
-
         // If we're running on Pixiv, remove Pixiv's content from the page and move it into a
         // dummy document.
         let html = document.createElement("document");
@@ -153,10 +158,6 @@ export default class App
             helpers.html.moveChildren(document.head, html);
             helpers.html.moveChildren(document.body, html);
         }
-
-        // Copy the location to the document copy, so the data source can tell where
-        // it came from.
-        html.location = ppixiv.plocation;
 
         // Load image resources into blobs.
         await this.loadResourceBlobs();
@@ -192,7 +193,7 @@ export default class App
         if(initialStylesheet)
             initialStylesheet.remove();
        
-        // If we don't have a viewport tag, add it.  This makes Safari work more sanelywhen
+        // If we don't have a viewport tag, add it.  This makes Safari work more sanely when
         // in landscape.  If we're native, this is already set, and we want to use the existing
         // one or Safari doesn't always set the frame correctly.
         if(ppixiv.ios && document.querySelector("meta[name='viewport']") == null)
@@ -243,6 +244,7 @@ export default class App
         // Create the screens.
         this._screenSearch = new ScreenSearch({ container: document.body, visible: false });
         this._screenIllust = new ScreenIllust({ container: document.body, visible: false });
+        this._currentScreenName = null;
 
         this._screens = {
             search: this._screenSearch,
@@ -813,7 +815,7 @@ export default class App
 
     // This is called if we're on a page that didn't give us init data.  We'll load it from
     // a page that does.
-    async _loadGLobalDataAsync()
+    async _loadGlobalDataAsync()
     {
         console.assert(!ppixiv.native);
 
