@@ -8,6 +8,7 @@ import ContextMenu from 'vview/context-menu.js';
 import Muting from 'vview/misc/muting.js';
 import SendImage, { LinkThisTabPopup, SendHerePopup } from 'vview/misc/send-image.js';
 import Settings from 'vview/misc/settings.js';
+import { SlideshowStagingDialog } from 'vview/widgets/settings-widgets.js';
 import DataSource from 'vview/data-sources/data-source.js';
 import DialogWidget from 'vview/widgets/dialog.js';
 import MessageWidget from 'vview/widgets/message-widget.js';
@@ -228,6 +229,14 @@ export default class App
         // Create the shared page icon.  This is set by setPageIcon.
         let documentIcon = document.head.appendChild(document.createElement("link"));
         documentIcon.setAttribute("rel", "icon");
+
+        // See if this is a slideshow staging window.  If it is, show the instruction dialog
+        // and don't load screens.
+        if(window.opener?.slideshowStagingDialog == window)
+        {
+            new SlideshowStagingDialog();
+            return;
+        }        
 
         this.addClicksToSearchHistory(document.body);
          

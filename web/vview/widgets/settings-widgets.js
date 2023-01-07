@@ -662,7 +662,10 @@ export class SettingsDialog extends DialogWidget
                 if(!ppixiv.native && window.showOpenFilePicker != null)
                     settingsWidgets.importExtraData();
         
-                settingsWidgets.stageSlideshow();
+                // Slideshow staging isn't useful on mobile with Pixiv since we can't run ourself as
+                // a PWA.
+                if(ppixiv.native || !ppixiv.mobile)
+                    settingsWidgets.stageSlideshow();
             },
 
             whatsNew: () => {
@@ -717,15 +720,17 @@ export class SettingsPageDialog extends DialogWidget
 };
 
 
-// Set the page URL to a slideshow, but don't actually start the slideshow.  This lets the
-// user bookmark the slideshow URL before the illust ID changes from "*" to an actual ID.
-// This is mostly just a workaround for an iOS UI bug: there's no way to create a home
-// screen bookmark for a link, only for a URL that's already loaded.
+// Open a tab that can be used to bookmark a slideshow or save to home screen.
 //
-// This is usually used from the search screen, but there's currently no good place to put
-// it there, so it's inside the settings menu and technically can be accessed while viewing
-// an image.
-class SlideshowStagingDialog extends DialogWidget
+// This is made tricky by iOS limitations: it tries to save the URL the page was originally
+// loaded with, not the current URL.  To work around this, we have to open the URL in a new
+// tab with the URL we want.
+//
+// On mobile this is meant to run the page in PWA mode.  This won't work with Pixiv, since
+// user scripts don't work in that mode.  Pixiv also has a manifest that'll force the URL
+// to the root, which also makes this not work.  So, this is only really useful with vview,
+// but it can technically be used on desktop too.
+export class SlideshowStagingDialog extends DialogWidget
 {
     static show()
     {
@@ -733,27 +738,43 @@ class SlideshowStagingDialog extends DialogWidget
         if(slideshowArgs == null)
             return;
 
-        // Set the slideshow URL without sending popstate, so it'll be the current browser URL
-        // that can be bookmarked but we won't actually navigate to it.  We don't want to navigate
-        // to it since that'll change the placeholder "*" illust ID to a real illust ID, which
-        // isn't what we want to bookmark.
-        helpers.navigate(slideshowArgs, { sendPopstate: false });
+        let url = slideshowArgs.toString();
 
-        new SlideshowStagingDialog();
+        // Open a tab for the dialog.  Storing the dialog as window.slideshowStagingDialog
+        // tells the dialog that it's a staging dialog without having to put anything in the
+        // URL.
+        window.slideshowStagingDialog = window.open(url);
     }
 
     constructor({...options}={})
     {
-        super({...options, header: "Slideshow",
-        template: `
-            <div class=items>
-                This page can be bookmarked. or added to the home screen on iOS.<br>
-                <br>
-                The bookmark will begin a slideshow with the current search.
+        // Nobody can agree on terminology for this, and this text should be short and clear,
+        // so tweak it based on the platform.
+        let text = ppixiv.mobile? `
+            Add this page to your home screen for a slideshow of the current search.
+        `: `
+            Install this page as an app for a slideshow bookmark for the current search.
+        `;
+        super({...options, showCloseButton: false, header: "Slideshow", template: `
+            <div class=items style="font-size: 1.5rem; text-align: center;">
+                ${text}
             </div>
         `});
 
         this.url = helpers.args.location;
+        document.title = window.opener.document.title;
+
+        // If we see an appinstalled event when in Chrome, it stole the tab and turned it into
+        // a standalone window.  Clear slideshowStagingDialog and reload the page to turn into
+        // the bookmarked window.
+        window.addEventListener("appinstalled", (e) => {
+            window.opener.slideshowStagingDialog = null;
+            window.location.reload();
+        });
+
+        // Close the tab if the dialog is closed.  There's nothing left on the screen.
+        // We're usually able to do this, since we opened the tab ourself.
+        this.shutdownSignal.addEventListener("abort", () => window.close());
     }
 
     visibilityChanged()
