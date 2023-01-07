@@ -14,7 +14,7 @@ export class BookmarkTagListWidget extends IllustWidget
     {
         super({...options, template: `
             <div class="bookmark-tag-list">
-                <div class=tag-list>
+                <div class="tag-list vertical-list">
                 </div>
             </div>
         `});

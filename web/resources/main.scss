@@ -1819,6 +1819,9 @@ body.hide-r18g .r18g { display: none; }
     // when a box is nothing but a stack of box-links.
     --box-link-bg-color: rgba(0,0,0,0);
 
+    user-select: none;
+    -webkit-user-select: none;
+
     // For box-links directly within the list (most of them), put the horizontal
     // padding on them.
     > .box-link { padding-left: 0.5em; padding-right: 0.5em; }
@@ -2391,9 +2394,7 @@ body.hide-r18g .r18g { display: none; }
         top: calc(100% - 4px);
     }
 
-    & > .tag-list {
-        display: flex;
-        flex-direction: column;
+    > .tag-list {
         min-width: 200px;
     }
 
