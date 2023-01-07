@@ -31,21 +31,6 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
-        mangaThumbnailSize: () => {
-            let button = new MenuOptionButton({
-                ...globalOptions,
-                label: "Thumbnail size (manga)",
-            });
-
-            new MenuOptionsThumbnailSizeSlider({
-                container: button.querySelector(".widget-box"),
-                setting: "manga-thumbnail-size",
-                classes: ["size-slider"],
-                min: 0,
-                max: 7,
-            });
-        },
-
         disabledByDefault: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
@@ -613,9 +598,6 @@ export class SettingsDialog extends DialogWidget
             thumbnail: () =>
             {
                 settingsWidgets.thumbnailSize();
-                if(!ppixiv.native)
-                    settingsWidgets.mangaThumbnailSize();
-
                 settingsWidgets.thumbnailStyle();
                 if(!ppixiv.mobile)
                 {

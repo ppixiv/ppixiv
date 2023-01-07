@@ -289,7 +289,6 @@ export default class SearchView extends Widget
         }));
 
         ppixiv.settings.addEventListener("thumbnail-size", () => this.updateFromSettings(), this._signal);
-        ppixiv.settings.addEventListener("manga-thumbnail-size", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("disable_thumbnail_zooming", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("disable_thumbnail_panning", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("expand_manga_thumbnails", () => this.updateFromSettings(), this._signal);
@@ -1201,8 +1200,7 @@ export default class SearchView extends Widget
         // The thumbnail mode is included here so changes to it trigger a refresh.
         let thumbnailStyle = ppixiv.settings.get("thumbnail_style");
 
-        let isMangaView = this.dataSource?.name == "manga";
-        let desiredSize = ppixiv.settings.get(isMangaView? "manga-thumbnail-size":"thumbnail-size", 4);
+        let desiredSize = ppixiv.settings.get("thumbnail-size", 4);
         desiredSize = MenuOptionsThumbnailSizeSlider.thumbnailSizeForValue(desiredSize);
 
         // The thumbnail size setting controls the rough total pixel size of the thumbnails.
@@ -1217,7 +1215,6 @@ export default class SearchView extends Widget
         // by screen space and showing lots of columns (but few rows) can be useful.
         let maxColumns =
             ppixiv.mobile? 30:
-            isMangaView? 15: 
             this.dataSource?.isVView? 100:5;
 
         // The container might have a fractional size, and clientWidth will round it, which is

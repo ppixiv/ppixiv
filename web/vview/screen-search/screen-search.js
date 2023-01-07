@@ -106,8 +106,7 @@ export default class ScreenSearch extends Screen
             e.preventDefault();
             e.stopImmediatePropagation();
     
-            let mangaView = this.dataSource?.name == "manga";
-            ppixiv.settings.adjustZoom(mangaView? "manga-thumbnail-size":"thumbnail-size", e.deltaY > 0);
+            ppixiv.settings.adjustZoom("thumbnail-size", e.deltaY > 0);
         }, { passive: false });
 
         this.root.addEventListener("keydown", (e) => {
@@ -117,8 +116,7 @@ export default class ScreenSearch extends Screen
                 e.preventDefault();
                 e.stopImmediatePropagation();
 
-                let mangaView = this.dataSource?.name == "manga";
-                ppixiv.settings.adjustZoom(mangaView? "manga-thumbnail-size":"thumbnail-size", zoom < 0);
+                ppixiv.settings.adjustZoom("thumbnail-size", zoom < 0);
             }
         });
 
