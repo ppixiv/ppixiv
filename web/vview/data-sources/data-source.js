@@ -333,9 +333,6 @@ export default class DataSource extends EventTarget
     // Return the "15 / 100" page text to use.  This is only used by DataSource_VView.
     getPageTextForMediaId(mediaId) { return null; }
 
-    // The data source can override this to set the aspect ratio to use for thumbnails.
-    getThumbnailAspectRatio() { return null; }
-
     // Register a page of data.
     async addPage(page, mediaIds, {...options}={})
     {

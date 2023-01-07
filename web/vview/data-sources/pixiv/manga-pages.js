@@ -24,9 +24,9 @@ export default class DataSource_MangaPages extends DataSource
         if(page != 1)
             return;
 
-        // We need full illust info for getMangaAspectRatio, but we can fill out most of the
-        // UI with thumbnail or illust info.  Load whichever one we have first and update, so we
-        // display initial info quickly.
+        // We need to load full illust info since SearchView is expecting us to, but we can fill
+        // out most of the UI with thumbnail or illust info.  Load whichever one we have first
+        // and update, so we display initial info quickly.
         this.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId, { full: false });
         this.callUpdateListeners();
 
@@ -58,47 +58,10 @@ export default class DataSource_MangaPages extends DataSource
             return "Illustrations";
     };
 
-    // If all pages of the manga post we're viewing have around the same aspect ratio, use it
-    // for thumbnails.
-    getThumbnailAspectRatio()
-    {
-        if(this.illustInfo == null)
-            return null;
-
-        return this.getMangaAspectRatio(this.illustInfo.mangaPages);
-    }
-
     get uiInfo()
     {
         return {
             userId: this.mediaInfo?.userId,
         }
-    }
-
-    // Given a list of manga info, return the aspect ratio to use to display them.
-    // This can be passed as the "ratio" option to makeThumbnailSizingStyle.
-    getMangaAspectRatio(mangaPages)
-    {
-        // A lot of manga posts use the same resolution for all images, or just have
-        // one or two exceptions for things like title pages.  If most images have
-        // about the same aspect ratio, use it.
-        let total = 0;
-        for(let mangaPage of mangaPages)
-            total += mangaPage.width / mangaPage.height;
-
-        let averageAspectRatio = total / mangaPages.length;
-        let illustsFarFromAverage = 0;
-        for(let mangaPage of mangaPages)
-        {
-            let ratio = mangaPage.width / mangaPage.height;
-            if(Math.abs(averageAspectRatio - ratio) > 0.1)
-                illustsFarFromAverage++;
-        }
-
-        // If we didn't find a common aspect ratio, just use square thumbs.
-        if(illustsFarFromAverage > 3)
-            return 1;
-        else
-            return averageAspectRatio;
     }
 }

@@ -1206,11 +1206,6 @@ export default class SearchView extends Widget
         // The thumbnail size setting controls the rough total pixel size of the thumbnails.
         let desiredPixels = desiredSize*desiredSize;
 
-        // The base aspect ratio of thumbnails.  All thumbs will use this if we're in fixed
-        // thumbnail size mode.  If we're in variable mode, landscape images will be wider and
-        // portrait images will be narrower, but this is treated as the average.
-        let ratio = this.dataSource.getThumbnailAspectRatio() ?? 1;
-
         // Pack images more tightly on mobile.
         let padding = ppixiv.mobile? 3:15;
 
@@ -1233,23 +1228,14 @@ export default class SearchView extends Widget
         let bestSize = { thumbWidth: 0, thumbHeight: 0, columns: 1 };
 
         // Find the greatest number of columns we can fit in the available width.
-        // should we try different heights
         for(let columns = maxColumns; columns >= 1; --columns)
         {
             // The amount of space in the container remaining for images, after subtracting
             // the padding around each image.  Padding is the flex gap, so this doesn't include
             // padding at the left and right edge.
             let remainingWidth = containerWidth - padding*(columns-1);
-            let thumbWidth = remainingWidth / columns;
-
-            let thumbHeight = thumbWidth;
-            if(ratio < 1)
-                thumbWidth *= ratio;
-            else if(ratio > 1)
-                thumbHeight /= ratio;
-
-            thumbWidth = Math.floor(thumbWidth);
-            thumbHeight = Math.floor(thumbHeight);
+            let thumbWidth = Math.floor(remainingWidth / columns);
+            let thumbHeight = Math.floor(thumbWidth);
 
             let pixels = thumbWidth * thumbHeight;
             let error = Math.abs(pixels - desiredPixels);
@@ -1270,14 +1256,7 @@ export default class SearchView extends Widget
         // On mobile, just allow the thumbnails to be bigger, so we prefer to fill the
         // screen and not waste screen space.
         if(!ppixiv.mobile && thumbWidth * thumbHeight > desiredPixels)
-        {
             thumbHeight = thumbWidth = Math.round(Math.sqrt(desiredPixels));
-
-            if(ratio < 1)
-                thumbWidth *= ratio;
-            else if(ratio > 1)
-                thumbHeight /= ratio;
-        }
 
         // Clamp the width of the container to the number of columns we expect.
         containerWidth = columns*thumbWidth + (columns-1)*padding;
