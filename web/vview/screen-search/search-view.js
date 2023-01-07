@@ -989,12 +989,12 @@ export default class SearchView extends Widget
         if(type != "illust" && type != "file" && type != "folder")
             return { thumbWidth, thumbHeight };
 
+        if(this.sizingStyle.thumbnailStyle == "square")
+            return { thumbWidth, thumbHeight };
+
         let mediaInfo;
         if(this.dataSource?.name != "manga")
         {
-            if(this.sizingStyle.thumbnailStyle == "square")
-                return { thumbWidth, thumbHeight };
-
             // We don't know the dimensions of thumbnails in advance if we're not on the manga
             // view.  Use the first page's size instead, since a lot of manga posts have similar
             // dimensions across all pages.
