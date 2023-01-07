@@ -1009,6 +1009,8 @@ export default class SearchView extends Widget
 
         // In aspect ratio mode, use the height of the row and fit the width.
         let { width, height } = ppixiv.mediaCache.getImageDimensions(mediaInfo, mediaId);
+        if(width == null)
+            return { thumbWidth, thumbHeight };
 
         // Set the thumbnail size to have an area of desiredPixels with the aspect ratio we've chosen.
         // This gives thumbnails a similar amount of screen space whether they're portrait or landscape,
