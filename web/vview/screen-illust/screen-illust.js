@@ -243,7 +243,9 @@ export default class ScreenIllust extends Screen
         else if(isError)
         {
             viewerClass = ViewerError;
-            options = { ...options, error: ppixiv.mediaCache.getMediaLoadError(mediaId) };
+            let error = ppixiv.mediaCache.getMediaLoadError(mediaId);
+            error ??= "Unknown error";
+            options = { ...options, error };
         }
         else if(earlyIllustData.illustType == 2)
             viewerClass = ViewerUgoira;
