@@ -793,8 +793,12 @@ export class SlideshowStagingDialog extends DialogWidget
 
         // If we see an appinstalled event when in Chrome, it stole the tab and turned it into
         // a standalone window.  Clear slideshowStagingDialog and reload the page to turn into
-        // the bookmarked window.
+        // the bookmarked window.  Only do this on desktop, since this doesn't happen on mobile
+        // so this reload is confusing.
         window.addEventListener("appinstalled", (e) => {
+            if(ppixiv.mobile)
+                return;
+
             window.opener.slideshowStagingDialog = null;
             window.location.reload();
         });
