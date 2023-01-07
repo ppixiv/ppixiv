@@ -8,6 +8,8 @@ import DialogWidget from 'vview/widgets/dialog.js';
 import PointerListener from 'vview/actors/pointer-listener.js';
 import { helpers } from 'vview/misc/helpers.js';
 import WhatsNew from "vview/widgets/whats-new.js";
+import { ConfirmPrompt } from 'vview/widgets/prompts.js';
+import LocalAPI from 'vview/misc/local-api.js';
 
 function createSettingsWidget({ globalOptions })
 {
@@ -404,6 +406,28 @@ function createSettingsWidget({ globalOptions })
 
             return widget;
         },
+
+        nativeLogin: () => {
+            return new MenuOptionButton({
+                ...globalOptions,
+                label: LocalAPI.localInfo.logged_in? "Log out":"Login",
+                onclick: async() => {
+                    let { logged_in } = LocalAPI.localInfo;
+                    if(!logged_in)
+                    {
+                        LocalAPI.redirectToLogin();
+                        return;
+                    }
+
+                    let prompt = new ConfirmPrompt({ header: "Log out?" });
+                    let result = await prompt.result;
+                    console.log(result);
+
+                    if(result)
+                        LocalAPI.logout();
+                },
+            });
+        },
     };
 }
 
@@ -637,6 +661,9 @@ export class SettingsDialog extends DialogWidget
             },
 
             other: () => {
+                if(ppixiv.native && !LocalAPI.localInfo.local)
+                    settingsWidgets.nativeLogin();
+
                 settingsWidgets.disableTranslations();
 
                 if(!ppixiv.native && !ppixiv.mobile)

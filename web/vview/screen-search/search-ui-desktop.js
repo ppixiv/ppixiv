@@ -46,15 +46,6 @@ export default class DesktopSearchUI extends Widget
                         ${ helpers.createIcon("ppixiv:pixiv") }
                     </a>
 
-                    <!-- These login/logout buttons are only used by the local API. -->
-                    <div class="login-button icon-button popup" data-popup="Login" hidden>
-                        ${ helpers.createIcon("login") }
-                    </div>
-
-                    <div class="logout-button icon-button popup" data-popup="Logout" hidden>
-                        ${ helpers.createIcon("logout") }
-                    </div>
-
                     <div class="main-search-menu-button icon-button popup pixiv-only" data-popup="Search">
                         ${ helpers.createIcon("menu") }
                     </div>
@@ -146,19 +137,6 @@ export default class DesktopSearchUI extends Widget
         });
 
         this.imageForSuggestions = this.querySelector(".image-for-suggestions");
-
-        // Set up login/logout buttons for native.
-        if(ppixiv.native)
-        {
-            let { logged_in, local } = LocalAPI.localInfo;
-            this.root.querySelector(".login-button").hidden = local || logged_in;
-            this.root.querySelector(".logout-button").hidden = local || !logged_in;
-            this.root.querySelector(".login-button").addEventListener("click", () => LocalAPI.redirectToLogin());
-            this.root.querySelector(".logout-button").addEventListener("click", () => {
-                if(confirm("Log out?"))
-                    LocalAPI.logout();
-            });
-        }
     }
     
     setDataSource(dataSource)
