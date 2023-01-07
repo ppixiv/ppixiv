@@ -1486,6 +1486,9 @@ export default class ViewerImages extends Viewer
     // view if x and y are null.
     zoomToggle({x, y})
     {
+        if(this._slideshowMode)
+            return;
+
         this._stopAnimation();
 
         if(x == null || y == null)
@@ -1503,6 +1506,9 @@ export default class ViewerImages extends Viewer
     // Set the zoom level, keeping the given view position stationary if possible.
     zoomSetLevel(level, {x, y})
     {
+        if(this._slideshowMode)
+            return;
+
         // Ignore requests for actual zooming if we don't know the actual image size yet.
         if(level == "actual" && this._actualWidth == null)
         {
@@ -1535,6 +1541,9 @@ export default class ViewerImages extends Viewer
     // the center of the view.
     zoomAdjust(down, {x, y})
     {
+        if(this._slideshowMode)
+            return;
+
         this._stopAnimation();
 
         if(x == null || y == null)
