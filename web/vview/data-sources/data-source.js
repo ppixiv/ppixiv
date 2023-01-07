@@ -351,10 +351,10 @@ export default class DataSource extends EventTarget
         // images, but at least we can still navigate, and we can get back to where we started
         // if the user navigates down and then back up.  If the image shows up in real results later,
         // it'll be filtered out.
-        let initialMediaId = this.getUrlMediaId(helpers.args.location);
+        let initialMediaId = this.getUrlMediaId(this.args);
 
         // If this data source doesn't return manga pages, always use the first page.
-        if(this.allowExpandingMangaPages)
+        if(this.allowExpandingMangaPages && initialMediaId != "illust:*")
             initialMediaId = helpers.mediaId.getMediaIdForPage(initialMediaId, 0);
 
         if(page == this.initialPage &&
