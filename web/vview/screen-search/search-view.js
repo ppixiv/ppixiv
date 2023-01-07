@@ -8,6 +8,146 @@ import StopAnimationAfter from 'vview/actors/stop-animation-after.js';
 import LocalAPI from 'vview/misc/local-api.js';
 import { helpers, GuardedRunner } from 'vview/misc/helpers.js';
 
+// This is the logic for SearchView's grid display.  
+class ThumbnailGrid
+{
+    constructor({container})
+    {
+        this.container = container;
+        this.rows = [];
+        this.sizingStyle = null;
+    }
+
+    clear()
+    {
+        for(let row of this.rows)
+            row.remove();
+
+        this.rows = [];
+    }
+
+    // Add a thumbnail to the first or last row, adding a new row if it's full.
+    //
+    // Thumbs are grouped into rows so it's easier for us to add to the edges without causing the
+    // rest to shift around, which is hard to do with just flex-wrap.
+    addThumbToRow(node, {atEnd})
+    {
+        // Get the row to add to.
+        let addToRow = this.getOpenRow({atEnd});
+
+        // Add the thumb.  It doesn't have its own offsetWidth until we do this.
+        addToRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
+
+        // If this thumb doesn't fit on the row (adding it caused the scrollWidth to exceed
+        // offsetWidth), the row is full, so start a new one.
+        // If the thumb fit on the row, stop here.  The row can still have more thumbs added
+        // to it.
+        if(addToRow.scrollWidth <= addToRow.offsetWidth)
+            return addToRow;
+        
+        // Adding another thumb to it caused it to overflow, so this row is full.  Remove the
+        // thumb from the overfilled row, close that row and put the thumb on a new one.
+        node.remove();
+        this.closeRow(addToRow);
+
+        let newRow = this.getOpenRow({atEnd});
+        newRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
+        return newRow;
+    }
+
+    // Return a row at the beginning or end of the results which can have thumbs added
+    // to it, creating a new row if needed.
+    getOpenRow({atEnd=true}={})
+    {
+        // Get the first or last row.  Only return it if it's still open.
+        let row = atEnd? this.rows[this.rows.length-1]:this.rows[0];
+        if(row?.dataset?.open)
+            return row;
+
+        // Create a new row.
+        row = document.realCreateElement("div");
+        row.className = "row";
+        row.dataset.open = "1";
+
+        if(atEnd)
+        {
+            this.container.insertAdjacentElement("beforeend", row);
+            this.rows.push(row);
+        }
+        else
+        {
+            this.container.insertAdjacentElement("afterbegin", row);
+            this.rows.splice(0, 0, row);
+        }
+
+        return row;
+    }
+
+    getAverageHeightOfRow(row)
+    {
+        if(row.children.length == 0)
+            return 0;
+
+        // Get the height of the tallest thumb.  We'll allow thumbs to expand up to this height.
+        let totalHeight = 0;
+        for(let thumb of row.children)
+            totalHeight += thumb.offsetHeight;
+        return totalHeight / row.children.length;
+    }
+
+    getWidthOfRow(row)
+    {
+        let width = this.sizingStyle.padding * (row.children.length-1);
+        for(let thumb of row.children)
+            width += thumb.offsetWidth;
+        return width;
+    }
+
+    // Once a row is full and won't have items added to it, finalize it to optimize space usage.
+    closeRow(row)
+    {
+        if(!row.dataset.open)
+            return;
+        delete row.dataset.open;
+        
+        // Scale all thumbs to the average height of thumbs in the row.  This will reduce the overall
+        // size and maximum height of the row, and make the thumbs line up horizontally.
+        let averageHeight = this.getAverageHeightOfRow(row);
+        for(let thumb of row.children)
+        {
+            let height = thumb.offsetHeight;
+            let width = thumb.offsetWidth;
+            let ratio = averageHeight / height;
+            height *= ratio;
+            width *= ratio;
+            thumb.style.setProperty("--thumb-height", `${height}px`);
+            thumb.style.setProperty("--thumb-width", `${width}px`);
+        }
+
+        // Now scale the whole row to fill horizontally.  This gives thumbs that are both lined up
+        // vertically and fill the row horizontally.
+        //
+        // Only do this if it gives a reasonable total height.  If doing this would cause the row to
+        // become too tall, leave it alone.  This happens with incomplete rows, and trying to force them
+        // to fit horizontally when they're not big enough for it causes them to be much too big.
+        //
+        // We could do this in the same pass as above, but it's easier to see what's happening this way.
+        let rowWidth = this.getWidthOfRow(row);
+        let expandBy = row.offsetWidth / rowWidth;
+        let maxAllowedHeight = this.sizingStyle.thumbHeight * 2;
+        if(averageHeight * expandBy <= maxAllowedHeight)
+        {
+            for(let thumbToExpand of row.children)
+            {
+                let height = thumbToExpand.offsetHeight * expandBy;
+                let width = thumbToExpand.offsetWidth * expandBy;
+                thumbToExpand.style.setProperty("--thumb-height", `${height}px`);
+                thumbToExpand.style.setProperty("--thumb-width", `${width}px`);
+            }
+        }
+    }
+}
+
 export default class SearchView extends Widget
 {
     constructor({...options})
@@ -34,12 +174,15 @@ export default class SearchView extends Widget
         this._setDataSourceRunner = new GuardedRunner(this._signal);
         this._loadPageRunner = new GuardedRunner(this._signal);
 
+        this.grid = new ThumbnailGrid({
+            container: this.thumbnailBox
+        });
+
         this.artistHeader = this.querySelector(".artist-header");
 
         // A dictionary of thumbs in the view, in the same order.  This makes iterating
         // existing thumbs faster than iterating the nodes.
         this.thumbs = {};
-        this.rows = [];
 
         // A map of media IDs that the user has manually expanded or collapsed.
         this.expandedMediaIds = new Map();
@@ -194,7 +337,7 @@ export default class SearchView extends Widget
         let screenTop = this.scrollContainer.scrollTop + this.scrollContainer.offsetHeight/4;
         let centerRow = null;
         let bestDistance = 999999;
-        for(let row of this.rows)
+        for(let row of this.grid.rows)
         {
             let rowTop = row.offsetTop;
             let distance = Math.abs(rowTop - screenTop);
@@ -648,6 +791,7 @@ export default class SearchView extends Widget
         // Update the thumbnail size style.
         let oldSizingStyle = this.sizingStyle;
         this.sizingStyle = this.makeThumbnailSizingStyle();
+        this.grid.sizingStyle = this.sizingStyle;
 
         // Save the scroll position relative to the first thumbnail.  Do this before making
         // any changes.
@@ -734,7 +878,7 @@ export default class SearchView extends Widget
             let searchPage = mediaIdPages[mediaId];
             let node = this.createThumb(mediaId, searchPage);
             helpers.other.addToEnd(this.thumbs, mediaId, node);
-            this._addThumbToRow(node, {atEnd: true});
+            this.grid.addThumbToRow(node, {atEnd: true});
         }
 
         // Add thumbs to the beginning.
@@ -744,148 +888,12 @@ export default class SearchView extends Widget
             let searchPage = mediaIdPages[mediaId];
             let node = this.createThumb(mediaId, searchPage);
             this.thumbs = helpers.other.addToBeginning(this.thumbs, mediaId, node);
-            this._addThumbToRow(node, {atEnd: false});
+            this.grid.addThumbToRow(node, {atEnd: false});
         }
 
         this.restoreScrollPosition(savedScroll);
 
         // this.sanityCheckThumbList();
-    }
-
-    // Add a thumbnail to the first or last row, adding a new row if it's full.
-    //
-    // Thumbs are grouped into rows so it's easier for us to add to the edges without causing the
-    // rest to shift around, which is hard to do with just flex-wrap.
-    _addThumbToRow(node, {atEnd})
-    {
-        // Get the row to add to.
-        let addToRow = this._getOpenRow({atEnd});
-
-        // Add the thumb.  It doesn't have its own offsetWidth until we do this.
-        addToRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
-
-        // If this thumb doesn't fit on the row (adding it caused the scrollWidth to exceed
-        // offsetWidth), the row is full, so start a new one.
-        // If the thumb fit on the row, stop here.  The row can still have more thumbs added
-        // to it.
-        if(addToRow.scrollWidth <= addToRow.offsetWidth)
-            return;
-        
-        // Adding another thumb to it caused it to overflow, so this row is full.  Remove the
-        // thumb from the overfilled row, close that row and put the thumb on a new one.
-        node.remove();
-        this._closeRow(addToRow);
-
-        let newRow = this._getOpenRow({atEnd});
-        newRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
-    }
-
-    // Return a row at the beginning or end of the results which can have thumbs added
-    // to it, creating a new row if needed.
-    _getOpenRow({atEnd=true}={})
-    {
-        // Get the first or last row.  Only return it if it's still open.
-        let row = atEnd? this.rows[this.rows.length-1]:this.rows[0];
-        if(row?.dataset?.open)
-            return row;
-
-        // Create a new row.
-        row = document.realCreateElement("div");
-        row.className = "row";
-        row.dataset.open = "1";
-
-        if(atEnd)
-        {
-            this.thumbnailBox.insertAdjacentElement("beforeend", row);
-            this.rows.push(row);
-        }
-        else
-        {
-            this.thumbnailBox.insertAdjacentElement("afterbegin", row);
-            this.rows.splice(0, 0, row);
-        }
-
-        return row;
-    }
-
-    // Once a row is full and won't have items added to it, finalize it to optimize space usage.
-    _closeRow(row)
-    {
-        if(!row.dataset.open)
-            return;
-        delete row.dataset.open;
-
-        // We often end up with a bunch of unused space when we have a mixture of aspect ratios.
-        // Portrait images cause the row to become taller, and we end up with empty horizontal
-        // space and landscape images that could fill it in.  It's hard to avoid this in CSS,
-        // so we do it programmatically.
-        //
-        // This isn't "fair": earlier thumbs have first chance at expanding, but that's OK.  After
-        // this pass, the row will have the same height, but have less of its horizontal space
-        // left unused.
-        for(let thumbToExpand of row.children)
-        {
-            // Get the height of the tallest thumb.  We'll allow thumbs to expand up to this height.
-            let maxHeight = 0;
-            for(let thumb of row.children)
-                maxHeight = Math.max(maxHeight, thumb.offsetHeight);
-            
-            // Get the amount of unused horizontal space.  We'll allow thumbs to expand by up to
-            // this much.
-            let availWidth = row.offsetWidth;
-            availWidth -= this.sizingStyle.padding * (row.children.length-1);
-            for(let thumb of row.children)
-                availWidth -= thumb.offsetWidth;
-
-            // The maximum width of this thumb:
-            let maxWidth = thumbToExpand.offsetWidth + availWidth;
-
-            // Expand as much as we can in both dimensions without exceeding the maximum.
-            let expandBy = Math.min(maxHeight / thumbToExpand.offsetHeight, maxWidth / thumbToExpand.offsetWidth);
-            let height = thumbToExpand.offsetHeight * expandBy;
-            let width = thumbToExpand.offsetWidth * expandBy;
-            thumbToExpand.style.setProperty("--thumb-height", `${height}px`);
-            thumbToExpand.style.setProperty("--thumb-width", `${width}px`);
-        }
-
-        // Next, enlarge all thumbs so they fill the row vertically.  This removes the empty space above
-        // thumbs when there are mixed aspect ratios.  It'll cause the row to be too big, so we'll scale
-        // it back down to fit below.  The effect is to evenly scale thumbs to a constant height, reducing
-        // the row's total height in the process.  When thumbs in the row already have the same aspect
-        // ratio, this will have no effect since we won't change anything.
-        {
-            let maxHeight = 0;
-            for(let thumb of row.children)
-                maxHeight = Math.max(maxHeight, thumb.offsetHeight);
-
-            for(let thumb of row.children)
-            {
-                let height = thumb.offsetHeight;
-                let width = thumb.offsetWidth;
-                let ratio = maxHeight / height;
-                height *= ratio;
-                width *= ratio;
-                thumb.style.setProperty("--thumb-height", `${height}px`);
-                thumb.style.setProperty("--thumb-width", `${width}px`);
-            }        
-        }
-
-        // Finally, scale the whole row to fill horizontally.
-        {
-            let width = 0;
-            width += this.sizingStyle.padding * (row.children.length-1);
-            for(let thumb of row.children)
-                width += thumb.offsetWidth;
-
-            let expandBy = row.offsetWidth / width;
-            for(let thumbToExpand of row.children)
-            {
-                let height = thumbToExpand.offsetHeight * expandBy;
-                let width = thumbToExpand.offsetWidth * expandBy;
-                thumbToExpand.style.setProperty("--thumb-height", `${height}px`);
-                thumbToExpand.style.setProperty("--thumb-width", `${width}px`);
-            }
-        }
     }
 
     // Clear the view.
@@ -897,11 +905,9 @@ export default class SearchView extends Widget
             for(let observer of this.intersectionObservers)
                 observer.unobserve(node);
         }
-        for(let row of this.rows)
-            row.remove();
 
         this.thumbs = {};
-        this.rows = [];
+        this.grid.clear();
     }
 
     // Create a thumbnail.
