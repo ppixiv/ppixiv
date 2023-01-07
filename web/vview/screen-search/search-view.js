@@ -1307,24 +1307,6 @@ export default class SearchView extends Widget
         }
     }
 
-    // See if we can load page in-place.  Return true if we were able to, and the click that
-    // requested it should be cancelled, or false if we can't and it should be handled as a
-    // regular navigation.
-    async loadPage(page)
-    {
-        // We can only add pages that are immediately before or after the pages we currently have.
-        let minPage = this.dataSource.idList.getLowestLoadedPage();
-        let maxPage = this.dataSource.idList.getHighestLoadedPage();
-        if(page < minPage-1)
-            return false;
-        if(page > maxPage+1)
-            return false;
-        
-        await this.dataSource.loadPage(page, { cause: "previous page" });
-
-        return true;
-    }
-
     // Save the current scroll position relative to the first visible thumbnail.
     // The result can be used with restoreScrollPosition.
     saveScrollPosition()
