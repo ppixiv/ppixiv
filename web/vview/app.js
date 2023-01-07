@@ -77,9 +77,6 @@ export default class App
             return;
         }
 
-        // If we're running natively, set the initial URL.
-        await this.setInitialUrl();
-
         // Pixiv scripts that use meta-global-data remove the element from the page after
         // it's parsed for some reason.  Try to get global info from document, and if it's
         // not there, re-fetch the page to get it.
@@ -116,6 +113,9 @@ export default class App
         if(ppixiv.mobile)
             helpers.forceTargetBlank();
 
+        // See if we want to adjust the initial URL.
+        await this.setInitialUrl();
+
         // See if the page has preload data.  This sometimes contains illust and user info
         // that the page will display, which lets us avoid making a separate API call for it.
         let preload = document.querySelector("#meta-preload-data");
@@ -145,33 +145,6 @@ export default class App
 
         this._currentScreenName = null;
 
-        // Update the initial URL.
-        if(!ppixiv.native)
-        {
-            let newURL = new URL(ppixiv.plocation);
-
-            // If we're active but we're on a page that isn't directly supported, redirect to
-            // a supported page.  This should be synced with Startup.refresh_disabled_ui.
-            if(DataSources.getDataSourceForUrl(ppixiv.plocation) == null)
-                newURL = new URL("/ranking.php?mode=daily#ppixiv", window.location);
-
-            // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
-            // URL, and we're active by default.  Add #ppixiv to the URL.  If we don't do this, we'll
-            // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
-            // directly and the page will reload on every click.  Do this before we create any of our
-            // UI, so our links inherit the hash.
-            if(!helpers.args.isPPixivUrl(newURL))
-            {
-                // Don't create a new history state.
-                newURL.hash = "#ppixiv";
-            }
-
-            ppixiv.phistory.replaceState(ppixiv.phistory.state, "", newURL.toString());
-        }
-        
-        // Don't restore the scroll position.  We handle this ourself.
-        window.history.scrollRestoration = "manual";  // not phistory
-       
         // If we're running on Pixiv, remove Pixiv's content from the page and move it into a
         // dummy document.
         let html = document.createElement("document");
@@ -356,12 +329,35 @@ export default class App
         return "normal";
     }
 
-    // This is called early in initialization.  If we're running natively and
-    // the URL is empty, navigate to a default directory, so we don't start off
-    // on an empty page every time.
+    // This is called early in initialization.  If we're running natively and the URL is
+    // empty, navigate to a default directory, so we don't start off on an empty page
+    // every time.  If we're on Pixiv, make sure we're on a supported page.
     async setInitialUrl()
     {
-        if(!ppixiv.native || document.location.hash != "")
+        // For Pixiv:
+        if(!ppixiv.native)
+        {
+            let args = helpers.args.location;
+
+            // If we're active but we're on a page that isn't directly supported, redirect to
+            // a supported page.  This should be synced with Startup.refresh_disabled_ui.
+            if(DataSources.getDataSourceForUrl(ppixiv.plocation) == null)
+                args = new helpers.args("/ranking.php?mode=daily#ppixiv");
+
+            // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
+            // URL, and we're active by default.  Add #ppixiv to the URL.  If we don't do this, we'll
+            // still work, but none of the URLs we create will have #ppixiv, so we won't handle navigation
+            // directly and the page will reload on every click.  Do this before we create any of our
+            // UI, so our links inherit the hash.
+            if(!helpers.args.isPPixivUrl(args.url))
+                args.hash = "#ppixiv";
+
+            helpers.navigate(args, { addToHistory: false, cause: "initial" });
+            return;
+        }
+
+        // Native:
+        if(document.location.hash != "")
             return;
 
         // If we're limited to tag searches, we don't view folders.  Just set the URL
