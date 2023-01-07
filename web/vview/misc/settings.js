@@ -48,6 +48,9 @@ export default class Settings extends EventTarget
 
         // If not null, this limits the size of loaded images.
         this.configure("image_size_limit", { defaultValue: ppixiv.mobile? 4000*4000:null });
+
+        // Run any one-time settings migrations.
+        this.migrate();
     }
 
     // Configure settings.  This is used for properties of settings that we need to

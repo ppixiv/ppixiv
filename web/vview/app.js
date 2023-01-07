@@ -60,9 +60,6 @@ export default class App
         ppixiv.guessImageUrl = new GuessImageURL();
         ppixiv.muting = new Muting();
         
-        // Run any one-time settings migrations.
-        ppixiv.settings.migrate();
-
         // Set up the PointerListener singleton.
         PointerListener.installGlobalHandler();
 
