@@ -89,9 +89,8 @@ export function fromIllustId(illustId, page)
     let { type, id } = _splitId(illustId);
 
     // Pages are only used for illusts.  For other types, the page should always
-    // be null or 0, and we don't include it in the media ID.  If this is "*" for
-    // slideshow staging, don't append a page number.
-    if(type == "illust" && id != "*")
+    // be null or 0, and we don't include it in the media ID.
+    if(type == "illust")
     {
         id += "-";
         id += page || 0;

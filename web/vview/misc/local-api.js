@@ -289,13 +289,6 @@ export default class LocalAPI
         return "folder:" + parts.join("/");
     }
 
-    // Return true if this is a URL for slideshow staging.  See ScreenIllust.load_first_image.
-    static isSlideshowStaging(args)
-    {
-        // If file is "*", this is a "first image" placeholder.  Don't treat it as a local ID.
-        return args.hash.get("file") == "*";
-    }
-
     // Load access info.  We always reload when this changes, eg. due to logging in
     // or out, so we cache this at startup.
     static async loadLocalInfo()

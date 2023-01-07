@@ -434,7 +434,8 @@ export default class App
         let oldScreenName = this._currentScreenName;
         let oldScreen = this._screens[oldScreenName];
 
-        // The media ID we're displaying if we're going to ScreenIllust:
+        // The media ID we're displaying if we're going to ScreenIllust.  If this is slideshow=first,
+        // this will be null.
         let mediaId = null;
         if(newScreenName == "illust")
             mediaId = dataSource.getUrlMediaId(args);
@@ -484,6 +485,25 @@ export default class App
 
         // Init the data source.
         await dataSource.init({targetMediaId});
+
+        // If slideshow=first, this is starting a slideshow at whichever image is first in the
+        // results.  Set the media ID now that the data source is initialized and can look up
+        // pages.
+        if(newScreenName == "illust" && args.hash.get("slideshow") == "first")
+        {
+            mediaId = await this.getMediaIdForSlideshow({ dataSource });
+            if(mediaId == null)
+            {
+                // We don't have a good way of handling this right now.
+                ppixiv.message.show("Couldn't find an image to view");
+                return;
+            }
+
+            console.log("Starting slideshow at:", mediaId);
+            args.hash.set("slideshow", "1");
+            dataSource.setUrlMediaId(mediaId, args);
+            helpers.navigate(args, { addToHistory: false, cause: "start-slideshow", sendPopstate: false });
+        }
 
         // If the data source is changing, set it up.
         if(this._dataSource != dataSource)
@@ -1099,21 +1119,31 @@ export default class App
     // search.  It can also be called while on an illust from SlideshowStagingDialog.
     get slideshowURL()
     {
-        let dataSource = this._dataSource;
-        if(dataSource == null)
-            return null;
-
-        // For local images, set file=*.  For Pixiv, set the media ID to *.  Leave it alone
-        // if we're on the manga view and just add slideshow=1.
-        let args = helpers.args.location;
-        if(dataSource.name == "vview")
-            args.hash.set("file", "*");
-        else if(dataSource.name != "manga")
-            dataSource.setUrlMediaId("*", args);
-
-        args.hash.set("slideshow", "1");
+        let args = this._dataSource.args;
+        args.hash.set("slideshow", "first");
         args.hash.set("view", "illust");
         return args;
+    }
+
+    // When loading slideshowURL, try to find a starting image for the slideshow.
+    async getMediaIdForSlideshow({dataSource})
+    {
+        // Load the initial page so we can look for an ID.
+        await dataSource.loadPage(dataSource.initialPage);
+
+        let mediaId = dataSource.idList.getFirstId();
+        if(mediaId == null)
+            return null;
+
+        // The ID must be illust or file.  Make sure we don't set it to a folder.
+        let { type } = helpers.mediaId.parse(mediaId);
+        if(type != "file" && type != "illust")
+        {
+            console.log("Can't display ID as slideshow:", mediaId);
+            return null;
+        }
+
+        return mediaId;
     }
 
     // Watch for clicks on links inside node.  If a search link is clicked, add it to the

@@ -354,12 +354,11 @@ export default class DataSource extends EventTarget
         let initialMediaId = this.getUrlMediaId(this.args);
 
         // If this data source doesn't return manga pages, always use the first page.
-        if(this.allowExpandingMangaPages && initialMediaId != "illust:*")
+        if(this.allowExpandingMangaPages)
             initialMediaId = helpers.mediaId.getMediaIdForPage(initialMediaId, 0);
 
         if(page == this.initialPage &&
             initialMediaId != null &&
-            initialMediaId != "illust:*" && !LocalAPI.isSlideshowStaging(helpers.args.location) && // not slideshow staging
             this.idList.getPageForMediaId(initialMediaId).page == null &&
             mediaIds.indexOf(initialMediaId) == -1)
         {
