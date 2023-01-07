@@ -363,8 +363,22 @@ export default class DataSource extends EventTarget
             this.idList.getPageForMediaId(initialMediaId).page == null &&
             mediaIds.indexOf(initialMediaId) == -1)
         {
-            console.log(`Adding initial media ID ${initialMediaId} to initial page ${this.initialPage}`);
-            mediaIds = [initialMediaId, ...mediaIds];
+            // Make sure the media ID has info before adding it to the list.
+            if(await ppixiv.mediaCache.getMediaInfo(initialMediaId, { full: false }))
+            {
+                console.log(`Adding initial media ID ${initialMediaId} to initial page ${this.initialPage}`);
+                mediaIds = [initialMediaId, ...mediaIds];
+            }
+        }
+
+        // Verify that all results have media info registered.
+        for(let mediaId of mediaIds)
+        {
+            if(ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }) == null)
+            {
+                console.error(`Data source returned ${mediaId} without registering media info`, this);
+                throw new Error(`Data source returned didn't register media info`);
+            }
         }
 
         this.idList.addPage(page, mediaIds, {...options});
