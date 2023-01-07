@@ -418,30 +418,31 @@ export default class App
 
     async _setCurrentDataSource({cause, refresh, scrollToTop, startAtBeginning})
     {
-        // Remember what we were displaying before we start changing things.
-        let oldScreen = this._screens[this._currentScreenName];
+        let args = helpers.args.location;
 
-        // If scrollToTop is false and we're going from ScreenIllust to ScreenSearch,
-        // targetMediaId is the media ID that we were displaying and want ScreenSearch
-        // to try to scroll to.  Otherwise, it'll restore the scroll position normally.
-        //
-        // This can be disabled by putting data-scroll-to-top on a link or setting
-        // scrollToTop when calling navigate().
-        let targetMediaId = this._currentScreenName == "illust"? oldScreen.displayedMediaId:null;
-        if(scrollToTop)
-        {
-            console.log("Scrolling to top instead of restoring ID");
-            targetMediaId = null;
-        }
-
-        // Get the data source for the current URL and initialize it if needed.  If refresh is true,
-        // force a new data source to be created instead of reusing an existing one.
+        // Get the data source for the current URL.  If refresh is true, force a new data
+        // source to be created instead of reusing an existing one.
         let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation, {
             force: refresh,
             startAtBeginning,
         });
-        await dataSource.init({targetMediaId});
-        let args = helpers.args.location;
+
+        // Figure out which screen to display.
+        let newScreenName;
+        if(!args.hash.has("view"))
+            newScreenName = dataSource.defaultScreen;
+        else
+            newScreenName = args.hash.get("view");
+        let newScreen = this._screens[newScreenName];
+
+        // Remember what we were displaying before we start changing things.
+        let oldScreenName = this._currentScreenName;
+        let oldScreen = this._screens[oldScreenName];
+
+        // The media ID we're displaying if we're going to ScreenIllust:
+        let mediaId = null;
+        if(newScreenName == "illust")
+            mediaId = dataSource.getUrlMediaId(args);
 
         // If we're going back to the start of the search, update the page URL to put it back
         // at the start too, and remove any saved scroll position.
@@ -452,12 +453,42 @@ export default class App
             helpers.navigate(args, { addToHistory: false, cause: "refresh-data-source", sendPopstate: false });
         }
 
-        // Figure out which screen to display.
-        let newScreenName;
-        if(!args.hash.has("view"))
-            newScreenName = dataSource.defaultScreen;
-        else
-            newScreenName = args.hash.get("view");
+        // See if there's a media ID we want the new screen to display.  If the data source
+        // is able to scan its results in advance, it can set the start page so it includes
+        // this ID, so the search will start naturally around it.  ScreenSearch will display
+        // images around it and navigating ScreenIllust will move around it.  (If we have
+        // an image but the data source can't start there, we'll fall back on putting this
+        // image at the beginning.)
+        //
+        // If scrollToTop (data-scroll-to-top) is set, skip this since we want to return to
+        // the top of the search.
+        let targetMediaId = null;
+        if(!scrollToTop)
+        {
+            if(newScreenName == "search")
+            {
+                if(oldScreenName == "illust")
+                {
+                    // When going from illust -> search, target the image that was being displayed, so
+                    // we can scroll to it.
+                    targetMediaId = oldScreen?.displayedMediaId;
+                }
+                else
+                {
+                    // Otherwise, if ScreenSearch has saved the scroll position, try to include
+                    // the image it wants to scroll to.
+                    targetMediaId = newScreen.getTargetMediaId(args);
+                }
+            }
+            else if(newScreenName == "illust")
+            {
+                // Use the image we'll be displaying.
+                targetMediaId = mediaId;
+            }
+        }
+
+        // Init the data source.
+        await dataSource.init({targetMediaId});
 
         // If the data source is changing, set it up.
         if(this._dataSource != dataSource)
@@ -478,18 +509,12 @@ export default class App
                 this._dataSource.startup();
         }
 
-        // The media ID we're displaying if we're going to ScreenIllust:
-        let mediaId = null;
-        if(newScreenName == "illust")
-            mediaId = dataSource.getUrlMediaId(args);
-
         // If we're entering ScreenSearch, ignore clicks for a while.  See _windowClickCapture.
         if(newScreenName == "search")
             this._ignoreClicksUntil = Date.now() + 100;
 
         console.log(`Showing screen: ${newScreenName}, data source: ${this._dataSource.name}, cause: ${cause}, media ID: ${mediaId ?? "(none)"}, scroll to: ${targetMediaId}`);
 
-        let newScreen = this._screens[newScreenName];
         this._currentScreenName = newScreenName;
 
         if(newScreen != oldScreen)

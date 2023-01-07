@@ -1,3 +1,4 @@
+
 import Widget from 'vview/widgets/widget.js';
 import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
 import IllustIdList from 'vview/data-sources/illust-id-list.js';
@@ -11,22 +12,26 @@ export default class DataSource extends EventTarget
         super();
 
         this.url = new URL(url);
+        this. _resetLoadedPages();
+    };
+
+    _resetLoadedPages()
+    {
         this.idList = new IllustIdList();
         this.loadingPages = {};
         this.loadedPages = {};
         this.firstEmptyPage = -1;
+    }
 
+    async init()
+    {
         // If this data source supports a start page, store the page we started on.
-        // This isn't increased as we load more pages, but if we load earlier results
-        // because the user clicks "load previous results", we'll reduce it.
-        let args = new helpers.args(url);
+        let args = new helpers.args(this.url);
         
         this.initialPage = this.getStartPage(args);
         if(this.initialPage > 1)
             console.log("Starting at page", this.initialPage);
-    };
-
-    async init() { }
+    }
 
     // If a data source returns a name, we'll display any .data-source-specific elements in
     // the thumbnail view with that name.

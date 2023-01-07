@@ -173,6 +173,14 @@ export default class ScreenSearch extends Screen
         await this.searchView.activate();
     }
 
+    // Return the media ID we'll try to scroll to if the given state is loaded.
+    getTargetMediaId(args)
+    {
+        let scroll = args.state.scroll;
+        let targetMediaId = scroll?.scrollPosition?.mediaId;
+        return targetMediaId;
+    }
+
     getRectForMediaId(mediaId)
     {
         return this.searchView.getRectForMediaId(mediaId);

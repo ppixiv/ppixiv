@@ -26,6 +26,8 @@ class VViewBase extends DataSource
 
     async init()
     {
+        super.init();
+
         this.fetchBookmarkTagCounts();
     }
 
@@ -148,18 +150,32 @@ export class VView extends VViewBase
 
         // If a file was present in the URL when we're created, try to start on the page
         // containing it, overriding the starting page.
-        let startingMediaId = LocalAPI.getLocalIdFromArgs(args);
-        if(startingMediaId != null)
+        // XXX: this handles going from an image to a search, but doesn't handle restoring
+        // scroll position on reload
+        this._selectInitialPage(targetMediaId);
+    }
+
+    _selectInitialPage(targetMediaId)
+    {
+        if(targetMediaId == null)
+            return;
+
+        for(let page = 0; page < this.pages.length; ++page)
         {
-            for(let page = 0; page < this.pages.length; ++page)
+            let mediaIdsOnPage = this.pages[page];
+            if(mediaIdsOnPage.indexOf(targetMediaId) != -1)
             {
-                let mediaIdsOnPage = this.pages[page];
-                if(mediaIdsOnPage.indexOf(startingMediaId) != -1)
-                {
-                    this.initialPage = page + 1;
-                    console.log(`Start on page ${this.initialPage}`);
-                    break;
-                }
+                // 
+                // if the new initial page couldn't normally be loaded, reset our loaded pages and
+                // start over
+                let newInitialPage = page + 1;
+                let needsReset = this.canLoadPage(newInitialPage);
+                this.initialPage = newInitialPage;
+                console.log(`Start on page ${this.initialPage}, reset: ${needsReset}`);
+                if(needsReset)
+                    this._resetLoadedPages();
+                
+                return;
             }
         }
     }
