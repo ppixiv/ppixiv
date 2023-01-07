@@ -27,47 +27,47 @@ class ThumbnailGrid
     }
 
     // Add a thumbnail to the first or last row, adding a new row if it's full.
-    //
-    // Thumbs are grouped into rows so it's easier for us to add to the edges without causing the
-    // rest to shift around, which is hard to do with just flex-wrap.
     addThumbToRow(node, {atEnd})
     {
         // Get the row to add to.
-        let addToRow = this.getOpenRow({atEnd});
+        let row = this.getRow({atEnd});
+        row.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
 
-        // Add the thumb.  It doesn't have its own offsetWidth until we do this.
-        addToRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
+        // Re-align the row with the new thumb.
+        this.alignRow(row);
 
-        // If this thumb doesn't fit on the row (adding it caused the scrollWidth to exceed
-        // offsetWidth), the row is full, so start a new one.
         // If the thumb fit on the row, stop here.  The row can still have more thumbs added
         // to it.
-        if(addToRow.scrollWidth <= addToRow.offsetWidth)
-            return addToRow;
+        if(row.scrollWidth <= row.offsetWidth)
+            return row;
         
         // Adding another thumb to it caused it to overflow, so this row is full.  Remove the
-        // thumb from the overfilled row, close that row and put the thumb on a new one.
+        // thumb from the overfilled row, re-align the row and put the thumb on a new one.
         node.remove();
-        this.closeRow(addToRow);
+        this.alignRow(row);
 
-        let newRow = this.getOpenRow({atEnd});
+        let newRow = this.createRow({atEnd});
         newRow.insertAdjacentElement(atEnd? "beforeend":"afterbegin", node);
         return newRow;
     }
 
-    // Return a row at the beginning or end of the results which can have thumbs added
-    // to it, creating a new row if needed.
-    getOpenRow({atEnd=true}={})
+    // Return a row at the beginning or end, creating a row if needed.
+    getRow({atEnd=true}={})
     {
-        // Get the first or last row.  Only return it if it's still open.
+        // Get the first or last row.
         let row = atEnd? this.rows[this.rows.length-1]:this.rows[0];
-        if(row?.dataset?.open)
+        if(row)
             return row;
+        else
+            return this.createRow({atEnd});
+    }
 
+    // Create a new row at the beginning or end.
+    createRow({atEnd=true}={})
+    {
         // Create a new row.
-        row = document.realCreateElement("div");
+        let row = document.realCreateElement("div");
         row.className = "row";
-        row.dataset.open = "1";
 
         if(atEnd)
         {
@@ -103,20 +103,22 @@ class ThumbnailGrid
         return width;
     }
 
-    // Once a row is full and won't have items added to it, finalize it to optimize space usage.
-    closeRow(row)
+    getInitialWidthOfRow(row)
     {
-        if(!row.dataset.open)
-            return;
-        delete row.dataset.open;
-        
-        // Scale all thumbs to the average height of thumbs in the row.  This will reduce the overall
-        // size and maximum height of the row, and make the thumbs line up horizontally.
+        let width = this.sizingStyle.padding * (row.children.length-1);
+        for(let thumb of row.children)
+            width += thumb.origWidth;
+        return width;
+    }
+
+    // Once a row is full and won't have items added to it, finalize it to optimize space usage.
+    alignRow(row)
+    {
         let averageHeight = this.getAverageHeightOfRow(row);
         for(let thumb of row.children)
         {
-            let height = thumb.offsetHeight;
-            let width = thumb.offsetWidth;
+            let height = thumb.origHeight;
+            let width = thumb.origWidth;
             let ratio = averageHeight / height;
             height *= ratio;
             width *= ratio;
@@ -1040,8 +1042,8 @@ export default class SearchView extends Widget
         element.style.setProperty("--thumb-height", `${thumbHeight}px`);
 
         // Store our preferred thumbnail size directly too to make it easier to access.
-        element.thumbWidth = thumbWidth;
-        element.thumbHeight = thumbHeight;
+        element.origWidth = thumbWidth;
+        element.origHeight = thumbHeight;
     }
 
     // If element isn't loaded and we have media info for it, set it up.
