@@ -1302,11 +1302,6 @@ body.hide-r18g .r18g { display: none; }
             }
         }
         
-        // Flip the icon to point to the left.
-        .clear-local-search .icon {
-            transform: scale(-1, 1);
-        }
-
         .user-links {
             user-select: none;
             -webkit-user-select: none;

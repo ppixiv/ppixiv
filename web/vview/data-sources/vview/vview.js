@@ -330,7 +330,6 @@ class UI extends Widget
                         ${ helpers.createIcon("content_copy") }
                     </span>
 
-                    ${ helpers.createBoxLink({popup: "Close search", icon: "exit_to_app",  classes: ["clear-local-search"] }) }
                     ${ helpers.createBoxLink({label: "Bookmarks",           popup: "Show bookmarks",                       dataType: "local-bookmarks-only" }) }
 
                     <div class=local-bookmark-tags-box>
@@ -341,6 +340,8 @@ class UI extends Widget
                     ${ helpers.createBoxLink({ label: "Aspect ratio",  classes: ["aspect-ratio-button"] }) }
                     ${ helpers.createBoxLink({ label: "Image size",    classes: ["image-size-button"] }) }
                     ${ helpers.createBoxLink({ label: "Order",         classes: ["sort-button"] }) }
+
+                    ${ helpers.createBoxLink({ label: "Reset", popup: "Clear all search options", classes: ["clear-local-search"] }) }
                 </div>
             </div>
         `});
