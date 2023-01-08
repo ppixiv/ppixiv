@@ -243,10 +243,14 @@ export default class ViewerImagesMobile extends ViewerImages
 
     _reposition({clampPosition=true, ...options}={})
     {
-        // Don't clamp the view position if we're repositioned while the touch scroller
-        // is active.  It handles overscroll and is allowed to go out of bounds.
-        if(this._touchScroller.state != "idle")
-            clampPosition = false;
+        // This is called by the base class constructor before touchScroller is set up.
+        if(this._touchScroller)
+        {
+            // Don't clamp the view position if we're repositioned while the touch scroller
+            // is active.  It handles overscroll and is allowed to go out of bounds.
+            if(this._touchScroller.state != "idle")
+                clampPosition = false;
+        }
 
         return super._reposition({clampPosition, ...options});
     }

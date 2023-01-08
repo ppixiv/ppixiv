@@ -64,7 +64,7 @@ export default class ViewerImages extends Viewer
 
         // Restore the most recent zoom mode.
         if(ppixiv.mobile)
-            this._zoomLevel = "cover";
+            this.setZoom({ enabled: true, level: "cover" });
         else
         {
             let enabled = ppixiv.settings.get("zoom-mode") == "locked";
@@ -1039,6 +1039,9 @@ export default class ViewerImages extends Viewer
 
         if(zoomPos == null)
             zoomPos = this._currentZoomPos;
+
+        // Make sure we don't modify the caller's value.
+        zoomPos = [...zoomPos];
 
         // When we're zooming to fill the view, clamp panning so we always fill the view
         // and don't pan past the edge.
