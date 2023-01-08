@@ -29,8 +29,8 @@ export default class DataSource extends EventTarget
         let args = new helpers.args(this.url);
         
         this.initialPage = this.getStartPage(args);
-        if(this.initialPage > 1)
-            console.log("Starting at page", this.initialPage);
+        // if(this.initialPage > 1)
+        //    console.log("Starting at page", this.initialPage);
     }
 
     // If a data source returns a name, we'll display any .data-source-specific elements in

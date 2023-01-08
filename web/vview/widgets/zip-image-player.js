@@ -126,7 +126,8 @@ export default class ZipImagePlayer
                 file = await this.downloader.getNextFrame();
             } catch(e) {
                 // This will usually be cancellation.
-                console.info("Error downloading file", e);
+                if(e.name != "AbortError")
+                    console.info("Error downloading file", e);
                 return;
             }
 

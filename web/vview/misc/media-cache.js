@@ -250,7 +250,7 @@ export default class MediaCache extends EventTarget
         if(helpers.mediaId.isLocal(mediaId))
             return await this._loadLocalImageData(mediaId, { refreshFromDisk});
 
-        console.log("Fetching", mediaId);
+        // console.log("Fetching", mediaId);
 
         let mangaPromise = null;
         let ugoiraPromise = null;
