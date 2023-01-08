@@ -171,6 +171,7 @@ export class AvatarWidget extends Widget
                 return new FollowWidget({
                     ...options,
                     userId: this.userId,
+                    close: () => this.followDropdownOpener.visible = false,
                 });
             },
         });
@@ -437,6 +438,9 @@ class FollowWidget extends Widget
 {
     constructor({
         userId=null,
+
+        // This is called if we want to close our container.
+        close=() => { },
         ...options
     })
     {
@@ -467,6 +471,7 @@ class FollowWidget extends Widget
         `});
 
         this.userId = userId;
+        this.close = close;
         this.data = { };
 
         this.viewPosts = this.querySelector(".view-posts");
@@ -668,6 +673,8 @@ class FollowWidget extends Widget
 
     async _clickedFollow(followPrivately)
     {
+        this.close();
+
         await Actions.follow(this.userId, followPrivately);
 
         // The public/private follow state needs to be refreshed explicitly.
