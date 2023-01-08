@@ -38,7 +38,11 @@ class ThumbnailGrid
 
         // If the thumb fit on the row, stop here.  The row can still have more thumbs added
         // to it.
-        if(row.scrollWidth <= row.offsetWidth)
+        let resultWidth = (row.children.length-1) * this.sizingStyle.padding;
+        for(let thumb of row.children)
+            resultWidth += thumb.currentWidth;
+        resultWidth = Math.round(resultWidth);
+        if(resultWidth <= this.sizingStyle.containerWidth)
             return row;
         
         // Adding another thumb to it caused it to overflow, so this row is full.  Remove the
@@ -91,61 +95,60 @@ class ThumbnailGrid
         // Get the height of the tallest thumb.  We'll allow thumbs to expand up to this height.
         let totalHeight = 0;
         for(let thumb of row.children)
-            totalHeight += thumb.offsetHeight;
+            totalHeight += thumb.origHeight;
         return totalHeight / row.children.length;
-    }
-
-    getWidthOfRow(row)
-    {
-        let width = this.sizingStyle.padding * (row.children.length-1);
-        for(let thumb of row.children)
-            width += thumb.offsetWidth;
-        return width;
-    }
-
-    getInitialWidthOfRow(row)
-    {
-        let width = this.sizingStyle.padding * (row.children.length-1);
-        for(let thumb of row.children)
-            width += thumb.origWidth;
-        return width;
     }
 
     // Once a row is full and won't have items added to it, finalize it to optimize space usage.
     alignRow(row)
     {
+        for(let thumb of row.children)
+        {
+            thumb.currentWidth = thumb.origWidth;
+            thumb.currentHeight = thumb.origHeight;
+        }
+    
+        // Only adjust the size when in aspect mode, not for square thumbs.
+        if(this.sizingStyle.thumbnailStyle != "aspect")
+            return;
+
+        // Scale each thumb to the average height of the row.
         let averageHeight = this.getAverageHeightOfRow(row);
         for(let thumb of row.children)
         {
-            let height = thumb.origHeight;
-            let width = thumb.origWidth;
-            let ratio = averageHeight / height;
-            height *= ratio;
-            width *= ratio;
-            thumb.style.setProperty("--thumb-height", `${height}px`);
-            thumb.style.setProperty("--thumb-width", `${width}px`);
+            let ratio = averageHeight / thumb.currentHeight;
+            thumb.currentHeight *= ratio;
+            thumb.currentWidth *= ratio;
         }
 
         // Now scale the whole row to fill horizontally.  This gives thumbs that are both lined up
-        // vertically and fill the row horizontally.
-        //
-        // Only do this if it gives a reasonable total height.  If doing this would cause the row to
-        // become too tall, leave it alone.  This happens with incomplete rows, and trying to force them
-        // to fit horizontally when they're not big enough for it causes them to be much too big.
-        //
-        // We could do this in the same pass as above, but it's easier to see what's happening this way.
-        let rowWidth = this.getWidthOfRow(row);
-        let expandBy = row.offsetWidth / rowWidth;
+        // vertically and fill the row horizontally.  This is only scaling the thumbs and not the
+        // padding, and only scales up (if we need to scale down we'll let it wrap instead).
+        let rowWidth = 0;
+        for(let thumb of row.children)
+            rowWidth += thumb.currentWidth;
+
+        let containerWidth = this.sizingStyle.containerWidth - (row.children.length-1) * this.sizingStyle.padding;
+        let expandBy = containerWidth / rowWidth;
+
+        // Clamp the height we'll expand to, so we don't scale incomplete rows up endlessly trying to
+        // fill the row.
         let maxAllowedHeight = this.sizingStyle.thumbHeight * 2;
-        if(averageHeight * expandBy <= maxAllowedHeight)
+        expandBy = Math.min(expandBy, maxAllowedHeight / averageHeight);
+
+        if(expandBy > 1)
         {
-            for(let thumbToExpand of row.children)
+            for(let thumb of row.children)
             {
-                let height = thumbToExpand.offsetHeight * expandBy;
-                let width = thumbToExpand.offsetWidth * expandBy;
-                thumbToExpand.style.setProperty("--thumb-height", `${height}px`);
-                thumbToExpand.style.setProperty("--thumb-width", `${width}px`);
+                thumb.currentHeight *= expandBy;
+                thumb.currentWidth *= expandBy;
             }
+        }
+
+        for(let thumb of row.children)
+        {
+            thumb.style.setProperty("--thumb-width", `${thumb.currentWidth}px`);
+            thumb.style.setProperty("--thumb-height", `${thumb.currentHeight}px`);
         }
     }
 }
@@ -1203,19 +1206,8 @@ export default class SearchView extends Widget
         let desiredSize = ppixiv.settings.get("thumbnail-size", 4);
         desiredSize = MenuOptionsThumbnailSizeSlider.thumbnailSizeForValue(desiredSize);
 
-        // The thumbnail size setting controls the rough total pixel size of the thumbnails.
-        let desiredPixels = desiredSize*desiredSize;
-
         // Pack images more tightly on mobile.
         let padding = ppixiv.mobile? 3:15;
-
-        // Limit the number of columns on most views, so we don't load too much data at once.
-        // Allow more columns on the manga view, since that never loads more than one image.
-        // Allow unlimited columns for local images, and on mobile where we're usually limited
-        // by screen space and showing lots of columns (but few rows) can be useful.
-        let maxColumns =
-            ppixiv.mobile? 30:
-            this.dataSource?.isVView? 100:5;
 
         // The container might have a fractional size, and clientWidth will round it, which is
         // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
@@ -1223,43 +1215,27 @@ export default class SearchView extends Widget
         // let containerWidth = container.parentNode.clientWidth;
         let containerWidth = Math.floor(this.thumbnailBox.parentNode.getBoundingClientRect().width);
         
-        let closestErrorToDesiredPixels = -1;
-        let bestSize = { thumbWidth: 0, thumbHeight: 0, columns: 1 };
+        let columns = containerWidth / desiredSize;
+        columns = Math.floor(columns);
 
-        // Find the greatest number of columns we can fit in the available width.
-        for(let columns = maxColumns; columns >= 1; --columns)
+        let remainingWidth = containerWidth - padding*(columns-1);
+        let thumbWidth = Math.floor(remainingWidth / columns);
+        let thumbHeight = Math.floor(thumbWidth);
+        containerWidth = Math.floor(thumbWidth * columns + padding*(columns-1));
+
+        // Limit the number of visible thumbs, so we don't load too much data at once.  Allow
+        // unlimited columns for local images.
+        let maxThumbs = this.dataSource?.isVView? 100:40;
+        let rows = window.innerHeight / thumbWidth;
+        if(columns * rows > maxThumbs)
         {
-            // The amount of space in the container remaining for images, after subtracting
-            // the padding around each image.  Padding is the flex gap, so this doesn't include
-            // padding at the left and right edge.
-            let remainingWidth = containerWidth - padding*(columns-1);
-            let thumbWidth = Math.floor(remainingWidth / columns);
-            let thumbHeight = Math.floor(thumbWidth);
-
-            let pixels = thumbWidth * thumbHeight;
-            let error = Math.abs(pixels - desiredPixels);
-            if(closestErrorToDesiredPixels == -1 || error < closestErrorToDesiredPixels)
-            {
-                closestErrorToDesiredPixels = error;
-                bestSize = {thumbWidth, thumbHeight, columns};
-            }
+            columns = maxThumbs / rows;
+            containerWidth = Math.floor(thumbWidth*columns + padding*(columns-1));
         }
 
-        let {thumbWidth, thumbHeight, columns} = bestSize;
+        let desiredPixels = thumbWidth * thumbHeight;
 
-        // If we want a smaller thumbnail size than we can reach within the max column
-        // count, we won't have reached desiredPixels.  In this case, just clamp to it.
-        // This will cause us to use too many columns, which we'll correct below with
-        // containerWidth.
-        //
-        // On mobile, just allow the thumbnails to be bigger, so we prefer to fill the
-        // screen and not waste screen space.
-        if(!ppixiv.mobile && thumbWidth * thumbHeight > desiredPixels)
-            thumbHeight = thumbWidth = Math.round(Math.sqrt(desiredPixels));
-
-        // Clamp the width of the container to the number of columns we expect.
-        containerWidth = columns*thumbWidth + (columns-1)*padding;
-        return {thumbnailStyle, columns, padding, thumbWidth, thumbHeight, containerWidth, desiredPixels};
+        return {thumbnailStyle, padding, thumbWidth, thumbHeight, containerWidth, desiredPixels};
     }
     
     // Verify that thumbs we've created are in sync with this.thumbs.
