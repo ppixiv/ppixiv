@@ -54,7 +54,7 @@ export default class MobileImageUI extends Widget
 
         this.avatarWidget = new AvatarWidget({
             container: this.root.querySelector(".avatar"),
-            mode: "dropdown",
+            clickAction: "author",
         });
         this.root.querySelector(".avatar").hidden = ppixiv.native;
 

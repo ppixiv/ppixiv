@@ -147,7 +147,6 @@ export default class DesktopImageInfo extends Widget
 
         this.avatarWidget = new AvatarWidget({
             container: this.root.querySelector(".avatar-popup"),
-            mode: "dropdown",
             dropdownvisibilitychanged: () => {
                 this.refreshOverlayUiVisibility();
             },

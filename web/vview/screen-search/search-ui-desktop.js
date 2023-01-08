@@ -130,7 +130,6 @@ export default class DesktopSearchUI extends Widget
 
         this.avatarWidget = new AvatarWidget({
             container: this.querySelector(".avatar-container"),
-            mode: "dropdown",
 
             // Disable the avatar widget unless the data source enables it.
             visible: false,

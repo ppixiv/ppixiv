@@ -137,6 +137,7 @@ export class AvatarWidget extends Widget
     constructor({
         // This is called when the follow dropdown visibility changes.
         dropdownvisibilitychanged=() => { },
+        clickAction="dropdown",
 
         ...options
     }={})
@@ -151,8 +152,8 @@ export class AvatarWidget extends Widget
         `});
 
         this.options = options;
-        if(this.options.mode != "dropdown" && this.options.mode != "overlay")
-            throw "Invalid avatar widget mode";
+        if(clickAction != "dropdown" && clickAction != "author")
+            throw new Error(`Invalid avatar widget mode: ${clickAction}`);
 
         this.getUserInfo = new GetUserInfo({
             parent: this,
@@ -177,7 +178,13 @@ export class AvatarWidget extends Widget
         avatarLink.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.followDropdownOpener.visible = !this.followDropdownOpener.visible;
+            if(clickAction == "dropdown")
+                this.followDropdownOpener.visible = !this.followDropdownOpener.visible;
+            else if(clickAction == "author")
+            {
+                let args = new helpers.args(`/users/${this.userId}#ppixiv`);
+                helpers.navigate(args, { scrollToTop: true });
+            }
         });
 
         // Clicking the avatar used to go to the user page, but now it opens the follow dropdown.
@@ -186,7 +193,7 @@ export class AvatarWidget extends Widget
             e.preventDefault();
             e.stopPropagation();
 
-            let args = new helpers.args(`/users/${this.getUserInfo.id}/artworks#ppixiv`);
+            let args = new helpers.args(`/users/${this.userId}/artworks#ppixiv`);
             helpers.navigate(args, { scrollToTop: true });
         });
 
@@ -196,14 +203,6 @@ export class AvatarWidget extends Widget
         this._baseFilter = new ImageCanvasFilter(this.img, avatarElement);
         
         this.root.dataset.mode = this.options.mode;
-
-        // Show the favorite UI when hovering over the avatar icon.
-        let avatarPopup = this.root; //container.querySelector(".avatar-popup");
-        if(this.options.mode == "dropdown")
-        {
-            avatarPopup.addEventListener("mouseover", (e) => { helpers.html.setClass(avatarPopup, "popup-visible", true); });
-            avatarPopup.addEventListener("mouseout", (e) => { helpers.html.setClass(avatarPopup, "popup-visible", false); });
-        }
 
         new CreepyEyeWidget({
             container: this.root.querySelector(".follow-icon"),
