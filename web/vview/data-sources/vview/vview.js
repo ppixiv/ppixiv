@@ -306,6 +306,9 @@ export class VViewSearch extends VViewBase
     // page we loaded had no results.
     canLoadPage(page)
     {
+        if(page < 1)
+            return false;
+
         // next_page_offset is null if we haven't tried to load anything yet.
         if(this.nextPageOffset == null)
             return true;
