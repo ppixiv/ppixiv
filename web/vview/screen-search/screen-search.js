@@ -283,7 +283,7 @@ export default class ScreenSearch extends Screen
         if(e.repeat)
             return;
 
-        if(this.dataSource.name == "vview")
+        if(this.dataSource.name == "vview" || this.dataSource.name == "vview-search")
         {
             // Pressing ^F while on the local search focuses the search box.
             if(e.code == "KeyF" && e.ctrlKey)
