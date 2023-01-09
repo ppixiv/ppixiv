@@ -135,23 +135,26 @@ class ThumbnailGrid
         for(let thumb of row.children)
             rowWidth += thumb.currentWidth;
 
+        // Start with a scale that will exactly fit the view horizontally.
         let containerWidth = this.sizingStyle.containerWidth - (row.children.length-1) * this.sizingStyle.padding;
-        let expandBy = containerWidth / rowWidth;
+        let scaleX = containerWidth / rowWidth;
 
-        // Clamp the height we'll expand to, so we don't scale incomplete rows up endlessly trying to
+        // Clamp the amount we'll scale by, so we don't scale incomplete rows up endlessly trying to
         // fill the row.
         let maxAllowedHeight = this.sizingStyle.thumbHeight * 2;
-        expandBy = Math.min(expandBy, maxAllowedHeight / averageHeight);
+        scaleX = Math.min(scaleX, maxAllowedHeight / averageHeight);
 
-        // If there's only one thumb in the row, allow scaling it down so we always make single thumbs
-        // fit.  If there are more than one, don't shrink it since we'll split the row instead.
-        if(row.children.length == 1 || expandBy > 1)
+        // If the row has more than one thumb, never scale down.  Overflowing horizontally is what
+        // triggers wrapping onto a new row, and scaling down would make us try to fit 
+        if(row.children.length > 1)
+            scaleX = Math.max(scaleX, 1);
+
+        let scaleY = scaleX;
+
+        for(let thumb of row.children)
         {
-            for(let thumb of row.children)
-            {
-                thumb.currentHeight *= expandBy;
-                thumb.currentWidth *= expandBy;
-            }
+            thumb.currentWidth *= scaleX;
+            thumb.currentHeight *= scaleY;
         }
 
         for(let thumb of row.children)
@@ -204,7 +207,9 @@ export default class SearchView extends Widget
         // This caches the results of isMediaIdExpanded.
         this._mediaIdExpandedCache = null;
 
-        new ResizeObserver(() => this.refreshImages({cause: "resize"})).observe(this.root);
+        let resizeObserver = new ResizeObserver(() => this.refreshImages({cause: "resize"}));
+        resizeObserver.observe(this.scrollContainer);
+        resizeObserver.observe(this.thumbnailBox);
 
         // The scroll position may not make sense when if scroller changes size (eg. the window was resized
         // or we changed orientations).  Override it and restore from the latest scroll position that we
@@ -1221,7 +1226,8 @@ export default class SearchView extends Widget
         // wrong for us: if the container is 500.75 wide and we calculate a fit for 501, the result
         // won't actually fit.  Get the bounding box instead, which isn't rounded.
         // let containerWidth = container.parentNode.clientWidth;
-        let containerWidth = Math.floor(this.thumbnailBox.parentNode.getBoundingClientRect().width);
+        let containerWidth = Math.floor(this.root.getBoundingClientRect().width);
+        let containerHeight = Math.floor(this.scrollContainer.getBoundingClientRect().height);
         
         let columns = containerWidth / desiredSize;
         columns = Math.floor(columns);
@@ -1243,7 +1249,11 @@ export default class SearchView extends Widget
 
         let desiredPixels = thumbWidth * thumbHeight;
 
-        return {thumbnailStyle, padding, thumbWidth, thumbHeight, containerWidth, desiredPixels};
+        return {
+            thumbnailStyle, padding, thumbWidth, thumbHeight,
+            containerWidth, containerHeight,
+            desiredPixels,
+        };
     }
     
     // Verify that thumbs we've created are in sync with this.thumbs.
