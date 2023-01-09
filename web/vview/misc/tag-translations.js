@@ -185,6 +185,10 @@ export default class TagTranslations
     // original tag.
     async getTranslation(tag, language="en")
     {
+        let result = this._cache.get(tag);
+        if(result != null)
+            return result;
+
         let translatedTags = await this.getTranslations([tag], "en");
         if(translatedTags[tag])
             return translatedTags[tag];
