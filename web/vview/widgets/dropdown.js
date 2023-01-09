@@ -128,7 +128,11 @@ export class DropdownBoxOpener extends Actor
                     parent: this,
                     template: `<div></div>`,
                 });
-                this._dropdownDialog.shutdownSignal.addEventListener("abort", () => {
+                this._dropdownDialog.shutdownSignal.addEventListener("abort", (e) => {
+                    // Ignore this if it's from a previous dialog that we discarded.
+                    if(e.target != this._dropdownDialog?.shutdownSignal)
+                        return;
+
                     console.log("DIalog dropdown closed");
 
                     // The dropdown shut itself down and the dropdown with it.  Clear them so
@@ -189,21 +193,22 @@ export class DropdownBoxOpener extends Actor
         }
         else
         {
+            // If we have a dialog, tell the dialog to hide itself and discard it.  It'll
+            // shut the dropdown and itself down after any transitions complete.
+            if(this._dropdownDialog)
+            {
+                this._dropdownDialog.visible = false;
+                this._dropdownDialog = null;
+                this._dropdown = null;
+                return;
+            }
+
             this._cleanup();
 
             if(this._dropdown)
             {
-                // If the dropdown is in a dialog, the dialog owns it, so don't shut it down
-                // here.  The dialog will do it.
-                if(!this._dropdownDialog)
-                    this._dropdown.shutdown();
+                this._dropdown.shutdown();
                 this._dropdown = null;
-            }
-
-            if(this._dropdownDialog)
-            {
-                this._dropdownDialog.shutdown();
-                this._dropdownDialog = null;
             }
         }
 
