@@ -1053,10 +1053,8 @@ export default class SearchView extends Widget
     _setThumbnailSize(mediaId, element)
     {
         let { thumbWidth, thumbHeight } = this._thumbnailSize(mediaId);
-        element.style.setProperty("--thumb-width", `${thumbWidth}px`);
-        element.style.setProperty("--thumb-height", `${thumbHeight}px`);
 
-        // Store our preferred thumbnail size directly too to make it easier to access.
+        // Store the preferred thumbnail size.
         element.origWidth = thumbWidth;
         element.origHeight = thumbHeight;
     }
