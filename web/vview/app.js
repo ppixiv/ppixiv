@@ -253,12 +253,7 @@ export default class App
         // Create the screens.
         this._screenSearch = new ScreenSearch({ container: document.body, visible: false });
         this._screenIllust = new ScreenIllust({ container: document.body, visible: false });
-        this._currentScreenName = null;
-
-        this._screens = {
-            search: this._screenSearch,
-            illust: this._screenIllust,
-        };
+        this._currentScreen = null;
 
         // Create the data source for this page.
         this.setCurrentDataSource({ cause: "initialization" });
@@ -437,16 +432,16 @@ export default class App
             newScreenName = dataSource.defaultScreen;
         else
             newScreenName = args.hash.get("view");
-        let newScreen = this._screens[newScreenName];
+        console.assert(newScreenName == "illust" || newScreenName == "search", newScreenName);
+        let newScreen = newScreenName == "illust"? this._screenIllust:this._screenSearch;
 
         // Remember what we were displaying before we start changing things.
-        let oldScreenName = this._currentScreenName;
-        let oldScreen = this._screens[oldScreenName];
+        let oldScreen = this._currentScreen;
 
         // The media ID we're displaying if we're going to ScreenIllust.  If this is slideshow=first,
         // this will be null.
         let mediaId = null;
-        if(newScreenName == "illust")
+        if(newScreen.screenType == "illust")
             mediaId = dataSource.getUrlMediaId(args);
 
         // If we're going back to the start of the search, update the page URL to put it back
@@ -470,9 +465,9 @@ export default class App
         let targetMediaId = null;
         if(!scrollToTop)
         {
-            if(newScreenName == "search")
+            if(newScreen.screenType == "search")
             {
-                if(oldScreenName == "illust")
+                if(oldScreen?.screenType == "illust")
                 {
                     // When going from illust -> search, target the image that was being displayed, so
                     // we can scroll to it.
@@ -485,7 +480,7 @@ export default class App
                     targetMediaId = newScreen.getTargetMediaId(args);
                 }
             }
-            else if(newScreenName == "illust")
+            else if(newScreen.type == "illust")
             {
                 // Use the image we'll be displaying.
                 targetMediaId = mediaId;
@@ -498,7 +493,7 @@ export default class App
         // If slideshow=first, this is starting a slideshow at whichever image is first in the
         // results.  Set the media ID now that the data source is initialized and can look up
         // pages.
-        if(newScreenName == "illust" && args.hash.get("slideshow") == "first")
+        if(newScreen.screenType == "illust" && args.hash.get("slideshow") == "first")
         {
             mediaId = await this.getMediaIdForSlideshow({ dataSource });
             if(mediaId == null)
@@ -534,12 +529,12 @@ export default class App
         }
 
         // If we're entering ScreenSearch, ignore clicks for a while.  See _windowClickCapture.
-        if(newScreenName == "search")
+        if(newScreen.screenType == "search")
             this._ignoreClicksUntil = Date.now() + 100;
 
-        console.log(`Showing screen: ${newScreenName}, data source: ${this._dataSource.name}, cause: ${cause}, media ID: ${mediaId ?? "(none)"}, scroll to: ${targetMediaId}`);
+        console.log(`Showing screen: ${newScreen.screenType}, data source: ${this._dataSource.name}, cause: ${cause}, media ID: ${mediaId ?? "(none)"}, scroll to: ${targetMediaId}`);
 
-        this._currentScreenName = newScreenName;
+        this._currentScreen = newScreen;
 
         if(newScreen != oldScreen)
         {
@@ -552,7 +547,7 @@ export default class App
                 newScreen.visible = true;
 
             let e = new Event("screenchanged");
-            e.newScreen = newScreenName;
+            e.newScreen = newScreen.screenType;
             window.dispatchEvent(e);
         }
 
@@ -660,16 +655,9 @@ export default class App
     }
 
     // Return the displayed screen instance or name.
-    getDisplayedScreen({name=false}={})
+    getDisplayedScreen()
     {
-        for(let screenName in this._screens)
-        {
-            let screen = this._screens[screenName];
-            if(screen.active)
-                return name? screenName:screen;
-        }        
-
-        return null;
+        return this._currentScreen?.screenType;
     }
 
     _setActiveScreenInUrl(args, screen)
@@ -695,7 +683,7 @@ export default class App
 
     get navigateOutEnabled()
     {
-        if(this._currentScreenName != "illust" || this._dataSource == null)
+        if(this._currentScreen?.screenType != "illust" || this._dataSource == null)
             return false;
 
         let mediaId = this._dataSource.getUrlMediaId(helpers.args.location);
@@ -728,7 +716,7 @@ export default class App
     // has an effect if search isn't already active.
     scrollSearchToMediaId(dataSource, mediaId)
     {
-        if(this._currentScreenName == "search")
+        if(this._currentScreen.screenType == "search")
             return;
 
         this._screenSearch.setDataSource(dataSource, { targetMediaId: mediaId });
@@ -981,7 +969,7 @@ export default class App
     // Redirect keyboard events that didn't go into the active screen.
     _redirectEventToScreen = (e) =>
     {
-        let screen = this.getDisplayedScreen();
+        let screen = this._currentScreen;
         if(screen == null)
             return;
 
@@ -1007,7 +995,7 @@ export default class App
     _windowKeydown = (e) =>
     {
         // Ignore keypresses if we haven't set up the screen yet.
-        let screen = this.getDisplayedScreen();
+        let screen = this._currentScreen;
         if(screen == null)
             return;
 
@@ -1086,8 +1074,7 @@ export default class App
     toggleSlideshow()
     {
         // Add or remove slideshow=1 from the hash.
-        let viewingIllust = this._currentScreenName == "illust";
-        if(!viewingIllust)
+        if(this._currentScreen.screenType != "illust")
             return;
 
         let args = helpers.args.location;
@@ -1097,9 +1084,7 @@ export default class App
         else
             args.hash.set("slideshow", "1");
 
-        // If we're on the illust view this replaces the current URL since it's just a
-        // settings change, otherwise this is a navigation.
-        helpers.navigate(args, { addToHistory: !viewingIllust, cause: "toggle slideshow" });
+        helpers.navigate(args, { addToHistory: false, cause: "toggle slideshow" });
     }
 
     get slideshowMode()
@@ -1109,7 +1094,7 @@ export default class App
 
     loopSlideshow()
     {
-        if(this._currentScreenName != "illust")
+        if(this._currentScreen.screenType != "illust")
             return;
 
         let args = helpers.args.location;

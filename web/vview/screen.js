@@ -3,6 +3,9 @@ import Widget from 'vview/widgets/widget.js';
 // The base class for our main screens.
 export default class Screen extends Widget
 {
+    // Return "screen" or "illust".
+    get screenType() { return null; }
+
     // Handle a key input.  This is only called while the screen is active.
     handleKeydown(e)
     {

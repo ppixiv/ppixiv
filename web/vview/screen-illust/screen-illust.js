@@ -26,6 +26,8 @@ import { helpers } from 'vview/misc/helpers.js';
 // The main UI.  This handles creating the viewers and the global UI.
 export default class ScreenIllust extends Screen
 {
+    get screenType() { return "illust"; }
+
     constructor(options)
     {
         super({...options, template: `

@@ -12,6 +12,8 @@ import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
 // The search UI.
 export default class ScreenSearch extends Screen
 {
+    get screenType() { return "search"; }
+
     constructor(options)
     {
         super({...options, template: `
