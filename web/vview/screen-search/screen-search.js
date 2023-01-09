@@ -21,10 +21,10 @@ export default class ScreenSearch extends Screen
                 <!-- The tree widget for local navigation: -->
                 <div class=local-navigation-box hidden></div>
 
-                <vv-container class=title-bar-container></vv-container>
+                <vv-container class=search-mobile-ui></vv-container>
 
                 <div class="search-results scroll-container">
-                    <div class=top-ui-box hidden></div>
+                    <div class=search-desktop-ui hidden></div>
 
                     <vv-container class=thumbnail-container-box></vv-container>
                 </div>
@@ -42,26 +42,27 @@ export default class ScreenSearch extends Screen
         // Add the top search UI if we're on desktop.
         if(!ppixiv.mobile)
         {
-            let topUiBox = this.root.querySelector(".top-ui-box");
-            topUiBox.hidden = false;
+            let searchDesktopUiBox = this.root.querySelector(".search-desktop-ui");
+            searchDesktopUiBox.hidden = false;
 
             this.desktopSearchUi = new DesktopSearchUI({
-                container: topUiBox,
+                container: searchDesktopUiBox,
             });
 
             // Add a slight delay before hiding the UI.  This allows opening the UI by swiping past the top
             // of the window, without it disappearing as soon as the mouse leaves the window.  This doesn't
             // affect opening the UI.
-            new HoverWithDelay({ parent: this, element: topUiBox, enterDelay: 0, exitDelay: 0.25 });
+            new HoverWithDelay({ parent: this, element: searchDesktopUiBox, enterDelay: 0, exitDelay: 0.25 });
             
             // Set --ui-box-height to the container's height, which is used by the hover style.
             let resize = new ResizeObserver(() => {
-                topUiBox.style.setProperty('--ui-box-height', `${topUiBox.offsetHeight}px`);
-            }).observe(topUiBox);
+                searchDesktopUiBox.style.setProperty('--ui-box-height', `${searchDesktopUiBox.offsetHeight}px`);
+            }).observe(searchDesktopUiBox);
             this.shutdownSignal.addEventListener("abort", () => resize.disconnect());
 
             // The ui-on-hover class enables the hover style if it's enabled.
-            let refreshUiOnHover = () => helpers.html.setClass(topUiBox, "ui-on-hover", ppixiv.settings.get("ui-on-hover") && !ppixiv.mobile);
+            let refreshUiOnHover = () => helpers.html.setClass(searchDesktopUiBox, "ui-on-hover",
+                ppixiv.settings.get("ui-on-hover") && !ppixiv.mobile);
             ppixiv.settings.addEventListener("ui-on-hover", refreshUiOnHover, { signal: this.shutdownSignal });
             refreshUiOnHover();
         }
@@ -69,7 +70,7 @@ export default class ScreenSearch extends Screen
         if(ppixiv.mobile)
         {
             this.mobileSearchUi = new SearchUIMobile({
-                container: this.root.querySelector(".title-bar-container"),
+                container: this.root.querySelector(".search-mobile-ui"),
             });
 
             let navigationBarContainer = this.root.querySelector(".mobile-navigation-bar-container");

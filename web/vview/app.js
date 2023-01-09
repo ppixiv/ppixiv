@@ -427,11 +427,7 @@ export default class App
         });
 
         // Figure out which screen to display.
-        let newScreenName;
-        if(!args.hash.has("view"))
-            newScreenName = dataSource.defaultScreen;
-        else
-            newScreenName = args.hash.get("view");
+        let newScreenName = args.hash.get("view") ?? dataSource.defaultScreen;
         console.assert(newScreenName == "illust" || newScreenName == "search", newScreenName);
         let newScreen = newScreenName == "illust"? this._screenIllust:this._screenSearch;
 

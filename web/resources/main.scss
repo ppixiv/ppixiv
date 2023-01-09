@@ -1064,58 +1064,6 @@ body.hide-r18g .r18g { display: none; }
     z-index: -1;
 }
 
-.top-ui-box
-{
-    /* This places the thumbnail UI at the top, so the thumbnails sit below it when
-     * scrolled all the way up, and scroll underneath it. */
-    position: sticky;
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    padding-top: calc(max(1em, env(safe-area-inset-top)));
-    padding-bottom: 1em;
-    z-index: 1;
-    transition: top ease-out .2s;
-
-    html:not(.mobile) & {
-        // Prevent the empty space around the UI for centering from eating button presses.
-        pointer-events: none;
-
-        // Reenable it in its children.
-        .thumbnail-ui-box {
-            pointer-events: auto;
-        }
-    }
-
-    &:not(.ui-on-hover)
-    {
-        top: 0;
-    }
-
-    /* If .ui-on-hover is set, switch to showing the top UI when it's hovered instead of sticky. */
-    &.ui-on-hover
-    {
-        /* Normally pointer-events is disabled above, so the sides of the UI box don't cover clicks.
-         * However, that also makes the hover not include the top padding above the UI, causing it
-         * to flicker on and off when the mouse is in that area.  This is tricky to fix nicely, so just
-         * stop disabling pointer-events when ui-on-hover is enabled. */
-        html:not(.mobile) & {
-            pointer-events: auto;
-        }
-
-        top: 0;
-
-        // .force-open is set to lock the UI in place when a menu is open.  It has the same
-        // effect as a hover.
-        &:not(.hover):not(.force-open)
-        {
-            // --ui-box-height is the current height of this box.
-            top: calc(-1 * var(--ui-box-height) + 40px);
-        }
-    }
-}
-
 .screen-search-container {
     // The amount of padding at the bottom of the thumbnail scroller to make room for the
     // navigation bar.
@@ -1263,8 +1211,56 @@ body.hide-r18g .r18g { display: none; }
         padding-bottom: calc(env(safe-area-inset-bottom));
     }
 
-    .thumbnail-ui-box-container {
-        display: contents;
+    .search-desktop-ui
+    {
+        // This places the thumbnail UI at the top, so the thumbnails sit below it when
+        // scrolled all the way up, and scroll underneath it.
+        position: sticky;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        padding-top: calc(max(1em, env(safe-area-inset-top)));
+        padding-bottom: 1em;
+        z-index: 1;
+        transition: top ease-out .2s;
+
+        html:not(.mobile) & {
+            // Prevent the empty space around the UI for centering from eating button presses.
+            pointer-events: none;
+
+            // Reenable it in its children.
+            .thumbnail-ui-box {
+                pointer-events: auto;
+            }
+        }
+
+        &:not(.ui-on-hover)
+        {
+            top: 0;
+        }
+
+        // If .ui-on-hover is set, switch to showing the top UI when it's hovered instead of sticky.
+        &.ui-on-hover
+        {
+            // Normally pointer-events is disabled above, so the sides of the UI box don't cover clicks.
+            // However, that also makes the hover not include the top padding above the UI, causing it
+            // to flicker on and off when the mouse is in that area.  This is tricky to fix nicely, so just
+            // stop disabling pointer-events when ui-on-hover is enabled.
+            html:not(.mobile) & {
+                pointer-events: auto;
+            }
+
+            top: 0;
+
+            // .force-open is set to lock the UI in place when a menu is open.  It has the same
+            // effect as a hover.
+            &:not(.hover):not(.force-open)
+            {
+                // --ui-box-height is the current height of this box.
+                top: calc(-1 * var(--ui-box-height) + 40px);
+            }
+        }
     }
 
     .thumbnail-ui-box {
