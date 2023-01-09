@@ -194,7 +194,6 @@ export default class SearchView extends Widget
 
         // This caches the results of isMediaIdExpanded.
         this._mediaIdExpandedCache = null;
-        ppixiv.muting.addEventListener("mutes-changed", () => this._mediaIdExpandedCache = null, this._signal);
 
         new ResizeObserver(() => this.refreshImages({cause: "resize"})).observe(this.root);
 
@@ -1726,8 +1725,8 @@ export default class SearchView extends Widget
     // Refresh all thumbs after the mute list changes.
     refreshAfterMuteChange()
     {
-        for(let element of Object.values(this.thumbs))
-            this.setupThumb(element);
+        this._mediaIdExpandedCache = null;
+        this.refreshImages({cause: "mutes-changed", purge: true});
     }
 
     getLoadedThumbs()
