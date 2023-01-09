@@ -1517,26 +1517,40 @@ body.hide-r18g .r18g { display: none; }
 
         &.muted {
             .muted-text {
-                pointer-events: none;
-                left: 0;
-                top: 50%;
-                width: 100%;
-                height: 32px;
                 position: absolute;
-                color: #000;
-                text-shadow: 0px 1px 1px #fff, 0px -1px 1px #fff, 1px 0px 1px #fff, -1px 0px 1px #fff;
-                font-size: 22px;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                pointer-events: none;
+
+                color: #fff;
+
+                .muted-icon
+                {
+                    opacity: 0.8;
+                    display: block;
+                    font-size: calc(min(var(--thumb-height) * .25, 3rem));
+                    //font-size: 4rem;
+                }
+                .muted-label
+                {
+                    font-size: 1rem;
+                }
             }
 
             // Crop off the blur.  Don't always crop thumbs, since it causes a delay on iOS
             // every time thumbs scroll in.
             overflow: hidden;
 
-            /* Zoom muted images in a little, and zoom them out on hover, which is the opposite
-            * of other images.  This also helps hide the black bleed around the edge caused by
-            * the blur. */
+            // Zoom muted images in a little, and zoom them out on hover, which is the opposite
+            // of other images.
             .thumb {
-                filter: blur(5px) grayscale(1);
+                filter: blur(5px) grayscale(.2) brightness(0.3);
                 transform: scale(1.25, 1.25);
             }
 

@@ -962,7 +962,7 @@ export default class SearchView extends Widget
                     </div>
                 </div>
                 <div class=muted-text>
-                    <span>Muted:</span>
+                    ${ helpers.createIcon("mat:block", { classes: ["muted-icon"] }) }
                     <span class=muted-label></span>
                 </div>
             </div>
