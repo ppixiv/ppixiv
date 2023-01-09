@@ -45,6 +45,14 @@ class ThumbnailGrid
         if(resultWidth <= this.sizingStyle.containerWidth)
             return row;
         
+        // If this is the only thumb in this row, it should always fit.  If something goes wrong
+        // and it doesn't, leave it alone.
+        if(row.children.length == 1)
+        {
+            console.error("Single thumbnail didn't scale to fit:", row);
+            return;
+        }
+
         // Adding another thumb to it caused it to overflow, so this row is full.  Remove the
         // thumb from the overfilled row, re-align the row and put the thumb on a new one.
         node.remove();
@@ -136,7 +144,9 @@ class ThumbnailGrid
         let maxAllowedHeight = this.sizingStyle.thumbHeight * 2;
         expandBy = Math.min(expandBy, maxAllowedHeight / averageHeight);
 
-        if(expandBy > 1)
+        // If there's only one thumb in the row, allow scaling it down so we always make single thumbs
+        // fit.  If there are more than one, don't shrink it since we'll split the row instead.
+        if(row.children.length == 1 || expandBy > 1)
         {
             for(let thumb of row.children)
             {
@@ -173,7 +183,7 @@ export default class SearchView extends Widget
             </div>
         `});
 
-        // The node that scrolls to show thumbs.  This is normally the document itself.
+        // The node that scrolls to show thumbs.
         this.scrollContainer = this.root.closest(".scroll-container");
         this.thumbnailBox = this.root.querySelector(".thumbnails");
         this._setDataSourceRunner = new GuardedRunner(this._signal);
