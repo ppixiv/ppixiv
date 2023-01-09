@@ -120,7 +120,8 @@ class ThumbnailGrid
         if(this.sizingStyle.thumbnailStyle != "aspect")
             return;
 
-        // Scale each thumb to the average height of the row.
+        // Scale each thumb to the average height of the row, so all thumbs on the row have
+        // the same height.
         let averageHeight = this.getAverageHeightOfRow(row);
         for(let thumb of row.children)
         {
@@ -129,9 +130,7 @@ class ThumbnailGrid
             thumb.currentWidth *= ratio;
         }
 
-        // Now scale the whole row to fill horizontally.  This gives thumbs that are both lined up
-        // vertically and fill the row horizontally.  This is only scaling the thumbs and not the
-        // padding, and only scales up (if we need to scale down we'll let it wrap instead).
+        // Now try to scale the whole row to fit horizontally.
         let rowWidth = 0;
         for(let thumb of row.children)
             rowWidth += thumb.currentWidth;
