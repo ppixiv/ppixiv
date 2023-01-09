@@ -92,6 +92,13 @@ export class DropdownBoxOpener extends Actor
 
         this._visible = value;
 
+        // If we're inside ScreenSearch's top-ui-box container, set .force-open on that element
+        // while we're open.  This prevents it from being hidden while a dropdown inside it is
+        // open.
+        let topUiBox = this.parent.closest(".top-ui-box");
+        if(topUiBox)
+            helpers.html.setClass(topUiBox, "force-open", value);
+
         if(value)
         {
             let asDialog = this.asDialog();
@@ -323,20 +330,6 @@ export class DropdownMenuOpener extends DropdownBoxOpener
     }
 
     get closeOnClickInside() { return true; }
-
-    set visible(value)
-    {
-        super.visible = value;
-
-        // If we're inside ScreenSearch's top-ui-box container, set .force-open on that element
-        // while we're open.  This prevents it from being hidden while a dropdown inside it is
-        // open.
-        let topUiBox = this.parent.closest(".top-ui-box");
-        if(topUiBox)
-            helpers.html.setClass(topUiBox, "force-open", value);
-    }
-
-    get visible() { return super.visible; }
 
     // Close the popup when something inside is clicked.  This can be prevented with
     // stopPropagation, or with the keep-menu-open class.
