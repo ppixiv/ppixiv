@@ -1857,6 +1857,11 @@ body.hide-r18g .r18g { display: none; }
     align-content: center;
     align-items: center;
     height: 2em;
+
+    // Make sure CJK fonts don't extend the label beyond our 2em height when padding is
+    // added.
+    line-height: 1.5em;
+
     border-radius: 2px;
 
     color: var(--box-link-fg-color);
