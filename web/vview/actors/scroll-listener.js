@@ -10,6 +10,7 @@
 // too rapidly if the scroller is moved up and down quickly.
 
 import Actor from 'vview/actors/actor.js';
+import FlingVelocity from 'vview/util/fling-velocity.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 export default class ScrollListener extends Actor
@@ -46,12 +47,13 @@ export default class ScrollListener extends Actor
         this._threshold = threshold;
         this._thresholdUp = thresholdUp ?? threshold;
         this._onchange = onchange;
-        this._motion = 0;
         this._lastScrollY = 0;
         this._defaultValue = defaultValue;
         this._scrolledForwards = false;
         this._stickyUiNode = stickyUiNode;
         this._scroller.addEventListener("scroll", () => this._refreshAfterScroll(), this._signal);
+
+        this._recentPointerMovement = new FlingVelocity({ samplePeriod: 1 });
 
         // If we've been given a sticky UI node, refresh if its height changes.
         if(this._stickyUiNode)
@@ -71,7 +73,7 @@ export default class ScrollListener extends Actor
             scroller,
             parent: this,
             onchange: () => {
-                this._refreshAfterScroll({force: true});
+                this._refreshAfterScroll({ignoreScrollHeight: true});
             },
         });
 
@@ -87,11 +89,12 @@ export default class ScrollListener extends Actor
 
         // Set this direction by simulating a drag in that direction, so we only set the
         // direction if it would normally be possible.
-        this._motion = resetTo? this._threshold:-this._thresholdUp;
+        this._recentPointerMovement.reset();
+        this._recentPointerMovement.addSample({ y: resetTo? this._threshold:-this._thresholdUp });
 
         this._updateScrolledForwards({callOnchange});
 
-        this._motion = 0;
+        this._recentPointerMovement.reset();
     }
 
     // Return true if the most recent scroll was positive (down or right), or false if it was
@@ -107,17 +110,18 @@ export default class ScrollListener extends Actor
         return helpers.math.clamp(this._scroller.scrollTop, 0, this._scroller.scrollHeight-this._scroller.offsetHeight);
     }
 
-    _refreshAfterScroll({force=false, callOnchange=true}={})
+    _refreshAfterScroll({ignoreScrollHeight=false}={})
     {
         // If scrollHeight changed, content may have been added or removed to the scroller, so
         // we don't know if we've actually been scrolling up or down.  Ignore a single scroll
         // event after the scroller changes, so we don't treat a big content change as a scroll.
-        if(!force && this._lastScrollHeight != this._scroller.scrollHeight)
+        // Still update the result so we notice if we're now scrolled to the edge, just ignore
+        // the scroll delta.
+        if(ignoreScrollHeight || this._lastScrollHeight != this._scroller.scrollHeight)
         {
             console.log("Ignoring scroll after scroller change");
             this._lastScrollHeight = this._scroller.scrollHeight;
             this._lastScrollY = this._currentScrollPosition;
-            return;
         }
 
         let newScrollPosition = this._currentScrollPosition;
@@ -125,14 +129,16 @@ export default class ScrollListener extends Actor
         this._lastScrollY = newScrollPosition;
 
         // If scrolling changed direction, reset motion.
-        if(delta > 0 != this._motion > 0)
-            this._motion = 0;
-        this._motion += delta;
+        let { distance } = this._recentPointerMovement.getMovementInDirection("down");
+        if(delta > 0 != distance > 0)
+            this._recentPointerMovement.reset();
 
-        this._updateScrolledForwards({callOnchange});
+        this._recentPointerMovement.addSample({ y: delta });
+
+        this._updateScrolledForwards({callOnchange: true});
     }
 
-    // Update this._scrolledForwards after a change to this._motion.
+    // Update this._scrolledForwards after movement.
     _updateScrolledForwards({callOnchange})
     {
         let newScrollTop = this._currentScrollPosition;
@@ -141,9 +147,10 @@ export default class ScrollListener extends Actor
         // If we've moved far enough in either direction, set it as the scrolling direction.
         let scrolledForwards = this._scrolledForwards;
 
-        if(this._motion <= -this._thresholdUp)
+        let { distance } = this._recentPointerMovement.getMovementInDirection("down");
+        if(distance <= -this._thresholdUp)
             scrolledForwards = false;
-        else if(Math.abs(this._motion) >= this._threshold)
+        else if(Math.abs(distance) >= this._threshold)
             scrolledForwards = true;
 
         // If we're at the very top or very bottom, the user can't scroll any further to reach
