@@ -357,7 +357,8 @@ export default class ScreenIllust extends Screen
         // in order to create the viewer, which means we don't have to go async here.  If
         // this returns null, it should always mean we're viewing an image's error page.
         let earlyIllustData = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
-        helpers.setTitleAndIcon(earlyIllustData);
+        if(this.active)
+            helpers.setTitleAndIcon(earlyIllustData);
 
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
         helpers.html.setClass(document.body, "dot", helpers.pixiv.tagsContainDot(earlyIllustData?.tagList));

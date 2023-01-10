@@ -239,7 +239,9 @@ export default class ScreenSearch extends Screen
             this.mobileMenuBar.refreshUi();
 
         this.dataSource.setPageIcon();
-        helpers.setPageTitle(this.dataSource.pageTitle || "Loading...");
+
+        if(this.active)
+            helpers.setPageTitle(this.dataSource.pageTitle || "Loading...");
         
         // Refresh whether we're showing the local navigation widget and toggle button.
         helpers.html.setDataSet(this.root.dataset, "showNavigation", this.canShowLocalNavigation && this._localNavigationVisible);
