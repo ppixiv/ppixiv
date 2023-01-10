@@ -180,7 +180,7 @@ export default class DragHandler extends Actor
     }
 
     // Return true if a drag is active.
-    get is_dragging() { return this._dragStarted; }
+    get isDragging() { return this._dragStarted; }
 
     // If a drag is active, cancel it.
     cancelDrag()

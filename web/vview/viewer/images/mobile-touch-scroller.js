@@ -226,7 +226,7 @@ export default class TouchScroller extends Actor
         // just ended and we're transitioning into "animating", but don't do this if we're called
         // while a drag is still active.  This happens the user double-clicks to zoom the image
         // while still dragging;
-        if(this.dragger.is_dragging)
+        if(this.dragger.isDragging)
         {
             // console.log("Ignoring startFling because a drag is still active");
             return;

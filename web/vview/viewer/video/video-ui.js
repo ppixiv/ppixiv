@@ -312,7 +312,7 @@ class VolumeSliderWidget extends Widget
         });
     }
 
-    get is_dragging()
+    get isDragging()
     {
         return this._capturedPointerId != null;
     }
@@ -338,7 +338,7 @@ class VolumeSliderWidget extends Widget
     setValue(value)
     {
         // Ignore external changes while we're dragging.
-        if(this.is_dragging)
+        if(this.isDragging)
             return;
 
         this.setValueInternal(value);
