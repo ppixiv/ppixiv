@@ -127,8 +127,8 @@ export function parseRange(range)
         return null;
         
     let parts = range.split("...");
-    let min = helpers.strings.parseRatio(parts[0]);
-    let max = helpers.strings.parseRatio(parts[1]);
+    let min = parseRatio(parts[0]);
+    let max = parseRatio(parts[1]);
     return [min, max];
 }
 
