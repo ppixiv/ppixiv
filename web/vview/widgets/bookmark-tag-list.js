@@ -210,6 +210,7 @@ export class BookmarkTagListWidget extends IllustWidget
         syncButton.addEventListener("click", async (e) => {
             let bookmarkTags = await Actions.loadRecentBookmarkTags();
             RecentBookmarkTags.setRecentBookmarkTags(bookmarkTags);
+            this.refreshInternal({mediaId: this.mediaId});
         });
     }
 
