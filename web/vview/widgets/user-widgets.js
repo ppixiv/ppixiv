@@ -31,7 +31,7 @@ export class GetUserInfo extends AsyncLookup
 
         // Refresh when the user data changes.  We don't watch for changes to media IDs since
         // we don't expect the user for an image to change.
-        ppixiv.mediaCache.addEventListener("usermodified", (e) => {
+        ppixiv.userCache.addEventListener("usermodified", (e) => {
             if(e.userId == this._id)
                 this.refresh();
         }, this._signal);
@@ -504,7 +504,7 @@ class FollowWidget extends Widget
         if(!this.visible || userId != this.userId)
             return;
 
-        this.refresh();
+        this.loadUser();
     };
 
     async loadUser()
