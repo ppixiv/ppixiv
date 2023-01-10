@@ -37,6 +37,8 @@ export class GetMediaInfo extends AsyncLookup
         if(!(this._neededData instanceof Function))
             this._neededData = () => neededData;
 
+        this._info = { }
+
         // Refresh when the image data changes.
         ppixiv.mediaCache.addEventListener("mediamodified", (e) => {
             if(e.mediaId == this._id)
@@ -55,7 +57,7 @@ export class GetMediaInfo extends AsyncLookup
     {
         // Grab the illust info.
         let mediaId = this._id;
-        let info = { mediaId: this._id };
+        this._info = { mediaId: this._id };
         
         // If we have a media ID and we want media info (not just the media ID itself), load
         // the info.
@@ -65,23 +67,23 @@ export class GetMediaInfo extends AsyncLookup
             let full = neededData == "full";
 
             // See if we have the data the widget wants already.
-            info.mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._id, { full });
+            this._info.mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._id, { full });
 
             // If we need to load data, clear the widget while we load, so we don't show the old
             // data while we wait for data.  Skip this if we don't need to load, so we don't clear
             // and reset the widget.  This can give the widget an illust ID without data, which is
             // OK.
-            if(info.mediaInfo == null)
-                await this._onrefresh(info);
+            if(this._info.mediaInfo == null)
+                await this._onrefresh(this._info);
 
-            info.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._id, { full });
+            this._info.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._id, { full });
         }
 
         // Stop if the media ID changed while we were async.
         if(this._id != mediaId)
             return;
 
-        await this._onrefresh(info);
+        await this._onrefresh(this._info);
     }    
 }
 
@@ -105,6 +107,12 @@ export class IllustWidget extends Widget
     setMediaId(mediaId) { this.getMediaInfo.id = mediaId; }
     get mediaId() { return this.getMediaInfo.id; }
     get mangaPage() { return this.getMediaInfo.mangaPage; }
+
+    refresh()
+    {
+        super.refresh();
+        this.refreshInternal(this.getMediaInfo.info);
+    }
 
     async refreshInternal({ mediaId, mediaInfo })
     {
