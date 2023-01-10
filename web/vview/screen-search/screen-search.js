@@ -79,12 +79,14 @@ export default class ScreenSearch extends Screen
             });
 
             // Set the height on the nav bar and title for transitions to use.
-            helpers.html.setHeightAsProperty(this.mobileSearchUi.root, "--title-height", {
+            helpers.html.setSizeAsProperty(this.mobileSearchUi.root, {
                 ...this._signal,
+                heightProperty: "--title-height",
                 target: this.root,
             });
-            helpers.html.setHeightAsProperty(this.mobileMenuBar.root, "--nav-bar-height", {
+            helpers.html.setSizeAsProperty(this.mobileMenuBar.root, {
                 ...this._signal,
+                heightProperty: "--nav-bar-height",
                 target: this.root,
             });
     

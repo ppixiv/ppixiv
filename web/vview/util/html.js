@@ -253,24 +253,27 @@ function makeSVGIdsUnique(svg)
 // Set node's height as a CSS variable.
 //
 // If target is null, the variable is set on the node itself.
-export function setHeightAsProperty(node, name, { target, signal }={})
+export function setSizeAsProperty(node, { heightProperty, widthProperty, target, signal }={})
 {
     if(target == null)
         target = node;
-    let refreshHeight = () =>
+    let refreshSize = () =>
     {
         // Our height usually isn't an integer.  Round down, so we prefer to overlap backgrounds
         // with things like the video UI rather than leaving a gap.
-        let {height} = node.getBoundingClientRect();
-        target.style.setProperty(name, `${Math.floor(height)}px`);
+        let { width, height } = node.getBoundingClientRect();
+        if(widthProperty)
+            target.style.setProperty(widthProperty, `${Math.floor(width)}px`);
+        if(heightProperty)
+            target.style.setProperty(heightProperty, `${Math.floor(height)}px`);
     };
 
-    let resizeObserver = new ResizeObserver(() => refreshHeight());
+    let resizeObserver = new ResizeObserver(() => refreshSize());
     resizeObserver.observe(node);
     if(signal)
         signal.addEventListener("abort", () => resizeObserver.disconnect());
 
-    refreshHeight();
+    refreshSize();
 }
 
 // Return the offset of element relative to an ancestor.

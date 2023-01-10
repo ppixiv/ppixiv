@@ -138,8 +138,9 @@ export default class MobileImageUI extends Widget
         });
 
         // This tells widgets that want to be above us how tall we are.
-        helpers.html.setHeightAsProperty(this.querySelector(".menu-bar"), "--menu-bar-height", {
+        helpers.html.setSizeAsProperty(this.querySelector(".menu-bar"), {
             target: this.closest(".screen"),
+            heightProperty: "--menu-bar-height",
             ...this._signal
         });
 
