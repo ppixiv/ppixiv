@@ -370,10 +370,22 @@ export default class DataSource extends EventTarget
         // Verify that all results have media info registered.
         for(let mediaId of mediaIds)
         {
-            if(ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }) == null)
+            let { type, id } = helpers.mediaId.parse(mediaId);
+            if(type == "user")
             {
-                console.error(`Data source returned ${mediaId} without registering media info`, this);
-                throw new Error(`Data source returned didn't register media info`);
+                if(ppixiv.extraCache.getQuickUserData(id) == null)
+                {
+                    console.error(`Data source returned ${mediaId} without registering user info`, this);
+                    throw new Error(`Data source returned didn't register user info`);
+                }
+            }
+            else
+            {
+                if(ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }) == null)
+                {
+                    console.error(`Data source returned ${mediaId} without registering media info`, this);
+                    throw new Error(`Data source returned didn't register media info`);
+                }
             }
         }
 
