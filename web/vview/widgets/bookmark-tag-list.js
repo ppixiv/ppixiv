@@ -70,8 +70,6 @@ export class BookmarkTagListWidget extends IllustWidget
     
     async visibilityChanged()
     {
-        super.visibilityChanged();
-
         if(this.visible)
         {
             // If we were deactivated, reactivate when we become visible again.
@@ -93,6 +91,9 @@ export class BookmarkTagListWidget extends IllustWidget
 
             this.displayingMediaId = null;
         }
+
+        // The base class will refresh, so call this after calling saveCurrentTags().
+        super.visibilityChanged();
     }
 
     _clearTagList()
@@ -112,23 +113,35 @@ export class BookmarkTagListWidget extends IllustWidget
         if(this.deactivated)
             return;
 
+        // If we're hidden, leave the list empty.
+        if(!this.visible)
+            mediaId = null;
+
         // If we're refreshing the same illust that's already refreshed, store which tags were selected
         // before we clear the list.
         let oldSelectedTags = this.displayingMediaId == mediaId? this.selectedTags:[];
 
-        this.displayingMediaId = null;
-
         let bookmarkTags = this.root.querySelector(".tag-list");
-        this._clearTagList();
 
-        if(mediaId == null || !this.visible)
+        // Make sure we don't show tags from a previous image.
+        if(mediaId != this.displayingMediaId)
+        {
+            this._clearTagList();
+            this.displayingMediaId = null;
+        }
+
+        if(mediaId == null)
             return;
 
-        // Create a temporary entry to show loading while we load bookmark details.
-        let entry = document.createElement("span");
-        entry.classList.add("loading");
-        bookmarkTags.appendChild(entry);
-        entry.innerText = "Loading...";
+        // If the ID is changing (we're not refreshing in-place), the list will be empty while we
+        // load info, so create a temporary "loading" entry.
+        if(mediaId != this.displayingMediaId)
+        {
+            let entry = document.createElement("span");
+            entry.classList.add("loading");
+            bookmarkTags.appendChild(entry);
+            entry.innerText = "Loading...";
+        }
 
         // If the tag list is open, populate bookmark details to get bookmark tags.
         // If the image isn't bookmarked this won't do anything.
