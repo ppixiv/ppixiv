@@ -1229,6 +1229,7 @@ export default class SearchView extends Widget
         
         let columns = containerWidth / desiredSize;
         columns = Math.floor(columns);
+        columns = Math.max(columns, 1);
 
         let remainingWidth = containerWidth - padding*(columns-1);
         let thumbWidth = Math.floor(remainingWidth / columns);
