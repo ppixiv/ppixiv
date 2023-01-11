@@ -476,7 +476,7 @@ export default class App
                     targetMediaId = newScreen.getTargetMediaId(args);
                 }
             }
-            else if(newScreen.type == "illust")
+            else if(newScreen.screenType == "illust")
             {
                 // Use the image we'll be displaying.
                 targetMediaId = mediaId;

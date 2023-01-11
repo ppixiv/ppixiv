@@ -150,8 +150,6 @@ export class VView extends VViewBase
 
         // If a file was present in the URL when we're created, try to start on the page
         // containing it, overriding the starting page.
-        // XXX: this handles going from an image to a search, but doesn't handle restoring
-        // scroll position on reload
         this._selectInitialPage(targetMediaId);
     }
 
