@@ -119,7 +119,7 @@ export default class ScrollListener extends Actor
         // the scroll delta.
         if(ignoreScrollHeight || this._lastScrollHeight != this._scroller.scrollHeight)
         {
-            console.log("Ignoring scroll after scroller change");
+            // console.log("Ignoring scroll after scroller change");
             this._lastScrollHeight = this._scroller.scrollHeight;
             this._lastScrollY = this._currentScrollPosition;
         }

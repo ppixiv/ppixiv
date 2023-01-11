@@ -832,7 +832,7 @@ export default class SearchView extends Widget
             // thumbs near where we were.
             targetMediaId ??= savedScroll?.mediaId;
 
-            console.log(`Resetting view due to sizing change, target: ${targetMediaId}`);
+            // console.log(`Resetting view due to sizing change, target: ${targetMediaId}`);
             this._clearThumbs();
         }
 
