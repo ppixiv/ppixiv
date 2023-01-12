@@ -447,6 +447,7 @@ export default class ContextMenu extends Widget
         this.displayedMenu = this.root;
         this.visible = true;
         this.applyVisibility();
+        OpenWidgets.singleton.set(this, true);
 
         // Disable popup UI while a context menu is open.
         ClassFlags.get.set("hide-ui", true);
@@ -690,6 +691,7 @@ export default class ContextMenu extends Widget
         this.visible = false;
         this._hiddenTemporarily = false;
         this.applyVisibility();
+        OpenWidgets.singleton.set(this, false);
 
         this.displayedMenu = null;
         HideMouseCursorOnIdle.enableAll("contextMenu");

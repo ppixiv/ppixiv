@@ -2,7 +2,7 @@ import Actor from 'vview/actors/actor.js';
 import Widget from 'vview/widgets/widget.js';
 import Dialog from 'vview/widgets/dialog.js';
 import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
 
 // A helper to display a dropdown aligned to another node.
 export class DropdownBoxOpener extends Actor
@@ -99,6 +99,9 @@ export class DropdownBoxOpener extends Actor
         if(topUiBox)
             helpers.html.setClass(topUiBox, "force-open", value);
 
+        // Register this as an open widget to pause slideshows.
+        OpenWidgets.singleton.set(this, value);
+
         if(value)
         {
             let asDialog = this.asDialog();
@@ -133,7 +136,7 @@ export class DropdownBoxOpener extends Actor
                     if(e.target != this._dropdownDialog?.shutdownSignal)
                         return;
 
-                    console.log("DIalog dropdown closed");
+                    console.log("Dialog dropdown closed");
 
                     // The dropdown shut itself down and the dropdown with it.  Clear them so
                     // we don't try to shut them down again.
@@ -230,6 +233,7 @@ export class DropdownBoxOpener extends Actor
         }
 
         window.removeEventListener("resize", this.onwindowresize);
+        OpenWidgets.singleton.set(this, false);
     }
 
     _alignToButton()
