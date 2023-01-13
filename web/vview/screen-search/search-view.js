@@ -118,7 +118,10 @@ class ThumbnailGrid
     
         // Only adjust the size when in aspect mode, not for square thumbs.
         if(this.sizingStyle.thumbnailStyle != "aspect")
+        {
+            this.applySizes(row);
             return;
+        }
 
         // Scale each thumb to the average height of the row, so all thumbs on the row have
         // the same height.
@@ -157,6 +160,11 @@ class ThumbnailGrid
             thumb.currentHeight *= scaleY;
         }
 
+        this.applySizes(row);
+    }
+
+    applySizes(row)
+    {
         for(let thumb of row.children)
         {
             thumb.style.setProperty("--thumb-width", `${thumb.currentWidth}px`);
