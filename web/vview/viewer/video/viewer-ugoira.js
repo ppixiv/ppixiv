@@ -145,22 +145,19 @@ export default class ViewerUgoira extends ViewerVideoBase
         //
         // Like static image viewing, load the thumbnail, then the main image on top, since
         // the thumbnail will often be visible immediately.
-        if(url)
-        {
-            let img = document.createElement("img");
-            img.classList.add("low-res-preview");
-            img.style.position = "absolute";
-            img.style.width = "100%";
-            img.style.height = "100%";
-            img.style.objectFit = "contain";
-            img.src = url;
-            this.videoContainer.appendChild(img);
-            this.previewImage = img;
+        let img = document.createElement("img");
+        img.classList.add("low-res-preview");
+        img.style.position = "absolute";
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.objectFit = "contain";
+        img.src = url ?? helpers.other.blankImage;
+        this.videoContainer.appendChild(img);
+        this.previewImage = img;
 
-            // Allow clicking the previews too, so if you click to pause the video before it has enough
-            // data to start playing, it'll still toggle to paused.
-            img.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
-        }
+        // Allow clicking the previews too, so if you click to pause the video before it has enough
+        // data to start playing, it'll still toggle to paused.
+        img.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
     }
 
     set active(active)
