@@ -9,17 +9,32 @@ export class MenuOption extends Widget
     constructor({
         classes=[],
         refresh=null,
+        shouldBeVisible=null,
         ...options
     })
     {
         super(options);
 
         this.explanationNode = this.querySelector(".explanation");
+        this.shouldBeVisible = shouldBeVisible;
+
+        // shouldBeVisible is used to set visibility based on other stetings, so refresh
+        // visibility when other settings change.
+        if(shouldBeVisible != null)
+            ppixiv.settings.addEventListener("all", () => this.callVisibilityChanged(), this._signal);
 
         for(let className of classes)
             this.root.classList.add(className);
 
         this.onrefresh = refresh;
+    }
+
+    applyVisibility()
+    {
+        if(this.shouldBeVisible == null)
+            return super.applyVisibility();
+     
+        helpers.html.setClass(this.root, "hidden-widget", !this.shouldBeVisible());            
     }
 
     refresh()

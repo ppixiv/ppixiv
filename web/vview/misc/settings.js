@@ -187,8 +187,11 @@ export default class Settings extends EventTarget
         // Update the cached value.
         this._cacheValue(key, value);
 
-        let event = new Event(key);
-        this.dispatchEvent(event);
+        // Dispatch the setting name for listeners who want to know when a setting changes.
+        this.dispatchEvent(new Event(key));
+
+        // Dispatch "all" for listeners who want to know when any setting changes.
+        this.dispatchEvent(new Event("all"));
     }
 
     // Adjust a zoom setting up or down.

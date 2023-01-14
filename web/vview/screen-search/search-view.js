@@ -328,7 +328,10 @@ export default class SearchView extends Widget
         this.loadExpandedMediaIds(); // in case expand_manga_thumbnails has changed
         this.refreshImages({cause: "settings"});
 
-        helpers.html.setClass(document.body, "disable-thumbnail-zooming", ppixiv.settings.get("disable_thumbnail_zooming") || ppixiv.mobile);
+        let disableThumbnailZooming = ppixiv.settings.get("disable_thumbnail_zooming") || ppixiv.mobile;
+        if(ppixiv.settings.get("thumbnail_style") == "aspect")
+            disableThumbnailZooming = true;
+        helpers.html.setClass(document.body, "disable-thumbnail-zooming", disableThumbnailZooming);
     }
 
     // Return the thumbnail container for mediaId.
@@ -1622,7 +1625,9 @@ export default class SearchView extends Widget
         element.addedAnimationListener = true;
 
         element.addEventListener("mouseover", (e) => {
-            if(ppixiv.settings.get("disable_thumbnail_panning") || ppixiv.mobile)
+            if(ppixiv.settings.get("disable_thumbnail_panning") || 
+               ppixiv.settings.get("thumbnail_style") == "aspect" ||
+                ppixiv.mobile)
                 return;
 
             let thumb = element.querySelector(".thumb");

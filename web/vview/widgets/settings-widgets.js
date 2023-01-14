@@ -106,8 +106,8 @@ function createSettingsWidget({ globalOptions })
                 setting: "thumbnail_style",
                 label: "Thumbnail style",
                 values: {
-                    square: "Square",
                     aspect: "Aspect",
+                    square: "Square",
                 },
             });
         },
@@ -118,6 +118,7 @@ function createSettingsWidget({ globalOptions })
                 label: "Pan thumbnails while hovering over them",
                 setting: "disable_thumbnail_panning",
                 invertDisplay: true,
+                shouldBeVisible: () => ppixiv.settings.get("thumbnail_style") != "aspect",
             });
         },
 
@@ -127,6 +128,7 @@ function createSettingsWidget({ globalOptions })
                 label: "Zoom out thumbnails while hovering over them",
                 setting: "disable_thumbnail_zooming",
                 invertDisplay: true,
+                shouldBeVisible: () => ppixiv.settings.get("thumbnail_style") != "aspect",
             });
         },
 
