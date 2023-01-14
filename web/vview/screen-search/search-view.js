@@ -1015,39 +1015,36 @@ export default class SearchView extends Widget
         if(this.sizingStyle.thumbnailStyle == "square")
             return { thumbWidth, thumbHeight };
 
-        let mediaInfo;
-        if(this.dataSource?.name != "manga")
+        // The manga view preloads thumbs so we can always get the aspect ratio from extraCache.
+        let aspectRatio = null;
+        if(this.dataSource?.name == "manga")
         {
-            // We don't know the dimensions of thumbnails in advance if we're not on the manga
-            // view.  Use the first page's size instead, since a lot of manga posts have similar
-            // dimensions across all pages.
-            let { page } = helpers.mediaId.parse(mediaId);
-            if(page > 0)
+            aspectRatio = ppixiv.extraCache.getMediaAspectRatioSync(mediaId);
+            if(aspectRatio == null)
             {
-                page = 0;
-                // return { thumbWidth, thumbHeight };
+                console.warn(`Manga view didn't cache the aspect ratio for ${mediaId}`);
+                aspectRatio = 1;
             }
-            mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
         }
         else
         {
-            // We'll know the size of each page when we're on the manga view, so use it.
-            mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId);
+            // Get the aspect ratio from media info.  If this is a manga page this won't be known,
+            // and getImageDimensions will use the first page's dimensions.
+            let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
+            if(mediaInfo == null)
+                throw new Error(`Missing media info data for ${mediaId}`);
+
+            let { width, height } = ppixiv.mediaCache.getImageDimensions(mediaInfo, mediaId);
+            if(width == null)
+                return { thumbWidth, thumbHeight };
+
+            aspectRatio = width / height;
         }
-
-        if(mediaInfo == null)
-            throw new Error(`Missing media info data for ${mediaId}`);
-
-        // In aspect ratio mode, use the height of the row and fit the width.
-        let { width, height } = ppixiv.mediaCache.getImageDimensions(mediaInfo, mediaId);
-        if(width == null)
-            return { thumbWidth, thumbHeight };
 
         // Set the thumbnail size to have an area of desiredPixels with the aspect ratio we've chosen.
         // This gives thumbnails a similar amount of screen space whether they're portrait or landscape,
         // and keeps the overall number of thumbs on screen at once mostly predictable.  Put a limit on
         // how narrow are, so extremely wide strip images don't take over the row.
-        let aspectRatio = width / height;
         aspectRatio = helpers.math.clamp(aspectRatio, 1/3, 3);
 
         thumbWidth = Math.sqrt(desiredPixels * aspectRatio);

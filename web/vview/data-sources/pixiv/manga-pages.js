@@ -24,20 +24,20 @@ export default class DataSource_MangaPages extends DataSource
         if(page != 1)
             return;
 
-        // We need to load full illust info since SearchView is expecting us to, but we can fill
-        // out most of the UI with thumbnail or illust info.  Load whichever one we have first
-        // and update, so we display initial info quickly.
+        // Get media info for the page count.
         this.mediaInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId, { full: false });
-        this.callUpdateListeners();
-
-        // Load media info before continuing.
-        this.illustInfo = await ppixiv.mediaCache.getMediaInfo(this.mediaId);
-        if(this.illustInfo == null)
+        if(this.mediaInfo == null)
             return;
 
         let mediaIds = [];
-        for(let page = 0; page < this.illustInfo.pageCount; ++page)
+        for(let page = 0; page < this.mediaInfo.pageCount; ++page)
             mediaIds.push(helpers.mediaId.getMediaIdForPage(this.mediaId, page));
+
+        // Preload thumbs before continuing.  This allows extraCache to know the aspect ratio of
+        // the image, so it's available to SearchView for aspect ratio thumbs.  These will often
+        // already be cached from the view we came here from.
+        let { promise } = ppixiv.extraCache.batchGetMediaAspectRatio(mediaIds);
+        await promise;
 
         return { mediaIds };
     }
