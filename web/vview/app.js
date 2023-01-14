@@ -445,7 +445,7 @@ export default class App
         if(startAtBeginning)
         {
             delete args.state.scroll;
-            dataSource.setStartPage(args, dataSource.initialPage);
+            dataSource.setStartPage(args, 1);
             helpers.navigate(args, { addToHistory: false, cause: "refresh-data-source", sendPopstate: false });
         }
 
