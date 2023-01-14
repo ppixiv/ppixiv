@@ -3,9 +3,10 @@ import widget from 'vview/widgets/widget.js';
 
 let updateHistory = [
     {
-        version: 204,
+        version: 210,
         text: `
-            Thumbnails can now be set to square or aspect ratio.
+            Aspect ratio thumbnails are now used by default.  Square thumbs can be selected in
+            settings.
         `,
     },
 
