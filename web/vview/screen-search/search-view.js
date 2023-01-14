@@ -1246,7 +1246,7 @@ export default class SearchView extends Widget
 
         // Limit the number of visible thumbs, so we don't load too much data at once.  Allow
         // unlimited columns for local images.
-        let maxThumbs = this.dataSource?.isVView? 100:40;
+        let maxThumbs = this.dataSource?.isVView? 500:40;
         let rows = window.innerHeight / thumbWidth;
         if(columns * rows > maxThumbs)
         {
