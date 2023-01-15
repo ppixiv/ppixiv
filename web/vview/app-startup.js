@@ -84,6 +84,9 @@ class AppStartup
         // that we don't want to do before we know we're going to proceed.
         this._cleanupEnvironment();
 
+        // Wait for DOMContentLoaded to make sure document.head and document.body are ready.
+        await this._waitForContentLoaded();
+
         let { modules } = env;
         await this.loadAndLaunchApp({modules});
     }
