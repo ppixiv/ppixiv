@@ -74,17 +74,25 @@ export default class Widget extends Actor
         this.root.dataset.widget = this.className;
         this.root.widget = this;
 
-        // visible is the initial visibility.  We can't just set this.visible here, since
-        // it'll call refresh and visibilityChanged, and the subclass isn't ready for those
-        // to be called since it hasn't initialized yet.  Set this._visible directly, and
-        // defer the initial refresh.
+        // Set _visible without calling applyVisibility.  We'll do that in afterInit so it
+        // happens after the subclass is constructed.
         this._visible = visible;
-        this.applyVisibility();
 
         helpers.other.defer(() => {
-            this.visibilityChanged();
-            this.refresh();
+            if(this.hasShutdown)
+                return;
+
+            this.afterInit();
         });
+    }
+
+    // This is called asynchronously after construction, and can be used for initialization
+    // that should happen after the subclass is fully set up.
+    afterInit()
+    {
+        this.applyVisibility();
+        this.visibilityChanged();
+        this.refresh();
     }
 
     // Use widget.root instead of widget.container.

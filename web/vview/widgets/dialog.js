@@ -197,8 +197,6 @@ export default class DialogWidget extends Widget
                 onactive: () => this.root.classList.add("dragging-dialog"),
                 oninactive: () => this.root.classList.remove("dragging-dialog"),
             });
-        
-            this._dialogDragger.show();
         }
 
         // If we're not the first dialog on the stack, make the previous dialog inert, so it'll ignore inputs.
@@ -253,6 +251,16 @@ export default class DialogWidget extends Widget
         }
 
         DialogWidget._updateBlockTouchScrolling();
+    }
+
+    afterInit()
+    {
+        // Show the dragger.  Do this after the ctor so we aren't causing visibility callbacks
+        // before the subclass is set up.
+        if(this._dialogDragger)
+            this._dialogDragger.show();
+
+        super.afterInit();
     }
 
     // The subclass can override this to disable automatically closing on popstate.
