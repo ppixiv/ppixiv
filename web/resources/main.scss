@@ -233,9 +233,17 @@ a {
     color: inherit;
 }
 
-// Firefox only just added support for inert, so explicitly disable pointer events when inert too.
-[inert] {
-    pointer-events: none;
+html.firefox {
+    // Firefox only just added support for inert, so explicitly disable pointer events when inert.
+    [inert] {
+        pointer-events: none !important;
+
+        // Apply this to all lower nodes, so we override other pointer-events rules further down the
+        // tree too.
+        * {
+            pointer-events: none !important;
+        }
+    }
 }
 
 html.mobile {

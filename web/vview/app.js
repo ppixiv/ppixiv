@@ -287,6 +287,8 @@ export default class App
         let insets = helpers.html.getSafeAreaInsets();
 
         helpers.html.setClass(document.documentElement, "mobile", ppixiv.mobile);
+        let firefox = navigator.userAgent.indexOf("Gecko/") != -1 || navigator.userAgent.indexOf("Firefox/") != -1;
+        helpers.html.setClass(document.documentElement, "firefox", firefox);
         helpers.html.setClass(document.documentElement, "ios", ppixiv.ios);
         helpers.html.setClass(document.documentElement, "android", ppixiv.android);
         helpers.html.setClass(document.documentElement, "phone", helpers.other.isPhone());
