@@ -559,16 +559,16 @@ export default class MediaCache extends EventTarget
         let mediaIds = allThumbInfo.map((info) => info.illustId);
         let extraData = await ppixiv.extraImageData.batchLoadAllPagesForIllust(mediaIds);
 
-        for(let info of allThumbInfo)
+        for(let mediaInfo of allThumbInfo)
         {
             // Store extra data for each page.
-            info.extraData = extraData[info.illustId] || {};
-            info.full = false;
+            mediaInfo.extraData = extraData[mediaInfo.illustId] || {};
+            mediaInfo.full = false;
 
-            this._checkMediaInfo(info);
+            this._checkMediaInfo(mediaInfo);
 
             // Store the data.
-            this._mediaInfo[info.mediaId] = info;
+            this._mediaInfo[mediaInfo.mediaId] = mediaInfo;
         }
 
         // Broadcast that we have new thumbnail data available.
