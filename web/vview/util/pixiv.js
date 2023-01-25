@@ -139,14 +139,41 @@ export function getTagSearchFromArgs(url)
     return decodeURIComponent(parts[2]);
 }
 
-// Change the host for a Pixiv image URL from i.pximg.net to i-cf.pximg.net.
-export function adjustImageUrlHostname(url)
-{
-    if(url == null)
-        return null;
+// Known image hosts.  These can be selected in settings.
+export const pixivImageHosts = Object.freeze({
+    cf: { name: "CloudFlare", url: "i-cf.pximg.net" },
+    pixiv: { name: "Pixiv", url: "i.pximg.net" },
+});
 
-    if(url.hostname == "i.pximg.net")
-        url.hostname = "i-cf.pximg.net";
+let _allPixivImageHosts = new Set();
+for(let { url } of Object.values(pixivImageHosts))
+{
+    console.log(url);
+    _allPixivImageHosts.add(url);
+}
+
+// Change the host for a Pixiv image URL from i.pximg.net to the user's configured
+// image host.
+export function adjustImageUrlHostname(url, { host=null }={})
+{
+    url = new URL(url);
+
+    // Return the URL unchanged if it isn't a Pixiv image host.
+    if(!_allPixivImageHosts.has(url.hostname))
+    {
+        console.error(url);
+        return url;
+    }
+
+    // If host is null, use the user's setting.
+    if(host == null)
+        host = ppixiv.settings.get("pixiv_cdn");
+
+    let hostname = pixivImageHosts[host]?.url ?? "i.pximg.net";
+
+    // Replace the hostname.
+    url.hostname = hostname;
+    return url;
 }
 
 // Given a low-res thumbnail URL from thumbnail data, return a high-res thumbnail URL.
@@ -192,8 +219,6 @@ export function getHighResThumbnailUrl(url, page=0)
         // p0 is the page number.
         url.pathname = url.pathname.replace("_p0_master1200", "_p" + page + "_master1200");
     }
-
-    this.adjustImageUrlHostname(url);
 
     return url.toString();
 }

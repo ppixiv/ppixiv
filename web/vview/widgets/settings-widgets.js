@@ -337,6 +337,20 @@ function createSettingsWidget({ globalOptions })
                 offValue: "illust",
             });
         },
+
+        pixivCdn: () => {
+            let values = { };
+            for(let [setting, {name}] of Object.entries(helpers.pixiv.pixivImageHosts))
+                values[setting] = name;
+
+            return new MenuOptionOptionsSetting({
+                ...globalOptions,
+                setting: "pixiv_cdn",
+                label: "Pixiv image host",
+                values,
+            });
+        },
+
         linkTabs: () => {
             let widget = new LinkTabsPopup({
                 ...globalOptions,
@@ -668,6 +682,9 @@ export class SettingsDialog extends DialogWidget
                 if(!ppixiv.mobile)
                     settingsWidgets.limitSlideshowFramerate();
         
+                if(!ppixiv.native)
+                    settingsWidgets.pixivCdn();
+
                 // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
                 // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.
                 if(!ppixiv.native && window.showOpenFilePicker != null)

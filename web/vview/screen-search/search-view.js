@@ -317,6 +317,7 @@ export default class SearchView extends Widget
         ppixiv.settings.addEventListener("disable_thumbnail_panning", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("expand_manga_thumbnails", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("thumbnail_style", () => this.updateFromSettings(), this._signal);
+        ppixiv.settings.addEventListener("pixiv_cdn", () => this.updateFromSettings(), this._signal);
         ppixiv.muting.addEventListener("mutes-changed", () => this.refreshAfterMuteChange(), this._signal);
 
         this.updateFromSettings();
@@ -1260,6 +1261,11 @@ export default class SearchView extends Widget
             thumbnailStyle, padding, thumbWidth, thumbHeight,
             containerWidth, containerHeight,
             desiredPixels,
+
+            // This list just forces a refresh if any values inside it change.
+            deps: [
+                ppixiv.settings.get("pixiv_cdn"),
+            ],
         };
     }
     

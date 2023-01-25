@@ -76,6 +76,8 @@ export default class MediaCache extends EventTarget
         this._mediaInfoLoadsPartial = {};
 
         this.userProfileUrls = {};
+
+        ppixiv.settings.addEventListener("pixiv_cdn", () => this._updatePixivURLs());
     };
 
     callMediaInfoModifiedCallbacks(mediaId)
@@ -294,14 +296,6 @@ export default class MediaCache extends EventTarget
         // Now that we have illust data, load anything we weren't able to load before.
         startLoading(mediaInfo.illustType, mediaInfo.pageCount);
 
-        // Switch from i.pximg.net to i-cf.pximg.net, which is much faster outside of Japan.
-        for(let [key, url] of Object.entries(mediaInfo.urls))
-        {
-            url = new URL(url);
-            helpers.pixiv.adjustImageUrlHostname(url);
-            mediaInfo.urls[key] = url.toString();
-        }
-
         // Add an array of thumbnail URLs.
         mediaInfo.previewUrls = [];
         for(let page = 0; page < mediaInfo.pageCount; ++page)
@@ -319,28 +313,15 @@ export default class MediaCache extends EventTarget
         {
             let mangaInfo = await mangaPromise;
             mediaInfo.mangaPages = mangaInfo.body;
-
-            for(let page of mediaInfo.mangaPages)
-            {
-                for(let [key, url] of Object.entries(page.urls))
-                {
-                    url = new URL(url);
-                    helpers.pixiv.adjustImageUrlHostname(url);
-                    page.urls[key] = url.toString();
-                }
-            }
         }
 
         if(ugoiraPromise != null)
         {
             let ugoiraResult = await ugoiraPromise;
             mediaInfo.ugoiraMetadata = ugoiraResult.body;
-
-            // Switch the data URL to i-cf..pximg.net.
-            let url = new URL(mediaInfo.ugoiraMetadata.originalSrc);
-            helpers.pixiv.adjustImageUrlHostname(url);
-            mediaInfo.ugoiraMetadata.originalSrc = url.toString();
         }
+
+        this._updateMediaInfoUrls(mediaInfo);
 
         // If this is a single-page image, create a dummy single-entry mangaPages array.  This lets
         // us treat all images the same.
@@ -395,6 +376,59 @@ export default class MediaCache extends EventTarget
         this._mediaInfo[mediaId] = mediaInfo;
         this.callMediaInfoModifiedCallbacks(mediaId);
         return mediaInfo;
+    }
+
+    // Update URLs for all cached images after a change to the pixiv_cdn setting.
+    _updatePixivURLs()
+    {
+        for(let mediaInfo of Object.values(this._mediaInfo))
+            this._updateMediaInfoUrls(mediaInfo);
+
+        for(let mediaId of Object.keys(this._mediaInfo))
+            this.callMediaInfoModifiedCallbacks(mediaId);
+    }
+
+    // Update URLs in mediaInfo that are affected by adjustImageUrlHostname.  This can be called
+    // again if the pixiv_cdn setting changes.
+    _updateMediaInfoUrls(mediaInfo)
+    {
+        if(mediaInfo.urls)
+        {
+            for(let [key, url] of Object.entries(mediaInfo.urls))
+            {
+                url = new URL(url);
+                mediaInfo.urls[key] = helpers.pixiv.adjustImageUrlHostname(url).toString();
+            }
+        }
+
+        if(mediaInfo.previewUrls)
+        {
+            for(let page = 0; page < mediaInfo.previewUrls.length; ++page)
+            {
+                let url = mediaInfo.previewUrls[page];
+                mediaInfo.previewUrls[page] = helpers.pixiv.adjustImageUrlHostname(url).toString();
+            }
+        }
+
+        if(mediaInfo.mangaPages)
+        {
+            for(let page of mediaInfo.mangaPages)
+            {
+                for(let [key, url] of Object.entries(page.urls))
+                {
+                    url = helpers.pixiv.adjustImageUrlHostname(url);
+                    page.urls[key] = url.toString();
+                }
+            }
+        }
+
+        if(mediaInfo.ugoiraMetadata)
+        {
+            // Switch the data URL to i-cf..pximg.net.
+            let url = new URL(mediaInfo.ugoiraMetadata.originalSrc);
+            url = helpers.pixiv.adjustImageUrlHostname(url);
+            mediaInfo.ugoiraMetadata.originalSrc = url.toString();
+        }
     }
 
     // Load partial info for the given media IDs if they're not already loaded.
@@ -565,6 +599,7 @@ export default class MediaCache extends EventTarget
             mediaInfo.extraData = extraData[mediaInfo.illustId] || {};
             mediaInfo.full = false;
 
+            this._updateMediaInfoUrls(mediaInfo);
             this._checkMediaInfo(mediaInfo);
 
             // Store the data.
