@@ -30,10 +30,10 @@ export default class DataSource_NewPostsByEveryone extends DataSource
         if(this.lastId == null)
         {
             this.lastId = 0;
-            this.lastId_page = 1;
+            this.lastIdPage = 1;
         }
 
-        if(this.lastId_page != page)
+        if(this.lastIdPage != page)
         {
             console.error("Pages weren't loaded in order");
             return;
@@ -52,7 +52,7 @@ export default class DataSource_NewPostsByEveryone extends DataSource
         if(result.body.illusts.length > 0)
         {
             this.lastId = result.body.illusts[result.body.illusts.length-1].id;
-            this.lastId_page++;
+            this.lastIdPage++;
         }
 
         let mediaIds = [];
