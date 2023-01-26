@@ -304,12 +304,6 @@ html {
     --ui-border-color: #000;
     --ui-bg-section-color: #555; /* color for sections within UI, like the description box */
 
-    --toggle-button-fg-disabled-color: #666;
-    --toggle-button-fg-dim-color: #888;
-    --toggle-button-fg-color: #fff;
-    --toggle-button-bg-dim-color: #222;
-    --toggle-button-bg-color: #444;
-
     /* Color for frames like popup menus */
     --frame-bg-color: rgba(0,0,0,0.9);
     --frame-fg-color: #fff;
@@ -2265,8 +2259,8 @@ body.hide-r18g .r18g { display: none; }
             display: flex;
             flex-direction: column;
             justify-content: center;
-            background-color: var(--toggle-button-bg-dim-color);
-            color: var(--toggle-button-fg-dim-color);
+            background-color: #222;
+            color: #888;
 
             .font-icon {
                 font-size: var(--button-size);
@@ -2276,7 +2270,7 @@ body.hide-r18g .r18g { display: none; }
             &:not(.enabled)
             {
                 cursor: inherit;
-                color: var(--toggle-button-fg-disabled-color);
+                color: #666;
             }
 
             & > svg {
@@ -2286,13 +2280,13 @@ body.hide-r18g .r18g { display: none; }
 
             @media(hover: hover) {
                 &.enabled:hover {
-                    color: var(--toggle-button-fg-color);
+                    color: #fff;
                 }
             }
             
             &.enabled.selected {
-                background-color: var(--toggle-button-bg-color);
-                color: var(--toggle-button-fg-color);
+                background-color: #444;
+                color: #fff;
             }
 
             /* We don't have a way to add classes to inlined SVGs yet, so for now just use nth-child.
