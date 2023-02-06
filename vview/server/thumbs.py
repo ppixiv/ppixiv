@@ -167,8 +167,15 @@ def threaded_create_thumb(request, path, *, inpaint_path=None):
             image = image.convert('RGB')
     
     # Compress the image.  If the source image had an ICC profile, copy it too.
+    #
+    # Work around PIL weirdness: PNGs return a string for icc_profile instead of bytes,
+    # which causes an exception in JpegImagePlugin.  Just ignore these.
+    icc_profile = image.info.get('icc_profile')
+    if not isinstance(icc_profile, bytes):
+        icc_profile = None
+
     f = io.BytesIO()
-    image.save(f, file_type, quality=70, icc_profile=image.info.get('icc_profile'))
+    image.save(f, file_type, quality=70, icc_profile=icc_profile)
     f.seek(0)
     return f, mime_type
 
@@ -552,7 +559,11 @@ def _threaded_convert_to_browser_image(path):
             image = image.convert('RGB')
     
     # Compress the image.  If the source image had an ICC profile, copy it too.
+    icc_profile = image.info.get('icc_profile')
+    if not isinstance(icc_profile, bytes):
+        icc_profile = None
+
     f = io.BytesIO()
-    image.save(f, file_type, quality=95, method=0, icc_profile=image.info.get('icc_profile'), **options)
+    image.save(f, file_type, quality=95, method=0, icc_profile=icc_profile, **options)
     f.seek(0)
     return f, mime_type
