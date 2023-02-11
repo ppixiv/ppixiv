@@ -446,6 +446,7 @@ class ThreadedQueue:
     """
     def __init__(self, iterator):
         self.results = queue.Queue()
+        self.exception = None
         self.iterator = iterator
         self.cancel = threading.Event()
 
@@ -462,6 +463,10 @@ class ThreadedQueue:
                     continue
 
                 self.results.put(result)
+        except Exception as e:
+            # If the iterator throws an exception, store it.  We'll raise it to the
+            # caller after the queue is empty.
+            self.exception = e
         finally:
             self.results.put(None)
 
@@ -471,6 +476,13 @@ class ThreadedQueue:
     def __next__(self):
         # If the queue has been discarded, we've already stopped.
         if self.results is None:
+            # If an exception was raised while iterating, raise it now that the
+            # queue is empty.
+            if self.exception is not None:
+                e = self.exception
+                self.exception = None
+                raise e
+
             raise StopIteration
 
         result = self.results.get()
