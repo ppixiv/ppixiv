@@ -612,7 +612,7 @@ def add_root_logging_handler(handler):
 def log_filter(log_record):
     # Ignore "Cannot write to closing transport" exceptions that asyncio floods our
     # logs with.  https://github.com/aio-libs/aiohttp/issues/5182 https://github.com/aio-libs/aiohttp/issues/5766
-    if log_record.exc_info is not None:
+    if log_record.exc_info is not None and isinstance(log_record.exc_info, tuple):
         exc_class, exc, exc_tb = log_record.exc_info
         if isinstance(exc, ConnectionResetError) and \
             exc.args == ('Cannot write to closing transport',):
