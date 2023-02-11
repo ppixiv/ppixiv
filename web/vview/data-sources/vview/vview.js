@@ -153,29 +153,66 @@ export class VView extends VViewBase
         this._selectInitialPage(targetMediaId);
     }
 
+    // Return the index into this.pages containing mediaId, or -1 if not found.
+    //
+    // Note that the result is an index into this.pages, which is 0-based.
+    getMediaIdPage(mediaId)
+    {
+        if(this.pages == null)
+            return -1;
+
+        for(let page = 0; page < this.pages.length; ++page)
+        {
+            let mediaIdsOnPage = this.pages[page];
+            if(mediaIdsOnPage.indexOf(mediaId) != -1)
+                return page;
+        }
+
+        return -1;
+    }
+
+    // Most data sources load a page of results at a time and remember the current page
+    // in the URL.  VView works differently: if we're viewing a directory we get the entire
+    // directory's IDs at once.  We don't store the page in the URL, since we might be
+    // loaded directly from a file association that wouldn't know which page it'll be.
+    //
+    // The default getStartPage expects a page number.  Override it so if we're viewing
+    // an image, we'll return the page it's on.  That way if we're viewing an image and
+    // navigate to the next image, it'll know which page we're on and won't create a new
+    // data source thinking we're trying to navigate to page 1.
+    getStartPage(args)
+    {
+        if(this.pages == null)
+            return 1;
+
+        let mediaId = LocalAPI.getLocalIdFromArgs(args);
+        if(mediaId == null)
+            return 1;
+
+        let page = this.getMediaIdPage(mediaId);
+        if(page != -1)
+            return page + 1; // 0-based to 1-based
+
+        return 1;
+    }
+
     _selectInitialPage(targetMediaId)
     {
         if(targetMediaId == null)
             return;
 
-        for(let page = 0; page < this.pages.length; ++page)
-        {
-            let mediaIdsOnPage = this.pages[page];
-            if(mediaIdsOnPage.indexOf(targetMediaId) != -1)
-            {
-                // 
-                // if the new initial page couldn't normally be loaded, reset our loaded pages and
-                // start over
-                let newInitialPage = page + 1;
-                let needsReset = this.canLoadPage(newInitialPage);
-                this.initialPage = newInitialPage;
-                console.log(`Start on page ${this.initialPage}, reset: ${needsReset}`);
-                if(needsReset)
-                    this._resetLoadedPages();
-                
-                return;
-            }
-        }
+        let page = this.getMediaIdPage(targetMediaId);
+        if(page == -1)
+            return;
+
+        // If the new initial page couldn't normally be loaded, reset our loaded pages and
+        // start over.
+        let newInitialPage = page + 1;
+        let needsReset = !this.canLoadPage(newInitialPage);
+        this.initialPage = newInitialPage;
+        console.log(`Start on page ${this.initialPage}, reset: ${needsReset}`);
+        if(needsReset)
+            this._resetLoadedPages();
     }
 
     // If we've loaded all pages, we can display the file index as a page number.

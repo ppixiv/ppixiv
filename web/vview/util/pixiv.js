@@ -148,7 +148,6 @@ export const pixivImageHosts = Object.freeze({
 let _allPixivImageHosts = new Set();
 for(let { url } of Object.values(pixivImageHosts))
 {
-    console.log(url);
     _allPixivImageHosts.add(url);
 }
 
