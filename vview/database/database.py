@@ -1,5 +1,6 @@
 import asyncio, sqlite3, threading, traceback, time, logging
 from contextlib import contextmanager
+from ..util import misc
 
 log = logging.getLogger(__name__)
 
@@ -76,6 +77,10 @@ class Database:
         self.db_path = db_path
         self.schema = schema
 
+        # Remember the main event loop.  Note that this class is called from a thread, so
+        # anything using this needs to use asyncio.run_coroutine_threadsafe.
+        self._event_loop = asyncio.get_running_loop()
+
         self.connections = []
         self.lock = threading.Lock()
 
@@ -145,14 +150,21 @@ class Database:
         transaction will be opened with a write lock.
         """
         with self.connect(conn, write=write) as conn:
-            assert isinstance(conn, sqlite3.Connection), conn
+            def oncancel():
+                conn.interrupt()
 
-            with transaction(conn):
-                cursor = conn.cursor()
-                try:
-                    yield cursor
-                finally:
-                    cursor.close()
+            # Use CancelTask to interrupt the connection if we shut down while this is running.
+            # This lets us cancel long-running queries if the app is shut down, so we don't prevent
+            # it from exiting.
+            with misc.CancelTask(oncancel=oncancel, event_loop=self._event_loop):
+                assert isinstance(conn, sqlite3.Connection), conn
+
+                with transaction(conn):
+                    cursor = conn.cursor()
+                    try:
+                        yield cursor
+                    finally:
+                        cursor.close()
 
     def open_db(self):
         # Connect to an in-memory database.  We don't use this, but you can't specify the schema

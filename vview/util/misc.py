@@ -436,6 +436,103 @@ def WriteZip(zip):
         zip.fp = None
         raise
 
+_cancelledByCancelTask = object()
+class CancelTask:
+    """
+    Implement another of the things asyncio makes a pain: run a synchronous block of code
+    that can be cancelled as a task from the event loop.
+
+    A task will be created representing the block.  If that task is cancelled, cancel() will
+    be called.  The block itself isn't running inside the task, the task only exists so it
+    can be cancelled to allow clean shutdown.
+
+    Note that cancel() will be called from main_event_loop and won't be in the same thread
+    as the block.  If the block finishes before the task is cancelled, oncancel() won't be
+    called, even if the block throws an exception.
+
+    cancel = False
+    def cancel():
+        cancel = True
+    with CancelTask(oncancel=cancel, event_loop=main_event_loop):
+        while not cancelled:
+            sleep(1)
+    """
+    def __init__(self, *, oncancel, event_loop):
+        self.oncancel = oncancel
+        self._event_loop = event_loop
+        self._loop_task = None
+
+    def __enter__(self):
+        # Why is there no way to find out if we're in a loop without it throwing
+        # an exception if we aren't?
+        try:
+            current_loop = asyncio.get_running_loop()
+        except:
+            current_loop = None
+
+        # Calling run_coroutine_threadsafe and waiting on the result will deadlock if we're already
+        # in the event loop.  If we're in an event loop then we don't actually need to do anything,
+        # since the task is async already.
+        if current_loop is not None:
+            return
+
+        asyncio.run_coroutine_threadsafe(self._start_loop(), self._event_loop)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # If we have no _loop_task, we're running in an event loop and __enter__ didn't
+        # do anything.
+        if self._loop_task is None:
+            return
+
+        # Run _stop_loop() in the event loop to exit our task, and wait for it to complete
+        # so the block doesn't continue until we know oncancel() isn't being called.
+        task = asyncio.run_coroutine_threadsafe(self._stop_loop(), self._event_loop)
+
+        # Work around a nasty asyncio bug: if the loop is closed before the coroutine finishes,
+        # the future never completes and result() deadlocks.  It should resolve with an exception
+        # if the loop is closed, but it doesn't do that.  We have to work around this by using a
+        # small timeout and repeatedly checking if the loop is closed.
+        while not self._event_loop.is_closed():
+            try:
+                task.result(0.5)
+                break
+            except concurrent.futures.TimeoutError:
+                # Keep trying.
+                pass
+
+    async def _start_loop(self):
+        self._loop_task = asyncio.create_task(self._wait_for_cancellation())
+        self._loop_task.set_name('CancelTask')
+
+    async def _stop_loop(self):
+        # The block is exiting normally.  If _wait_for_cancellation wasn't cancelled externally,
+        # cancel it now.
+        self._loop_task.cancel(_cancelledByCancelTask)
+
+        # Wait for the task to exit.  This cleans up the task, and guarantees that if
+        # oncancel is called, we don't finish the block until it completes.
+        try:
+            await self._loop_task
+        except asyncio.CancelledError as e:
+            # This will always raise CancelledError.
+            pass
+
+    async def _wait_for_cancellation(self):
+        try:
+            # Wait until we're cancelled, either as a global task or by __exit__.
+            while True:
+                await asyncio.sleep(1000)
+        except asyncio.CancelledError as e:
+            # We always exit by being cancelled.  If we were cancelled by __exit__ above,
+            # the cancel() argument will be _cancelledByCancelTask, which means we're
+            # exiting the block and shouldn't call oncancel.
+            exited_normally = len(e.args) > 0 and e.args[0] == _cancelledByCancelTask
+
+            if not exited_normally:
+                self.oncancel()
+
+            raise
+
 class ThreadedQueue:
     """
     Run an iterator in a thread.  The results are queued, and can be retrieved with
