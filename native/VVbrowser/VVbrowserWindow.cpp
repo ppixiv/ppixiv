@@ -80,8 +80,11 @@ VVbrowserWindow::VVbrowserWindow(Config config_)
     GetModuleFileName(NULL, appPath, MAX_PATH);
     HINSTANCE hinst = LoadLibrary(appPath);
 
+    // Setting WS_EX_NOREDIRECTIONBITMAP allows direct compositing, so page transparency
+    // shows through to the window behind it.  This is only visible if the page makes its
+    // background transparent.
     int windowStyle = WS_OVERLAPPEDWINDOW;
-    int exWindowStyle = WS_EX_CONTROLPARENT;
+    int exWindowStyle = WS_EX_CONTROLPARENT|WS_EX_NOREDIRECTIONBITMAP;
 
     int x = CW_USEDEFAULT;
     int y = CW_USEDEFAULT;
