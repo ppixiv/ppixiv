@@ -253,6 +253,7 @@ async def api_bookmark_tags(info):
         'success': True,
         'tags': results,
     }
+
 @reg('/bookmark/tags/rename')
 async def api_bookmark_add(info):
     """
@@ -285,6 +286,20 @@ async def api_illust(info):
     return {
         'success': True,
         'illust': illust_info,
+    }
+
+# Return the media ID for a filesystem path.
+@reg('/get-media-id')
+async def api_path(info):
+    fs_path = info.data.get('path', None)
+    fs_path = open_path(fs_path)
+
+    path = PurePosixPath(info.manager.library.get_public_path(fs_path))
+    illust_info = await _get_api_illust_info(info, path)
+
+    return {
+        'success': True,
+        'media_id': illust_info['mediaId'],
     }
 
 # Index a directory for similar image searching.
