@@ -817,7 +817,7 @@ class TagSearchDropdownWidget extends widget
         let entry = this.createTemplate({name: "tag-dropdown-entry", html: `
             <a class=entry href=#>
                 <div class="edit-button drag-handle" data-shown-in="saved">
-                    ${ helpers.createIcon("mat:dragHandle") }
+                    ${ helpers.createIcon("mat:drag_handle") }
                 </div>
 
                 <div class="edit-button save-search" data-shown-in="recent autocomplete">
