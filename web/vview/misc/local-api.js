@@ -646,7 +646,7 @@ class LocalBroadcastChannelConnection extends EventTarget
         // to the same browser.
         this._sendRaw({
             'command': 'init',
-            '_browserId': this._browserId,
+            'browser_id': this._browserId,
         });
 
         // Send any data that was buffered while we were still connecting.
