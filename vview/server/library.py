@@ -105,9 +105,9 @@ sort_orders = {
         'fs': _create_natsort(),
     },
 
-    # Sort by time bookmarked.
+    # Sort by time bookmarked.  Use bookmark_updated_at, so editing a bookmark bumps it to the top.
     'bookmarked-at': {
-        'index': [('bookmark_created_at', 'DESC')],
+        'index': [('bookmark_updated_at', 'DESC')],
 
         # Bookmark searches are always local index searches, so these aren't used.
         'windows': [],
