@@ -156,6 +156,11 @@ export default class ZipImagePlayer
 
             // We have more data to potentially decode, so start _decodeFrames if it's not already running.
             this._decodeFrames();
+
+            // Throttle decoding in case we're getting video data very quickly, so if we get the whole
+            // file at once from cache or a local server we don't chew CPU decoding it all at once.  If
+            // the data is streaming from a server, this small delay won't have any effect.
+            await helpers.other.sleep(1);
         }
 
         // Call completion.
