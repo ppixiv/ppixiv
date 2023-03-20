@@ -118,7 +118,12 @@ def threaded_create_thumb(request, path, *, inpaint_path=None):
             # Do this before calling load() to work around a PIL inconsistency.  Some loaders
             # like JPEG load EXIF data on load() and getexif() can be called at any time, but
             # ones that don't (like TIFF) will fail if getexif() is called after load().
-            exif = image.getexif()
+            try:
+                exif = image.getexif()
+            except SyntaxError:
+                # PIL throws SyntaxError if it doesn't understand something about EXIF tags.
+                # Don't let this prevent us from creating a thumbnail.
+                exif = {}
 
             image.load()
         except Exception as e:
