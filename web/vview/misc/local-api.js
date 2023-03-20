@@ -563,7 +563,7 @@ class LocalBroadcastChannelConnection extends EventTarget
         if(this._browserId == null)
         {
             this._browserId = helpers.other.createUuid();
-            ppixiv.settings.set("_browserId", this._browserId);
+            ppixiv.settings.set("_browser_id", this._browserId);
             console.log("Assigned broadcast browser ID:", this._browserId);
         }
 
