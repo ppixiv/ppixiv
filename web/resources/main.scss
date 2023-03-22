@@ -741,7 +741,7 @@ input, textarea, [contenteditable] {
         transform: translate(0, 0);
 
         // Hide the UI when ui-hidden is set.  force-ui is used for debugging.
-        body:not(.force-ui) &:not(.ui-hidden)
+        body:not(.force-ui) &.ui-hidden
         {
             opacity: 0;
             transform: translate(-50px, 0);

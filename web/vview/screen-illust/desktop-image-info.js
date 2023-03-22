@@ -252,7 +252,7 @@ export default class DesktopImageInfo extends Widget
 
     applyVisibility()
     {
-        helpers.html.setClass(this.root.querySelector(".ui-box"), "ui-hidden", this._visible);
+        helpers.html.setClass(this.root.querySelector(".ui-box"), "ui-hidden", !this._visible);
     }
 
     visibilityChanged()
