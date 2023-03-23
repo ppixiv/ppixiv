@@ -1218,6 +1218,11 @@ export default class ViewerImages extends Viewer
         // Create the animation.
         let animation = slideshow.getAnimation(this._custom_animation);
 
+        // If the viewer is created for a mobile drag, skip the fade-in, so it doesn't fade in
+        // while dragging.
+        if(this.options.displayedByDrag)
+            animation.fadeIn = 0;
+
         return { animationMode, animation };
     }
 

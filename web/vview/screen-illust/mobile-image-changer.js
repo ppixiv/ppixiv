@@ -266,6 +266,7 @@ export default class DragImageChanger extends Actor
         let viewer = this.parent.createViewer({
             earlyIllustData,
             mediaId,
+            displayedByDrag: true,
         });
 
         // Hide the viewer until after we set the transform, or iOS sometimes flickers it in
