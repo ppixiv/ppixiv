@@ -5,7 +5,7 @@ from PIL import Image
 from pathlib import Path, PurePosixPath
 from shutil import copyfile
 
-from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, inpainting, video
+from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, inpainting, upscaling, video
 from ..util.paths import open_path
 from ..util.tiff import remove_photoshop_tiff_data
 
@@ -442,6 +442,39 @@ async def handle_inpaint(request):
 
     return FileResponse(inpaint_path, headers={
         'Cache-Control': 'public, immutable',
+        'Content-Type': mime_type,
+    })
+
+async def handle_upscale(request):
+    path = request.match_info['path']
+    ratio = int(request.query.get('ratio', 2))
+    absolute_path = request.app['server'].resolve_path(path)
+    if not request.app['server'].check_path(absolute_path, request, throw=False):
+        raise aiohttp.web.HTTPNotFound()
+    if not absolute_path.is_file():
+        raise aiohttp.web.HTTPNotFound()
+
+    entry = request.app['server'].library.get(absolute_path)
+    if entry is None:
+        raise aiohttp.web.HTTPNotFound()
+
+    # The resized image and the original image have the same timestamp, so we can check
+    # the client's cache timestamp even if we don't have the cached upscale anymore.
+    mtime = absolute_path.stat().st_mtime
+    if_modified_since = request.if_modified_since
+    if if_modified_since is not None:
+        modified_time = datetime.fromtimestamp(mtime, timezone.utc)
+        modified_time = modified_time.replace(microsecond=0)
+
+        if modified_time <= if_modified_since:
+            raise aiohttp.web.HTTPNotModified()
+
+    upscale_path, mime_type = await upscaling.create_upscale_for_entry(entry, ratio=ratio)
+    if upscale_path is None:
+        raise aiohttp.web.HTTPInternalServerError()
+
+    return FileResponse(upscale_path, headers={
+        'Cache-Control': 'public, must-revalidate', #immutable',
         'Content-Type': mime_type,
     })
 

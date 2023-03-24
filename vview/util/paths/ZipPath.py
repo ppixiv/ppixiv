@@ -1,7 +1,8 @@
-import os, stat, zipfile
+import os, shutil, stat, uuid, zipfile
 from collections import namedtuple
 from pathlib import Path, PurePosixPath
 from datetime import datetime, timezone
+from contextlib import contextmanager
 from pprint import pprint
 
 from .PathBase import PathBase
@@ -382,3 +383,23 @@ class ZipPath(PathBase):
 
     def replace(self, target):
         raise OSError('Renaming files inside ZIPs not supported')
+
+    @contextmanager
+    def extract_file(self):
+        tempdir = Path(os.environ['TEMP'])
+        temp_filename = f'vview-temp-{uuid.uuid4()}{self.suffix}'
+        temp_file = Path(tempdir) / temp_filename
+
+        # Copy the file out.
+        with self.open('rb') as src:
+            with temp_file.open('wb') as dst:
+                shutil.copyfileobj(src, dst)
+
+        try:
+            # Sync the temporary file's mtime to the input file's.
+            st = self.stat()
+            os.utime(temp_file, (st.st_atime, st.st_mtime))
+
+            yield temp_file
+        finally:
+            temp_file.unlink(missing_ok=True)

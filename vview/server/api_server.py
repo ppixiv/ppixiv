@@ -98,6 +98,7 @@ class APIServer:
         app.router.add_get('/poster/{type:[^:]+}:{path:.+}', thumbs.handle_poster)
         app.router.add_get('/mjpeg-zip/{type:[^:]+}:{path:.+}', thumbs.handle_mjpeg)
         app.router.add_get('/inpaint/{type:[^:]+}:{path:.+}', thumbs.handle_inpaint)
+        app.router.add_get('/upscale/{type:[^:]+}:{path:.+}', thumbs.handle_upscale)
         app.router.add_get('/open/{path:.+}', thumbs.handle_open)
 
         # Set up WebSockets.

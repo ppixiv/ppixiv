@@ -1,4 +1,4 @@
-import ctypes, os, msvcrt, traceback, errno, json, logging
+import ctypes, os, msvcrt, traceback, errno, json, logging, win32api
 from ctypes import wintypes
 
 log = logging.getLogger(__name__)
@@ -157,6 +157,17 @@ def set_file_hidden(file, hide=True):
 
     if not SetFileInformationByHandle(handle, FileBasicInfo, ctypes.byref(info), ctypes.sizeof(info)):
         raise ctypes.WinError(ctypes.get_last_error())
+
+def set_path_hidden(path):
+    """
+    Like set_file_hidden given a path.
+
+    This is useful for directories, which are a pain to open as files in Python.
+    """
+    path = str(path)
+    attrs = win32api.GetFileAttributes(path)
+    attrs |= FILE_ATTRIBUTE_HIDDEN
+    win32api.SetFileAttributes(str(path), attrs)
 
 _server_lock_handle = None
 _server_lock_name = 'vview-server-lock'

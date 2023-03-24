@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 class PathBase:
     """
     A base class which wraps the various path APIs to make them more consistent.
@@ -119,3 +121,14 @@ class PathBase:
     def read_bytes(self):
         with self.open('rb') as f:
             return f.read()
+
+    @contextmanager
+    def extract_file(self):
+        """
+        If this is a file inside a ZIP, copy it to a temporary file, yielding its path.
+        The temporary file will be deleted when the block exits.
+
+        If path is a regular file, just yield it.
+        """
+        # By default, just yield ourself.  This is overridden in ZipPath.
+        yield self
