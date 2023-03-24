@@ -53,6 +53,24 @@ def mime_type_from_ext(ext, allow_unknown=False):
     else:
         return None
 
+def ignore_file(path):
+    """
+    Return true if path should be hidden from the UI.
+
+    This only lists files in file listings.  It's not a security check and can be
+    bypassed by accessing the file directly.
+    """
+    # Skip files inside upscale cache directories.
+    parts = path.parts
+    if '.upscales' in parts:
+        return True
+
+    is_dir = path.is_dir()
+    if not is_dir and mime_type_from_ext(path.suffix) is None:
+        return True
+
+    return False
+
 def _get_ext(path):
     # os.path.splitext is very slow for some reason, so we split the extension
     # ourself.

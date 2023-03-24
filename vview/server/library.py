@@ -439,6 +439,9 @@ class Library:
         if not path.exists():
             return None
             
+        if misc.ignore_file(path):
+            return None
+
         # Create the appropriate entry type.
         if not populate:
             entry = self._get_placeholder_entry(path)
@@ -702,12 +705,11 @@ class Library:
 
         results = []
         for child in scandir_results:
-            is_dir = child.is_dir()
-
             # Skip unsupported files.
-            if not is_dir and misc.file_type(child.name) is None:
+            if misc.ignore_file(child):
                 continue
 
+            is_dir = child.is_dir()
             if not include_dirs and is_dir:
                 continue
             if not include_files and not is_dir:
@@ -773,12 +775,11 @@ class Library:
 
         results = []
         for path in scandir_results:
-            is_dir = path.is_dir()
-
             # Skip unsupported files.
-            if not is_dir and (misc.file_type(path.name) is None or misc.mime_type_from_ext(path.suffix) is None):
+            if misc.ignore_file(path):
                 continue
 
+            is_dir = path.is_dir()
             relative_path = root_path / path.name
             media_id = '%s:%s' % ('folder' if is_dir else 'file', relative_path)
             results.append(media_id)
