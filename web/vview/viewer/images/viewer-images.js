@@ -1492,7 +1492,7 @@ export default class ViewerImages extends Viewer
     //
     // Toggle zooming, centering around the given view position, or the center of the
     // view if x and y are null.
-    zoomToggle({x, y})
+    zoomToggle({x, y}={})
     {
         if(this._slideshowMode)
             return;
