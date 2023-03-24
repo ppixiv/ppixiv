@@ -1,11 +1,12 @@
 # Helpers that don't have dependancies on our other modules.
-import asyncio, concurrent, os, io, struct, logging, os, re, threading, time, traceback, sys, queue
+import asyncio, concurrent, os, io, struct, logging, os, re, threading, time, traceback, sys, queue, uuid
 from contextlib import contextmanager
 from pathlib import Path
 from PIL import Image, ImageFile, ExifTags
 from pprint import pprint
 import urllib.parse
 
+from ..util.paths import open_path
 from ..util.tiff import get_tiff_metadata
 from .video_metadata import mp4, mkv, gif
 
@@ -87,6 +88,21 @@ def file_type(path):
 def mime_type(path):
     ext = _get_ext(path)
     return mime_type_from_ext(ext)
+
+_temp_path = Path(os.environ['TEMP']) / 'vview-temp'
+
+def get_temporary_path(ext='.bin'):
+    """
+    Reteurn a FilesystemPath to a temporary file.
+
+    This is just a unique filesystem path.  The file won't be opened or created and
+    this doesn't handle deleting the file.
+    """
+    _temp_path.mkdir(exist_ok=True)
+
+    temp_filename = f'vview-temp-{uuid.uuid4()}{ext}'
+    input_temp_file = _temp_path / temp_filename
+    return open_path(input_temp_file)
 
 class Error(Exception):
     def __init__(self, code, reason):

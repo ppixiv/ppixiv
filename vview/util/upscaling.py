@@ -1,13 +1,15 @@
 # Run 2x and 4x upscales using the ESRGAN upscaler.
 
-import asyncio, time, uuid, os, hashlib, logging, tempfile, random, subprocess
+import asyncio, time, os, logging, random, shutil, subprocess, uuid
 from pathlib import Path
+from PIL import Image
 from pprint import pprint
 from vview.util import misc, win32
+from ..util.paths import open_path
+from ..util.tiff import remove_photoshop_tiff_data
 
 log = logging.getLogger(__name__)
 
-# XXX: installer should download this
 _upscaler = './bin/upscaler/realesrgan-ncnn-vulkan'
 
 # Keep track of running upscales we're generating, and if we get a second request for
@@ -84,7 +86,28 @@ async def _create_upscale(input_file, *, output_file, ratio):
         if input_stat.st_mtime == output_stat.st_mtime:
             return
 
-    with input_file.extract_file() as fs_input_file:
+    # Reencode the image we're upscaling to an RGB BMP.  The upscaler isn't very robust
+    # at handling various files and file paths, so this lets us give it a simple, controlled
+    # input that won't confuse it.  Bake any transparency (it doesn't handle transparency)
+    # and convert to RGB.
+    input_temp_file = misc.get_temporary_path('.bmp')
+
+    with input_file.open('rb') as f:
+        f = remove_photoshop_tiff_data(f)
+        image = Image.open(f)
+        image.load()
+        
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+
+        with input_temp_file.open('w+b') as output:
+            image.save(output, format='bmp')
+
+    tempdir = Path(os.environ['TEMP'])
+    output_temp = f'vview-temp-{uuid.uuid4()}{input_file.suffix}'
+    output_temp_file = Path(tempdir) / output_temp
+
+    try:
         # This is a GPU upscaler.  Only process one image at a time, so we don't spam GPU jobs
         # if the client tries to load too aggressively.  Doing it here allows the above check
         # to complete without blocking if the image is already cached.
@@ -93,16 +116,22 @@ async def _create_upscale(input_file, *, output_file, ratio):
             result = await _run_upscale([
                 _upscaler,
                 '-s', str(ratio),
-                '-i', str(fs_input_file),
-                '-o', str(output_file),
+                '-i', str(input_temp_file),
+                '-o', str(output_temp_file),
             ])
 
-    if result != 0:
-        raise Exception('Error upscaling image')
+        if result != 0:
+            raise Exception('Error upscaling image')
 
-    # The upscaler doesn't return a result code.
-    if not output_file.exists():
-        raise Exception('Error upscaling image (no file generated)')
+        # The upscaler doesn't return a result code.
+        if not output_temp_file.exists():
+            raise Exception('Error upscaling image (no file generated)')
+
+        shutil.copyfile(output_temp_file, output_file)
+    finally:
+        # Clean up.
+        input_temp_file.unlink(missing_ok=True)
+        output_temp_file.unlink(missing_ok=True)
 
     # Set the cache file's timestamp to match the input file, so we can tell if the input
     # file changes.

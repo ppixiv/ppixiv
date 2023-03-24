@@ -386,9 +386,8 @@ class ZipPath(PathBase):
 
     @contextmanager
     def extract_file(self):
-        tempdir = Path(os.environ['TEMP'])
         temp_filename = f'vview-temp-{uuid.uuid4()}{self.suffix}'
-        temp_file = Path(tempdir) / temp_filename
+        temp_file = Path(os.environ['TEMP']) / temp_filename
 
         # Copy the file out.
         with self.open('rb') as src:
