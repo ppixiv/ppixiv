@@ -194,6 +194,22 @@ def read_metadata(f, mime_type):
 
     return result
 
+async def wait_or_kill_process(process):
+    """
+    Wait for process to finish.  On exception (especially cancellation), kill the
+    process.
+    """
+    try:
+        return await process.wait()
+    except:
+        try:
+            process.kill()
+        except ProcessLookupError:
+            pass
+
+        await process.wait()
+        raise
+
 class AsyncEvent:
     """
     A simple async implementation of threading.Event.

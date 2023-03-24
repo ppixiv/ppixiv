@@ -1,4 +1,5 @@
 import asyncio, os, subprocess
+from vview.util import misc
 
 # This handles extracting a frame from videos for thumbnails and posters,
 # and extracting the display resolution of videos.
@@ -7,22 +8,6 @@ import asyncio, os, subprocess
 # nasty licensing.  We only need to support WebM and MP4, since those are
 # the only formats that browsers will display anyway.
 ffmpeg = './bin/ffmpeg/bin/ffmpeg'
-
-async def wait_or_kill_process(process):
-    """
-    Wait for process to finish.  On exception (especially cancellation), kill the
-    process.
-    """
-    try:
-        return await process.wait()
-    except:
-        try:
-            process.kill()
-        except ProcessLookupError:
-            pass
-
-        await process.wait()
-        raise
 
 class pipe_to_process:
     def __init__(self, input_file):
@@ -85,7 +70,7 @@ async def run_ffmpeg(args, stdin=None):
         stdin=stdin.read if stdin else subprocess.DEVNULL,
         creationflags=DETACHED_PROCESS)
 
-    wait = wait_or_kill_process(process)
+    wait = misc.wait_or_kill_process(process)
     if stdin is not None:
         return await stdin.send_and_wait(wait)
     else:
