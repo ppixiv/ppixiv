@@ -44,6 +44,7 @@ class VViewBuild:
             self.download_sass()
             self.download_embedded_python()
             self.download_ffmpeg()
+            self.download_upscaler()
             self.build_native()
             self.check_native()
             self.install_pip()
@@ -95,12 +96,13 @@ class VViewBuild:
         else:
             return False
 
-    def download_file(self, url):
+    def download_file(self, url, filename=None):
         """
         Download url to our local temporary directory and return its path.
         """
-        filename = urllib.parse.urlparse(url).path
-        filename = os.path.basename(filename)
+        if filename is None:
+            filename = urllib.parse.urlparse(url).path
+            filename = os.path.basename(filename)
 
         output_file = self.temp_dir / filename
 
@@ -117,7 +119,7 @@ class VViewBuild:
             with output_temp.open('w+b') as output:
                 with request.urlopen(url) as req:
                     # Store req.length to work around a weird bug: req.length returns the number of bytes
-                    # remaining instead of the length of the resul.t
+                    # remaining instead of the length of the result.
                     expected_size = req.length
                     while True:
                         data = req.read(1024*1024)
@@ -254,6 +256,40 @@ class VViewBuild:
             with zipfile.open(input_file, 'r') as input_file:
                 with output_file.open('wb') as output_file:
                     shutil.copyfileobj(input_file, output_file)
+
+    def download_upscaler(self):
+        url = 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip'
+        output_file = self.download_file(url)
+        print(output_file)
+
+        output_dir = self.bin_dir / 'upscaler'
+
+        # This ZIP has a bunch of stuff we don't want: a One Piece clip (???) and a bunch of
+        # gigantic resampler models that don't work.  Just extract what we need, which is a
+        # fraction of the size of the ZIP.
+        zipfile = ZipFile(output_file)
+        for filename in (
+            'realesrgan-ncnn-vulkan.exe',
+            'vcomp140.dll',
+            'models/realesr-animevideov3-x2.bin',
+            'models/realesr-animevideov3-x2.param',
+            'models/realesr-animevideov3-x3.bin',
+            'models/realesr-animevideov3-x3.param',
+            'models/realesr-animevideov3-x4.bin',
+            'models/realesr-animevideov3-x4.param',
+        ):
+            input_file = filename
+            output_file = output_dir / filename
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with zipfile.open(input_file, 'r') as input_file:
+                with output_file.open('wb') as output_file:
+                    shutil.copyfileobj(input_file, output_file)
+
+        # The build ZIP doesn't have the license.  Grab it from the repository.
+        license_url = 'https://raw.githubusercontent.com/xinntao/Real-ESRGAN/v0.2.5.0/LICENSE'
+        license_file = self.download_file(license_url, filename='ESRGAN license.txt')
+        shutil.copyfile(license_file, output_dir / 'LICENSE.txt')
 
     def find_msbuild(self):
         """
