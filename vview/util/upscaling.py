@@ -91,6 +91,7 @@ async def _create_upscale(input_file, *, output_file, ratio):
     # input that won't confuse it.  Bake any transparency (it doesn't handle transparency)
     # and convert to RGB.
     input_temp_file = misc.get_temporary_path('.bmp')
+    output_temp_file = misc.get_temporary_path('.jpg')
 
     with input_file.open('rb') as f:
         f = remove_photoshop_tiff_data(f)
@@ -102,10 +103,6 @@ async def _create_upscale(input_file, *, output_file, ratio):
 
         with input_temp_file.open('w+b') as output:
             image.save(output, format='bmp')
-
-    tempdir = Path(os.environ['TEMP'])
-    output_temp = f'vview-temp-{uuid.uuid4()}{input_file.suffix}'
-    output_temp_file = Path(tempdir) / output_temp
 
     try:
         # This is a GPU upscaler.  Only process one image at a time, so we don't spam GPU jobs
