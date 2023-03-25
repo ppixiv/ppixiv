@@ -257,7 +257,7 @@ export default class ImagePreloader
         let page = helpers.mediaId.parse(mediaId).page;
         if(page < mediaInfo.mangaPages.length)
         {
-            let { url } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
+            let { url } = mediaInfo.getMainImageUrl(page);
             results.push(new ImgResourceLoader(url));
         }
 
@@ -269,7 +269,7 @@ export default class ImagePreloader
                 if(p == page)
                     continue;
 
-                let { url } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
+                let { url } = mediaInfo.getMainImageUrl(page);
                 results.push(new ImgResourceLoader(url));
             }
         }

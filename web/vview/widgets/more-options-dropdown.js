@@ -185,7 +185,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                     onclick: async () => {
                         let mediaInfo = await ppixiv.mediaCache.getMediaInfo(this._mediaId, { full: true });
                         let page = helpers.mediaId.parse(this.mediaId).page;
-                        let { url } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
+                        let { url } = mediaInfo.getMainImageUrl(page);
 
                         let title = `${mediaInfo.userName} - ${mediaInfo.illustId}`;
                         if(mediaInfo.mangaPages.length > 1)

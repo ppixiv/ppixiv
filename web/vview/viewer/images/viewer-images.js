@@ -243,7 +243,7 @@ export default class ViewerImages extends Viewer
         if(mediaInfo != null)
         {
             let mangaPage = mediaInfo.mangaPages[page];
-            let { url, width, height } = ppixiv.mediaCache.getMainImageUrl(mediaInfo, page);
+            let { url, width, height } = mediaInfo.getMainImageUrl(page);
             return {
                 mediaInfo, width, height,
                 url,
