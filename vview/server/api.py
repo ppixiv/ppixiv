@@ -103,11 +103,11 @@ def get_illust_info(info, entry, base_url):
 
         image_info.update({
             'previewUrls': [remote_thumb_path],
-            'userId': -1,
             'tagList': [],
             'extraData': {
                 media_id: { },
-            }
+            },
+            'urls': { },
         })
 
         return image_info
@@ -153,9 +153,6 @@ def get_illust_info(info, entry, base_url):
         # illustTypes.
         'illustType': 2 if is_animation else 0 if filetype == 'image' else 'video',
 
-        # We use -1 to indicate no user instead of null.  Pixiv user and illust IDs can
-        # be treated as strings or ints, so using null is awkward.
-        'userId': -1,
         'urls': urls,
         'width': entry['width'],
         'height': entry['height'],

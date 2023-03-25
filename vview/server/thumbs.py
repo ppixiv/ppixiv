@@ -449,8 +449,8 @@ async def handle_upscale(request):
     path = request.match_info['path']
     ratio = int(request.query.get('ratio', 2))
     absolute_path = request.app['server'].resolve_path(path)
-    if not request.app['server'].check_path(absolute_path, request, throw=False):
-        raise aiohttp.web.HTTPNotFound()
+    _check_access(request, absolute_path)
+
     if not absolute_path.is_file():
         raise aiohttp.web.HTTPNotFound()
 
@@ -474,7 +474,7 @@ async def handle_upscale(request):
         raise aiohttp.web.HTTPInternalServerError()
 
     return FileResponse(upscale_path, headers={
-        'Cache-Control': 'public, must-revalidate', #immutable',
+        'Cache-Control': 'public, immutable',
         'Content-Type': mime_type,
     })
 
