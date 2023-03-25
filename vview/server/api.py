@@ -129,6 +129,11 @@ def get_illust_info(info, entry, base_url):
     if is_animation:
         urls['mjpeg_zip'] = remote_mjpeg_path
 
+    # Add upscale URLs for static images.  The client decides whether to use these.
+    if not is_animation:
+        for ratio in (2,3,4):
+            urls[f'upscale{ratio}x'] = f'{base_url}/upscale/{urllib.parse.quote(media_id, safe="/:")}?{image_timestamp}&ratio={ratio}'
+
     preview_urls = [urls['small']]
     tags = entry['tags'].split()
 
