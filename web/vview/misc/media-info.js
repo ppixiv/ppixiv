@@ -107,6 +107,9 @@ export default class MediaInfo
 
     get ugoiraMetadata() { return this._getInfo("ugoiraMetadata"); }
     
+    // Local images:
+    get localPath() { return this._getInfo("localPath"); }
+
     // Get a key by name.
     //
     // If defaultValue is undefined, the key is expected to exist and an exception is thrown
@@ -321,7 +324,7 @@ class VviewMediaInfo extends MediaInfo
 
             // These metadata fields don't exist for folders.
             mediaInfo.userName = null;
-            mediaInfo.illustType = 1;
+            mediaInfo.illustType = 0;
         }
         else
         {
@@ -337,5 +340,8 @@ class VviewMediaInfo extends MediaInfo
 
         this._type = type;
         this._addDataFrom(mediaInfo, mediaInfoKeys.globalFull);
+        this._addDataFrom(mediaInfo, [
+            "localPath",
+        ]);
     }
 }
