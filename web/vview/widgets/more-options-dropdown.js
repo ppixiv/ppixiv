@@ -131,6 +131,16 @@ export default class MoreOptionsDropdown extends IllustWidget
                 });
             },
 
+            toggleUpscaling: () => {
+                return new MenuOptionToggleSetting({
+                    ...sharedOptions,
+                    label: "GPU upscaling",
+                    icon: "mat:zoom_out_map",
+                    requiresImage: true,
+                    setting: "upscaling",
+                });
+            },
+
             editMutes: () => {
                 return new MenuOptionButton({
                     ...sharedOptions,
@@ -398,7 +408,10 @@ export default class MoreOptionsDropdown extends IllustWidget
         if(!ppixiv.mobile)
             this._menuOptions.push(menuOptions.imageEditing());
         if(ppixiv.native)
+        {
             this._menuOptions.push(menuOptions.indexFolderForSimilaritySearch());
+            this._menuOptions.push(menuOptions.toggleUpscaling());
+        }
         if(this.showExtra || ppixiv.native)
             this._menuOptions.push(menuOptions.refreshImage());
 

@@ -344,4 +344,55 @@ class VviewMediaInfo extends MediaInfo
             "localPath",
         ]);
     }
+
+    // For local images, we can optionally use a high-quality GPU upscale for static
+    // images.
+    getMainImageUrl(page=0)
+    {
+        let result = this._getMainImageUrlWithUpscaling(page);
+        return result ?? super.getMainImageUrl(page);
+    }
+
+    _getMainImageUrlWithUpscaling(page)
+    {
+        // This is only used for static images.
+        if(this.illustType != 0)
+            return null;
+
+        let mangaPage = this.mangaPages[page];
+        if(mangaPage == null)
+            return null;
+
+        // The upscale setting can be:
+        // null: no upscaling
+        // 2x, 3x, 4x: upscale by the given factor.  These are the upscales supported by the
+        // underlying GPU resizer.
+        // auto: upscale based on the image size.
+        let upscaleSetting = ppixiv.settings.get("upscaling");
+        if(!upscaleSetting)
+            return null;
+
+        // The upscaler will do 2x, 3x and 4x, but in practice going beyond 2x is nearly
+        // indistinguishable from 2x with regular upscaling.  It's already done what it can
+        // with the image.  Just decide whether to use 2x upscaling or none at all, so we
+        // don't waste time upscaling images that aren't low-res.
+        //
+        // For now we just pick an arbitrary max resolution to turn on upscaling.
+        let { width, height } = mangaPage;
+        let maxSizeForUpscaling = 2000;
+        if(width >= maxSizeForUpscaling && height > maxSizeForUpscaling)
+            return null;
+
+        return {
+            url: mangaPage.urls.upscale2x,
+
+            // We currently don't scale these values to reflect the upscale.  The viewer
+            // only uses them for the aspect ratio (which won't change) unless it's in
+            // "actual size" mode, so scaling these causes the image size to jump, but only
+            // when the zoom is at actual size.  It's better to just leave it at the
+            // natural size, so the zoom stays put.
+            width: mangaPage.width,
+            height: mangaPage.height,
+        };
+    }
 }

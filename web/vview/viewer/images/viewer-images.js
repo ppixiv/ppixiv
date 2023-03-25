@@ -102,6 +102,7 @@ export default class ViewerImages extends Viewer
         OpenWidgets.singleton.addEventListener("changed", () => this._checkAnimationFinished(), this._signal);
 
         ppixiv.mediaCache.addEventListener("mediamodified", ({mediaId}) => this._mediaInfoModified({mediaId}), this._signal);
+        ppixiv.settings.addEventListener("upscaling", () => this._refreshFromMediaInfo(), this._signal);
 
         // Create the inpaint editor.
         if(!ppixiv.mobile)
