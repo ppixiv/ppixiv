@@ -98,6 +98,19 @@ async def _create_upscale(input_file, *, output_file, ratio):
         image = Image.open(f)
         image.load()
         
+        # If we tell PIL to convert P to RGB and the palette has transparency, it seems
+        # to use an undefined RGB color for transparency.  We just want it to comp onto
+        # black.  To avoid this, convert to RGBA, so it'll use the black underlay path
+        # below.
+        if image.mode == 'P':
+            image = image.convert('RGBA')
+
+        # Bake RGBA to RGB with a black background.
+        if image.mode == 'RGBA':
+            bg = Image.new('RGBA', image.size, (0,0,0,255))
+            image = Image.alpha_composite(bg, image)
+
+        # Convert anything else to RGB.
         if image.mode != 'RGB':
             image = image.convert('RGB')
 
