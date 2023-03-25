@@ -406,7 +406,7 @@ export default class ImageEditor extends IllustWidget
             // Get data from each editor.
             let edits = this.getDataToSave();
 
-            let mediaInfo;
+            let updatedMediaInfo;
             if(helpers.mediaId.isLocal(this._mediaId))
             {
                 let result = await LocalAPI.localPostRequest(`/api/set-image-edits/${this._mediaId}`, edits);
@@ -420,18 +420,18 @@ export default class ImageEditor extends IllustWidget
                 }
 
                 // Update cached media info to include the change.
-                mediaInfo = result.illust;
-                LocalAPI.adjustIllustInfo(mediaInfo);
-                ppixiv.mediaCache.updateMediaInfo(this._mediaId, mediaInfo);
+                updatedMediaInfo = result.illust;
+                ppixiv.mediaCache.updateMediaInfo(this._mediaId, updatedMediaInfo);
             }
             else
             {
                 // Save data for Pixiv images to image_data.
-                mediaInfo = await ppixiv.mediaCache.saveExtraImageData(this._mediaId, edits);                
+                await ppixiv.mediaCache.saveExtraImageData(this._mediaId, edits);                
             }
 
             // Let the widgets know that we saved.
             let currentEditor = this.activeEditor;
+            let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._mediaId);
             if(currentEditor?.afterSave)
                 currentEditor.afterSave(mediaInfo);
         } finally {

@@ -231,7 +231,7 @@ export default class ImagePreloader
 
             // Preload the original image too, which ViewerUgoira displays if the ZIP isn't
             // ready yet.
-            results.push(new ImgResourceLoader(mediaInfo.urls.original));
+            results.push(new ImgResourceLoader(mediaInfo.mangaPages[0].urls.original));
 
             return results;
         }

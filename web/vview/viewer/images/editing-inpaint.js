@@ -249,17 +249,17 @@ export default class InpaintEditor extends Widget
 
     async afterSave(mediaInfo)
     {
-        if(mediaInfo.urls == null)
+        if(mediaInfo.mangaPages[0] == null)
             return;
 
-        if(mediaInfo.urls.inpaint)
+        if(mediaInfo.mangaPages[0].urls.inpaint)
         {
             // Saving the new inpaint data will change the inpaint URL.  It'll be generated the first
             // time it's fetched, which can take a little while.  Fetch it before updating image
             // data, so it's already generated when ViewerImages updates with the new URL.
             // Otherwise, we'll be stuck looking at the low-res preview while it generates.
             let img = new realImage();
-            img.src = mediaInfo.urls.inpaint;
+            img.src = mediaInfo.mangaPages[0].urls.inpaint;
             await helpers.other.waitForImageLoad(img);
         }
 

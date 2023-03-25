@@ -46,7 +46,7 @@ export default class ViewerUgoira extends ViewerVideoBase
         if(partialMediaInfo)
         {
             if(local)
-                this._createPreviewImage(partialMediaInfo.urls.poster, null);
+                this._createPreviewImage(partialMediaInfo.mangaPages[0].urls.poster, null);
             else
                 this._createPreviewImage(partialMediaInfo.previewUrls[0], null);
 
@@ -84,11 +84,12 @@ export default class ViewerUgoira extends ViewerVideoBase
 
         // Create the player.
         this.player = new ZipImagePlayer({
-            metadata: this.mediaInfo.ugoiraMetadata,
+            // This is only used for Pixiv animations, not local ones.
+            metadata: this.mediaInfo.isLocal? null:this.mediaInfo.ugoiraMetadata,
             autoStart: false,
             source: source,
             local: local,
-            mime_type: this.mediaInfo.ugoiraMetadata?.mime_type,
+            mime_type: this.mediaInfo.isLocal? null: this.mediaInfo.ugoiraMetadata?.mime_type,
             signal: this.abortController.signal,
             autosize: true,
             canvas: this.video,

@@ -880,11 +880,13 @@ export default class MediaCache extends EventTarget
     {
         // This isn't currently used locally.
         if(helpers.mediaId.isLocal(mediaInfo.mediaId))
+        {
             return {
-                url: mediaInfo.urls.original,
-                width: mediaInfo.width,
-                height: mediaInfo.height,
+                url: mediaInfo.mangaPages[0].urls.original,
+                width: mediaInfo.mangaPages[0].width,
+                height: mediaInfo.mangaPages[0].height,
             };
+        }
 
         let mangaPage = mediaInfo.mangaPages[page];
         if(mangaPage == null)
