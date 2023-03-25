@@ -25,37 +25,8 @@
 
 import LocalAPI from 'vview/misc/local-api.js';
 import MediaCacheMappings from 'vview/misc/media-cache-mappings.js';
+import MediaInfo  from 'vview/misc/media-info.js';
 import { helpers } from 'vview/misc/helpers.js';
-
-// Partial media info always contains these keys.  This is checked by _checkMediaInfo,
-// to make sure we don't accidentally start storing keys that might not always be there.
-// We aren't strict with full info, since it's always all the data we have available and
-// it only comes from one API.
-const partialMediaInfoKeys = Object.freeze([
-    "mediaId",                          // Our media ID
-    "illustId",                         // Pixiv's illust ID
-    "illustType",                       // 0 or 1: illust, 2: ugoira, "video": local video
-    "illustTitle",
-    "pageCount",                        // Manga pages (always 1 for videos and local images)
-    "userId",
-    "userName",
-    "width",                            // if a manga post, this is for the first page only 
-    "height",
-    "previewUrls",
-    "bookmarkData",                     // null if not bookmarked, otherwise an object
-    "createDate",
-    "tagList",                          // a flat array of illust tags
-    "aiType",
-    "extraData",                        // editor info
-    "full",
-]);
-
-// Keys that we expect to see in full info.  Unlike partial info, we don't limit the data
-// to these keys, we just check that they're there.
-const fullMediaInfoKeys = Object.freeze([
-    ...partialMediaInfoKeys,
-    "mangaPages",
-]);
 
 // This handles fetching and caching image data.
 export default class MediaCache extends EventTarget
@@ -199,7 +170,7 @@ export default class MediaCache extends EventTarget
         if(preprocessed)
         {
             // Just store the data directly.
-            this._checkMediaInfo(mediaInfo);
+            mediaInfo = MediaInfo.createFrom({ mediaInfo });
 
             let mediaId = mediaInfo.mediaId;
             this._mediaInfo[mediaId] = mediaInfo;
@@ -370,7 +341,8 @@ export default class MediaCache extends EventTarget
 
         ppixiv.guessImageUrl.addInfo(mediaInfo);
 
-        this._checkMediaInfo(mediaInfo);
+        // Create a MediaInfo wrapper.
+        mediaInfo = MediaInfo.createFrom({ mediaInfo });
 
         // Store the image data.
         this._mediaInfo[mediaId] = mediaInfo;
@@ -607,9 +579,9 @@ export default class MediaCache extends EventTarget
             mediaInfo.full = false;
 
             this._updateMediaInfoUrls(mediaInfo);
-            this._checkMediaInfo(mediaInfo);
 
             // Store the data.
+            mediaInfo = MediaInfo.createFrom({ mediaInfo });
             this._mediaInfo[mediaInfo.mediaId] = mediaInfo;
         }
 
@@ -629,9 +601,12 @@ export default class MediaCache extends EventTarget
             return null;
         }
 
-        this._mediaInfo[mediaId] = mediaInfo.illust;
+        // Create a MediaInfo wrapper.
+        mediaInfo = MediaInfo.createFrom({ mediaInfo: mediaInfo.illust });
+
+        this._mediaInfo[mediaId] = mediaInfo;
         this.callMediaInfoModifiedCallbacks(mediaId);
-        return mediaInfo.illust;
+        return mediaInfo;
     }
 
     // Return true if all thumbs in mediaIds have been loaded, or are currently loading.
@@ -716,29 +691,12 @@ export default class MediaCache extends EventTarget
 
         let mediaInfo = this._mediaInfo[mediaId];
         if(mediaInfo == null)
-            return;
+            return null;
 
-        for(let [key, value] of Object.entries(keys))
-        {
-            // If we have partial info and we're getting an update from a tab that has full info,
-            // don't change our full flag.
-            if(key == "full")
-                continue;
-
-            // If we only have partial info, ignore data that shouldn't be included in
-            // partial info.
-            if(!mediaInfo.full && partialMediaInfoKeys.indexOf(key) == -1)
-            {
-                console.log(`Not updating key "${key}" for partial media info: ${mediaId}`);
-                continue;
-            }
-
-            mediaInfo[key] = value;
-        }
-
-        this._checkMediaInfo(mediaInfo);
+        mediaInfo.updateInfo(keys);
 
         this.callMediaInfoModifiedCallbacks(mediaId);
+        return mediaInfo;
     }
 
     // Get the user's profile picture URL, or a fallback if we haven't seen it.
@@ -760,58 +718,13 @@ export default class MediaCache extends EventTarget
         helpers.other.preloadImages([url]);
     }
 
-    // Helpers
-
     // Return partial data for a full media info.
     _fullToPartialInfo(mediaInfo)
     {
         if(mediaInfo == null)
             return null;
 
-        // If this is already partial data, just return it as is.  Don't do this for
-        // local info either, since that's always full.
-        if(!mediaInfo.full || helpers.mediaId.isLocal(mediaInfo.mediaId))
-            return mediaInfo;
-
-        let result = {};        
-        for(let key of partialMediaInfoKeys)
-            result[key] = mediaInfo[key];
-
-        return result;
-    }
-
-    // Check keys for partial media info.  We always expect all keys in partialMediaInfoKeys
-    // to be included, regardless of where the data came from.
-    _checkMediaInfo(mediaInfo)
-    {
-        if(mediaInfo == null)
-            return;
-
-        // The key "id" should always be removed.
-        if("id" in mediaInfo)
-            console.warn(`Unexpected key id:`, mediaInfo);
-
-        if(mediaInfo.full)
-        {
-            for(let key of fullMediaInfoKeys)
-            {
-                if(!(key in mediaInfo))
-                    console.warn(`Missing key ${key} in full data`, mediaInfo);
-            }
-            return;
-        }
-
-        for(let key of partialMediaInfoKeys)
-        {
-            if(!(key in mediaInfo))
-                console.warn(`Missing key ${key} in partial data`, mediaInfo);
-        }
-
-        for(let key of Object.keys(mediaInfo))
-        {
-            if(partialMediaInfoKeys.indexOf(key) == -1)
-                console.warn(`Unexpected key ${key} in partial data`, mediaInfo);
-        }
+        return mediaInfo.partialInfo;
     }
 
     // Return the extra info for an image, given its image info.
@@ -855,7 +768,7 @@ export default class MediaCache extends EventTarget
             {
                 // If this is partial info, we don't know the dimensions of pages past the first.
                 // Use the size of the first page as a fallback.
-                if(mediaInfo.mangaPages == null)
+                if(!mediaInfo.full)
                     return { width: pageInfo.width, height: pageInfo.height };
 
                 pageInfo = mediaInfo.mangaPages[page];
@@ -931,10 +844,7 @@ export default class MediaCache extends EventTarget
         }
 
         for(let illust of result.results)
-        {
-            LocalAPI.adjustIllustInfo(illust);
             await this.addMediaInfoFull(illust, { preprocessed: true });
-        }
     }
 
     // Run a search against the local API.
@@ -951,10 +861,7 @@ export default class MediaCache extends EventTarget
         }
 
         for(let illust of result.results)
-        {
-            LocalAPI.adjustIllustInfo(illust);
             await this.addMediaInfoFull(illust, { preprocessed: true });
-        }
 
         return result;
     }

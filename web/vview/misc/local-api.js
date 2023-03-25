@@ -67,44 +67,8 @@ export default class LocalAPI
         let mediaInfo = await LocalAPI.localPostRequest(`/api/illust/${mediaId}`, {
             refreshFromDisk,
         });
-        if(mediaInfo.success)
-            LocalAPI.adjustIllustInfo(mediaInfo.illust);
 
         return mediaInfo;
-    }
-
-    // Fill in some redundant fields.  The local API doesn't use mangaPages,
-    // but we fill it in from urls so we can treat it the same way.
-    static adjustIllustInfo(illust)
-    {
-        let { type } = helpers.mediaId.parse(illust.mediaId);
-        if(type == "folder")
-        {
-            illust.mangaPages = [];
-            illust.pageCount = 0;
-
-            // These metadata fields don't exist for folders.  Set them to null so MediaCache._checkMediaInfo doesn't complain.
-            illust.width = illust.height = illust.userName = null;
-            illust.illustType = 1;
-        }
-        else
-        {
-            illust.mangaPages = [{
-                width: illust.width,
-                height: illust.height,
-                urls: illust.urls,
-            }];
-            illust.pageCount = 1;
-        }
-
-        // illustId is only for Pixiv images.  Set it so MediaCache._checkMediaInfo doesn't complain.
-        illust.illustId = null;
-
-        // Local media info is always full.
-        illust.full = true;
-
-        // Local images don't use aiType.
-        illust.aiType = 0;
     }
 
     static async loadRecentBookmarkTags()

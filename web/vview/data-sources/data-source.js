@@ -614,7 +614,6 @@ export default class DataSource extends EventTarget
         // We didn't have the new illustration, so we may need to load another page of search results.
         // See if we know which page mediaId is on.
         let page = mediaId != null? this.idList.getPageForMediaId(mediaId).page:null;
-        console.log("find", mediaId, page);
 
         // Find the page this illustration is on.  If we don't know which page to start on,
         // use the initial page.

@@ -206,9 +206,6 @@ export default class MediaCacheMappings
                 remappedMediaInfo.previewUrls.push(url);
             }
 
-            // Remove url.  Use previewUrl[0] instead
-            delete remappedMediaInfo.url;
-
             // Rename .tags to .tagList, for consistency with the flat tag list in illust info.
             remappedMediaInfo.tagList = remappedMediaInfo.tags;
             delete remappedMediaInfo.tags;
