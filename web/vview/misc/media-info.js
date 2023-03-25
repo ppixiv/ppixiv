@@ -53,6 +53,7 @@ let mediaInfoKeys = {
     pixivFull: [
         "likeCount",
         "bookmarkCount",
+        "ugoiraMetadata",
     ],
 };
 
@@ -245,13 +246,6 @@ class PixivMediaInfo extends MediaInfo
         {
             this._addDataFrom(mediaInfo, mediaInfoKeys.globalFull);
             this._addDataFrom(mediaInfo, mediaInfoKeys.pixivFull);
-
-            // Only animations have ugoiraMetadata.
-            if(mediaInfo.illustType == 2)
-            {
-                console.assert("ugoiraMetadata" in mediaInfo);
-                this._info.ugoiraMetadata = mediaInfo.ugoiraMetadata;
-            }
         }
 
         // Stash away any keys we didn't load.

@@ -291,6 +291,8 @@ export default class MediaCache extends EventTarget
             let ugoiraResult = await ugoiraPromise;
             mediaInfo.ugoiraMetadata = ugoiraResult.body;
         }
+        else
+            mediaInfo.ugoiraMetadata = null;
 
         this._updateMediaInfoUrls(mediaInfo);
 
