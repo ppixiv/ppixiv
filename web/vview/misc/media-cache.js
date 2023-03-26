@@ -56,27 +56,6 @@ export default class MediaCache extends EventTarget
         let event = new Event("mediamodified");
         event.mediaId = mediaId;
         this.dispatchEvent(event);
-
-        this._queueInfoLoadedEvent(mediaId);
-    }
-
-    // Queue an infoloaded event.  This is batched and lets listeners know when any
-    // info has been loaded.
-    _queueInfoLoadedEvent(mediaId)
-    {
-        if(this._mediaIdsLoaded == null)
-        {
-            this._mediaIdsLoaded = new Set();
-
-            realSetTimeout(() => {
-                let e = new Event("infoloaded");
-                e.mediaIds = Array.from(this._mediaIdsLoaded);
-                this._mediaIdsLoaded = null;
-                this.dispatchEvent(e);
-            }, 0);
-        }
-
-        this._mediaIdsLoaded.add(mediaId);
     }
 
     // Load media data asynchronously.  If full is true, return full info, otherwise return
@@ -587,8 +566,6 @@ export default class MediaCache extends EventTarget
             this._mediaInfo[mediaInfo.mediaId] = mediaInfo;
         }
 
-        // Broadcast that we have new thumbnail data available.
-        this._queueInfoLoadedEvent();
         return mediaIds;
     }
 
