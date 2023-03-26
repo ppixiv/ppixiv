@@ -2,6 +2,7 @@
 
 import Widget from 'vview/widgets/widget.js';
 import DialogWidget from 'vview/widgets/dialog.js';
+import MediaInfo  from 'vview/misc/media-info.js';
 import { LocalBroadcastChannel } from 'vview/misc/local-api.js';
 import { Timer } from 'vview/misc/helpers.js';
 import { helpers } from 'vview/misc/helpers.js';
@@ -109,7 +110,7 @@ export default class SendImage
             to: tabIds,
             mediaId,
             action, // "temp-view" or "display"
-            mediaInfo,
+            mediaInfo: mediaInfo?.serialize,
             userInfo,
             origin: window.origin,
         }, false);
@@ -145,7 +146,7 @@ export default class SendImage
             message: "image-info",
             from: this.tabId,
             mediaId,
-            mediaInfo,
+            mediaInfo: mediaInfo?.serialize,
             bookmarkTags: ppixiv.extraCache.getBookmarkDetailsSync(mediaId),
             userInfo,
             origin: window.origin,
@@ -245,22 +246,28 @@ export default class SendImage
             if(data.origin != window.origin)
                 return;
 
-            // updateMediaInfo will trigger mediamodified below.  Make sure we don't rebroadcast
-            // info that we're receiving here.  Note that addMediaInfoFull can trigger loads, and we won't
-            // send any info for changes that happen before those complete since we have to wait
-            // for it to finish, but normally this receives all info for an illust anyway.
+            // We need to make sure that we don't recurse: adding media info will trigger mediamodified,
+            // which can cause us to come back here and send it again.  First flush any waiting mediamodified
+            // events, since these happen async and we only want to ignore the ones we cause.
+            MediaInfo.flushMediaInfoModifiedCallbacks();
+
+            // addMediaInfoFull will trigger mediamodified below.  Make sure we don't rebroadcast
+            // info that we're receiving here.
             this._handlingBroadcastedMediaInfo = true;
             try {
                 // Another tab is broadcasting updated image info.  If we have this image loaded,
                 // update it.
                 let { mediaInfo, bookmarkTags, userInfo } = data;
                 if(mediaInfo != null)
-                    ppixiv.mediaCache.updateMediaInfo(data.mediaId, mediaInfo);
+                    ppixiv.mediaCache.addMediaInfoFull(mediaInfo, { preprocessed: true });
 
                 if(bookmarkTags != null)
                     ppixiv.extraCache.updateCachedBookmarkTags(data.mediaId, bookmarkTags);
                 if(userInfo != null)
                     ppixiv.userCache.addUserData(userInfo);
+
+                // Flush the mediamodified events we just caused before unsetting _handlingBroadcastedMediaInfo.
+                MediaInfo.flushMediaInfoModifiedCallbacks();
             } finally {
                 this._handlingBroadcastedMediaInfo = false;
             }

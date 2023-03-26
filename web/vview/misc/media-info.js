@@ -22,10 +22,14 @@ export default class MediaInfo
 
         // Queue callMediaInfoModifiedCallbacksAsync if this is the first entry.
         if(wasEmpty)
-            realSetTimeout(() => this._callMediaInfoModifiedCallbacksAsync(), 0);
+            realSetTimeout(() => this.flushMediaInfoModifiedCallbacks(), 0);
     }
 
-    static _callMediaInfoModifiedCallbacksAsync()
+    // Call any waiting mediamodified callbacks.
+    //
+    // This is normally called automatically, but can be called to synchronously flush
+    // the queue.
+    static flushMediaInfoModifiedCallbacks()
     {
         let mediaIds = pendingMediaIdCallbacks;
         pendingMediaIdCallbacks = new Set();
@@ -152,6 +156,19 @@ export default class MediaInfo
     {
         let classType;
 
+        if(mediaInfo.classType)
+        {
+            // This object was created by serialize().  It's already been postprocessed, and
+            // classType tells us which subclass to use.
+            let classes = {
+                VviewMediaInfo,
+                PixivMediaInfo,
+            };
+
+            classType = classes[mediaInfo.classType];
+            mediaInfo = mediaInfo.info;
+        }
+        else
         {
             // This is API data.  Figure out the correct subclass from the media ID.
             if(helpers.mediaId.isLocal(mediaInfo.mediaId))
@@ -164,6 +181,21 @@ export default class MediaInfo
         }
 
         return new classType({mediaInfo});
+    }
+
+    // Get an object that can be serialized, and used to create a MediaInfo later with
+    // createFrom.
+    get serialize() {
+        let classType;
+        if(this.__proto__.constructor === VviewMediaInfo)
+            classType = "VviewMediaInfo";
+        else
+            classType = "PixivMediaInfo";
+
+        return {
+            classType,
+            info: this._info,
+        };
     }
 
     // The subclass can implement this to adjust mediaInfo when it's coming from the API
@@ -183,7 +215,7 @@ export default class MediaInfo
     // Update this MediaInfo from data in another MediaInfo for the same mediaId.
     updateInfo(mediaInfo)
     {
-        console.assert(mediaInfo instanceof MediaInfo);
+        console.assert(mediaInfo instanceof MediaInfo, mediaInfo);
         for(let [key, value] of Object.entries(mediaInfo._info))
         {
             // Allow full to change from false to true, so if we get full info after partial info
@@ -195,7 +227,7 @@ export default class MediaInfo
             // Make sure we never change mediaId.
             if(key == "mediaId")
             {
-                console.assert(value == this._info.mediaId);
+                console.assert(value == this._info.mediaId, `Can't change media ID from ${this._info.mediaId} to ${value}`);
                 continue;
             }
 

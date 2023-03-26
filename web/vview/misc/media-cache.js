@@ -58,11 +58,6 @@ export default class MediaCache extends EventTarget
         });
     };
 
-    callMediaInfoModifiedCallbacks(mediaId)
-    {
-        MediaInfoEvents.callMediaInfoModifiedCallbacks(mediaId);
-    }
-
     // Load media data asynchronously.  If full is true, return full info, otherwise return
     // partial info.
     //
