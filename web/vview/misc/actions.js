@@ -45,12 +45,10 @@ export default class Actions
             throw "Didn't get a bookmark ID";
 
         // Store the ID of the new bookmark, so the unbookmark button works.
-        ppixiv.mediaCache.updateMediaInfo(mediaId, {
-            bookmarkData: {
-                id: newBookmarkId,
-                private: !!request.restrict,
-            },
-        });
+        mediaInfo.bookmarkData = {
+            id: newBookmarkId,
+            private: !!request.restrict,
+        };
 
         // Broadcast that this illust was bookmarked.  This is for my own external
         // helper scripts.
@@ -74,8 +72,6 @@ export default class Actions
         ppixiv.message.show(
                 wasBookmarked? "Bookmark edited":
                 options.private? "Bookmarked privately":"Bookmarked");
-
-        ppixiv.mediaCache.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     // Create or edit a bookmark.
@@ -191,24 +187,16 @@ export default class Actions
         });
 
         console.log("Removing bookmark finished");
-
-        ppixiv.mediaCache.updateMediaInfo(mediaId, {
-            bookmarkData: null
-        });
+        mediaInfo.bookmarkData = null;
 
         // If we have full image data loaded, update the like count locally.
         let fullMediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId);
         if(fullMediaInfo)
-        {
             fullMediaInfo.bookmarkCount--;
-            ppixiv.mediaCache.callMediaInfoModifiedCallbacks(mediaId);
-        }
         
         ppixiv.extraCache.updateCachedBookmarkTags(mediaId, null);
 
         ppixiv.message.show("Bookmark removed");
-
-        ppixiv.mediaCache.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     static async _localBookmarkAdd(mediaId, options)
@@ -232,9 +220,7 @@ export default class Actions
 
         // Update bookmark tags and thumbnail data.
         ppixiv.extraCache.updateCachedBookmarkTags(mediaId, result.bookmark.tags);
-        ppixiv.mediaCache.updateMediaInfo(mediaId, {
-            bookmarkData: result.bookmark
-        });
+        mediaInfo.bookmarkData = result.bookmark;
 
         let { type } = helpers.mediaId.parse(mediaId);
         
@@ -242,7 +228,6 @@ export default class Actions
             wasBookmarked? "Bookmark edited":
             type == "folder"? "Bookmarked folder":"Bookmarked",
         );
-        ppixiv.mediaCache.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     static async _localBookmarkRemove(mediaId)
@@ -261,13 +246,9 @@ export default class Actions
             return;
         }
 
-        ppixiv.mediaCache.updateMediaInfo(mediaId, {
-            bookmarkData: null
-        });
+        mediaInfo.bookmarkData = null;
 
         ppixiv.message.show("Bookmark removed");
-
-        ppixiv.mediaCache.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     // Change an existing bookmark to public or private.
@@ -291,16 +272,12 @@ export default class Actions
         });
 
         // Update bookmark info.
-        ppixiv.mediaCache.updateMediaInfo(mediaId, {
-            bookmarkData: {
-                id: bookmarkId,
-                private: private_bookmark,
-            },
-        });
+        mediaInfo.bookmarkData = {
+            id: bookmarkId,
+            private: private_bookmark,
+        };
         
         ppixiv.message.show(private_bookmark? "Bookmarked privately":"Bookmarked");
-
-        ppixiv.mediaCache.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     // Show a prompt to enter tags, so the user can add tags that aren't already in the
@@ -377,10 +354,6 @@ export default class Actions
         let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId);
         if(!wasAlreadyLiked && mediaInfo)
             mediaInfo.likeCount++;
-
-        // Let widgets know that the image was liked recently, and that the like count
-        // may have changed.
-        ppixiv.mediaCache.callMediaInfoModifiedCallbacks(mediaId);
 
         if(!quiet)
         {
