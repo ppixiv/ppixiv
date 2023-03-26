@@ -10,58 +10,6 @@ export const MediaInfoEvents = new EventTarget();
 
 let pendingMediaIdCallbacks = new Set();
 
-let mediaInfoKeys = {
-    // Global data is returned by all sources.  If a source doesn't support something in
-    // this list, a dummy value will be inserted.
-    global: [
-        "full",
-        "mediaId",                          // Our media ID
-        "bookmarkData",                     // null if not bookmarked, otherwise an object
-        "createDate",
-        "tagList",                          // a flat array of illust tags
-        "extraData",                        // editor info
-
-        "illustTitle",
-
-        // 0 or 1: illust, 2: animation (ugoira), "video": local video
-        "illustType",
-
-        "userName",
-        "previewUrls",
-    ],
-
-    // Data for full info.  This is returned by full Pixiv illust info requests but not by
-    // searches.  Local images always include these fields.
-    globalFull: [
-        "mangaPages",
-    ],
-
-    // Extra info returned for Pixiv images (partial and full).  These fields don't exist
-    // in the local API.
-    pixivPartial: [
-        // The regular Pixiv illustration ID.  Most of the time we use our media ID
-        // representation instead.
-        "illustId",
-        "aiType",
-        "userId",
-
-        // Manga pages.  This is 1 for videos and local images and any other sources that
-        // don't have pages.
-        "pageCount",
-
-        // The dimensions of the first manga page.  Search results don't give dimensions
-        // for images past the first.
-        "width", "height",
-    ],
-
-    // Full info returned for Pixiv images.  These fields don't exist in the local API.
-    pixivFull: [
-        "likeCount",
-        "bookmarkCount",
-        "ugoiraMetadata",
-    ],
-};
-
 export default class MediaInfo
 {
     // Send mediamodified when any data on a MediaInfo is modified.
@@ -100,9 +48,18 @@ export default class MediaInfo
     // Partial media info fields.  These are included in all results, including bulk results
     // like searches, and are always available.
     get mediaId() { return this._getInfo("mediaId"); }
+    get mediaType() { return helpers.mediaId.parse(this.mediaId).type; }
+
+    // The regular Pixiv illustration ID.  Most of the time we use our media ID
+    // representation instead.
     get illustId() { return this._getInfo("illustId"); }
+
+    // 0 or 1: illust, 2: animation (ugoira), "video": local video
     get illustType() { return this._getInfo("illustType"); }
     get illustTitle() { return this._getInfo("illustTitle"); }
+
+    // Manga pages.  This is 1 for videos and local images and any other sources that
+    // don't have pages.
     get pageCount() { return this._getInfo("pageCount"); }
     get userId() { return this._getInfo("userId", null); }
     get userName() { return this._getInfo("userName"); }
@@ -116,12 +73,15 @@ export default class MediaInfo
     // Unlike mangaPages, this is always available, but doesn't have image dimensions.
     get previewUrls() { return this._getInfo("previewUrls"); }
 
+    // If the post is bookmarked, this is Pixiv bookmark data.  Otherwise, this is null.
     get bookmarkData() { return this._getInfo("bookmarkData"); }      set bookmarkData(value) { this._setInfo("bookmarkData", value); }
     get createDate() { return this._getInfo("createDate"); }
     get tagList() { return this._getInfo("tagList"); }
     get aiType() { return this._getInfo("aiType", 0); }
     get likeCount() { return this._getInfo("likeCount"); }            set likeCount(value) { this._setInfo("likeCount", value); }
     get bookmarkCount() { return this._getInfo("bookmarkCount"); }    set bookmarkCount(value) { this._setInfo("bookmarkCount", value); }
+
+    // Editor info.
     get extraData() { return this._getInfo("extraData"); }            set extraData(value) { this._setInfo("extraData", value); }
 
     // Full media info fields.  These are only available when we load full data.
@@ -135,6 +95,7 @@ export default class MediaInfo
     //     }
     // ]}
     get mangaPages() { return this._getInfo("mangaPages"); }
+    get illustComment() { return this._getInfo("illustComment", ""); }
 
     get ugoiraMetadata() { return this._getInfo("ugoiraMetadata"); }
     
