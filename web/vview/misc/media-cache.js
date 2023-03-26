@@ -581,7 +581,15 @@ export default class MediaCache extends EventTarget
         // Create a MediaInfo wrapper.
         mediaInfo = MediaInfo.createFrom({ mediaInfo });
 
-        this._mediaInfo[mediaId] = mediaInfo;
+        if(mediaId in this._mediaInfo)
+        {
+            // We already have a MediaInfo for this mediaId.  Update the object we already
+            // have instead of replacing it.
+            this._mediaInfo[mediaId].updateInfo(mediaInfo);
+        }
+        else
+            this._mediaInfo[mediaId] = mediaInfo;
+
         MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
 
         return mediaInfo;

@@ -14,6 +14,7 @@ let mediaInfoKeys = {
     // Global data is returned by all sources.  If a source doesn't support something in
     // this list, a dummy value will be inserted.
     global: [
+        "full",
         "mediaId",                          // Our media ID
         "bookmarkData",                     // null if not bookmarked, otherwise an object
         "createDate",
@@ -89,7 +90,7 @@ export default class MediaInfo
     }
 
     // If true, this is full media info, so full media fields can be accessed.
-    get full() { return true; }
+    get full() { return this._getInfo("full"); }
 
     // Getters for all fields.  Most of these are given to us by the server, so we only
     // define setters for fields that we have a reason to update locally.  We define all
@@ -220,15 +221,22 @@ export default class MediaInfo
         }
     }
 
-    updateInfo(keys)
+    // Update this MediaInfo from data in another MediaInfo for the same mediaId.
+    updateInfo(mediaInfo)
     {
-        for(let [key, value] of Object.entries(keys))
+        console.assert(mediaInfo instanceof MediaInfo);
+        for(let [key, value] of Object.entries(mediaInfo._info))
         {
-            // Only update keys that we already have.  If this is partial info, don't add keys
-            // for a full info update.
-            if(!(key in this._info))
+            // Allow full to change from false to true, so if we get full info after partial info
+            // we'll upgrade.  Don't allow it to change from true to false, so we can update full
+            // info from partial info.
+            if(key == "full" && !value)
+                continue;
+
+            // Make sure we never change mediaId.
+            if(key == "mediaId")
             {
-                console.log(`Not updating key "${key}" for partial media info: ${this.mediaId}`);
+                console.assert(value == this._info.mediaId);
                 continue;
             }
 
@@ -298,6 +306,10 @@ function createPartialPixivMediaInfo(mediaInfo)
             if(key == "then")
                 return undefined;
 
+            // Always return false for mediaInfo.full, even if the underlying data is full.
+            if(key == "full")
+                return false;
+
             if(!partialPixivKeys.has(key))
                 throw new Error(`MediaInfo key ${key} isn't available in partial media info`);
 
@@ -323,8 +335,6 @@ function createPartialPixivMediaInfo(mediaInfo)
 
 class PixivMediaInfo extends MediaInfo
 {
-    get full() { return this._isFull; }
-
     constructor({
         mediaInfo,
     }={})
