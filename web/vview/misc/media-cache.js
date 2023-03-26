@@ -153,7 +153,7 @@ export default class MediaCache extends EventTarget
     {
         if(preprocessed)
         {
-            mediaInfo = this._addMediaInfo(mediaInfo.mediaId, mediaInfo);
+            mediaInfo = this._addMediaInfo(mediaInfo);
             return Promise.resolve(mediaInfo);
         }
         else
@@ -322,7 +322,7 @@ export default class MediaCache extends EventTarget
 
         ppixiv.guessImageUrl.addInfo(mediaInfo);
 
-        return this._addMediaInfo(mediaId, mediaInfo);
+        return this._addMediaInfo(mediaInfo);
     }
 
     // Update URLs for all cached images after a change to the pixiv_cdn setting.
@@ -556,7 +556,7 @@ export default class MediaCache extends EventTarget
             this._updateMediaInfoUrls(mediaInfo);
 
             // Store the data.
-            this._addMediaInfo(mediaInfo.mediaId, mediaInfo);
+            this._addMediaInfo(mediaInfo);
         }
 
         return mediaIds;
@@ -573,14 +573,15 @@ export default class MediaCache extends EventTarget
             return null;
         }
 
-        return this._addMediaInfo(mediaId, mediaInfo.illust);
+        return this._addMediaInfo(mediaInfo.illust);
     }
 
-    _addMediaInfo(mediaId, mediaInfo)
+    _addMediaInfo(mediaInfo)
     {
         // Create a MediaInfo wrapper.
         mediaInfo = MediaInfo.createFrom({ mediaInfo });
 
+        let { mediaId } = mediaInfo;
         if(mediaId in this._mediaInfo)
         {
             // We already have a MediaInfo for this mediaId.  Update the object we already
