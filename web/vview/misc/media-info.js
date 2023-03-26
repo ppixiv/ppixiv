@@ -6,6 +6,10 @@
 
 import { helpers } from 'vview/misc/helpers.js';
 
+export const MediaInfoEvents = new EventTarget();
+
+let pendingMediaIdCallbacks = new Set();
+
 let mediaInfoKeys = {
     // Global data is returned by all sources.  If a source doesn't support something in
     // this list, a dummy value will be inserted.
@@ -59,6 +63,31 @@ let mediaInfoKeys = {
 
 export default class MediaInfo
 {
+    // Send mediamodified when any data on a MediaInfo is modified.
+    //
+    // This is calso called when MediaCache has data for a new media ID.
+    static callMediaInfoModifiedCallbacks(mediaId)
+    {
+        let wasEmpty = pendingMediaIdCallbacks.size == 0;
+        pendingMediaIdCallbacks.add(mediaId);
+
+        // Queue callMediaInfoModifiedCallbacksAsync if this is the first entry.
+        if(wasEmpty)
+            realSetTimeout(() => this._callMediaInfoModifiedCallbacksAsync(), 0);
+    }
+
+    static _callMediaInfoModifiedCallbacksAsync()
+    {
+        let mediaIds = pendingMediaIdCallbacks;
+        pendingMediaIdCallbacks = new Set();
+        for(let mediaId of mediaIds)
+        {
+            let event = new Event("mediamodified");
+            event.mediaId = mediaId;
+            MediaInfoEvents.dispatchEvent(event);
+        }
+    }
+
     // If true, this is full media info, so full media fields can be accessed.
     get full() { return true; }
 
@@ -132,7 +161,11 @@ export default class MediaInfo
     {
         if(!(name in this._info))
             throw new Error(`Field ${name} not available in image info for ${this._info.mediaId}`);
+        if(this._info[name] === value)
+            return;
+
         this._info[name] = value;
+        MediaInfo.callMediaInfoModifiedCallbacks(this.mediaId);
     }
     
     // If this is full media info, return a MediaInfo containing only partial media info.  When

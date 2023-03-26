@@ -1,6 +1,7 @@
 // This caches media info which isn't a part of regular illust info.
 
 import { helpers } from 'vview/misc/helpers.js';
+import MediaInfo  from 'vview/misc/media-info.js';
 
 export default class ExtraCache
 {
@@ -89,7 +90,7 @@ export default class ExtraCache
         else
             this._bookmarkedImageTags[mediaId] = tags;
 
-        ppixiv.mediaCache.callMediaInfoModifiedCallbacks(mediaId);
+        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     // This is a simpler form of thumbnail data for user info.  This is just the bare minimum

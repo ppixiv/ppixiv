@@ -25,7 +25,7 @@
 
 import LocalAPI from 'vview/misc/local-api.js';
 import MediaCacheMappings from 'vview/misc/media-cache-mappings.js';
-import MediaInfo  from 'vview/misc/media-info.js';
+import MediaInfo, { MediaInfoEvents }  from 'vview/misc/media-info.js';
 import { helpers } from 'vview/misc/helpers.js';
 
 // This handles fetching and caching image data.
@@ -49,13 +49,18 @@ export default class MediaCache extends EventTarget
         this.userProfileUrls = {};
 
         ppixiv.settings.addEventListener("pixiv_cdn", () => this._updatePixivURLs());
+
+        // XXX: remove
+        MediaInfoEvents.addEventListener("mediamodified", (e) => {
+            let event = new Event("mediamodified");
+            event.mediaId = e.mediaId;
+            this.dispatchEvent(event);
+        });
     };
 
     callMediaInfoModifiedCallbacks(mediaId)
     {
-        let event = new Event("mediamodified");
-        event.mediaId = mediaId;
-        this.dispatchEvent(event);
+        MediaInfoEvents.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     // Load media data asynchronously.  If full is true, return full info, otherwise return
@@ -153,7 +158,7 @@ export default class MediaCache extends EventTarget
 
             let mediaId = mediaInfo.mediaId;
             this._mediaInfo[mediaId] = mediaInfo;
-            this.callMediaInfoModifiedCallbacks(mediaId);
+            MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
             return Promise.resolve(mediaInfo);
         }
         else
@@ -327,7 +332,7 @@ export default class MediaCache extends EventTarget
 
         // Store the image data.
         this._mediaInfo[mediaId] = mediaInfo;
-        this.callMediaInfoModifiedCallbacks(mediaId);
+        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
         return mediaInfo;
     }
 
@@ -338,7 +343,7 @@ export default class MediaCache extends EventTarget
             this._updateMediaInfoUrls(mediaInfo);
 
         for(let mediaId of Object.keys(this._mediaInfo))
-            this.callMediaInfoModifiedCallbacks(mediaId);
+            MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     // Update URLs in mediaInfo that are affected by adjustImageUrlHostname.  This can be called
@@ -584,7 +589,7 @@ export default class MediaCache extends EventTarget
         mediaInfo = MediaInfo.createFrom({ mediaInfo: mediaInfo.illust });
 
         this._mediaInfo[mediaId] = mediaInfo;
-        this.callMediaInfoModifiedCallbacks(mediaId);
+        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
         return mediaInfo;
     }
 
@@ -649,7 +654,7 @@ export default class MediaCache extends EventTarget
             return;
 
         mediaInfo.extraData[mediaId] = data;
-        this.callMediaInfoModifiedCallbacks(mediaId);
+        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     // Update cached illust info.
@@ -674,7 +679,7 @@ export default class MediaCache extends EventTarget
 
         mediaInfo.updateInfo(keys);
 
-        this.callMediaInfoModifiedCallbacks(mediaId);
+        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
         return mediaInfo;
     }
 
