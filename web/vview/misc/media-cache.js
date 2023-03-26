@@ -153,12 +153,7 @@ export default class MediaCache extends EventTarget
     {
         if(preprocessed)
         {
-            // Just store the data directly.
-            mediaInfo = MediaInfo.createFrom({ mediaInfo });
-
-            let mediaId = mediaInfo.mediaId;
-            this._mediaInfo[mediaId] = mediaInfo;
-            MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
+            mediaInfo = this._addMediaInfo(mediaInfo.mediaId, mediaInfo);
             return Promise.resolve(mediaInfo);
         }
         else
@@ -327,13 +322,7 @@ export default class MediaCache extends EventTarget
 
         ppixiv.guessImageUrl.addInfo(mediaInfo);
 
-        // Create a MediaInfo wrapper.
-        mediaInfo = MediaInfo.createFrom({ mediaInfo });
-
-        // Store the image data.
-        this._mediaInfo[mediaId] = mediaInfo;
-        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
-        return mediaInfo;
+        return this._addMediaInfo(mediaId, mediaInfo);
     }
 
     // Update URLs for all cached images after a change to the pixiv_cdn setting.
@@ -567,8 +556,7 @@ export default class MediaCache extends EventTarget
             this._updateMediaInfoUrls(mediaInfo);
 
             // Store the data.
-            mediaInfo = MediaInfo.createFrom({ mediaInfo });
-            this._mediaInfo[mediaInfo.mediaId] = mediaInfo;
+            this._addMediaInfo(mediaInfo.mediaId, mediaInfo);
         }
 
         return mediaIds;
@@ -585,11 +573,17 @@ export default class MediaCache extends EventTarget
             return null;
         }
 
+        return this._addMediaInfo(mediaId, mediaInfo.illust);
+    }
+
+    _addMediaInfo(mediaId, mediaInfo)
+    {
         // Create a MediaInfo wrapper.
-        mediaInfo = MediaInfo.createFrom({ mediaInfo: mediaInfo.illust });
+        mediaInfo = MediaInfo.createFrom({ mediaInfo });
 
         this._mediaInfo[mediaId] = mediaInfo;
         MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
+
         return mediaInfo;
     }
 
