@@ -189,36 +189,34 @@ export default class MediaInfo
     // Create a MediaInfo from an API result with the appropriate subclass.
     static createFrom({mediaInfo})
     {
-        // Create the correct derived class.
-        if(helpers.mediaId.isLocal(mediaInfo.mediaId))
+        let classType;
+
         {
-            return new VviewMediaInfo({mediaInfo});
+            // This is API data.  Figure out the correct subclass from the media ID.
+            if(helpers.mediaId.isLocal(mediaInfo.mediaId))
+                classType = VviewMediaInfo;
+            else
+                classType = PixivMediaInfo;
+
+            // Run preprocessing if this subclass needs it.
+            mediaInfo = classType.preprocessInfo({mediaInfo});
         }
 
-        let full = mediaInfo.full;
-        return new PixivMediaInfo({mediaInfo, full});
+        return new classType({mediaInfo});
+    }
+
+    // The subclass can implement this to adjust mediaInfo when it's coming from the API
+    // before it's sent to the constructor.  This isn't called from serialized data, where
+    // this has already been done.
+    static preprocessInfo({mediaInfo})
+    {
+        return mediaInfo;
     }
 
     // Use createFrom above instead of calling this directly.
-    constructor({ mediaInfo }={})
+    constructor({ mediaInfo })
     {
-        this._info = { };
-
-        // Add the global list, which is always present.
-        this._addDataFrom(mediaInfo, mediaInfoKeys.global);
-    }
-
-    _addDataFrom(mediaInfo, keyList)
-    {
-        for(let key of keyList)
-        {
-            if(!(key in mediaInfo))
-            {
-                console.warn(`Media info missing ${key}: ${mediaInfo.mediaId}`);
-                continue;
-            }
-            this._info[key] = mediaInfo[key];
-        }
+        this._info = { ...mediaInfo };
     }
 
     // Update this MediaInfo from data in another MediaInfo for the same mediaId.
@@ -335,33 +333,6 @@ function createPartialPixivMediaInfo(mediaInfo)
 
 class PixivMediaInfo extends MediaInfo
 {
-    constructor({
-        mediaInfo,
-    }={})
-    {
-        super({ mediaInfo });
-
-        let full = mediaInfo.full;
-
-        this._isFull = full;
-        this._addDataFrom(mediaInfo, mediaInfoKeys.pixivPartial);
-
-        if(full)
-        {
-            this._addDataFrom(mediaInfo, mediaInfoKeys.globalFull);
-            this._addDataFrom(mediaInfo, mediaInfoKeys.pixivFull);
-        }
-
-        // Stash away any keys we didn't load.
-        this._otherInfo = { };
-        for(let [key, value] of Object.entries(mediaInfo))
-        {
-            if(key in this._info)
-                continue;
-            this._otherInfo[key] = value;
-        }
-    }
-
     get partialInfo()
     {
         return createPartialPixivMediaInfo(this);
@@ -402,17 +373,17 @@ class VviewMediaInfo extends MediaInfo
     // This is null for folders.
     get width() { return this.mangaPages[0]?.width; }
     get height() { return this.mangaPages[0]?.height; }
-    get pageCount() { return this._type == "folder"? 0:1; }
+    get pageCount() { return this.mediaType == "folder"? 0:1; }
 
     get isLocal() { return true; }
 
-    constructor({
-        mediaInfo
-    })
+    // Preprocess API data to fit our data model.  We don't do this in the constructor
+    // since we don't want it to happen a second time when loading from serialized data.
+    static preprocessInfo({mediaInfo})
     {
         mediaInfo = { ...mediaInfo };
 
-        let type = helpers.mediaId.parse(mediaInfo.mediaId).type;
+        let { type } = helpers.mediaId.parse(mediaInfo.mediaId);
         if(type == "folder")
         {
             mediaInfo.mangaPages = [];
@@ -430,14 +401,7 @@ class VviewMediaInfo extends MediaInfo
                 urls: mediaInfo.urls,
             }];
         }
-
-        super({ mediaInfo });
-
-        this._type = type;
-        this._addDataFrom(mediaInfo, mediaInfoKeys.globalFull);
-        this._addDataFrom(mediaInfo, [
-            "localPath",
-        ]);
+        return mediaInfo;
     }
 
     // For local images, we can optionally use a high-quality GPU upscale for static
