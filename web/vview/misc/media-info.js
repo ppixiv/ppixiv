@@ -261,16 +261,77 @@ export default class MediaInfo
     }
 }
 
+// We have one MediaInfo for a post containing everything we know about it.  Data
+// from Pixiv search results usually only has partial info.  In many cases this is
+// all we need, so we only ask for full info when it's needed.  However, we want to
+// be sure that if a caller is asking for partial info, it isn't accidentally using
+// info from full info, but appearing to work because full info was cached during
+// testing.
+//
+// PartialPixivMediaInfo wraps a PixivMediaInfo to check this, and throws an exception
+// if non-partial data is accessed.
+let partialPixivKeys = new Set([
+    "full",
+    "mediaId",
+    "bookmarkData",
+    "createDate",
+    "tagList",
+    "extraData",
+    "illustTitle",
+    "illustType",
+    "userName",
+    "previewUrls",
+    "illustId",
+    "aiType",
+    "userId",
+    "pageCount",
+    "width", "height",
+]);
+
+function createPartialPixivMediaInfo(mediaInfo)
+{
+    console.assert(mediaInfo instanceof PixivMediaInfo);
+
+    return new Proxy(mediaInfo, {
+        get(target, key, receiver) {
+            // Awaiting an object tries to read "then".  Don't log an error for this.
+            if(key == "then")
+                return undefined;
+
+            if(!partialPixivKeys.has(key))
+                throw new Error(`MediaInfo key ${key} isn't available in partial media info`);
+
+            return target[key];
+        },
+
+        has(target, key) {
+            if(!partialPixivKeys.has(key))
+                throw new Error(`MediaInfo key ${key} isn't available in partial media info`);
+
+            return key in target;
+        },
+
+        set(obj, key, value) {
+            if(!partialPixivKeys.has(key))
+                throw new Error(`MediaInfo key ${key} can't be set in partial media info`);
+
+            obj[key] = value;
+            return true;
+        }
+    });
+}
+
 class PixivMediaInfo extends MediaInfo
 {
     get full() { return this._isFull; }
 
     constructor({
         mediaInfo,
-        full,
     }={})
     {
         super({ mediaInfo });
+
+        let full = mediaInfo.full;
 
         this._isFull = full;
         this._addDataFrom(mediaInfo, mediaInfoKeys.pixivPartial);
@@ -293,10 +354,7 @@ class PixivMediaInfo extends MediaInfo
 
     get partialInfo()
     {
-        if(!this.full)
-            return this;
-        
-        return new PixivMediaInfo({ mediaInfo: this._info, full: false });
+        return createPartialPixivMediaInfo(this);
     }
 
     getMainImageUrl(page=0, { ignore_limits=false }={})

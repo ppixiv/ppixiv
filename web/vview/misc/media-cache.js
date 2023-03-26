@@ -72,8 +72,8 @@ export default class MediaCache extends EventTarget
     async getMediaInfo(mediaId, { full=true, safe=true }={})
     {
         let mediaInfo = await this._getMediaInfoInner(mediaId, { full });
-        if(!full && safe && mediaInfo != null && mediaInfo.full)
-            mediaInfo = this._fullToPartialInfo(mediaInfo);
+        if(mediaInfo != null && !full && safe)
+            mediaInfo = mediaInfo.partialInfo;
 
         return mediaInfo;
     }
@@ -119,8 +119,8 @@ export default class MediaCache extends EventTarget
         if(full && !mediaInfo?.full)
             return null;
 
-        if(!full && safe)
-            mediaInfo = this._fullToPartialInfo(mediaInfo);
+        if(mediaInfo && !full && safe)
+            mediaInfo = mediaInfo.partialInfo;
 
         return mediaInfo;
     }
@@ -700,15 +700,6 @@ export default class MediaCache extends EventTarget
 
         this.userProfileUrls[userId] = url;
         helpers.other.preloadImages([url]);
-    }
-
-    // Return partial data for a full media info.
-    _fullToPartialInfo(mediaInfo)
-    {
-        if(mediaInfo == null)
-            return null;
-
-        return mediaInfo.partialInfo;
     }
 
     // Return the extra info for an image, given its image info.
