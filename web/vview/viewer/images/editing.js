@@ -406,7 +406,6 @@ export default class ImageEditor extends IllustWidget
             // Get data from each editor.
             let edits = this.getDataToSave();
 
-            let updatedMediaInfo;
             if(helpers.mediaId.isLocal(this._mediaId))
             {
                 let result = await LocalAPI.localPostRequest(`/api/set-image-edits/${this._mediaId}`, edits);
@@ -420,8 +419,7 @@ export default class ImageEditor extends IllustWidget
                 }
 
                 // Update cached media info to include the change.
-                updatedMediaInfo = result.illust;
-                ppixiv.mediaCache.updateMediaInfo(this._mediaId, updatedMediaInfo);
+                ppixiv.mediaCache.addFullMediaInfo(result.illust);
             }
             else
             {

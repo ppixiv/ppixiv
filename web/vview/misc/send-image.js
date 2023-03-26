@@ -206,7 +206,7 @@ export default class SendImage
                 if(userInfo != null)
                     ppixiv.userCache.addUserData(userInfo);
                 if(mediaInfo != null)
-                    ppixiv.mediaCache.addMediaInfoFull(mediaInfo, { preprocessed: true });
+                    ppixiv.mediaCache.addFullMediaInfo(mediaInfo);
             }
             // To finalize, just remove preview and quick-view from the URL to turn the current
             // preview into a real navigation.  This is slightly different from sending "display"
@@ -251,7 +251,7 @@ export default class SendImage
             // events, since these happen async and we only want to ignore the ones we cause.
             MediaInfo.flushMediaInfoModifiedCallbacks();
 
-            // addMediaInfoFull will trigger mediamodified below.  Make sure we don't rebroadcast
+            // addFullMediaInfo will trigger mediamodified below.  Make sure we don't rebroadcast
             // info that we're receiving here.
             this._handlingBroadcastedMediaInfo = true;
             try {
@@ -259,7 +259,7 @@ export default class SendImage
                 // update it.
                 let { mediaInfo, bookmarkTags, userInfo } = data;
                 if(mediaInfo != null)
-                    ppixiv.mediaCache.addMediaInfoFull(mediaInfo, { preprocessed: true });
+                    ppixiv.mediaCache.addFullMediaInfo(mediaInfo);
 
                 if(bookmarkTags != null)
                     ppixiv.extraCache.updateCachedBookmarkTags(data.mediaId, bookmarkTags);

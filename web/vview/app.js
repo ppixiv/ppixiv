@@ -134,7 +134,7 @@ export default class App
                 for(let preloadUserId in preload.user)
                     ppixiv.userCache.addUserData(preload.user[preloadUserId]);
                 for(let preloadMediaId in preload.illust)
-                    ppixiv.mediaCache.addMediaInfoFull(preload.illust[preloadMediaId]);
+                    ppixiv.mediaCache.addPixivFullMediaInfo(preload.illust[preloadMediaId]);
             }
         }
 

@@ -136,30 +136,14 @@ export default class MediaCache extends EventTarget
         await this._loadMediaInfo(mediaId, { force: true, refreshFromDisk: true });
     }
 
-    // Add media info to the cache that we received from other sources.  Note that if
-    // we have any fetches in the air already, we'll leave them running.  This will
-    // trigger loads for secondary data like manga pages if it's not included in mediaInfo.
-    //
-    // If preprocessed is true, this data is coming from something like another ppixiv tab,
-    // and we can just store the data.  It already has any required data and adjustments that
-    // happen when we load data normally.  If preprocessed is false, mediaInfo is from
-    // something like the HTML preload field and is treated the same as an API response.
-    addMediaInfoFull(mediaInfo, { preprocessed=false }={})
+    // Add full media info from a Pixiv API response.  This will trigger loads for any
+    // missing data, like manga info.
+    addPixivFullMediaInfo(mediaInfo)
     {
-        if(preprocessed)
-        {
-            mediaInfo = this._addMediaInfo(mediaInfo);
-            return Promise.resolve(mediaInfo);
-        }
-        else
-        {
-            // This mediaInfo is from the API and hasn't been adjusted yet, so mediaInfo.illustId
-            // and mediaInfo.mediaId don't exist yet.
-            let mediaId = helpers.mediaId.fromIllustId(mediaInfo.id);
-            let loadPromise = this._loadMediaInfo(mediaId, { mediaInfo, force: true });
-            this._startedLoadingMediaInfoFull(mediaId, loadPromise);
-            return loadPromise;
-        }
+        let mediaId = helpers.mediaId.fromIllustId(mediaInfo.id);
+        let loadPromise = this._loadMediaInfo(mediaId, { mediaInfo, force: true });
+        this._startedLoadingMediaInfoFull(mediaId, loadPromise);
+        return loadPromise;
     }
 
     _startedLoadingMediaInfoFull(mediaId, loadPromise)
@@ -317,7 +301,7 @@ export default class MediaCache extends EventTarget
 
         ppixiv.guessImageUrl.addInfo(mediaInfo);
 
-        return this._addMediaInfo(mediaInfo);
+        return this.addFullMediaInfo(mediaInfo);
     }
 
     // Update URLs for all cached images after a change to the pixiv_cdn setting.
@@ -551,7 +535,7 @@ export default class MediaCache extends EventTarget
             this._updateMediaInfoUrls(mediaInfo);
 
             // Store the data.
-            this._addMediaInfo(mediaInfo);
+            this.addFullMediaInfo(mediaInfo);
         }
 
         return mediaIds;
@@ -568,15 +552,23 @@ export default class MediaCache extends EventTarget
             return null;
         }
 
-        return this._addMediaInfo(mediaInfo.illust);
+        return this.addFullMediaInfo(mediaInfo.illust);
     }
 
-    _addMediaInfo(mediaInfo)
+    // Create or update a MediaInfo.  mediaInfo is either a MediaInfo object, or a
+    // complete media info result.
+    //
+    // Pixiv's raw API results don't return full info, so this shouldn't be called
+    // directly for those.  Use addPixivFullMediaInfo instead, which will make any
+    // secondary loads we need.  This can be called directly for local API results.
+    addFullMediaInfo(mediaInfo)
     {
         // Create a MediaInfo wrapper.
         mediaInfo = MediaInfo.createFrom({ mediaInfo });
 
         let { mediaId } = mediaInfo;
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
+
         if(mediaId in this._mediaInfo)
         {
             // We already have a MediaInfo for this mediaId.  Update the object we already
@@ -653,32 +645,6 @@ export default class MediaCache extends EventTarget
 
         mediaInfo.extraData[mediaId] = data;
         MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
-    }
-
-    // Update cached illust info.
-    //
-    // keys can contain any or all illust info keys.  We'll only update the keys
-    // that are present.  For example,
-    //
-    // updateMediaInfo(mediaId, { likeCount: 10 });
-    //
-    // will update likeCount on the image.
-    //
-    // If we only have partial info, we'll only update keys for partial info.  We won't
-    // add full info to media info if we don't have it to begin with, so we don't end up
-    // with inconsistent fields.
-    updateMediaInfo(mediaId, keys)
-    {
-        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
-
-        let mediaInfo = this._mediaInfo[mediaId];
-        if(mediaInfo == null)
-            return null;
-
-        mediaInfo.updateInfo(keys);
-
-        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
-        return mediaInfo;
     }
 
     // Get the user's profile picture URL, or a fallback if we haven't seen it.
@@ -767,7 +733,7 @@ export default class MediaCache extends EventTarget
         }
 
         for(let illust of result.results)
-            await this.addMediaInfoFull(illust, { preprocessed: true });
+            await this.addFullMediaInfo(illust);
     }
 
     // Run a search against the local API.
@@ -784,7 +750,7 @@ export default class MediaCache extends EventTarget
         }
 
         for(let illust of result.results)
-            await this.addMediaInfoFull(illust, { preprocessed: true });
+            await this.addFullMediaInfo(illust);
 
         return result;
     }
