@@ -562,10 +562,13 @@ export default class MediaCache extends EventTarget
 
     // Cache partial media info that was loaded from a Pixiv search.  This can come from
     // batchGetMediaInfoPartial() or from being included in a search result.
+    //
+    // Return the media IDs in the results, which can be returned as the media ID list from
+    // data sources.
     addMediaInfosPartial = async (searchResult, source) =>
     {
         if(searchResult.error)
-            return;
+            return [];
 
         // Ignore entries with "isAdContainer".
         searchResult = searchResult.filter(item => !item.isAdContainer);
@@ -590,11 +593,15 @@ export default class MediaCache extends EventTarget
 
         // Load any extra image data stored for these media IDs.  These are stored per page, but
         // batch loaded per image.
-        let mediaIds = allThumbInfo.map((info) => info.illustId);
-        let extraData = await ppixiv.extraImageData.batchLoadAllPagesForIllust(mediaIds);
+        let illustIds = allThumbInfo.map((info) => info.illustId);
+        let extraData = await ppixiv.extraImageData.batchLoadAllPagesForIllust(illustIds);
+        let mediaIds = [];
 
         for(let mediaInfo of allThumbInfo)
         {
+            // Return media IDs for convenience.
+            mediaIds.push(helpers.mediaId.fromIllustId(mediaInfo.illustId));
+
             // Store extra data for each page.
             mediaInfo.extraData = extraData[mediaInfo.illustId] || {};
             mediaInfo.full = false;
@@ -608,6 +615,7 @@ export default class MediaCache extends EventTarget
 
         // Broadcast that we have new thumbnail data available.
         this._queueInfoLoadedEvent();
+        return mediaIds;
     }
 
     // Load image info from the local API.

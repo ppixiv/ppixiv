@@ -209,12 +209,7 @@ export default class DataSource_Search extends DataSource
         illusts = illusts.data;
 
         // Populate thumbnail data with this data.
-        await ppixiv.mediaCache.addMediaInfosPartial(illusts, "normal");
-
-        let mediaIds = [];
-        for(let illust of illusts)
-            mediaIds.push(helpers.mediaId.fromIllustId(illust.id));
-
+        let mediaIds = await ppixiv.mediaCache.addMediaInfosPartial(illusts, "normal");
         return { mediaIds };
     }
 
