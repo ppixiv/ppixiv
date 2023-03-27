@@ -41,6 +41,7 @@ export class TagSearchBoxWidget extends widget
                     inputElement: this.root,
                     parent: this,
                     savedPosition: this._savedDropdownPosition,
+                    textPrompt: () => this.textPrompt(),
                     ...options,
                 });
 
@@ -134,7 +135,7 @@ export class TagSearchBoxWidget extends widget
 
 class TagSearchDropdownWidget extends widget
 {
-    constructor({inputElement, savedPosition, ...options})
+    constructor({inputElement, savedPosition, textPrompt, ...options})
     {
         super({...options, template: `
             <div class="search-history input-dropdown" tabindex=1>
@@ -155,6 +156,7 @@ class TagSearchDropdownWidget extends widget
         this._autocompleteCache = new Map();
         this._disableAutocompleteUntil = 0;
         this.savedPosition = savedPosition;
+        this.textPrompt = textPrompt;
 
         // Find the <input>.
         this._inputElement = inputElement.querySelector("input");
@@ -383,7 +385,7 @@ class TagSearchDropdownWidget extends widget
             e.stopPropagation();
             e.preventDefault();
 
-            let label = await this.parent.textPrompt({ title: "Group name:" });
+            let label = await this.textPrompt({ title: "Group name:" });
             if(label == null)
                 return; // cancelled
             
@@ -514,7 +516,7 @@ class TagSearchDropdownWidget extends widget
                 
                 // Add a space to the end for convenience with the common case of just wanting to add something
                 // to the end.
-                let newTags = await this.parent.textPrompt({ title: "Edit search:", value: entry.dataset.tag + " " });
+                let newTags = await this.textPrompt({ title: "Edit search:", value: entry.dataset.tag + " " });
                 if(newTags == null || newTags == entry.dataset.tag)
                     return; // cancelled
 
@@ -575,7 +577,7 @@ class TagSearchDropdownWidget extends widget
                 if(tagSection.groupName == null)
                     return;
 
-                let newGroupName = await this.parent.textPrompt({ title: "Rename group:", value: tagSection.groupName });
+                let newGroupName = await this.textPrompt({ title: "Rename group:", value: tagSection.groupName });
                 if(newGroupName == null || newGroupName == tagSection.groupName)
                     return; // cancelled
 
