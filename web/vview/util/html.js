@@ -138,34 +138,10 @@ export function restoreScrollPosition(scroller, restoreRelativeTo, savedPosition
         scroller.scrollTop = scrollTop;
 }
 
-
-function getTemplate(type)
-{
-    let template = document.body.querySelector(type);
-    if(template == null)
-        throw "Missing template: " + type;
-
-    // Replace any <ppixiv-inline> inlines on the template, and remember that
-    // we've done this so we don't redo it every time the template is used.
-    if(!template.dataset.replacedInlines)
-    {
-        template.dataset.replacedInlines = true;
-        this.replaceInlines(template.content);
-    }
-
-    return template;
-}
-
 // If makeSVGUnique is false, skip making SVG IDs unique.  This is a small optimization
 // for creating thumbs, which don't need this.
-export function createFromTemplate(type, {makeSVGUnique=true}={})
+export function createFromTemplate(template, {makeSVGUnique=true}={})
 {
-    let template;
-    if(typeof(type) == "string")
-        template = this.getTemplate(type);
-    else
-        template = type;
-
     let node = document.importNode(template.content, true).firstElementChild;
     
     if(makeSVGUnique)
