@@ -201,6 +201,10 @@ export default class Widget extends Actor
         // since it's not a DOM descendant of its parent.
         for(let widget of this.descendents())
         {
+            // Skip non-widget actors.
+            if(widget.root == null)
+                continue;
+
             if(helpers.html.isAbove(widget.parent.root, widget.root))
                 result.push(widget.root);
         }

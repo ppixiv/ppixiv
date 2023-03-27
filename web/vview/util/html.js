@@ -20,6 +20,9 @@ export function removeElements(parent)
 // Return true if ancestor is one of descendant's parents, or if descendant is ancestor.
 export function isAbove(ancestor, descendant)
 {
+    console.assert(ancestor != null, "ancestor is null");
+    console.assert(descendant != null, "descendant is null");
+
     while(descendant != null && descendant != ancestor)
         descendant = descendant.parentNode;
     return descendant == ancestor;
