@@ -1037,7 +1037,6 @@ body.hide-r18g .r18g { display: none; }
 // ppixiv.dropdown_box_opener:
 .dropdown-box {
     position: absolute;
-    z-index: 1500; // over dialogs
     overflow-x: hidden;
     overflow-y: auto;
     border: 1px solid var(--frame-border-color);

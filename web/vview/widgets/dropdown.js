@@ -248,6 +248,23 @@ export class DropdownBoxOpener extends Actor
         // The amount of padding to leave relative to the button we're aligning to.
         let horizontalPadding = 4, verticalPadding = 8;
 
+        // Figure out the z-index of the button we're positioning relative to, and put
+        // ourselves over it.
+        let buttonParent = this.button;
+        this._dropdown.root.style.zIndex = 1;
+        while(buttonParent)
+        {
+            let { zIndex } = getComputedStyle(buttonParent);
+            if(zIndex != "auto")
+            {
+                zIndex = parseInt(zIndex);
+                this._dropdown.root.style.zIndex = zIndex + 1;
+                break;
+            }
+
+            buttonParent = buttonParent.offsetParent;
+        }
+
         // Use getBoundingClientRect to figure out the position, since it works
         // correctly with CSS transforms.  Figure out how far off we are and move
         // by that amount.  This works regardless of what our relative position is.
