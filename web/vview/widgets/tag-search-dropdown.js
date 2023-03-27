@@ -247,7 +247,7 @@ class TagSearchDropdownWidget extends widget
 
     _findTagEntry(tag)
     {
-        for(let entry of this.root.querySelectorAll(".entry[data-tag]"))
+        for(let entry of this._inputDropdown.querySelectorAll(".entry[data-tag]"))
         {
             if(entry.dataset.tag == tag)
                 return entry;
@@ -1188,10 +1188,30 @@ class TagSearchDropdownWidget extends widget
     // This can be used as the savedPosition argument to the constructor.
     _saveSearchPosition()
     {
-        // Find the first visible entry.
+        // If we're dragging, never save the search position relative to the tag that's
+        // being dragged, or the tag on either side.  This keeps the scroll position stable
+        // when the drag moves and swaps a tag with its neighbor.
+        let ignoredNodes = new Set();
+        if(this.draggingTag)
+        {
+            let entry = this._findTagEntry(this.draggingTag);
+            ignoredNodes.add(entry);
+
+            let nextEntry = entry.nextElementSibling;
+            if(nextEntry)
+                ignoredNodes.add(nextEntry);
+
+            let previousEntry = entry.previousElementSibling;
+            if(previousEntry)
+                ignoredNodes.add(previousEntry);
+        }
+
         for(let node of this._inputDropdown.querySelectorAll(".entry[data-tag]"))
         {
             if(node.offsetTop < this.root.scrollTop)
+                continue;
+
+            if(ignoredNodes.has(node))
                 continue;
 
             let savedPosition = helpers.html.saveScrollPosition(this.root, node);
