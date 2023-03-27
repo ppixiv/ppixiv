@@ -41,7 +41,7 @@ export class TagSearchBoxWidget extends widget
                     inputElement: this.root,
                     parent: this,
                     savedPosition: this._savedDropdownPosition,
-                    textPrompt: () => this.textPrompt(),
+                    textPrompt: (args) => this.textPrompt(args),
                     ...options,
                 });
 
