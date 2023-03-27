@@ -1,6 +1,6 @@
 import widget from 'vview/widgets/widget.js';
 import SavedSearchTags from 'vview/misc/saved-search-tags.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
+import DragHandler from 'vview/misc/drag-handler.js';
 import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
 import { ConfirmPrompt, TextPrompt } from 'vview/widgets/prompts.js';
 import { helpers } from 'vview/misc/helpers.js';
@@ -198,9 +198,14 @@ class TagSearchDropdownWidget extends widget
 
         this.root.style.setProperty('--width', `${width}px`);
 
-        this.pointerListener = new PointerListener({
+        this.dragger = new DragHandler({
+            parent: this,
+            name: "search-dragger",
             element: this.root,
-            callback: this.pointerevent,
+            confirmDrag: ({event}) => event.target.closest(".drag-handle") != null,
+            ondragstart: (args) => this._ondragstart(args),
+            ondrag: (args) => this._ondrag(args),
+            ondragend: (args) => this._ondragend(args),
         });
 
         this.editing = false;
@@ -220,31 +225,6 @@ class TagSearchDropdownWidget extends widget
         helpers.html.setClass(this.root.querySelector(".input-dropdown-list"), "editing", this._editing);
     }
 
-    pointerevent = (e) =>
-    {
-        if(e.pressed)
-        {
-            // See if this is a click on a drag handle.
-            let dragHandle = e.target.closest(".drag-handle");
-            if(dragHandle == null)
-                return;
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Start dragging.  We remember the tag we're dragging rather than the element so this
-            // stays valid as the list is refreshed.
-            let entry = dragHandle.closest(".entry");
-            this.draggingTag = entry.dataset.tag;
-
-            window.addEventListener("pointermove", this._pointermoveDragHandle);
-        }
-        else if(this.draggingTag)
-        {
-            this.stopDragging();
-        }
-    }
-
     _findTagEntry(tag)
     {
         for(let entry of this._inputDropdown.querySelectorAll(".entry[data-tag]"))
@@ -255,7 +235,16 @@ class TagSearchDropdownWidget extends widget
         return null;
     }
 
-    _pointermoveDragHandle = (e) =>
+    _ondragstart({event})
+    {
+        // Remember the tag we're dragging.
+        let dragHandle = event.target.closest(".drag-handle");
+        let entry = dragHandle.closest(".entry");
+        this.draggingTag = entry.dataset.tag;
+        return true;
+    }
+
+    _ondrag({event})
     {
         // Scan backwards or forwards to find the next valid place where entry can be placed
         // after.
@@ -306,13 +295,13 @@ class TagSearchDropdownWidget extends widget
             if(down)
             {
                 let y = (neighborRect.bottom + entryRect.top) / 2;
-                if(e.clientY - threshold < y)
+                if(event.clientY - threshold < y)
                     continue;
             }
             else
             {
                 let y = (entryRect.bottom + neighborRect.top) / 2;
-                if(e.clientY + threshold > y)
+                if(event.clientY + threshold > y)
                     continue;
             }
 
@@ -341,10 +330,9 @@ class TagSearchDropdownWidget extends widget
         }
     };
 
-    stopDragging()
+    _ondragend({event})
     {
         this.draggingTag = null;
-        window.removeEventListener("pointermove", this._pointermoveDragHandle);
     }
 
     // Return the tag-section for the given group.
@@ -665,7 +653,7 @@ class TagSearchDropdownWidget extends widget
         this._currentAutocompleteResults = [];
         this._mostRecentAutocomplete = null;
         this.editing = false;
-        this.stopDragging();
+        this.dragger.cancelDrag();
         this.root.hidden = true;
     }
 
