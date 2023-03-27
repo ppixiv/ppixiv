@@ -683,6 +683,8 @@ class FollowWidget extends Widget
 
     async _clickedUnfollow()
     {
+        this.close();
+
         // Confirm unfollowing when on mobile.
         if(ppixiv.mobile)
         {
