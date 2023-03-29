@@ -51,7 +51,7 @@ export default class DesktopSearchUI extends Widget
                         ${ helpers.createIcon("restart_alt") }
                     </div>
 
-                    <div class="expand-manga-posts icon-button popup">
+                    <div class="expand-manga-posts icon-button popup pixiv-only">
                         ${ helpers.createIcon("") /* filled in by refreshExpandMangaPostsButton */ }
                     </div>
 
