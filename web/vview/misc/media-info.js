@@ -370,6 +370,9 @@ class VviewMediaInfo extends MediaInfo
 
     get isLocal() { return true; }
 
+    // This isn't used locally, but don't warn about accesses to it.
+    get ugoiraMetadata() { return null; }
+
     // Preprocess API data to fit our data model.  We don't do this in the constructor
     // since we don't want it to happen a second time when loading from serialized data.
     static preprocessInfo({mediaInfo})
