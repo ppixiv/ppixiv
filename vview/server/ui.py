@@ -110,6 +110,42 @@ def handle_init(request):
         'Cache-Control': 'no-store',
     })
 
+_override_cache = None
+def _resolve_path(request, path):
+    """
+    Resolve a path for a script or resource request.
+
+    Normally, this is just a path relative to root_dir.  We also support overrides, which
+    allow applying an overlay to add or replace files in the source tree.
+    """
+    global _override_cache
+    if _override_cache is None:
+        # Convert overrides to (src, dst) paths.
+        path_overrides = request.app['server'].auth.data.get('overrides', [])
+        _override_cache = []
+        for src, dst in path_overrides.items():
+            src = Path(src)
+            dst = Path(dst)
+            _override_cache.append((src, dst))
+
+    path = Path(path)
+
+    # See if the path is inside an override.
+    for src, dst in _override_cache:
+        if not path.is_relative_to(src):
+            continue
+
+        path_inside_src = path.relative_to(src)
+        path_inside_dst = dst / path_inside_src
+        if path_inside_dst.exists():
+            return path_inside_dst
+
+    # Resolve the path relative to the root directory normally.
+    path = root_dir / path
+    path = path.resolve()
+    assert path.relative_to(root_dir)
+    return path
+
 def handle_client(request):
     path = request.match_info['path']
     as_data_url = 'data' in request.query
@@ -127,9 +163,7 @@ def handle_client(request):
         # (/vview)/path -> /web/vview/path
         path = 'web/vview' / path
     
-    path = root_dir / path
-    path = path.resolve()
-    assert path.relative_to(root_dir)
+    path = _resolve_path(request, path)
 
     path = open_path(path)
     if not path.exists():
