@@ -124,17 +124,21 @@ export default class LocalAPI
             args.hashPath = "/";
         }
 
-        // The path previously on args:
-        let argsRoot = args.hashPath || "/";
-        
         // The new path to set:
         let { type, id: path } = helpers.mediaId.parse(mediaId);
 
         if(type == "file")
         {
-            // Put the relative path to new_path from root/path in "file".
-            let filename = Path.getRelativePath(argsRoot, path);
-            args.hash.set("file", filename);
+            // If file isn't underneath hashPath, set hashPath to the file's parent directory.
+            if(!args.hashPath || !Path.isRelativeTo(path, args.hashPath))
+            {
+                let parentFolderMediaId = LocalAPI.getParentFolder(mediaId);
+                args.hashPath = helpers.mediaId.parse(parentFolderMediaId).id;;
+            }
+
+            // Put the relative path from hashPath to file in "file".  
+            let relativePath = Path.getRelativePath(args.hashPath, path);
+            args.hash.set("file", relativePath);
             return args;
         }
 
