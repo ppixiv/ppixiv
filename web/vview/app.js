@@ -892,7 +892,14 @@ export default class App
         // When running locally, just load stub data, since this isn't used.
         if(ppixiv.native)
         {
-            this._initGlobalData("no token", "no id", true, [], 2);
+            this._initGlobalData({
+                csrfToken: "no token",
+                userId: "no id" ,
+                premium: true,
+                mutes: [],
+                contentMode: 2,
+            });
+    
             return true;
         }
 
@@ -910,9 +917,13 @@ export default class App
             if(initConfig)
             {
                 let config = JSON.parse(initConfig.getAttribute("content"));
-                this._initGlobalData(config["pixiv.context.postKey"], config["pixiv.user.id"], config["pixiv.user.premium"] == "1",
-                    null, // mutes missing on mobile
-                    config["pixiv.user.x_restrict"]);
+                this._initGlobalData({
+                    csrfToken: config["pixiv.context.postKey"],
+                    userId: config["pixiv.user.id"], 
+                    premium: config["pixiv.user.premium"] == "1",
+                    mutes: null, // mutes missing on mobile
+                    contentMode: config["pixiv.user.x_restrict"],
+                });
 
                 return true;
             }
@@ -941,13 +952,18 @@ export default class App
         if(globalData.userData == null)
             return false;
 
-        this._initGlobalData(globalData.token, globalData.userData.id, globalData.userData.premium,
-                globalData.mute, globalData.userData.xRestrict);
+        this._initGlobalData({
+            csrfToken: globalData.token,
+            userId: globalData.userData.id ,
+            premium: globalData.userData.premium,
+            mutes: globalData.mute,
+            contentMode: globalData.userData.xRestrict,
+        });
 
         return true;
     }
 
-    _initGlobalData(csrfToken, userId, premium, mutes, contentMode)
+    _initGlobalData({csrfToken, userId, premium, mutes, contentMode})
     {
         if(mutes)
         {
