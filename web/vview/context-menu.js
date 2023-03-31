@@ -1275,7 +1275,7 @@ export default class ContextMenu extends Widget
             return null;
 
         // Go to the parent of the item that was clicked on. 
-        let _parentFolderId = LocalAPI.getParentFolder(folderId);
+        let parentFolderId = LocalAPI.getParentFolder(folderId);
 
         // If the user right-clicked a thumbnail and its parent is the folder we're
         // already displaying, go to the parent of the folder instead (otherwise we're
@@ -1284,22 +1284,22 @@ export default class ContextMenu extends Widget
         // location of the image), while viewing an image (also go to the location of
         // the image), or in a folder view (go to the folder's parent).
         let currentlyDisplayingId = LocalAPI.getLocalIdFromArgs(helpers.args.location);
-        if(_parentFolderId == currentlyDisplayingId)
-            _parentFolderId = LocalAPI.getParentFolder(_parentFolderId);
+        if(parentFolderId == currentlyDisplayingId)
+            parentFolderId = LocalAPI.getParentFolder(parentFolderId);
 
-        return _parentFolderId;
+        return parentFolderId;
     }
 
     clicked_go_to_parent = (e) =>
     {
         e.preventDefault();
             
-        let _parentFolderId = this._parentFolderId;
-        if(_parentFolderId == null)
+        let parentFolderId = this._parentFolderId;
+        if(parentFolderId == null)
             return;
 
         let args = new helpers.args("/", ppixiv.plocation);
-        LocalAPI.getArgsForId(_parentFolderId, args);
+        LocalAPI.getArgsForId(parentFolderId, args);
         helpers.navigate(args.url);
     }
 }
