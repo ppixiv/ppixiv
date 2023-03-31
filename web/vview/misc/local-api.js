@@ -125,7 +125,7 @@ export default class LocalAPI
         }
 
         // The path previously on args:
-        let argsRoot = args.hashPath || "";
+        let argsRoot = args.hashPath || "/";
         
         // The new path to set:
         let { type, id: path } = helpers.mediaId.parse(mediaId);
