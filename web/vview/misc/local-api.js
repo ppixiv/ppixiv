@@ -523,11 +523,11 @@ class LocalBroadcastChannelConnection extends EventTarget
         // WebSockets server, so it knows not to send broadcasts to clients running in the
         // same browser, which will receive the messages much faster through a regular
         // BroadcastChannel.
-        this._browserId = ppixiv.settings.get("_browserId");
+        this._browserId = ppixiv.settings.get("browser_id");
         if(this._browserId == null)
         {
             this._browserId = helpers.other.createUuid();
-            ppixiv.settings.set("_browser_id", this._browserId);
+            ppixiv.settings.set("browser_id", this._browserId);
             console.log("Assigned broadcast browser ID:", this._browserId);
         }
 
@@ -652,7 +652,7 @@ class LocalBroadcastChannelConnection extends EventTarget
         
         let data = {
             'command': 'send-broadcast',
-            '_browserId': this._browserId,
+            'browser_id': this._browserId,
             'message': {
                 'channel': channel,
                 'data': message,
