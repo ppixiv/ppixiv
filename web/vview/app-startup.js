@@ -93,17 +93,11 @@ class AppStartup
     
     async loadAndLaunchApp({modules})
     {
-        /*
-        let useShim = false;
-        if(!HTMLScriptElement.supports || !HTMLScriptElement.supports("importmap"))
-            useShim = true;
-
-        let ModuleImporterClass = useShim? ModuleImporter_Compat:ModuleImporter_Native;
-*/
-        // For now we don't use the native importer, since it doesn't make much difference and
-        // using the compat loader during development makes the environment more consistent,
-        // so problems are caught more quickly.
-        let ModuleImporterClass = ModuleImporter_Compat;
+        // Allow enabling import maps for testing.  We don't use them by default yet, since
+        // they're not supported on iOS (coming in 16.4) and it's easier to make sure things
+        // work everywhere by using the same loader everywhere.
+        let useImportMaps = localStorage._ppixiv_importmaps;
+        let ModuleImporterClass = useImportMaps? ModuleImporter_Native:ModuleImporter_Compat;
 
         // Load our modules.
         let importer = new ModuleImporterClass();
