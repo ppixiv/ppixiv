@@ -87,7 +87,7 @@ def _browser_profile_path():
     return data_dir / 'browser'
 
 def _open_url_path(path, **kwargs):
-    url = 'http://127.0.0.1:8235/' + urllib.parse.quote(path)
+    url = 'http://localhost:8235/' + urllib.parse.quote(path)
     _open_url(url, **kwargs)
 
 def _open_url(url, width=None, height=None, fullscreen=True):

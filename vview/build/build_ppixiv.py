@@ -181,7 +181,7 @@ class Build(object):
 
     def build_debug(self, debug_server_url=None):
         if debug_server_url is None:
-            debug_server_url = 'http://127.0.0.1:8235'
+            debug_server_url = 'http://localhost:8235'
 
         output_file = 'output/ppixiv-debug.user.js'
         print('Building: %s' % output_file)

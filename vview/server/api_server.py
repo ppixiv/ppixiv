@@ -43,7 +43,7 @@ class APIServer:
             port = http_conf.get('port', 8235)
 
             # By default, only run on localhost.  If local is false, run on the default interface.
-            host = http_conf.get('local', True) and '127.0.0.1' or None
+            host = http_conf.get('local', True) and 'localhost' or None
             log.info(f'Starting HTTP server on port {port}')
             site = aiohttp.web_runner.TCPSite(self.runner, host=host, port=port, shutdown_timeout=1, backlog=128)
             await site.start()
@@ -274,7 +274,7 @@ class APIServer:
         # requests would be connections from localhost.
         sock = request.get_extra_info('socket')
         remote_addr = sock.getpeername()[0] if sock else None
-        if remote_addr != '127.0.0.1':
+        if remote_addr != '127.0.0.1' and remote_addr != '::1':
             return False
 
         # Don't treat this as a local request if it's being made from another site the user
@@ -282,7 +282,7 @@ class APIServer:
         origin = request.headers.get('Origin') or request.headers.get('Referer')
         if origin:
             origin = urllib.parse.urlparse(origin)
-            if origin.hostname != '127.0.0.1':
+            if origin.hostname != 'localhost':
                 return False
 
         return True
