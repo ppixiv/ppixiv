@@ -422,6 +422,8 @@ export default class MoreOptionsDropdown extends IllustWidget
 
         if(!ppixiv.native && !ppixiv.mobile)
             this._menuOptions.push(menuOptions.exit());
+
+        window.vviewHooks?.dropdownMenuOptions({ moreOptionsDropdown: this, sharedOptions });
     }
 
     setUserId(userId)

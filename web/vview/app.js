@@ -23,6 +23,7 @@ import PointerListener from 'vview/actors/pointer-listener.js';
 import { getUrlForMediaId } from 'vview/misc/media-ids.js'
 import VirtualHistory from 'vview/util/virtual-history.js';
 import * as DataSources from 'vview/data-sources/all.js';
+import * as Hooks from 'vview/util/hooks.js';
 
 // This is the main top-level app controller.
 export default class App
@@ -258,6 +259,9 @@ export default class App
 
         // Create the data source for this page.
         this.setCurrentDataSource({ cause: "initialization" });
+
+        // Init hooks if any.
+        await Hooks?.init(this);
     };
 
     checkBrokenExtensions()
