@@ -911,6 +911,16 @@ export default class App
         if(ppixiv.pixivInfo)
             return true;
 
+        // #meta-pixiv-tests seems to contain info about features/misfeatures that are only enabled
+        // on some users.  Grab this if it's available.
+        // recaptcha_follow_user seems to only be enabled on new accounts, and if it's enabled
+        // the follow API requires a recaptcha token.
+        let pixivTests = doc.querySelector("#meta-pixiv-tests");
+        if(pixivTests)
+            pixivTests = JSON.parse(pixivTests.getAttribute("content"));
+        else
+            pixivTests = {};
+
         if(ppixiv.mobile)
         {
             // On mobile we can get most of this from meta#init-config.  However, it doesn't include
@@ -922,11 +932,13 @@ export default class App
             {
                 let config = JSON.parse(initConfig.getAttribute("content"));
                 this._initGlobalData({
+                    pixivTests,
                     csrfToken: config["pixiv.context.postKey"],
                     userId: config["pixiv.user.id"], 
                     premium: config["pixiv.user.premium"] == "1",
                     mutes: null, // mutes missing on mobile
                     contentMode: config["pixiv.user.x_restrict"],
+                    recaptchaKey: config["pixiv.context.recaptchaEnterpriseScoreSiteKey"],
                 });
 
                 return true;
@@ -962,12 +974,22 @@ export default class App
             premium: globalData.userData.premium,
             mutes: globalData.mute,
             contentMode: globalData.userData.xRestrict,
+            pixivTests,
+            recaptchaKey: globalData?.miscData?.grecaptcha?.recaptchaEnterpriseScoreSiteKey,
         });
 
         return true;
     }
 
-    _initGlobalData({csrfToken, userId, premium, mutes, contentMode})
+    _initGlobalData({
+        userId,
+        csrfToken,
+        premium,
+        mutes,
+        contentMode,
+        pixivTests={},
+        recaptchaKey=null,
+    }={})
     {
         if(mutes)
         {
@@ -995,7 +1017,9 @@ export default class App
             userId,
             include_r18: contentMode >= 1,
             include_r18g: contentMode >= 2,
-            premium: premium,
+            premium,
+            pixivTests,
+            recaptchaKey,
         };
 
         // Give pixivRequest the CSRF token and user ID.
