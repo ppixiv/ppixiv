@@ -371,7 +371,7 @@ export default class DataSource extends EventTarget
         for(let mediaId of mediaIds)
         {
             let { type, id } = helpers.mediaId.parse(mediaId);
-            if(type == "user")
+            if(type == "user" || type == "bookmarks")
             {
                 if(ppixiv.extraCache.getQuickUserData(id) == null)
                 {
