@@ -394,6 +394,28 @@ class AppStartup
             return;
         }
 
+        // We disable a bunch of APIs below, but we want to allow recaptcha to call them.  This is
+        // done by looking at the stack to see if stack frames in recaptcha's URLs exist.  There
+        // isn't a standard way to do this, so we just look for it anywhere in the string.
+        function isAllowed(type)
+        {
+            let e = new Error();
+            let { stack } = e;
+            let allowedHosts = [
+                "recaptcha.net",
+                "www.gstatic.com/recaptcha",
+            ];
+            for(let host of allowedHosts)
+            {
+                if(stack.indexOf(host) != -1)
+                {
+                    // console.log(`Allowing ${type} for ${host}`);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
         // nastiness (like searching for installed polyfills--which we install--and adding wrappers
         // around them).  Break this by defining a webpackJsonp property that can't be set.  It
@@ -505,30 +527,42 @@ class AppStartup
         // Store the real postMessage, so we can still use it ourself.
         try {
             window.MessagePort.prototype.realPostMessage = window.MessagePort.prototype.postMessage;
-            window.MessagePort.prototype.postMessage = (msg) => { };
+            window.MessagePort.prototype.postMessage = function(...args)
+            {
+                if(!isAllowed("postMessage"))
+                    return -1;
+                return window.MessagePort.prototype.realPostMessage.apply(this, args);
+            };
         } catch(e) {
             console.error("Error disabling postMessage", e);
         }
 
-        // Disable requestAnimationFrame.  This can also be used by the React scheduler.
-        window.realRequestAnimationFrame = window.requestAnimationFrame.bind(window);
-        window.requestAnimationFrame = (func) => { };
+        // blockFunction(window, "func", "realFunc") renames window.func to window.realFunc, and replaces
+        // window.func with a dummy.
+        function blockFunction(obj, name, realName)
+        {
+            let func = obj[name];
+            console.assert(func != null);
+            window[realName] = func;
 
-        window.realCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
-        window.cancelAnimationFrame = (id) => { };
+            window[name] = function(...args)
+            {
+                // Check to see if the caller is whitelisted.
+                if(!isAllowed(name))
+                    return -1;
+                return func.apply(this, args);
+            };    
+        }
+
+        // Disable requestAnimationFrame.  This can also be used by the React scheduler.
+        blockFunction(window, "requestAnimationFrame", "realRequestAnimationFrame");
+        blockFunction(window, "cancelAnimationFrame", "realCancelAnimationFrame");
 
         // Disable the page's timers.  This helps prevent things like GTM from running.
-        window.realSetTimeout = window.setTimeout.bind(window);
-        window.setTimeout = (f, ms) => { return -1; };
-
-        window.realSetInterval = window.setInterval.bind(window);
-        window.setInterval = (f, ms) => { return -1; };
-
-        window.realClearTimeout = window.clearTimeout.bind(window);
-        window.clearTimeout = () => { };
-
-        window.realClearInterval = window.clearInterval.bind(window);
-        window.clearInterval = () => { };
+        blockFunction(window, "setTimeout", "realSetTimeout");
+        blockFunction(window, "setInterval", "realSetInterval");
+        blockFunction(window, "clearTimeout", "realClearTimeout");
+        blockFunction(window, "clearInterval", "realClearInterval");
 
         try {
             window.addEventListener = Window.prototype.addEventListener.bind(window);
@@ -565,9 +599,12 @@ class AppStartup
             // Prevent the underlying site from creating these elements.
             if(type == "script" || type == "style" || type == "iframe")
             {
-                // console.warn("Disabling createElement " + type);
-                class ElementDisabled extends Error { };
-                throw new ElementDisabled("Element disabled");
+                if(!isAllowed("createElement"))
+                {
+                    console.error("Disabling createElement " + type);
+                    class ElementDisabled extends Error { };
+                    throw new ElementDisabled("Element disabled");
+                }
             }
             return origCreateElement.apply(this, arguments);
         };
