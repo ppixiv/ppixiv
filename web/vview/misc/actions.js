@@ -4,6 +4,7 @@ import LocalAPI from 'vview/misc/local-api.js';
 import RecentBookmarkTags from 'vview/misc/recent-bookmark-tags.js';
 import PixivUgoiraDownloader from 'vview/misc/pixiv-ugoira-downloader.js';
 import CreateZIP from 'vview/misc/create-zip.js';
+import * as Recaptcha from 'vview/util/recaptcha.js';
 import { downloadUrls } from 'vview/util/gm-download.js';
 import { helpers } from 'vview/misc/helpers.js';
 
@@ -397,16 +398,33 @@ export default class Actions
         if(followPrivately == null && ppixiv.settings.get("bookmark_privately_by_default"))
             followPrivately = true;
 
-        // This doesn't return any data, but returns a 400 Bad Request if something fails.
-        let result = await helpers.pixivRequest.rpcPost("/bookmark_add.php", {
+        let followArgs = {
             mode: "add",
             type: "user",
             user_id: userId,
             tag: tag ?? "",
             restrict: followPrivately? 1:0,
             format: "json",
-        });
+        };
 
+        // Pixiv enables recaptcha for follows only for some users.  If it's enabled for this user,
+        // get a token for the follow.
+        let useRecaptcha = ppixiv.pixivInfo?.pixivTests?.recaptcha_follow_user;
+        if(useRecaptcha)
+        {
+            console.log("Requesting recaptcha token for follow");
+            let token = await Recaptcha.getRecaptchaToken("www/follow_user");
+            if(token == null)
+            {
+                ppixiv.message.show("Couldn't get Recaptcha token for following a user");
+                return;
+            }
+
+            followArgs.recaptcha_enterprise_score_token = token;
+        }
+
+        // This doesn't return any data, but returns a 400 Bad Request if something fails.
+        let result = await helpers.pixivRequest.rpcPost("/bookmark_add.php", followArgs);
         if(result.error)
         {
             ppixiv.message.show(`Error following user ${userId}: ${result.message}`);

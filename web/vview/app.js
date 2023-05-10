@@ -16,6 +16,7 @@ import MediaCache from 'vview/misc/media-cache.js';
 import UserCache from 'vview/misc/user-cache.js';
 import ExtraCache from 'vview/misc/extra-cache.js';
 import { helpers, PointerEventMovement } from 'vview/misc/helpers.js';
+import * as Recaptcha from 'vview/util/recaptcha.js';
 import ExtraImageData from 'vview/misc/extra-image-data.js';
 import GuessImageURL from 'vview/misc/guess-image-url.js';
 import LocalAPI from 'vview/misc/local-api.js';
@@ -112,6 +113,10 @@ export default class App
             if(!await this._loadGlobalDataAsync())
                 return;
         }
+
+        // Check that we found pixivTests.
+        if(!ppixiv.native && ppixiv.pixivInfo?.pixivTests == null)
+            console.log("pixivTests not available");
 
         // See if we want to adjust the initial URL.
         await this.setInitialUrl();
@@ -223,6 +228,9 @@ export default class App
         this._undoTemporarilyHideDocument();
 
         ppixiv.message = new MessageWidget({container: document.body});
+
+        // Load Recaptcha if it's required by Pixiv.
+        Recaptcha.load();
 
         // Create the shared title.  This is set by helpers.setPageTitle.
         if(document.querySelector("title") == null)
@@ -912,14 +920,12 @@ export default class App
             return true;
 
         // #meta-pixiv-tests seems to contain info about features/misfeatures that are only enabled
-        // on some users.  Grab this if it's available.
-        // recaptcha_follow_user seems to only be enabled on new accounts, and if it's enabled
-        // the follow API requires a recaptcha token.
-        let pixivTests = doc.querySelector("#meta-pixiv-tests");
-        if(pixivTests)
-            pixivTests = JSON.parse(pixivTests.getAttribute("content"));
-        else
-            pixivTests = {};
+        // on some users.  Grab this if it's available, so we can tell if recaptcha_follow_user is
+        // enabled for this user.  This can also come from script#__NEXT_DATA__ below.
+        let pixivTests = null;
+        let pixivTestsElement = doc.querySelector("#meta-pixiv-tests");
+        if(pixivTestsElement)
+            pixivTests = JSON.parse(pixivTestsElement.getAttribute("content"));
 
         if(ppixiv.mobile)
         {
@@ -958,6 +964,7 @@ export default class App
             {
                 nextData = JSON.parse(nextData.innerText);
                 globalData = nextData.props.pageProps;
+                pixivTests = globalData.activeABTests;
             }
         }
 
