@@ -20,6 +20,7 @@ export default class MessageWidget extends Widget
     show(message)
     {
         console.assert(message != null);
+        console.log(message);
 
         this.clearTimer();
 

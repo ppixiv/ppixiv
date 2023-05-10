@@ -132,7 +132,17 @@ export async function sendPixivRequest({...options})
     // Return the requested type.  If we don't know the type, just return the
     // request promise itself.
     if(options.responseType == "json")
-        return await result.json();
+    {
+        // Pixiv sometimes returns HTML responses to API calls on error, for example if
+        // bookmark_add.php is called to follow a user without specifying recaptcha_enterprise_score_token.
+        try {
+            return await result.json();
+        } catch(e) {
+            let message = `${result.status} ${result.statusText}`;
+            console.log(`Couldn't parse API result for ${options.url}: ${message}`);
+            return { error: true, message };
+        }
+    }
 
     if(options.responseType == "document")
     {

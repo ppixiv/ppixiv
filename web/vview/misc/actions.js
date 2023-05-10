@@ -397,8 +397,8 @@ export default class Actions
         if(followPrivately == null && ppixiv.settings.get("bookmark_privately_by_default"))
             followPrivately = true;
 
-        // This doesn't return any data (not even an error flag).
-        await helpers.pixivRequest.rpcPost("/bookmark_add.php", {
+        // This doesn't return any data, but returns a 400 Bad Request if something fails.
+        let result = await helpers.pixivRequest.rpcPost("/bookmark_add.php", {
             mode: "add",
             type: "user",
             user_id: userId,
@@ -406,6 +406,12 @@ export default class Actions
             restrict: followPrivately? 1:0,
             format: "json",
         });
+
+        if(result.error)
+        {
+            ppixiv.message.show(`Error following user ${userId}: ${result.message}`);
+            return;
+        }
 
         // Cache follow info for this new follow.  Since we weren't followed before, we know
         // we can just create a new entry.
@@ -438,7 +444,7 @@ export default class Actions
 
         if(data.error)
         {
-            console.log(`Error editing follow tags: ${data.message}`);
+            ppixiv.message.show(`Error changing follow privacy: ${data.message}`);
             return;
         }
 
@@ -467,7 +473,7 @@ export default class Actions
 
         if(data.error)
         {
-            console.log(`Error editing follow tags: ${data.message}`);
+            ppixiv.message.show(`Error editing follow tags: ${data.message}`);
             return;
         }
 
@@ -480,7 +486,7 @@ export default class Actions
         let followInfo = await ppixiv.userCache.getUserFollowInfo(userId);
         if(followInfo == null)
         {
-            console.log("Error retrieving follow info to update tags");
+            ppixiv.message.show("Error retrieving follow info to update tags");
             return;
         }
 
