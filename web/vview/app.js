@@ -526,8 +526,16 @@ export default class App
             mediaId = await this.getMediaIdForSlideshow({ dataSource });
             if(mediaId == null)
             {
-                // We don't have a good way of handling this right now.
-                ppixiv.message.show("Couldn't find an image to view");
+                // The search for this slideshow didn't return any images.  This can happen
+                // from a saved slideshow link if the user's login creds are gone.  We can't
+                // show the illust view without an illust, so navigate to the search equivalent
+                // so the UI works to let the user log back in.
+                ppixiv.message.show("Couldn't find a slideshow image to view");
+
+                let args = helpers.args.location;
+                args.hash.set("view", "search");
+                args.hash.delete("slideshow");
+                helpers.navigate(args, { addToHistory: true, cause: "slideshow-failed" });
                 return;
             }
 
