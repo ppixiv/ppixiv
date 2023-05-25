@@ -3,8 +3,8 @@
 // We use this as an anchor page for viewing recommended illusts for an image, since
 // there's no dedicated page for this.
 
-import DataSource from 'vview/data-sources/data-source.js';
-import { helpers } from 'vview/misc/helpers.js';
+import DataSource from '/vview/data-sources/data-source.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DataSource_SimilarIllusts extends DataSource
 {

@@ -1,7 +1,7 @@
-import Widget from 'vview/widgets/widget.js';
-import { CheckboxWidget, SliderWidget } from 'vview/widgets/simple.js';
-import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { CheckboxWidget, SliderWidget } from '/vview/widgets/simple.js';
+import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // Simple menu settings widgets.
 export class MenuOption extends Widget

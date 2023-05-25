@@ -1,5 +1,5 @@
-import { helpers } from 'vview/misc/helpers.js';
-import widget from 'vview/widgets/widget.js';
+import { helpers } from '/vview/misc/helpers.js';
+import widget from '/vview/widgets/widget.js';
 
 let updateHistory = [
     {

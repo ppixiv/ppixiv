@@ -1,8 +1,8 @@
 // This is the base class for viewer classes, which are used to view a particular
 // type of content in the main display.
 
-import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class Viewer extends Widget
 {

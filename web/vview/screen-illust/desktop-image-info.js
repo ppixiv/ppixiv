@@ -1,15 +1,15 @@
 // This handles the desktop overlay UI on the illustration page.
 
-import Widget from 'vview/widgets/widget.js';
-import { BookmarkButtonWidget, LikeButtonWidget } from 'vview/widgets/illust-widgets.js';
-import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
-import { AvatarWidget } from 'vview/widgets/user-widgets.js';
-import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
-import Actions from 'vview/misc/actions.js';
-import TagListWidget from 'vview/widgets/tag-list-widget.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { getUrlForMediaId } from 'vview/misc/media-ids.js'
-import { helpers, ClassFlags } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { BookmarkButtonWidget, LikeButtonWidget } from '/vview/widgets/illust-widgets.js';
+import { BookmarkTagDropdownOpener } from '/vview/widgets/bookmark-tag-list.js';
+import { AvatarWidget } from '/vview/widgets/user-widgets.js';
+import { SettingsDialog } from '/vview/widgets/settings-widgets.js';
+import Actions from '/vview/misc/actions.js';
+import TagListWidget from '/vview/widgets/tag-list-widget.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { getUrlForMediaId } from '/vview/misc/media-ids.js'
+import { helpers, ClassFlags } from '/vview/misc/helpers.js';
 
 export default class DesktopImageInfo extends Widget
 {

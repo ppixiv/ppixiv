@@ -1,6 +1,6 @@
 // Lookup and caching for user data.
 
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class UserCache extends EventTarget
 {

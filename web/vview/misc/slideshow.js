@@ -7,7 +7,7 @@
 // Slideshows are built into animations using getAnimation, which converts it
 // to an animation based on the image's aspect ratio, the screen's aspect ratio,
 // the desired speed, etc.
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class Slideshow
 {

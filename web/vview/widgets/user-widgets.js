@@ -1,9 +1,9 @@
-import Widget from 'vview/widgets/widget.js';
-import Actions from 'vview/misc/actions.js';
-import AsyncLookup from 'vview/actors/async-lookup.js';
-import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
-import { ConfirmPrompt, TextPrompt } from 'vview/widgets/prompts.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import Actions from '/vview/misc/actions.js';
+import AsyncLookup from '/vview/actors/async-lookup.js';
+import { DropdownBoxOpener } from '/vview/widgets/dropdown.js';
+import { ConfirmPrompt, TextPrompt } from '/vview/widgets/prompts.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // AsyncLookup to look up user info from a user ID.
 export class GetUserInfo extends AsyncLookup

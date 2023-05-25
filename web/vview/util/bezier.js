@@ -1,6 +1,6 @@
 // A simple bezier curve implementation matching cubic-bezier.
 
-import * as math from 'vview/util/math.js';
+import * as math from '/vview/util/math.js';
 
 export default class Bezier2D
 {

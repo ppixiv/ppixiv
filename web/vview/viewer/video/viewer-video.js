@@ -1,5 +1,5 @@
-import ViewerVideoBase from 'vview/viewer/video/viewer-video-base.js';
-import { helpers } from 'vview/misc/helpers.js';
+import ViewerVideoBase from '/vview/viewer/video/viewer-video-base.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // A player for video files.
 //

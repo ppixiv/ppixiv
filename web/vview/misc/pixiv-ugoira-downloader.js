@@ -6,9 +6,9 @@
 // in eg. VLC, but it's not a WebM file and browsers don't support it.  These can also be played
 // when reading from the local API, since it'll decode these videos and turn them back into a ZIP.
 
-import EncodeMKV from "vview/misc/encode-mkv.js";
-import ZipImageDownloader from 'vview/misc/zip-image-downloader.js';
-import { helpers } from 'vview/misc/helpers.js';
+import EncodeMKV from '/vview/misc/encode-mkv.js';
+import ZipImageDownloader from '/vview/misc/zip-image-downloader.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class PixivUgoiraDownloader
 {

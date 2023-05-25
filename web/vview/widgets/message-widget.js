@@ -1,4 +1,4 @@
-import Widget from 'vview/widgets/widget.js';
+import Widget from '/vview/widgets/widget.js';
 
 // Display messages in the popup widget.  This is a singleton.
 export default class MessageWidget extends Widget

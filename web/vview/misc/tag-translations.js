@@ -1,5 +1,5 @@
-import KeyStorage from 'vview/misc/key-storage.js';
-import { helpers } from 'vview/misc/helpers.js';
+import KeyStorage from '/vview/misc/key-storage.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class TagTranslations
 {

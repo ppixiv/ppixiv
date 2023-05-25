@@ -1,12 +1,12 @@
 // The main thumbnail grid view.
 
-import Widget from 'vview/widgets/widget.js';
-import { MenuOptionsThumbnailSizeSlider } from 'vview/widgets/menu-option.js';
-import { getUrlForMediaId } from 'vview/misc/media-ids.js'
-import PointerListener from 'vview/actors/pointer-listener.js';
-import StopAnimationAfter from 'vview/actors/stop-animation-after.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers, GuardedRunner } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { MenuOptionsThumbnailSizeSlider } from '/vview/widgets/menu-option.js';
+import { getUrlForMediaId } from '/vview/misc/media-ids.js'
+import PointerListener from '/vview/actors/pointer-listener.js';
+import StopAnimationAfter from '/vview/actors/stop-animation-after.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers, GuardedRunner } from '/vview/misc/helpers.js';
 
 // This is the logic for SearchView's grid display.  
 class ThumbnailGrid

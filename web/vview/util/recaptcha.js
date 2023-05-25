@@ -1,4 +1,4 @@
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 let loadPromise = null;
 export function load()

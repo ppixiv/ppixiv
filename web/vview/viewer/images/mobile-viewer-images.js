@@ -1,6 +1,6 @@
-import ViewerImages from 'vview/viewer/images/viewer-images.js';
-import TouchScroller from 'vview/viewer/images/mobile-touch-scroller.js';
-import { FixedDOMRect } from 'vview/misc/helpers.js';
+import ViewerImages from '/vview/viewer/images/viewer-images.js';
+import TouchScroller from '/vview/viewer/images/mobile-touch-scroller.js';
+import { FixedDOMRect } from '/vview/misc/helpers.js';
 
 // This subclass implements our touchscreen pan/zoom UI.
 export default class ViewerImagesMobile extends ViewerImages

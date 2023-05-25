@@ -2,10 +2,10 @@
 //
 // This is used to close dropdown menus.
 
-import Actor from 'vview/actors/actor.js';
-import Widget from 'vview/widgets/widget.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Actor from '/vview/actors/actor.js';
+import Widget from '/vview/widgets/widget.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class ClickOutsideListener extends Actor
 {

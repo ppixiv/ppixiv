@@ -10,10 +10,10 @@
 //
 // For some reason, Pixiv only allows viewing either public or private bookmarks,
 // and has no way to just view all bookmarks.
-import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
-import Widget from 'vview/widgets/widget.js';
-import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/misc/helpers.js';
+import DataSource, { TagDropdownWidget } from '/vview/data-sources/data-source.js';
+import Widget from '/vview/widgets/widget.js';
+import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export class DataSource_BookmarksBase extends DataSource
 {

@@ -3,7 +3,7 @@
 
 // A wrapper for the clunky ReadableStream API that lets us do at basic
 // thing that API forgot about: read a given number of bytes at a time.
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 class IncrementalReader
 {

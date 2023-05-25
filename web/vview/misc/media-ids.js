@@ -1,5 +1,5 @@
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers } from 'vview/misc/helpers.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // Return the canonical URL for an illust.  For most URLs this is
 // /artworks/12345.  If manga is true, return the manga viewer page.

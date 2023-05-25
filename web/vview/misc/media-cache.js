@@ -23,10 +23,10 @@
 // Our media IDs encode Pixiv manga pages, but this only deals with top-level illustrations, and
 // the page number in illust media IDs is always 1 here.
 
-import LocalAPI from 'vview/misc/local-api.js';
-import MediaCacheMappings from 'vview/misc/media-cache-mappings.js';
-import MediaInfo, { MediaInfoEvents }  from 'vview/misc/media-info.js';
-import { helpers } from 'vview/misc/helpers.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import MediaCacheMappings from '/vview/misc/media-cache-mappings.js';
+import MediaInfo, { MediaInfoEvents }  from '/vview/misc/media-info.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // This handles fetching and caching image data.
 export default class MediaCache extends EventTarget

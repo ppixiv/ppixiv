@@ -1,6 +1,6 @@
 // A basic widget base class.
-import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Actor from '/vview/actors/actor.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class Widget extends Actor
 {

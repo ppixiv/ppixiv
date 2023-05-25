@@ -1,11 +1,11 @@
 // Drag navigation for swiping between images on mobile.
 
-import DragHandler from 'vview/misc/drag-handler.js';
-import Bezier2D from 'vview/util/bezier.js';
-import FlingVelocity from 'vview/util/fling-velocity.js';
-import DirectAnimation from 'vview/actors/direct-animation.js';
-import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/misc/helpers.js';
+import DragHandler from '/vview/misc/drag-handler.js';
+import Bezier2D from '/vview/util/bezier.js';
+import FlingVelocity from '/vview/util/fling-velocity.js';
+import DirectAnimation from '/vview/actors/direct-animation.js';
+import Actor from '/vview/actors/actor.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DragImageChanger extends Actor
 {

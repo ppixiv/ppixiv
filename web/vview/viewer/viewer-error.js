@@ -1,5 +1,5 @@
-import Viewer from 'vview/viewer/viewer.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Viewer from '/vview/viewer/viewer.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // This is used to display muted images, and images that returned an error.
 export default class ViewerError extends Viewer

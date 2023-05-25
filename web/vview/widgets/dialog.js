@@ -1,6 +1,6 @@
-import Widget from 'vview/widgets/widget.js';
-import WidgetDragger from 'vview/actors/widget-dragger.js';
-import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import WidgetDragger from '/vview/actors/widget-dragger.js';
+import { helpers, OpenWidgets } from '/vview/misc/helpers.js';
 
 export default class DialogWidget extends Widget
 {

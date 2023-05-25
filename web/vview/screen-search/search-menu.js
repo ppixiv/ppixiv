@@ -1,7 +1,7 @@
 // This creates the entries for selecting a search mode.  This is shared by the
 // desktop dropdown menu and the mobile popup.
 
-import { MenuOptionButton, MenuOptionRow } from 'vview/widgets/menu-option.js';
+import { MenuOptionButton, MenuOptionRow } from '/vview/widgets/menu-option.js';
 
 function getMainSearchMenuOptions()
 {

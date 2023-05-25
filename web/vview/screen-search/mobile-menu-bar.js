@@ -1,11 +1,11 @@
-import Widget from 'vview/widgets/widget.js';
-import CreateSearchMenu from 'vview/screen-search/search-menu.js';
-import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
-import * as DataSource from 'vview/data-sources/all.js';
-import { DataSource_BookmarksBase } from 'vview/data-sources/pixiv/bookmarks.js';
-import DialogWidget from 'vview/widgets/dialog.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import CreateSearchMenu from '/vview/screen-search/search-menu.js';
+import { SettingsDialog } from '/vview/widgets/settings-widgets.js';
+import * as DataSource from '/vview/data-sources/all.js';
+import { DataSource_BookmarksBase } from '/vview/data-sources/pixiv/bookmarks.js';
+import DialogWidget from '/vview/widgets/dialog.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // The bottom navigation bar for mobile, showing the current search and exposing a smaller
 // action bar when open.  This vaguely follows the design language of iOS Safari.

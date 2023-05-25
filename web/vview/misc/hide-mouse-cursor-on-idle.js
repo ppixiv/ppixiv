@@ -3,7 +3,7 @@
 // Dispatch "mouseactive" on window when the mouse has moved recently and
 // "mouseinactive" when it hasn't.
 
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 class TrackMouseMovement
 {

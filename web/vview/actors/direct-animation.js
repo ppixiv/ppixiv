@@ -28,7 +28,7 @@
 // letting everything happen in the compositor, but that's much better than updating multiple
 // windows at several times their actual framerate.
 
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DirectAnimation
 {

@@ -21,7 +21,7 @@
 // UI.  The main controller will handle intercepting clicks on links and redirecting them
 // here.  If we're not doing this, this will only be used for virtual navigations.
 
-import Args from 'vview/util/args.js';
+import Args from '/vview/util/args.js';
 
 export default class VirtualHistory
 {

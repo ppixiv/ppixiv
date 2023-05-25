@@ -11,8 +11,8 @@
 // to speculatively load.  We'll run loads in parallel, giving the current image's resources
 // priority and cancelling loads when they're no longer needed.
 
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers } from 'vview/misc/helpers.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // The image ResourceLoader singleton.
 export default class ImagePreloader

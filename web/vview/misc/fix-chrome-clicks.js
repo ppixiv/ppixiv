@@ -11,7 +11,7 @@
 // We mimic Chrome's click detection behavior: an element is counted as a click if
 // the mouseup event is an ancestor of the element that was clicked, or vice versa.
 // This is different from Firefox which uses the distance the mouse has moved.
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class FixChromeClicks
 {

@@ -1,7 +1,7 @@
-import Widget from 'vview/widgets/widget.js';
-import SeekBar from 'vview/viewer/video/seek-bar.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
-import { helpers, ClassFlags } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import SeekBar from '/vview/viewer/video/seek-bar.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
+import { helpers, ClassFlags } from '/vview/misc/helpers.js';
 
 // The overlay video UI.
 export default class VideoUI extends Widget

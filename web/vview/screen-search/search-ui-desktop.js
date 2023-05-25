@@ -1,12 +1,12 @@
 // The main desktop search UI.
 
-import Widget from 'vview/widgets/widget.js';
-import { AvatarWidget } from 'vview/widgets/user-widgets.js';
-import { SettingsDialog } from 'vview/widgets/settings-widgets.js';
-import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import CreateSearchMenu from 'vview/screen-search/search-menu.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { AvatarWidget } from '/vview/widgets/user-widgets.js';
+import { SettingsDialog } from '/vview/widgets/settings-widgets.js';
+import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';
+import CreateSearchMenu from '/vview/screen-search/search-menu.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DesktopSearchUI extends Widget
 {

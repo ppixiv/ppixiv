@@ -1,11 +1,11 @@
 // This handles sending images from one tab to another.
 
-import Widget from 'vview/widgets/widget.js';
-import DialogWidget from 'vview/widgets/dialog.js';
-import MediaInfo  from 'vview/misc/media-info.js';
-import { LocalBroadcastChannel } from 'vview/misc/local-api.js';
-import { Timer } from 'vview/misc/helpers.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import DialogWidget from '/vview/widgets/dialog.js';
+import MediaInfo  from '/vview/misc/media-info.js';
+import { LocalBroadcastChannel } from '/vview/misc/local-api.js';
+import { Timer } from '/vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class SendImage
 {

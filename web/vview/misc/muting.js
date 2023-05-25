@@ -2,7 +2,7 @@
 //
 // The "mutes-changed" event is fired here when any mute list is modified.
 
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class Muting extends EventTarget
 {

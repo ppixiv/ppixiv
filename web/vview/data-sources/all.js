@@ -1,27 +1,27 @@
 // This gathers the various data sources, so they can be referenced by name, and
 // handles creating and caching data source instances.
 
-import Discovery from 'vview/data-sources/pixiv/discover-illusts.js';
-import DiscoverUsers from 'vview/data-sources/pixiv/discover-users.js';
-import SimilarIllusts from 'vview/data-sources/pixiv/similar-illusts.js';
-import Rankings from 'vview/data-sources/pixiv/rankings.js';
-import Artist from 'vview/data-sources/pixiv/artist.js';
-import Illust from 'vview/data-sources/pixiv/illust.js';
-import FollowedUsers from 'vview/data-sources/pixiv/followed-users.js';
-import MangaPages from 'vview/data-sources/pixiv/manga-pages.js';
-import SearchIllusts from 'vview/data-sources/pixiv/search-illusts.js';
-import NewPostsByFollowing from 'vview/data-sources/pixiv/new-posts-by-following.js';
-import NewPostsByEveryone from 'vview/data-sources/pixiv/new-posts-by-everyone.js';
-import RelatedFavorites from 'vview/data-sources/pixiv/related-favorites.js';
-import SearchUsers from 'vview/data-sources/pixiv/search-users.js';
-import CompletedRequests from 'vview/data-sources/pixiv/completed-requests.js';
-import EditedImages from 'vview/data-sources/pixiv/edited-images.js';
-import { VView, VViewSearch } from 'vview/data-sources/vview/vview.js';
-import VViewSimilar from 'vview/data-sources/vview/similar.js';
-import { Bookmarks, BookmarksMerged } from 'vview/data-sources/pixiv/bookmarks.js';
+import Discovery from '/vview/data-sources/pixiv/discover-illusts.js';
+import DiscoverUsers from '/vview/data-sources/pixiv/discover-users.js';
+import SimilarIllusts from '/vview/data-sources/pixiv/similar-illusts.js';
+import Rankings from '/vview/data-sources/pixiv/rankings.js';
+import Artist from '/vview/data-sources/pixiv/artist.js';
+import Illust from '/vview/data-sources/pixiv/illust.js';
+import FollowedUsers from '/vview/data-sources/pixiv/followed-users.js';
+import MangaPages from '/vview/data-sources/pixiv/manga-pages.js';
+import SearchIllusts from '/vview/data-sources/pixiv/search-illusts.js';
+import NewPostsByFollowing from '/vview/data-sources/pixiv/new-posts-by-following.js';
+import NewPostsByEveryone from '/vview/data-sources/pixiv/new-posts-by-everyone.js';
+import RelatedFavorites from '/vview/data-sources/pixiv/related-favorites.js';
+import SearchUsers from '/vview/data-sources/pixiv/search-users.js';
+import CompletedRequests from '/vview/data-sources/pixiv/completed-requests.js';
+import EditedImages from '/vview/data-sources/pixiv/edited-images.js';
+import { VView, VViewSearch } from '/vview/data-sources/vview/vview.js';
+import VViewSimilar from '/vview/data-sources/vview/similar.js';
+import { Bookmarks, BookmarksMerged } from '/vview/data-sources/pixiv/bookmarks.js';
 
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers } from 'vview/misc/helpers.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 let allDataSources = {
     Discovery,

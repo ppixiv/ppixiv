@@ -6,9 +6,9 @@
 // This doesn't use Animation.  They still don't work with CSS vars, and Animation has too
 // many quirks to bother with for this.
 
-import Bezier2D from 'vview/util/bezier.js';
-import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Bezier2D from '/vview/util/bezier.js';
+import Actor from '/vview/actors/actor.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class PropertyAnimation extends Actor
 {

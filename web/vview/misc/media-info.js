@@ -4,7 +4,7 @@
 // available from different sources more explicit.  A MediaInfo is constructed with
 // MediaInfo.createFrom.
 
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export const MediaInfoEvents = new EventTarget();
 

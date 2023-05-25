@@ -17,7 +17,7 @@
 //
 // This doesn't currently detect if the tap was on something that had a default
 // action, like a link, since we only use this for taps on the image view.
-import Actor from 'vview/actors/actor.js';
+import Actor from '/vview/actors/actor.js';
 
 export default class IsolatedTapHandler extends Actor
 {

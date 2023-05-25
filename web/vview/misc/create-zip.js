@@ -1,7 +1,7 @@
 // Create an uncompressed ZIP from a list of files and filenames.
 
-import crc32 from 'vview/util/crc32.js';
-import struct from 'vview/util/struct.js';
+import crc32 from '/vview/util/crc32.js';
+import struct from '/vview/util/struct.js';
 
 export default class CreateZIP
 {

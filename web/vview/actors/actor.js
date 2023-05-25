@@ -6,7 +6,7 @@
 // Most actors are widgets and should derive from ppixiv.widget.  The base actor class
 // doesn't have HTML content or add itself to the DOM tree.  Non-widget actors are used
 // for helpers that want to live in the actor tree, but don't have content of their own.
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 let templatesCache = new Map();
 

@@ -1,7 +1,7 @@
 // Helpers for the local API.
 
-import Path from 'vview/util/path.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Path from '/vview/util/path.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class LocalAPI
 {

@@ -1,6 +1,6 @@
-import DataSource from 'vview/data-sources/data-source.js';
-import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/misc/helpers.js';
+import DataSource from '/vview/data-sources/data-source.js';
+import Widget from '/vview/widgets/widget.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // new_illust.php
 export default class DataSource_NewPostsByEveryone extends DataSource

@@ -8,22 +8,22 @@
 //
 // This also handles mousewheel zooming.
 
-import Widget from 'vview/widgets/widget.js';
-import { BookmarkButtonWidget, LikeButtonWidget } from 'vview/widgets/illust-widgets.js';
-import { HideMouseCursorOnIdle } from 'vview/misc/hide-mouse-cursor-on-idle.js';
-import { BookmarkTagDropdownOpener } from 'vview/widgets/bookmark-tag-list.js';
-import { AvatarWidget, GetUserIdFromMediaId } from 'vview/widgets/user-widgets.js';
-import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
-import FixChromeClicks from 'vview/misc/fix-chrome-clicks.js';
-import { ViewInExplorerWidget } from 'vview/widgets/local-widgets.js';
-import { IllustWidget } from 'vview/widgets/illust-widgets.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
-import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
-import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
-import Actions from 'vview/misc/actions.js';
-import { getUrlForMediaId } from 'vview/misc/media-ids.js'
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers, ClassFlags, KeyListener, OpenWidgets } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { BookmarkButtonWidget, LikeButtonWidget } from '/vview/widgets/illust-widgets.js';
+import { HideMouseCursorOnIdle } from '/vview/misc/hide-mouse-cursor-on-idle.js';
+import { BookmarkTagDropdownOpener } from '/vview/widgets/bookmark-tag-list.js';
+import { AvatarWidget, GetUserIdFromMediaId } from '/vview/widgets/user-widgets.js';
+import MoreOptionsDropdown from '/vview/widgets/more-options-dropdown.js';
+import FixChromeClicks from '/vview/misc/fix-chrome-clicks.js';
+import { ViewInExplorerWidget } from '/vview/widgets/local-widgets.js';
+import { IllustWidget } from '/vview/widgets/illust-widgets.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
+import { DropdownBoxOpener } from '/vview/widgets/dropdown.js';
+import ClickOutsideListener from '/vview/widgets/click-outside-listener.js';
+import Actions from '/vview/misc/actions.js';
+import { getUrlForMediaId } from '/vview/misc/media-ids.js'
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers, ClassFlags, KeyListener, OpenWidgets } from '/vview/misc/helpers.js';
 
 export default class ContextMenu extends Widget
 {

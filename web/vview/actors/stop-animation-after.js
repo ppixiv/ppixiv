@@ -1,7 +1,7 @@
 // Gradually slow down and stop the given CSS animation after a delay, resuming it
 // if the mouse is moved.
 
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class StopAnimationAfter
 {

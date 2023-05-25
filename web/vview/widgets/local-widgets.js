@@ -1,8 +1,8 @@
-import Widget from 'vview/widgets/widget.js';
-import { IllustWidget } from 'vview/widgets/illust-widgets.js';
-import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/misc/helpers.js';
-import LocalAPI from 'vview/misc/local-api.js';
+import Widget from '/vview/widgets/widget.js';
+import { IllustWidget } from '/vview/widgets/illust-widgets.js';
+import { DropdownBoxOpener } from '/vview/widgets/dropdown.js';
+import { helpers } from '/vview/misc/helpers.js';
+import LocalAPI from '/vview/misc/local-api.js';
 
 // LocalSearchBoxWidget and LocalSearchDropdownWidget are dumb copy-pastes
 // of TagSearchBoxWidget and TagSearchDropdownWidget.  They're simpler and

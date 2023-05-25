@@ -1,9 +1,9 @@
 // The "Muted Users" and "Muted Tags" settings pages.
 
-import Widget from 'vview/widgets/widget.js';
-import { TextPrompt } from 'vview/widgets/prompts.js';
-import DialogWidget from 'vview/widgets/dialog.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { TextPrompt } from '/vview/widgets/prompts.js';
+import DialogWidget from '/vview/widgets/dialog.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export class EditMutedTagsWidget extends Widget
 {

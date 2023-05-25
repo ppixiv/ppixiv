@@ -1,7 +1,7 @@
 // A list of tags, with translations in popups where available.
 
-import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class TagListWidget extends Widget
 {

@@ -408,7 +408,8 @@ class Build(object):
 
                 relative_path = path.relative_to(modules_top)
                 module_name = 'vview' / relative_path
-                modules[module_name.as_posix()] = path
+                module_path = '/' + module_name.as_posix()
+                modules[module_path] = path
 
         return modules
 

@@ -2,7 +2,7 @@
 // and a bunch of browser weirdness around context menus and other things that a lot of
 // UI doesn't need.  TouchListener is a simpler interface that only listens for left-clicks.
 // Touch inputs will see multitouch if the multi flag is true.
-import Actor from 'vview/actors/actor.js';
+import Actor from '/vview/actors/actor.js';
 
 export default class TouchListener extends Actor
 {

@@ -1,6 +1,6 @@
-import Widget from 'vview/widgets/widget.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers, GuardedRunner } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers, GuardedRunner } from '/vview/misc/helpers.js';
 
 class TreeWidget extends Widget
 {

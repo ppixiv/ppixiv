@@ -1,6 +1,6 @@
-import Widget from 'vview/widgets/widget.js';
-import DragHandler from 'vview/misc/drag-handler.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import DragHandler from '/vview/misc/drag-handler.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class SeekBar extends Widget
 {

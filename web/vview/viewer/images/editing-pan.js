@@ -1,9 +1,9 @@
 // This allows editing simple pan animations, to give finer control over slideshows.
-import Widget from 'vview/widgets/widget.js';
-import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
-import Slideshow from 'vview/misc/slideshow.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
-import { helpers, FixedDOMRect, KeyListener } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import ImageEditingOverlayContainer from '/vview/viewer/images/editing-overlay-container.js';
+import Slideshow from '/vview/misc/slideshow.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
+import { helpers, FixedDOMRect, KeyListener } from '/vview/misc/helpers.js';
 
 export default class PanEditor extends Widget
 {

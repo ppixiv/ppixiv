@@ -1,13 +1,13 @@
 // The "More..." dropdown menu shown in the options menu.
 
-import { SettingsDialog, SettingsPageDialog } from 'vview/widgets/settings-widgets.js';
-import { SendImagePopup } from 'vview/misc/send-image.js';
-import { MenuOptionButton, MenuOptionToggle, MenuOptionToggleSetting } from 'vview/widgets/menu-option.js';
-import { MutedTagsForPostDialog } from 'vview/widgets/mutes.js';
-import Actions from 'vview/misc/actions.js';
-import { IllustWidget } from 'vview/widgets/illust-widgets.js';
-import { helpers } from 'vview/misc/helpers.js';
-import LocalAPI from 'vview/misc/local-api.js';
+import { SettingsDialog, SettingsPageDialog } from '/vview/widgets/settings-widgets.js';
+import { SendImagePopup } from '/vview/misc/send-image.js';
+import { MenuOptionButton, MenuOptionToggle, MenuOptionToggleSetting } from '/vview/widgets/menu-option.js';
+import { MutedTagsForPostDialog } from '/vview/widgets/mutes.js';
+import Actions from '/vview/misc/actions.js';
+import { IllustWidget } from '/vview/widgets/illust-widgets.js';
+import { helpers } from '/vview/misc/helpers.js';
+import LocalAPI from '/vview/misc/local-api.js';
 
 export default class MoreOptionsDropdown extends IllustWidget
 {

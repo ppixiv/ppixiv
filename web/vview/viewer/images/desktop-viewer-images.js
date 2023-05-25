@@ -1,7 +1,7 @@
-import ViewerImages from 'vview/viewer/images/viewer-images.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
-import { HideMouseCursorOnIdle } from 'vview/misc/hide-mouse-cursor-on-idle.js';
-import { ClassFlags } from 'vview/misc/helpers.js';
+import ViewerImages from '/vview/viewer/images/viewer-images.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
+import { HideMouseCursorOnIdle } from '/vview/misc/hide-mouse-cursor-on-idle.js';
+import { ClassFlags } from '/vview/misc/helpers.js';
 
 // This subclass implements our desktop pan/zoom UI.
 export default class ViewerImagesDesktop extends ViewerImages

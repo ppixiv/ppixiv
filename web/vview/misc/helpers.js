@@ -1,11 +1,11 @@
-import * as math from 'vview/util/math.js';
-import * as strings from 'vview/util/strings.js';
-import * as html from 'vview/util/html.js';
-import * as other from 'vview/util/other.js';
-import Args from 'vview/util/args.js';
-import * as mediaId from 'vview/util/media-id.js';
-import * as pixiv from 'vview/util/pixiv.js';
-import * as pixivRequest from 'vview/util/pixiv-request.js';
+import * as math from '/vview/util/math.js';
+import * as strings from '/vview/util/strings.js';
+import * as html from '/vview/util/html.js';
+import * as other from '/vview/util/other.js';
+import Args from '/vview/util/args.js';
+import * as mediaId from '/vview/util/media-id.js';
+import * as pixiv from '/vview/util/pixiv.js';
+import * as pixivRequest from '/vview/util/pixiv-request.js';
 
 export class helpers 
 {

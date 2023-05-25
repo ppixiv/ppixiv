@@ -1,7 +1,7 @@
-import Widget from 'vview/widgets/widget.js';
-import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
-import { helpers, KeyListener } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import ImageEditingOverlayContainer from '/vview/viewer/images/editing-overlay-container.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
+import { helpers, KeyListener } from '/vview/misc/helpers.js';
 
 export default class InpaintEditor extends Widget
 {

@@ -1,30 +1,30 @@
-import InstallPolyfills from 'vview/misc/polyfills.js';
-import WhatsNew from 'vview/widgets/whats-new.js';
-import SavedSearchTags from 'vview/misc/saved-search-tags.js';
-import TagTranslations from 'vview/misc/tag-translations.js';
-import ScreenIllust from 'vview/screen-illust/screen-illust.js';
-import ScreenSearch from 'vview/screen-search/screen-search.js';
-import ContextMenu from 'vview/context-menu.js';
-import Muting from 'vview/misc/muting.js';
-import SendImage, { LinkThisTabPopup, SendHerePopup } from 'vview/misc/send-image.js';
-import Settings from 'vview/misc/settings.js';
-import { SlideshowStagingDialog } from 'vview/widgets/settings-widgets.js';
-import DataSource from 'vview/data-sources/data-source.js';
-import DialogWidget from 'vview/widgets/dialog.js';
-import MessageWidget from 'vview/widgets/message-widget.js';
-import MediaCache from 'vview/misc/media-cache.js';
-import UserCache from 'vview/misc/user-cache.js';
-import ExtraCache from 'vview/misc/extra-cache.js';
-import { helpers, PointerEventMovement } from 'vview/misc/helpers.js';
-import * as Recaptcha from 'vview/util/recaptcha.js';
-import ExtraImageData from 'vview/misc/extra-image-data.js';
-import GuessImageURL from 'vview/misc/guess-image-url.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
-import { getUrlForMediaId } from 'vview/misc/media-ids.js'
-import VirtualHistory from 'vview/util/virtual-history.js';
-import * as DataSources from 'vview/data-sources/all.js';
-import * as Hooks from 'vview/util/hooks.js';
+import InstallPolyfills from '/vview/misc/polyfills.js';
+import WhatsNew from '/vview/widgets/whats-new.js';
+import SavedSearchTags from '/vview/misc/saved-search-tags.js';
+import TagTranslations from '/vview/misc/tag-translations.js';
+import ScreenIllust from '/vview/screen-illust/screen-illust.js';
+import ScreenSearch from '/vview/screen-search/screen-search.js';
+import ContextMenu from '/vview/context-menu.js';
+import Muting from '/vview/misc/muting.js';
+import SendImage, { LinkThisTabPopup, SendHerePopup } from '/vview/misc/send-image.js';
+import Settings from '/vview/misc/settings.js';
+import { SlideshowStagingDialog } from '/vview/widgets/settings-widgets.js';
+import DataSource from '/vview/data-sources/data-source.js';
+import DialogWidget from '/vview/widgets/dialog.js';
+import MessageWidget from '/vview/widgets/message-widget.js';
+import MediaCache from '/vview/misc/media-cache.js';
+import UserCache from '/vview/misc/user-cache.js';
+import ExtraCache from '/vview/misc/extra-cache.js';
+import { helpers, PointerEventMovement } from '/vview/misc/helpers.js';
+import * as Recaptcha from '/vview/util/recaptcha.js';
+import ExtraImageData from '/vview/misc/extra-image-data.js';
+import GuessImageURL from '/vview/misc/guess-image-url.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
+import { getUrlForMediaId } from '/vview/misc/media-ids.js'
+import VirtualHistory from '/vview/util/virtual-history.js';
+import * as DataSources from '/vview/data-sources/all.js';
+import * as Hooks from '/vview/util/hooks.js';
 
 // This is the main top-level app controller.
 export default class App

@@ -1,9 +1,9 @@
-import widget from 'vview/widgets/widget.js';
-import SavedSearchTags from 'vview/misc/saved-search-tags.js';
-import DragHandler from 'vview/misc/drag-handler.js';
-import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
-import { ConfirmPrompt, TextPrompt } from 'vview/widgets/prompts.js';
-import { helpers } from 'vview/misc/helpers.js';
+import widget from '/vview/widgets/widget.js';
+import SavedSearchTags from '/vview/misc/saved-search-tags.js';
+import DragHandler from '/vview/misc/drag-handler.js';
+import { DropdownBoxOpener } from '/vview/widgets/dropdown.js';
+import { ConfirmPrompt, TextPrompt } from '/vview/widgets/prompts.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // Handle showing the search history and tag edit dropdowns.
 export class TagSearchBoxWidget extends widget

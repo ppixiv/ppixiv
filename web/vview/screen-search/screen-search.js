@@ -1,13 +1,13 @@
-import Screen from 'vview/screen.js';
-import DesktopSearchUI from 'vview/screen-search/search-ui-desktop.js';
-import SearchUIMobile from 'vview/screen-search/search-ui-mobile.js';
-import MobileMenuBar from 'vview/screen-search/mobile-menu-bar.js';
-import ScrollListener from 'vview/actors/scroll-listener.js';
-import LocalNavigationTreeWidget from 'vview/widgets/folder-tree.js';
-import SearchView from 'vview/screen-search/search-view.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import HoverWithDelay from 'vview/actors/hover-with-delay.js';
-import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
+import Screen from '/vview/screen.js';
+import DesktopSearchUI from '/vview/screen-search/search-ui-desktop.js';
+import SearchUIMobile from '/vview/screen-search/search-ui-mobile.js';
+import MobileMenuBar from '/vview/screen-search/mobile-menu-bar.js';
+import ScrollListener from '/vview/actors/scroll-listener.js';
+import LocalNavigationTreeWidget from '/vview/widgets/folder-tree.js';
+import SearchView from '/vview/screen-search/search-view.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import HoverWithDelay from '/vview/actors/hover-with-delay.js';
+import { helpers, OpenWidgets } from '/vview/misc/helpers.js';
 
 // The search UI.
 export default class ScreenSearch extends Screen

@@ -1,7 +1,7 @@
-import DataSource from 'vview/data-sources/data-source.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { getUrlForMediaId } from 'vview/misc/media-ids.js'
-import { helpers } from 'vview/misc/helpers.js';
+import DataSource from '/vview/data-sources/data-source.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { getUrlForMediaId } from '/vview/misc/media-ids.js'
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DataSources_VViewSimilar extends DataSource
 {

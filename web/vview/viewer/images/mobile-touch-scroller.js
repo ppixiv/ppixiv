@@ -1,9 +1,9 @@
 // Mobile panning, fling and pinch zooming.
 
-import DragHandler from 'vview/misc/drag-handler.js';
-import FlingVelocity from 'vview/util/fling-velocity.js';
-import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/misc/helpers.js';
+import DragHandler from '/vview/misc/drag-handler.js';
+import FlingVelocity from '/vview/util/fling-velocity.js';
+import Actor from '/vview/actors/actor.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 const FlingFriction = 7;
 const FlingMinimumVelocity = 10;

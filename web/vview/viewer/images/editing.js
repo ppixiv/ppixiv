@@ -1,10 +1,10 @@
-import PanEditor from 'vview/viewer/images/editing-pan.js';
-import InpaintEditor from 'vview/viewer/images/editing-inpaint.js';
-import CropEditor from 'vview/viewer/images/editing-crop.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { HideMouseCursorOnIdle } from "vview/misc/hide-mouse-cursor-on-idle.js";
-import { IllustWidget } from 'vview/widgets/illust-widgets.js';
-import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
+import PanEditor from '/vview/viewer/images/editing-pan.js';
+import InpaintEditor from '/vview/viewer/images/editing-inpaint.js';
+import CropEditor from '/vview/viewer/images/editing-crop.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { HideMouseCursorOnIdle } from '/vview/misc/hide-mouse-cursor-on-idle.js';
+import { IllustWidget } from '/vview/widgets/illust-widgets.js';
+import { helpers, OpenWidgets } from '/vview/misc/helpers.js';
 
 export default class ImageEditor extends IllustWidget
 {

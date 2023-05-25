@@ -2,26 +2,26 @@
 //
 // This handles creating and navigating between viewers.
 
-import Screen from 'vview/screen.js';
+import Screen from '/vview/screen.js';
 
-import DesktopImageInfo from 'vview/screen-illust/desktop-image-info.js';
+import DesktopImageInfo from '/vview/screen-illust/desktop-image-info.js';
 
-import MobileImageChanger from 'vview/screen-illust/mobile-image-changer.js';
-import MobileImageDismiss from 'vview/screen-illust/mobile-image-dismiss.js';
-import MobileUI from 'vview/screen-illust/mobile-ui.js';
+import MobileImageChanger from '/vview/screen-illust/mobile-image-changer.js';
+import MobileImageDismiss from '/vview/screen-illust/mobile-image-dismiss.js';
+import MobileUI from '/vview/screen-illust/mobile-ui.js';
 
-import DesktopViewerImages from 'vview/viewer/images/desktop-viewer-images.js';
-import MobileViewerImages from 'vview/viewer/images/mobile-viewer-images.js';
+import DesktopViewerImages from '/vview/viewer/images/desktop-viewer-images.js';
+import MobileViewerImages from '/vview/viewer/images/mobile-viewer-images.js';
 
-import ViewerVideo from 'vview/viewer/video/viewer-video.js';
-import ViewerUgoira from 'vview/viewer/video/viewer-ugoira.js';
-import ViewerError from 'vview/viewer/viewer-error.js';
+import ViewerVideo from '/vview/viewer/video/viewer-video.js';
+import ViewerUgoira from '/vview/viewer/video/viewer-ugoira.js';
+import ViewerError from '/vview/viewer/viewer-error.js';
 
-import ImagePreloader from "vview/misc/image-preloader.js";
-import IsolatedTapHandler from 'vview/actors/isolated-tap-handler.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { HideMouseCursorOnIdle } from "vview/misc/hide-mouse-cursor-on-idle.js";
-import { helpers } from 'vview/misc/helpers.js';
+import ImagePreloader from '/vview/misc/image-preloader.js';
+import IsolatedTapHandler from '/vview/actors/isolated-tap-handler.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { HideMouseCursorOnIdle } from '/vview/misc/hide-mouse-cursor-on-idle.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // The main UI.  This handles creating the viewers and the global UI.
 export default class ScreenIllust extends Screen

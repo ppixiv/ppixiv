@@ -1,5 +1,5 @@
-import KeyStorage from 'vview/misc/key-storage.js';
-import { helpers } from 'vview/misc/helpers.js';
+import KeyStorage from '/vview/misc/key-storage.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // This database is used to store extra metadata for Pixiv images.  It's similar
 // to the metadata files in the local database.

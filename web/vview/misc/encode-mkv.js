@@ -1,6 +1,6 @@
 // This is a simple hack to piece together an MJPEG MKV from a bunch of JPEGs.
 
-import struct from 'vview/util/struct.js';
+import struct from '/vview/util/struct.js';
 
 function encodeLength(value)
 {

@@ -1,9 +1,9 @@
 
-import Widget from 'vview/widgets/widget.js';
-import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import IllustIdList from 'vview/data-sources/illust-id-list.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import { helpers, SafetyBackoffTimer } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';
+import IllustIdList from '/vview/data-sources/illust-id-list.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import { helpers, SafetyBackoffTimer } from '/vview/misc/helpers.js';
 
 export default class DataSource extends EventTarget
 {

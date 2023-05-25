@@ -28,12 +28,12 @@
 // page and API, "/ajax/search/top/TAG".  It doesn't actually seem to be a rankings
 // page and just shows the same thing as the others with a different layout, so we
 // ignore this and treat it like "artworks".
-import DataSource, { TagDropdownWidget } from 'vview/data-sources/data-source.js';
-import Widget from 'vview/widgets/widget.js';
-import SavedSearchTags from 'vview/misc/saved-search-tags.js';
-import { TagSearchBoxWidget } from 'vview/widgets/tag-search-dropdown.js';
-import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/misc/helpers.js';
+import DataSource, { TagDropdownWidget } from '/vview/data-sources/data-source.js';
+import Widget from '/vview/widgets/widget.js';
+import SavedSearchTags from '/vview/misc/saved-search-tags.js';
+import { TagSearchBoxWidget } from '/vview/widgets/tag-search-dropdown.js';
+import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DataSource_Search extends DataSource
 {

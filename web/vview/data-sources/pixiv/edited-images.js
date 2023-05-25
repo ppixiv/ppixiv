@@ -4,7 +4,7 @@
 //
 // This views all images that the user has saved crops, etc. for.  This isn't currently
 // shown in the UI.
-import { DataSourceFakePagination } from 'vview/data-sources/data-source.js';
+import { DataSourceFakePagination } from '/vview/data-sources/data-source.js';
 
 export default class DataSources_EditedImages extends DataSourceFakePagination
 {

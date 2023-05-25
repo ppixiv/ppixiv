@@ -5,8 +5,8 @@
 // and the inpaint editor without needing to know much about it, so we can avoid complicating
 // the viewer.
 
-import Widget from 'vview/widgets/widget.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class ImageEditingOverlayContainer extends Widget
 {

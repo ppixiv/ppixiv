@@ -2,9 +2,9 @@
 //
 // This currently handles simple single-touch drags.  It doesn't handle multitouch, so it's not
 // used by TouchScroller.
-import Actor from 'vview/actors/actor.js';
-import TouchListener from 'vview/actors/touch-listener.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Actor from '/vview/actors/actor.js';
+import TouchListener from '/vview/actors/touch-listener.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DragHandler extends Actor
 {

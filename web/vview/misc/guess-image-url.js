@@ -14,8 +14,8 @@
 // This tries to let us start loading images earlier, without causing a ton of 404s
 // from wrong guesses.
 
-import KeyStorage from 'vview/misc/key-storage.js';
-import { helpers } from 'vview/misc/helpers.js';
+import KeyStorage from '/vview/misc/key-storage.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class GuessImageURL
 {

@@ -1,7 +1,7 @@
-import DataSource from 'vview/data-sources/data-source.js';
-import Widget from 'vview/widgets/widget.js';
-import { DropdownMenuOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/misc/helpers.js';
+import DataSource from '/vview/data-sources/data-source.js';
+import Widget from '/vview/widgets/widget.js';
+import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DataSource_Follows extends DataSource
 {

@@ -6,8 +6,8 @@
 // doing this, we don't show things like the artist's avatar in the corner, so it doesn't look
 // like the images we're showing are by that user.
 
-import DataSource from 'vview/data-sources/data-source.js';
-import { helpers } from 'vview/misc/helpers.js';
+import DataSource from '/vview/data-sources/data-source.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class DataSource_DiscoverUsers extends DataSource
 {

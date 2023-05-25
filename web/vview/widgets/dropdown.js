@@ -1,8 +1,8 @@
-import Actor from 'vview/actors/actor.js';
-import Widget from 'vview/widgets/widget.js';
-import Dialog from 'vview/widgets/dialog.js';
-import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
-import { helpers, OpenWidgets } from 'vview/misc/helpers.js';
+import Actor from '/vview/actors/actor.js';
+import Widget from '/vview/widgets/widget.js';
+import Dialog from '/vview/widgets/dialog.js';
+import ClickOutsideListener from '/vview/widgets/click-outside-listener.js';
+import { helpers, OpenWidgets } from '/vview/misc/helpers.js';
 
 // A helper to display a dropdown aligned to another node.
 export class DropdownBoxOpener extends Actor

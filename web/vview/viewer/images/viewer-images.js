@@ -1,11 +1,11 @@
-import Widget from 'vview/widgets/widget.js';
-import Viewer from 'vview/viewer/viewer.js';
-import ImageEditor from 'vview/viewer/images/editing.js';
-import ImageEditingOverlayContainer from 'vview/viewer/images/editing-overlay-container.js';
-import Slideshow from 'vview/misc/slideshow.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import DirectAnimation from 'vview/actors/direct-animation.js';
-import { helpers, FixedDOMRect, OpenWidgets, GuardedRunner } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import Viewer from '/vview/viewer/viewer.js';
+import ImageEditor from '/vview/viewer/images/editing.js';
+import ImageEditingOverlayContainer from '/vview/viewer/images/editing-overlay-container.js';
+import Slideshow from '/vview/misc/slideshow.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import DirectAnimation from '/vview/actors/direct-animation.js';
+import { helpers, FixedDOMRect, OpenWidgets, GuardedRunner } from '/vview/misc/helpers.js';
 
 // This is the viewer for static images.
 //

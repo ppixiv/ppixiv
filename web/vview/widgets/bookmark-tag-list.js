@@ -1,9 +1,9 @@
-import Actor from 'vview/actors/actor.js';
-import Actions from 'vview/misc/actions.js';
-import RecentBookmarkTags from 'vview/misc/recent-bookmark-tags.js';
-import { IllustWidget } from 'vview/widgets/illust-widgets.js';
-import { DropdownBoxOpener } from 'vview/widgets/dropdown.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Actor from '/vview/actors/actor.js';
+import Actions from '/vview/misc/actions.js';
+import RecentBookmarkTags from '/vview/misc/recent-bookmark-tags.js';
+import { IllustWidget } from '/vview/widgets/illust-widgets.js';
+import { DropdownBoxOpener } from '/vview/widgets/dropdown.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // Widget for editing bookmark tags.
 export class BookmarkTagListWidget extends IllustWidget

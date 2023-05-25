@@ -5,8 +5,8 @@
 // This is used when hovering the top bar when in ui-on-hover mode, to delay the transition
 // before the UI disappears.  transition-delay isn't useful for this, since it causes weird
 // hitches when the mouse enters and leaves the area quickly.
-import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Actor from '/vview/actors/actor.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class HoverWithDelay extends Actor
 {

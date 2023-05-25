@@ -1,5 +1,5 @@
-import { helpers } from 'vview/misc/helpers.js';
-import ZipImageDownloader from 'vview/misc/zip-image-downloader.js';
+import { helpers } from '/vview/misc/helpers.js';
+import ZipImageDownloader from '/vview/misc/zip-image-downloader.js';
 
 // This gives a small subset of HTMLVideoPlayer's API to control the video, so
 // VideoUI can work with this in the same way as a regular video.

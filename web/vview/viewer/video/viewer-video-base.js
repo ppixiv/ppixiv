@@ -1,8 +1,8 @@
-import Viewer from 'vview/viewer/viewer.js';
-import VideoUI from 'vview/viewer/video/video-ui.js';
-import DragHandler from 'vview/misc/drag-handler.js';
-import SeekBar from 'vview/viewer/video/seek-bar.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Viewer from '/vview/viewer/viewer.js';
+import VideoUI from '/vview/viewer/video/video-ui.js';
+import DragHandler from '/vview/misc/drag-handler.js';
+import SeekBar from '/vview/viewer/video/seek-bar.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class ViewerVideoBase extends Viewer
 {

@@ -1,10 +1,10 @@
-import PropertyAnimation from 'vview/actors/property-animation.js';
-import Bezier2D from 'vview/util/bezier.js';
-import FlingVelocity from 'vview/util/fling-velocity.js';
-import DragHandler from 'vview/misc/drag-handler.js';
-import ClickOutsideListener from 'vview/widgets/click-outside-listener.js';
-import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/misc/helpers.js';
+import PropertyAnimation from '/vview/actors/property-animation.js';
+import Bezier2D from '/vview/util/bezier.js';
+import FlingVelocity from '/vview/util/fling-velocity.js';
+import DragHandler from '/vview/misc/drag-handler.js';
+import ClickOutsideListener from '/vview/widgets/click-outside-listener.js';
+import Actor from '/vview/actors/actor.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // A simpler interface for allowing a widget to be dragged open or closed.
 export default class WidgetDragger extends Actor

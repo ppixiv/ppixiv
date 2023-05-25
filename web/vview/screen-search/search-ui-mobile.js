@@ -1,6 +1,6 @@
-import Widget from 'vview/widgets/widget.js';
-import { AvatarWidget } from 'vview/widgets/user-widgets.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { AvatarWidget } from '/vview/widgets/user-widgets.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class SearchUIMobile extends Widget
 {

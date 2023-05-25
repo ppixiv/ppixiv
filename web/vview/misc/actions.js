@@ -1,12 +1,12 @@
 // Global actions.
-import { TextPrompt } from 'vview/widgets/prompts.js';
-import LocalAPI from 'vview/misc/local-api.js';
-import RecentBookmarkTags from 'vview/misc/recent-bookmark-tags.js';
-import PixivUgoiraDownloader from 'vview/misc/pixiv-ugoira-downloader.js';
-import CreateZIP from 'vview/misc/create-zip.js';
-import * as Recaptcha from 'vview/util/recaptcha.js';
-import { downloadUrls } from 'vview/util/gm-download.js';
-import { helpers } from 'vview/misc/helpers.js';
+import { TextPrompt } from '/vview/widgets/prompts.js';
+import LocalAPI from '/vview/misc/local-api.js';
+import RecentBookmarkTags from '/vview/misc/recent-bookmark-tags.js';
+import PixivUgoiraDownloader from '/vview/misc/pixiv-ugoira-downloader.js';
+import CreateZIP from '/vview/misc/create-zip.js';
+import * as Recaptcha from '/vview/util/recaptcha.js';
+import { downloadUrls } from '/vview/util/gm-download.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class Actions
 {

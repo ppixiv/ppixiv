@@ -3,8 +3,8 @@
 // available immediately, it will be called with an empty result until data becomes available,
 // so the UI can be cleared.
 
-import Actor from 'vview/actors/actor.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Actor from '/vview/actors/actor.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class AsyncLookup extends Actor
 {

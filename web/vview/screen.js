@@ -1,4 +1,4 @@
-import Widget from 'vview/widgets/widget.js';
+import Widget from '/vview/widgets/widget.js';
 
 // The base class for our main screens.
 export default class Screen extends Widget

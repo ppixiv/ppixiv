@@ -1,15 +1,15 @@
-import Widget from 'vview/widgets/widget.js';
-import { MenuOptionButton, MenuOptionRow, MenuOptionOptionsSetting, MenuOptionsThumbnailSizeSlider } from 'vview/widgets/menu-option.js';
-import { MenuOptionSliderSetting, MenuOptionToggleSetting } from 'vview/widgets/menu-option.js';
+import Widget from '/vview/widgets/widget.js';
+import { MenuOptionButton, MenuOptionRow, MenuOptionOptionsSetting, MenuOptionsThumbnailSizeSlider } from '/vview/widgets/menu-option.js';
+import { MenuOptionSliderSetting, MenuOptionToggleSetting } from '/vview/widgets/menu-option.js';
    
-import { EditMutedTagsWidget } from 'vview/widgets/mutes.js';
-import { LinkTabsPopup } from 'vview/misc/send-image.js';
-import DialogWidget from 'vview/widgets/dialog.js';
-import PointerListener from 'vview/actors/pointer-listener.js';
-import { helpers } from 'vview/misc/helpers.js';
-import WhatsNew from "vview/widgets/whats-new.js";
-import { ConfirmPrompt } from 'vview/widgets/prompts.js';
-import LocalAPI from 'vview/misc/local-api.js';
+import { EditMutedTagsWidget } from '/vview/widgets/mutes.js';
+import { LinkTabsPopup } from '/vview/misc/send-image.js';
+import DialogWidget from '/vview/widgets/dialog.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
+import { helpers } from '/vview/misc/helpers.js';
+import WhatsNew from '/vview/widgets/whats-new.js';
+import { ConfirmPrompt } from '/vview/widgets/prompts.js';
+import LocalAPI from '/vview/misc/local-api.js';
 
 function createSettingsWidget({ globalOptions })
 {

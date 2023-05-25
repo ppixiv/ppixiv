@@ -1,15 +1,15 @@
 // The image UI for mobile.
 
-import Widget from 'vview/widgets/widget.js';
-import { BookmarkButtonWidget } from 'vview/widgets/illust-widgets.js';
-import MoreOptionsDropdown from 'vview/widgets/more-options-dropdown.js';
-import { BookmarkTagListWidget } from 'vview/widgets/bookmark-tag-list.js';
-import { AvatarWidget } from 'vview/widgets/user-widgets.js';
-import { IllustWidget, GetMediaInfo } from 'vview/widgets/illust-widgets.js';
-import DialogWidget from 'vview/widgets/dialog.js';
-import WidgetDragger from 'vview/actors/widget-dragger.js';
-import IsolatedTapHandler from 'vview/actors/isolated-tap-handler.js';
-import { helpers, ClassFlags, OpenWidgets } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import { BookmarkButtonWidget } from '/vview/widgets/illust-widgets.js';
+import MoreOptionsDropdown from '/vview/widgets/more-options-dropdown.js';
+import { BookmarkTagListWidget } from '/vview/widgets/bookmark-tag-list.js';
+import { AvatarWidget } from '/vview/widgets/user-widgets.js';
+import { IllustWidget, GetMediaInfo } from '/vview/widgets/illust-widgets.js';
+import DialogWidget from '/vview/widgets/dialog.js';
+import WidgetDragger from '/vview/actors/widget-dragger.js';
+import IsolatedTapHandler from '/vview/actors/isolated-tap-handler.js';
+import { helpers, ClassFlags, OpenWidgets } from '/vview/misc/helpers.js';
 
 // The container for the mobile image UI.  This just creates and handles displaying
 // the tabs.

@@ -1,9 +1,9 @@
-import Widget from 'vview/widgets/widget.js';
-import Actor from 'vview/actors/actor.js';
-import Actions from 'vview/misc/actions.js';
-import AsyncLookup from 'vview/actors/async-lookup.js';
-import { ConfirmPrompt } from 'vview/widgets/prompts.js';
-import { helpers } from 'vview/misc/helpers.js';
+import Widget from '/vview/widgets/widget.js';
+import Actor from '/vview/actors/actor.js';
+import Actions from '/vview/misc/actions.js';
+import AsyncLookup from '/vview/actors/async-lookup.js';
+import { ConfirmPrompt } from '/vview/widgets/prompts.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 // A helper to allow widgets to display something for a media ID without having to
 // deal with loading media info directly.

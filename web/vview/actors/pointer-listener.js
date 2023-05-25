@@ -8,7 +8,7 @@
 // Who designed this?  This isn't some ancient IE6 legacy API.  How do you screw up a mouse
 // event API this badly?
 
-import { helpers } from 'vview/misc/helpers.js';
+import { helpers } from '/vview/misc/helpers.js';
 
 export default class PointerListener
 {
