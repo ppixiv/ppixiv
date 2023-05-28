@@ -3,6 +3,13 @@ import widget from '/vview/widgets/widget.js';
 
 let updateHistory = [
     {
+        version: 218,
+        text: `
+            Added support for the "Hide AI works" filter on searches.
+        `,
+    },
+
+    {
         version: 210,
         text: `
             Aspect ratio thumbnails are now used by default.  Square thumbs can be selected in
