@@ -298,6 +298,7 @@ class UI extends Widget
                     ${ helpers.createBoxLink({label: "Aspect ratio",    classes: ["aspect-ratio-button"] }) }
                     ${ helpers.createBoxLink({label: "Bookmarks",    classes: ["bookmark-count-button", "premium-only"] }) }
                     ${ helpers.createBoxLink({label: "Time",    classes: ["time-ago-button"] }) }
+                    ${ helpers.createBoxLink({label: "Hide AI",    popup: "Show only R18 works",   dataType: "hide-ai" }) }
                     ${ helpers.createBoxLink({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
                 </div>
             </div>
@@ -415,6 +416,17 @@ class UI extends Widget
                 fields: {"/type": "illustrations", type: "ugoira"},
             }
         }]);
+
+        dataSource.setItem(this.root, {
+            type: "hide-ai",
+            toggle: true,
+            fields: {ai_type: "1"},
+        });
+
+        // Hide "Hide AI" if the user's global setting hides it.  This API doesn't really
+        // make sense, it would be a lot cleaner if the global setting just set the default.
+        if(ppixiv.pixivInfo.hideAiWorks)
+            this.root.querySelector(`[data-type='hide-ai']`).hidden = true;
 
         dataSource.setupDropdown(this.querySelector(".search-mode-button"), [{
             createOptions: { label: "Tag",               dataset: { default: true } },

@@ -953,6 +953,11 @@ export default class App
                     mutes: null, // mutes missing on mobile
                     contentMode: config["pixiv.user.x_restrict"],
                     recaptchaKey: config["pixiv.context.recaptchaEnterpriseScoreSiteKey"],
+
+                    // We'd also need to make a user/self/status call to get this.  This is only used to
+                    // show or hide the search filter and the actual filtering happens server-side, so
+                    // for now we don't bother.
+                    hideAiWorks: false,
                 });
 
                 return true;
@@ -988,6 +993,7 @@ export default class App
             userId: globalData.userData.id ,
             premium: globalData.userData.premium,
             mutes: globalData.mute,
+            hideAiWorks: globalData.userData.hideAiWorks,
             contentMode: globalData.userData.xRestrict,
             pixivTests,
             recaptchaKey: globalData?.miscData?.grecaptcha?.recaptchaEnterpriseScoreSiteKey,
@@ -1001,6 +1007,7 @@ export default class App
         csrfToken,
         premium,
         mutes,
+        hideAiWorks=false,
         contentMode,
         pixivTests={},
         recaptchaKey=null,
@@ -1033,6 +1040,7 @@ export default class App
             include_r18: contentMode >= 1,
             include_r18g: contentMode >= 2,
             premium,
+            hideAiWorks,
             pixivTests,
             recaptchaKey,
         };
