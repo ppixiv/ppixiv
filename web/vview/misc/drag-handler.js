@@ -20,6 +20,11 @@ export default class DragHandler extends Actor
         // This is called if we were cancelled after confirmDrag by another dragger starting first.
         oncancelled,
 
+        // Called if a click is confirmed with confirmDrag but released or cancelled without actually
+        // starting a drag.  This is useful as an alternative to onclick, since click events are still
+        // sent after drags end.
+        onReleasedWithoutDrag=({interactive, cancel}) => true,
+
         // Called when the drag starts, which is the first pointer movement after confirmDrag.
         // If false is returned, the drag is cancelled.  If this happens when deferredStart is true,
         // the drag won't be started and won't interrupt other drags.
@@ -56,6 +61,7 @@ export default class DragHandler extends Actor
         this.element = element;
         this.pointers = new Map();
         this.confirmDrag = confirmDrag;
+        this.onReleasedWithoutDrag = onReleasedWithoutDrag;
         this.oncancelled = oncancelled;
         this.ondragstart = ondragstart;
         this.ondrag = ondrag;
@@ -213,6 +219,8 @@ export default class DragHandler extends Actor
             if(this.ondragend)
                 this.ondragend({interactive, cancel});
         }
+        else
+            this.onReleasedWithoutDrag({interactive, cancel});
     }
 
     _pointermove = (event) =>
