@@ -156,7 +156,7 @@ def handle_client(request):
         # Don't cache these.  They're loaded before URL cache busting is available.
         cache_control = 'no-store'
 
-    if path.parts[0] in ('resources', 'startup'):
+    if path.parts[0] in ('resources', 'startup', 'local'):
         # (/vview)/resources/path -> /web/resources/path
         path = 'web' / path
     else:
