@@ -105,7 +105,7 @@ export class DropdownBoxOpener extends Actor
         if(value)
         {
             let asDialog = this.asDialog();
-            if(ppixiv.mobile)
+            if(window.ppixiv?.mobile)
             {
                 // Always open dropdowns as dialogs if we're on mobile and inside another dialog.
                 for(let node of this.ancestors())
@@ -277,7 +277,7 @@ export class DropdownBoxOpener extends Actor
         // If the right edge of the box is offscreen, push the box left.  Leave a bit of
         // padding on desktop, so the dropdown isn't flush with the edge of the window.
         // On mobile, allow the box to be flush with the edge.
-        let padding = ppixiv.mobile? 0:4;
+        let padding = window.ppixiv?.mobile? 0:4;
         let rightEdge = x + this._boxWidth;
         x -= Math.max(rightEdge - (window.innerWidth - padding), 0);
 

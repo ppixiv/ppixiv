@@ -1330,7 +1330,7 @@ export class OpenWidgets extends EventTarget
         // Another widget might be added immediately after this one is removed, so don't wake
         // listeners immediately.  Yield to the event loop, and check after anything else on
         // the stack has finished.
-        await helpers.other.sleep(0);
+        await null;
 
         // Let any listeners know that our empty status has changed.  Do this before checking
         // if we're empty, in case this causes somebody to open another dialog.
