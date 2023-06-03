@@ -81,7 +81,20 @@ export default class DataSource_Rankings extends DataSource
         for(let item of result.body.ranking)
             mediaIds.push(helpers.mediaId.fromIllustId("" + item.illustId));
 
-        return { mediaIds, thisDate, nextDate, prevDate, lastPage };
+        // All search APIs return image info except for this one, so we need to load it to
+        // behave the same as other data source.
+        await ppixiv.mediaCache.batchGetMediaInfoPartial(mediaIds);
+
+        // Muted images won't be returned.  Make sure we don't return media IDs that we
+        // haven't registered media info for.
+        let foundMediaIds = [];
+        for(let mediaId of mediaIds)
+        {
+            if(ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }))
+                foundMediaIds.push(mediaId);
+        }
+
+        return { mediaIds: foundMediaIds, thisDate, nextDate, prevDate, lastPage };
     }
 
     async loadDataDesktop({ date, mode, content, page })
