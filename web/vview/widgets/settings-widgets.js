@@ -351,6 +351,21 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
+        openPixiv: () => {
+            return new MenuOptionButton({
+                ...globalOptions,
+                label: "Open Pixiv",
+                onclick: () => {
+                    // On mobile, open Pixiv in a new window.  In Safari this will give a new
+                    // tab where browser back will close the tab and return here.  This keeps
+                    // it from becoming a browser navigation, so we don't enable back/forward
+                    // gestures for the tab if possible.
+                    let url = new URL("#no-ppixiv", window.location);
+                    window.open(url);
+                },
+            });
+        },
+
         linkTabs: () => {
             let widget = new LinkTabsPopup({
                 ...globalOptions,
@@ -684,6 +699,9 @@ export class SettingsDialog extends DialogWidget
         
                 if(!ppixiv.native)
                     settingsWidgets.pixivCdn();
+
+                if(!ppixiv.native && ppixiv.mobile)
+                    settingsWidgets.openPixiv();
 
                 // Chrome supports showOpenFilePicker, but Firefox doesn't.  That API has been around in
                 // Chrome for a year and a half, so I haven't implemented an alternative for Firefox.

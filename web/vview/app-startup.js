@@ -131,6 +131,13 @@ class AppStartup
     async setupDisabledUi(loggedOut=false)
     {
         console.log("ppixiv is currently disabled");
+
+        // On mobile, only show the button if we're logged out, to give a way to ask the
+        // user to log in.  Otherwise, we're enabled by default and the only way we should
+        // get here is if the user explicitly opened Pixiv from the menu.
+        if(!loggedOut && ppixiv.mobile)
+            return;
+
         await this._waitForContentLoaded();
 
         // On most pages, we show our button in the top corner to enable us on that page.  Clicking
@@ -293,7 +300,7 @@ class AppStartup
     // Return true if we're active by default on the current page.
     _activeByDefault()
     {
-        if(ppixiv.native || ppixiv.mobile)
+        if(ppixiv.native)
             return true;
 
         // If the disabled-by-default setting is enabled, disable by default until manually
