@@ -28,11 +28,14 @@ export class DropdownBoxOpener extends Actor
         // If true, clicking the button toggles the dropdown.
         clickToOpen=false,
 
+        // If null, the widget containing the button is our parent.
+        parent=null,
+
         ...options
     })
     {
         // Find a parent widget above the button.
-        let parent = Widget.fromNode(button);
+        parent ??= Widget.fromNode(button);
 
         super({
             parent,
