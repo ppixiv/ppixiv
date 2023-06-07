@@ -433,7 +433,6 @@ class MobileIllustInfoDialog extends DialogWidget
                 <div class=post-age hidden></div>
                 <div class=bookmark-tags></div>
                 <div class=description></div>
-
             </div>
         `});
 
@@ -461,9 +460,6 @@ class MobileIllustInfoDialog extends DialogWidget
         this.querySelector(".author").textContent = `by ${mediaInfo?.userName}`;
         this.avatarWidget.setUserId(mediaInfo?.userId);
 
-        let tagWidget = this.root.querySelector(".bookmark-tags");
-        helpers.html.removeElements(tagWidget);
-
         let isLocal = helpers.mediaId.isLocal(mediaId);
         let tags = isLocal? mediaInfo.bookmarkData?.tags:mediaInfo.tagList;
         tags ??= [];
@@ -472,6 +468,9 @@ class MobileIllustInfoDialog extends DialogWidget
         let translatedTags = {};
         if(!isLocal)
             translatedTags = await ppixiv.tagTranslations.getTranslations(tags, "en");
+
+        let tagWidget = this.root.querySelector(".bookmark-tags");
+        helpers.html.removeElements(tagWidget);
 
         for(let tag of tags)
         {
