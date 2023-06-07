@@ -223,6 +223,8 @@ export class DropdownBoxOpener extends Actor
 
     _cleanup()
     {
+        this.visible = false;
+
         if(this._resizeObserver)
         {
             this._resizeObserver.disconnect();
