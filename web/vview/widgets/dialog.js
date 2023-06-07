@@ -14,7 +14,7 @@ export default class DialogWidget extends Widget
 
     static _updateBlockTouchScrolling()
     {
-        if(!ppixiv.ios)
+        if(!window.ppixiv?.ios)
             return;
 
         // This is really annoying.  No matter how much you shout at iOS to not scroll the document,
@@ -128,7 +128,7 @@ export default class DialogWidget extends Widget
         });
 
         // Always hide the close button on mobile.
-        if(ppixiv.mobile)
+        if(window.ppixiv?.mobile)
             showCloseButton = false;
 
         // Dialogs are always used once and not reused, so they should never be created invisible.
@@ -144,7 +144,7 @@ export default class DialogWidget extends Widget
         window.addEventListener("resize", () => this.refreshDialogMode(), this._signal);
 
         // Create the dragger that will control animations.  Animations are only used on mobile.
-        if(ppixiv.mobile)
+        if(window.ppixiv?.mobile)
         {
             this._dialogDragger = new WidgetDragger({
                 parent: this,
