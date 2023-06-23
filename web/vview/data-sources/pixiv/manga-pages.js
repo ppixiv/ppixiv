@@ -29,6 +29,9 @@ export default class DataSource_MangaPages extends DataSource
         if(this.mediaInfo == null)
             return;
 
+        // Refresh the title.
+        this.callUpdateListeners();
+
         let mediaIds = [];
         for(let page = 0; page < this.mediaInfo.pageCount; ++page)
             mediaIds.push(helpers.mediaId.getMediaIdForPage(this.mediaId, page));
