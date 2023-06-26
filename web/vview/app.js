@@ -70,12 +70,6 @@ export default class App
         // Set up iOS movementX/movementY handling.
         new PointerEventMovement();
 
-        // Device properties:
-        this._setDeviceProperties();
-        ppixiv.settings.addEventListener("display_mode", this._setDeviceProperties);
-        window.addEventListener("orientationchange", this._setDeviceProperties);
-        new ResizeObserver(this._setDeviceProperties).observe(document.documentElement);
-        
         // Window focus:
         let refreshFocus = () => { helpers.html.setClass(document.body, "focused", document.hasFocus()); };
         window.addEventListener("focus", refreshFocus);
@@ -227,6 +221,13 @@ export default class App
         // correct, we can unhide the document.
         this._undoTemporarilyHideDocument();
 
+        // Device properties.  Do this after cleaning up the document, since it can create nodes.
+        this._setDeviceProperties();
+        ppixiv.settings.addEventListener("display_mode", this._setDeviceProperties);
+        window.addEventListener("orientationchange", this._setDeviceProperties);
+        new ResizeObserver(this._setDeviceProperties).observe(document.documentElement);
+
+        // Message popups:
         ppixiv.message = new MessageWidget({container: document.body});
 
         // Load Recaptcha if it's required by Pixiv.
@@ -319,11 +320,34 @@ export default class App
         helpers.html.setClass(document.documentElement, "mobile", ppixiv.mobile);
         let firefox = navigator.userAgent.indexOf("Gecko/") != -1 || navigator.userAgent.indexOf("Firefox/") != -1;
         helpers.html.setClass(document.documentElement, "firefox", firefox);
+        helpers.html.setClass(document.documentElement, "macos", navigator.userAgent.indexOf("Macintosh") != -1); // at least Safari or Chrome
         helpers.html.setClass(document.documentElement, "ios", ppixiv.ios);
         helpers.html.setClass(document.documentElement, "android", ppixiv.android);
         helpers.html.setClass(document.documentElement, "phone", helpers.other.isPhone());
         document.documentElement.dataset.orientation = window.orientation ?? "0";
         helpers.html.setDataSet(document.documentElement.dataset, "hasBottomInset", insets.bottom > 0);
+
+        // Set has-overlaid-scrollbars if we think the browser has overlay scrollbars.  This
+        // is used to figure out if scrollbar-gutter: both-edges adds padding or if we need to
+        // do it ourself.  This used to be easy using overflow: overlay, but Google in their infinite
+        // lack of wisdom removed that, leaving no way of enabling overlay scrollbars and no way
+        // of knowing if scrollbar-gutter adds padding or not other than a manual test like this.
+        // They didn't think this through at all.
+        let testOverlayScrollbars = document.realCreateElement("div");
+        testOverlayScrollbars.classList.add("overlay-scrollbar-tester");
+        testOverlayScrollbars.style.position = "absolute";
+        testOverlayScrollbars.style.visibility = "hidden";
+        testOverlayScrollbars.style.scrollbarGutter = "stable both-edges";
+        testOverlayScrollbars.style.overflowY = "auto";
+        testOverlayScrollbars.style.width = "100px";
+        testOverlayScrollbars.style.height = "100px";
+        document.body.appendChild(testOverlayScrollbars);
+
+        let hasOverlayScrollbars = testOverlayScrollbars.offsetWidth == testOverlayScrollbars.scrollWidth;
+        console.log("hasOverlayScrollbars:", hasOverlayScrollbars);
+        helpers.html.setClass(document.documentElement, "has-overlay-scrollbars", hasOverlayScrollbars);
+
+        testOverlayScrollbars.remove();
 
         // Set the fullscreen mode.  See the device styling rules in main.scss for more
         // info.

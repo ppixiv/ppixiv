@@ -154,7 +154,11 @@ html {
 // This keeps the scrollbar available, but keeps the slow updates from being visible during normal
 // use.  It also keeps the weirdness of the scrollbar updating as we add thumbs from being visible
 // (scrollbars as a concept don't mix well with dynamic content).
-html {
+//
+// Disable this on MacOS.  At least in Safari and Chrome on MacOS, the scrollbar is overlaid by
+// default (what we want), and if we set scrollbar styles it'll switch to a gutter scrollbar, and
+// since Safari doesn't support scrollbar-gutter yet it won't be detected by overlay-scrollbar-tester.
+html:not(.macos) {
     // Use a slightly thicker scrollbar for the search results scroller, and set the non-hover color
     // so it blends in with the dark noise background unless it's hovered.
     .search-results
@@ -163,11 +167,6 @@ html {
             width: 10px;
             background-color: rgba(30,30,30,1); // mostly blends in with the dark noise background
         }
-
-        // If possible, hide the scrollbar.  Chrome removed overflow: clip which was required to
-        // have an unintrusive scrollbar, and without it we're better off not having one at all.
-        &::-webkit-scrollbar { display: none; }
-        scrollbar-width: none; // Firefox
     }
 
     ::-webkit-scrollbar {
@@ -1318,17 +1317,16 @@ body.hide-r18g .r18g { display: none; }
     // Always show the scrollbar on the search view, so it doesn't disappear and reappear as
     // we load searches, causing the UI to shift back and forth slightly.
     overflow-y: scroll;
-    overflow-y: overlay;
     overflow-x: clip;
-    scrollbar-gutter: stable;
+    scrollbar-gutter: stable both-edges;
 }
 
 .search-view
 {
-    // Add a small minimum horizontal margin on desktops.  On mobile, allow thumbs to
-    // go to the edge of the screen.  Put this padding outside of .thumbnails so it
-    // doesn't confuse makeThumbnailSizingStyle.
-    html:not(.mobile) & {
+    // If the browser is using overlay scrollbars, scrollbar-gutter isn't adding horizontal padding,
+    // so we have to add it ourself.  On mobile, allow thumbs to reach the edge of the screen.
+    // This padding is outside of .thumbnails so it doesn't confuse makeThumbnailSizingStyle.
+    html.has-overlay-scrollbars:not(.mobile) & {
         margin: 0 1em;
     }
 
