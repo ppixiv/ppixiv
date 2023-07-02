@@ -509,12 +509,12 @@ class FileIndex(Database):
         if aspect_ratio is not None:
             # Minimum aspect ratio:
             if aspect_ratio[0] is not None:
-                where.append(f'{schema}width/{schema}height >= ?')
+                where.append(f'1.0 * {schema}width/{schema}height >= ?')
                 params.append(aspect_ratio[0])
 
             # Maximum aspect ratio:
             if aspect_ratio[1] is not None:
-                where.append(f'{schema}width/{schema}height <= ?')
+                where.append(f'1.0 * {schema}width/{schema}height <= ?')
                 params.append(aspect_ratio[1])
 
         if bookmarked is not None:
