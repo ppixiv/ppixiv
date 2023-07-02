@@ -282,7 +282,6 @@ export default class DesktopImageInfo extends Widget
             return;
         this._mediaId = mediaId;
 
-        this.mediaInfo = null;
         this.refresh();
     }
 
@@ -309,9 +308,11 @@ export default class DesktopImageInfo extends Widget
             button.setMediaId(this._mediaId);
         this.bookmarkTagsDropdownOpener.setMediaId(this._mediaId);
 
-        this.mediaInfo = null;
         if(this._mediaId == null)
             return;
+
+        // Try to fill in as much of the UI as we can without waiting for the info to load.
+        this._setPostInfo();
 
         // We need image info to update.
         let mediaId = this._mediaId;
@@ -321,12 +322,24 @@ export default class DesktopImageInfo extends Widget
         if(mediaInfo == null || mediaId != this._mediaId || !this.visible)
             return;
 
-        this.mediaInfo = mediaInfo;
+        // Fill in the post info text.
+        this._setPostInfo();
+    }
 
-        this.mangaPageBar.hidden = this.mediaInfo.pageCount == 1;
-        if(this.mediaInfo.pageCount > 1)
+    // Set all fields that we can from partial media info.  This lets us refresh most of the UI
+    // without waiting for the full info to finish loading.
+    _setPostInfo()
+    {
+        // Get all data that we've loaded so far.  This can return full or partial info, so we need
+        // to check mediaInfo.full in each place we're accessing full data fields.
+        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._mediaId, { full: false, safe: false });
+        if(mediaInfo == null)
+            return;
+
+        this.mangaPageBar.hidden = mediaInfo.pageCount == 1;
+        if(mediaInfo.pageCount > 1)
         {
-            let fill = (this.displayedPage+1) / this.mediaInfo.pageCount;
+            let fill = (this.displayedPage+1) / mediaInfo.pageCount;
             this.mangaPageBar.style.width = (fill * 100) + "%";
         }
 
@@ -377,13 +390,10 @@ export default class DesktopImageInfo extends Widget
         this.root.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + userId;
         this.root.querySelector(".similar-bookmarks-button").href = "/bookmark_detail.php?illust_id=" + illustId + "#ppixiv";
 
-        // Fill in the post info text.
-        this.setPostInfo(this.root.querySelector(".post-info"));
-
         // The comment (description) can contain HTML.
         let elementComment = this.root.querySelector(".description");
-        elementComment.hidden = mediaInfo.illustComment == "";
-        elementComment.innerHTML = mediaInfo.illustComment;
+        elementComment.hidden = !mediaInfo.full || mediaInfo.illustComment == "";
+        elementComment.innerHTML = mediaInfo.full? mediaInfo.illustComment:"";
         helpers.pixiv.fixPixivLinks(elementComment);
         if(!ppixiv.native)
             helpers.pixiv.makePixivLinksInternal(elementComment);
@@ -397,11 +407,8 @@ export default class DesktopImageInfo extends Widget
 
         let downloadVideoButton = this.root.querySelector(".download-video-button");
         downloadVideoButton.hidden = !Actions.isDownloadTypeAvailable("MKV", mediaInfo);
-    }
 
-    setPostInfo(postInfoContainer)
-    {
-        let mediaInfo = this.mediaInfo;
+        let postInfoContainer = this.root.querySelector(".post-info");
 
         let setInfo = (query, text) =>
         {
@@ -417,13 +424,13 @@ export default class DesktopImageInfo extends Widget
         let info = "";
 
         // Add the resolution and file type if available.
-        if(this.displayedPage != null && this.mediaInfo != null)
+        if(this.displayedPage != null && mediaInfo.full)
         {
-            let pageInfo = this.mediaInfo.mangaPages[this.displayedPage];
+            let pageInfo = mediaInfo.mangaPages[this.displayedPage];
             info += pageInfo.width + "x" + pageInfo.height;
 
             // For illusts, add the image type.  Don't do this for animations.
-            if(this.mediaInfo.illustType != 2)
+            if(mediaInfo.illustType != 2)
             {
                 let url = new URL(pageInfo.urls?.original);
                 let ext = helpers.strings.getExtension(url.pathname).toUpperCase();
@@ -435,7 +442,7 @@ export default class DesktopImageInfo extends Widget
         setInfo(".image-info", info);
 
         let duration = "";
-        if(mediaInfo.ugoiraMetadata)
+        if(mediaInfo.full && mediaInfo.ugoiraMetadata)
         {
             let seconds = 0;
             for(let frame of mediaInfo.ugoiraMetadata.frames)
@@ -445,7 +452,7 @@ export default class DesktopImageInfo extends Widget
             duration += seconds == 1? " second":" seconds";
         }
         setInfo(".ugoira-duration", duration);
-        setInfo(".ugoira-frames", mediaInfo.ugoiraMetadata? (mediaInfo.ugoiraMetadata.frames.length + " frames"):"");
+        setInfo(".ugoira-frames", (mediaInfo.full && mediaInfo.ugoiraMetadata)? (mediaInfo.ugoiraMetadata.frames.length + " frames"):"");
 
         // Add the page count for manga.
         let pageText = "";
@@ -456,7 +463,7 @@ export default class DesktopImageInfo extends Widget
 
     clickedDownload = (e) =>
     {
-        if(this.mediaInfo == null)
+        if(this._mediaId == null)
             return;
 
         let clickedButton = e.target.closest(".download-button");

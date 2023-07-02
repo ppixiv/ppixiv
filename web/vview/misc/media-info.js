@@ -301,6 +301,12 @@ function createPartialPixivMediaInfo(mediaInfo)
             if(key == "full")
                 return false;
 
+            // Allow symbols and functions, so things like valueOf() work even though they're
+            // not part of the data.
+                // If this isn't a symbol or a function, onl
+            if(key.constructor === Symbol || target[key] instanceof Function)
+                return target[key];
+
             if(!partialPixivKeys.has(key))
                 throw new Error(`MediaInfo key ${key} isn't available in partial media info`);
 
