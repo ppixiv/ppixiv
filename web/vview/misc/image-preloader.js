@@ -99,9 +99,9 @@ export default class ImagePreloader
         // Make a list of fetches that we want to be running, in priority order.
         let wantedPreloads = [];
         if(this.currentMediaInfo != null)
-            wantedPreloads = wantedPreloads.concat(this.createPreloadersForIllust(this.currentMediaInfo, this.currentMediaId));
+            wantedPreloads = wantedPreloads.concat(this._createPreloadersForIllust(this.currentMediaInfo, this.currentMediaId));
         if(this._speculativeMediaInfo != null)
-            wantedPreloads = wantedPreloads.concat(this.createPreloadersForIllust(this._speculativeMediaInfo, this._speculativeMediaId));
+            wantedPreloads = wantedPreloads.concat(this._createPreloadersForIllust(this._speculativeMediaInfo, this._speculativeMediaId));
 
         // Remove all preloads from wantedPreloads that we've already finished recently.
         let filteredPreloads = [];
@@ -207,7 +207,7 @@ export default class ImagePreloader
     }
 
     // Return an array of preloaders to load resources for the given illustration.
-    createPreloadersForIllust(mediaInfo, mediaId)
+    _createPreloadersForIllust(mediaInfo, mediaId)
     {
         // Don't precache muted images.
         if(ppixiv.muting.anyTagMuted(mediaInfo.tagList))
@@ -269,8 +269,11 @@ export default class ImagePreloader
                 if(p == page)
                     continue;
 
-                let { url } = mediaInfo.getMainImageUrl(page);
-                results.push(new ImgResourceLoader(url));
+                // Stagger loading pages that aren't near the current page.
+                let staggered = p < page - 2 || p >= page + 2;
+
+                let { url } = mediaInfo.getMainImageUrl(p);
+                results.push(new ImgResourceLoader(url, { staggered }));
             }
         }
 
@@ -310,41 +313,108 @@ export default class ImagePreloader
         // Start the new guessed preload.
         if(guessedUrl)
         {
-            this.guessedPreload = new ImgResourceLoader(guessedUrl, () => {
-                // The image load failed.  Let guessImageUrl know.
-                // console.info("Guessed image load failed");
-                ppixiv.guessImageUrl.guessedUrlIncorrect(mediaId);
+            this.guessedPreload = new ImgResourceLoader(guessedUrl, {
+                onerror: () => {
+                    // The image load failed.  Let guessImageUrl know.
+                    // console.info("Guessed image load failed");
+                    ppixiv.guessImageUrl.guessedUrlIncorrect(mediaId);
+                },
             });
             this.guessedPreload.start();
         }
     }
 }
 
+// The time in milliseconds to delay loading low-priority images.
+const StaggerDelay = 1500;
+
 // A base class for fetching a single resource:
 class ResourceLoader
 {
-    constructor()
+    static lastLoadFinishTime = null;
+
+    constructor({
+        staggered=false,
+    }={})
     {
+        this.staggered = staggered;
         this.abortController = new AbortController();
+    }
+
+    get aborted()
+    {
+        return this.abortController.signal.aborted;
+    }
+
+    async start()
+    {
+        await this._waitForStaggerDelay();
+
+        this._startedAt = Date.now();
+    }
+
+    // If this load is staggered, sleep until StaggerDelay after the previous load finished.
+    async _waitForStaggerDelay()
+    {
+        if(ResourceLoader.lastLoadFinishTime == null)
+            return;
+
+        // Always stagger preload if the page isn't visible.
+        let staggerLoad = this.staggered;
+        if(document.visibilityState == "hidden")
+            staggerLoad = true;
+
+        if(!staggerLoad)
+            return;
+
+        let timeSinceLastLoad = Date.now() - ResourceLoader.lastLoadFinishTime;
+        let ms = StaggerDelay - timeSinceLastLoad;
+        if(ms > 0)
+        {
+            // console.log("Delaying staggered load by", ms);
+            await helpers.other.sleep(ms);
+        }
+    }
+
+    // This is called by start() once the load finishes.
+    _loadFinished()
+    {
+        if(this.aborted)
+            return;
+
+        // Update lastLoadFinishTime.
+        //
+        // We don't want to set lastLoadFinishTime if this load came out of cache.  It didn't
+        // actually cause a network load, so it shouldn't cause us to delay staggered loads.
+        // This way, if preloading restarts we won't go back to the beginning and stagger every
+        // page load even though nothing is actually happening.
+        //
+        // The browser won't tell us this.  Just assume it came out of cache if it completed
+        // quickly, which is close enough for this.  Don't set the threshold too low, since there
+        // can be delayed even with memory cache.
+        let loadTook = Date.now() - this._startedAt;
+        let wasCached = loadTook < 250;
+
+        if(!wasCached)
+            ResourceLoader.lastLoadFinishTime = Date.now();
     }
 
     // Cancel the fetch.
     cancel()
     {
-        if(this.abortController == null)
-            return;
-
         this.abortController.abort();
-        this.abortController = null;
     }
 }
 
 // Load a single image with <img>:
 class ImgResourceLoader extends ResourceLoader
 {
-    constructor(url, onerror=null)
+    constructor(url, {
+        onerror=null,
+        ...args
+    }={})
     {
-        super();
+        super({...args});
         this.url = url;
         this.onerror = onerror;
         console.assert(url);
@@ -356,21 +426,28 @@ class ImgResourceLoader extends ResourceLoader
         if(this.url == null)
             return;
 
+        await super.start();
+
+        if(this.aborted)
+            return;
+
         let img = document.createElement("img");
         img.src = this.url;
 
         let result = await helpers.other.waitForImageLoad(img, this.abortController.signal);
         if(result == "failed" && this.onerror)
             this.onerror();
+
+        this._loadFinished();
     }
 }
 
 // Load a resource with fetch.
 class FetchResourceLoader extends ResourceLoader
 {
-    constructor(url)
+    constructor(url, args)
     {
-        super();
+        super(args);
         this.url = url;
         console.assert(url);
     }
@@ -378,6 +455,11 @@ class FetchResourceLoader extends ResourceLoader
     async start()
     {
         if(this.url == null)
+            return;
+
+        await super.start();
+
+        if(this.aborted)
             return;
 
         let request = helpers.pixivRequest.sendPixivRequest({
@@ -392,5 +474,7 @@ class FetchResourceLoader extends ResourceLoader
             request = await request;
             await request.text();
         } catch(e) { }
+
+        this._loadFinished();
     }
 }
