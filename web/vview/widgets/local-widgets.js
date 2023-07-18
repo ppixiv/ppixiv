@@ -269,13 +269,28 @@ export class ViewInExplorerWidget extends IllustWidget
 
         this.enabled = false;
 
-        // Ignore clicks on the button if it's disabled.
         this.root.addEventListener("click", (e) => {
-            if(this.enabled)
+            // Ignore clicks on the button if it's disabled.
+            if(!this.enabled)
+            {
+                e.preventDefault();
+                e.stopPropagation();
                 return;
+            }
 
-            e.preventDefault();
-            e.stopPropagation();
+            // On alt-click, copy the path.
+            if(e.altKey)
+            {
+                e.preventDefault();
+                e.stopPropagation();
+
+                let { mediaInfo } = this.getMediaInfo.info;
+                let localPath = mediaInfo?.localPath;
+                console.log("f", localPath);
+                navigator.clipboard.writeText(localPath);
+                ppixiv.message.show("Path copied to clipboard");
+                return;
+            }
         });
     }
 

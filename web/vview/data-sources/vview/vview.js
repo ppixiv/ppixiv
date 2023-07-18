@@ -98,12 +98,6 @@ class VViewBase extends DataSource
         this.bookmarkTagCounts = result.tags;
         this.callUpdateListeners();
     }
-
-    copyLink()
-    {
-        // The user clicked the "copy local link" button.
-        navigator.clipboard.writeText(this.localPath);
-    }
 }
 
 // This data source is used when we have no search and we're viewing a single directory.
@@ -311,9 +305,6 @@ export class VViewSearch extends VViewBase
             return result;
         }
 
-        // If we got a local path, store it to allow copying it to the clipboard.
-        this.localPath = result.localPath;
-
         // Update the next and previous page IDs.  If we're loading backwards, always update
         // the previous page.  If we're loading forwards, always update the next page.  If
         // either of these are null, update both.
@@ -364,10 +355,6 @@ class UI extends Widget
                 <vv-container class=tag-search-box-container></vv-container>
 
                 <div class="box-button-row">
-                    <span class="popup icon-button copy-local-path" data-popup="Copy local path to clipboard">
-                        ${ helpers.createIcon("content_copy") }
-                    </span>
-
                     ${ helpers.createBoxLink({label: "Bookmarks",           popup: "Show bookmarks",                       dataType: "local-bookmarks-only" }) }
 
                     <div class=local-bookmark-tags-box>
@@ -546,13 +533,6 @@ class UI extends Widget
         if(dataSource.args.hash.has("order"))
             searchActive = true;
         helpers.html.setClass(clearLocalSearchButton, "disabled", !searchActive);
-
-        this.querySelector(".copy-local-path").addEventListener("click", (e) => {
-            this.copyLink();
-        });
-
-        // Hide the "copy local path" button if we don't have one.
-        this.querySelector(".copy-local-path").hidden = dataSource.localPath == null;
 
         dataSource.setItem(this.root, { type: "local-bookmarks-only", fields: {"#bookmarks": "1"}, toggle: true,
             adjustUrl: (args) => {
