@@ -10,7 +10,6 @@
 import DataSource, { PaginateMediaIds, TagDropdownWidget } from '/vview/data-sources/data-source.js';
 import Widget from '/vview/widgets/widget.js';
 import SavedSearchTags from '/vview/misc/saved-search-tags.js';
-import { AvatarWidget } from '/vview/widgets/user-widgets.js';
 import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';
 import { helpers } from '/vview/misc/helpers.js';
 
@@ -78,6 +77,9 @@ export default class DataSources_Artist extends DataSource
             if(this.pages == null)
             {
                 let allMediaIds = await this.loadAllResults();
+                if(args.hash.get("order") == "oldest")        
+                    allMediaIds.reverse();
+
                 this.pages = PaginateMediaIds(allMediaIds, this.estimatedItemsPerPage);
             }
 
@@ -283,6 +285,7 @@ class UI extends Widget
             <div>
                 <div class="box-button-row" style="align-items: flex-start">
                     ${ helpers.createBoxLink({label: "Search mode",    classes: ["search-type-button"] }) }
+                    ${ helpers.createBoxLink({label: "Newest",         classes: ["sort-button"] }) }
                     ${ helpers.createBoxLink({label: "Tags",     popup: "Tags", icon: "bookmark", classes: ["member-tags-button"] }) }
                 </div>
             </div>
@@ -305,6 +308,19 @@ class UI extends Widget
         }, {
             createOptions: { label: "Manga" },
             setupOptions:  { urlFormat, fields: {"/type": "manga"} },
+        }]);
+
+        // Sorts are currently only supported when viewing all bookmarks, not when searching
+        // by tag.
+        let sortButton = this.querySelector(".sort-button");
+        let tag = dataSource.currentTag;
+        sortButton.hidden = tag != null;
+        dataSource.setupDropdown(sortButton, [{
+            createOptions: { label: "Newest",              dataset: { default: true } },
+            setupOptions: { fields: {"#order": null}, defaults: {"#order": "newest"} }
+        }, {
+            createOptions: { label: "Oldest" },
+            setupOptions: { fields: {"#order": "oldest"} }
         }]);
 
         class TagDropdown extends TagDropdownWidget
