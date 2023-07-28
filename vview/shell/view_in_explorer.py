@@ -2,6 +2,9 @@ from ..util import error_dialog
 
 # This is a helper to allow us to open local directories in File Explorer from
 # the page.  This is registered as the "vviewinexplorer" URL scheme by pplocal.shell.register.
+#
+# Note that the vviewinexplorer scheme is also handled by VVbrowser, so the
+# custom URL scheme isn't needed there.
 def show_in_explorer():
     import subprocess, sys, urllib.parse
 

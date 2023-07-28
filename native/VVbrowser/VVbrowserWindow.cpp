@@ -741,8 +741,10 @@ void VVbrowserWindow::AddCallbacks()
                 *p = '\\';
 
         // Show the path in Explorer.
-        wstring command = L"explorer.exe /select,";
+        wstring command = L"explorer.exe /select, ";
+        command += L"\"";
         command += path2;
+        command += L"\"";
 
         STARTUPINFOW si = {};
         si.cb = sizeof(si);
