@@ -183,6 +183,7 @@ def read_metadata(f, mime_type):
 
     result['width'] = img.size[0]
     result['height'] = img.size[1]
+    result['comment'] = img.info.get('parameters') or ''
 
     # PIL's parser for PNGs is very slow, so only support metadata from JPEG for now.
     if mime_type == 'image/jpeg' and hasattr(img, '_getexif'):
