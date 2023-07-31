@@ -788,6 +788,7 @@ input, textarea, [contenteditable] {
 
         .description {
             border: solid 1px var(--ui-border-color);
+            white-space: pre-wrap;
             padding: .35em;
             background-color: var(--ui-bg-section-color);
             overflow-wrap: break-word;

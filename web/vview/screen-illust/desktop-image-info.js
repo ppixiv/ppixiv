@@ -391,10 +391,16 @@ export default class DesktopImageInfo extends Widget
         this.root.querySelector(".similar-artists-button").href = "/discovery/users#ppixiv?user_id=" + userId;
         this.root.querySelector(".similar-bookmarks-button").href = "/bookmark_detail.php?illust_id=" + illustId + "#ppixiv";
 
-        // The comment (description) can contain HTML.
+        // Pixiv image descriptions can contain HTML, which we don't need to check.  Don't
+        // display local image descriptions as HTML, since they come directly from image
+        // files and we don't do any verification of their contents.
         let elementComment = this.root.querySelector(".description");
         elementComment.hidden = !mediaInfo.full || mediaInfo.illustComment == "";
-        elementComment.innerHTML = mediaInfo.full? mediaInfo.illustComment:"";
+        if(ppixiv.native)
+            elementComment.innerText = mediaInfo.full? mediaInfo.illustComment:"";
+        else
+            elementComment.innerHTML = mediaInfo.full? mediaInfo.illustComment:"";
+
         helpers.pixiv.fixPixivLinks(elementComment);
         if(!ppixiv.native)
             helpers.pixiv.makePixivLinksInternal(elementComment);
