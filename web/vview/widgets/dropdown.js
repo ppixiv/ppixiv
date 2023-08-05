@@ -323,9 +323,11 @@ export class DropdownBoxOpener extends Actor
 
     shutdown()
     {
-        super.shutdown();
-
         this._cleanup();
+
+        // Call the base shutdown() after cleaning up so our shutdown signal isn't fired
+        // until after we're done cleaning up.
+        super.shutdown();
     }
 
     // Return true if this popup should close when clicking inside it.  If false,
