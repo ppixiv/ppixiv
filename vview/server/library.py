@@ -1115,7 +1115,7 @@ class Library:
 
         return results
 
-    def bookmark_edit(self, entry, set_bookmark, tags=None):
+    def bookmark_edit(self, entry, tags=None):
         """
         Add, edit or delete a bookmark.
 
@@ -1124,33 +1124,40 @@ class Library:
         # Update the bookmark metadata file.
         path = open_path(entry['path'])
         with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
-            if set_bookmark:
-                file_metadata['bookmarked'] = True
+            file_metadata['bookmarked'] = True
 
-                # Touch the updated time, and set the created time if it wasn't already set.
-                now = math.floor(time.time())
-                if 'bookmark_created_at' not in file_metadata:
-                    file_metadata['bookmark_created_at'] = now
-                file_metadata['bookmark_updated_at'] = now
+            # Touch the updated time, and set the created time if it wasn't already set.
+            now = math.floor(time.time())
+            if 'bookmark_created_at' not in file_metadata:
+                file_metadata['bookmark_created_at'] = now
+            file_metadata['bookmark_updated_at'] = now
 
-                if tags is not None:
-                    tags = self.normalize_bookmark_tags(tags)
-                    file_metadata['bookmark_tags'] = tags
+            if tags is not None:
+                tags = self.normalize_bookmark_tags(tags)
+                file_metadata['bookmark_tags'] = tags
 
-                # Cache some basic metadata too, so we have access to it in placeholder
-                # data later.
-                file_metadata['width'] = entry['width']
-                file_metadata['height'] = entry['height']
-            else:
-                if 'bookmarked' in file_metadata: del file_metadata['bookmarked']
-                if 'bookmark_tags' in file_metadata: del file_metadata['bookmark_tags']
-                if 'bookmark_created_at' in file_metadata: del file_metadata['bookmark_created_at']
-                if 'bookmark_updated_at' in file_metadata: del file_metadata['bookmark_updated_at']
+            # Cache some basic metadata too, so we have access to it in placeholder
+            # data later.
+            file_metadata['width'] = entry['width']
+            file_metadata['height'] = entry['height']
 
-                # Clear cached metadata too, so the metadata is empty after unbookmarking and the
-                # metadata file can be deleted.
-                if 'width' in file_metadata: del file_metadata['width']
-                if 'height' in file_metadata: del file_metadata['height']
+            metadata_storage.save_file_metadata(path, file_metadata)
+
+        # Update the file in the index.
+        return self.get(path, force_refresh=True)
+
+    def bookmark_remove(self, path):
+        # Update the bookmark metadata file.
+        with metadata_storage.load_and_lock_file_metadata(path) as file_metadata:
+            if 'bookmarked' in file_metadata: del file_metadata['bookmarked']
+            if 'bookmark_tags' in file_metadata: del file_metadata['bookmark_tags']
+            if 'bookmark_created_at' in file_metadata: del file_metadata['bookmark_created_at']
+            if 'bookmark_updated_at' in file_metadata: del file_metadata['bookmark_updated_at']
+
+            # Clear cached metadata too, so the metadata is empty after unbookmarking and the
+            # metadata file can be deleted.
+            if 'width' in file_metadata: del file_metadata['width']
+            if 'height' in file_metadata: del file_metadata['height']
 
             metadata_storage.save_file_metadata(path, file_metadata)
 

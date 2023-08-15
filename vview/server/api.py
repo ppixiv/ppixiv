@@ -211,7 +211,7 @@ async def api_bookmark_add(info):
     info.manager.check_path(absolute_path, info.request, throw=True)
 
     entry = info.manager.library.get(absolute_path)
-    entry = info.manager.library.bookmark_edit(entry, set_bookmark=True, tags=tags)
+    entry = info.manager.library.bookmark_edit(entry, tags=tags)
 
     # Index the image for similar image searching when it's bookmarked.  Normally this happens
     # either when the image is viewed or when it's first indexed.  This just makes sure they're
@@ -232,8 +232,7 @@ async def api_bookmark_delete(info):
     # Look up the path.
     absolute_path = info.manager.resolve_path(path)
     info.manager.check_path(absolute_path, info.request, throw=True)
-    entry = info.manager.library.get(absolute_path)
-    info.manager.library.bookmark_edit(entry, set_bookmark=False)
+    info.manager.library.bookmark_remove(absolute_path)
 
     return { 'success': True }
 
