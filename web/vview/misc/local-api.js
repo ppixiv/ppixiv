@@ -65,7 +65,7 @@ export default class LocalAPI
     static async loadMediaInfo(mediaId, { refreshFromDisk=false }={})
     {
         let mediaInfo = await LocalAPI.localPostRequest(`/api/illust/${mediaId}`, {
-            refreshFromDisk,
+            refresh_from_disk: refreshFromDisk,
         });
 
         return mediaInfo;

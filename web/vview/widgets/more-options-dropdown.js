@@ -170,7 +170,7 @@ export default class MoreOptionsDropdown extends IllustWidget
 
                     onclick: async () => {
                         this.parent.hide();
-                        ppixiv.mediaCache.refreshMediaInfo(this.mediaId);
+                        ppixiv.mediaCache.refreshMediaInfo(this.mediaId, { refreshFromDisk: true });
                     }
                 });
             },

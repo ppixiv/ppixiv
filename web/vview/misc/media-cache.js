@@ -130,10 +130,13 @@ export default class MediaCache extends EventTarget
     // Refresh media info for the given media ID.
     //
     // If an image only has partial info loaded, this will cause its full info to be loaded.
-    async refreshMediaInfo(mediaId)
+    //
+    // refreshFromDisk: If true, ask the server to reload from disk even if it thinks the file
+    // hasn't changed.
+    async refreshMediaInfo(mediaId, { refreshFromDisk=false }={})
     {
         mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
-        await this._loadMediaInfo(mediaId, { force: true, refreshFromDisk: true });
+        await this._loadMediaInfo(mediaId, { refreshFromDisk });
     }
 
     // Add full media info from a Pixiv API response.  This will trigger loads for any
@@ -141,7 +144,7 @@ export default class MediaCache extends EventTarget
     addPixivFullMediaInfo(mediaInfo)
     {
         let mediaId = helpers.mediaId.fromIllustId(mediaInfo.id);
-        let loadPromise = this._loadMediaInfo(mediaId, { mediaInfo, force: true });
+        let loadPromise = this._loadMediaInfo(mediaId, { mediaInfo });
         this._startedLoadingMediaInfoFull(mediaId, loadPromise);
         return loadPromise;
     }
@@ -179,7 +182,7 @@ export default class MediaCache extends EventTarget
 
         // If this is a local image, use our API to retrieve it.
         if(helpers.mediaId.isLocal(mediaId))
-            return await this._loadLocalImageData(mediaId, { refreshFromDisk});
+            return await this._loadLocalImageData(mediaId, { refreshFromDisk });
 
         // console.log("Fetching", mediaId);
 
