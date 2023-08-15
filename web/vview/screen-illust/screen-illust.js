@@ -367,6 +367,12 @@ export default class ScreenIllust extends Screen
         if(ppixiv.settings.get("linked_tabs_enabled"))
             ppixiv.sendImage.send_image(mediaId, ppixiv.settings.get("linked_tabs", []), "temp-view");
 
+        // If this is a local image, refresh each view so we'll see changes quickly.  This is async,
+        // so in the usual case where nothing changes it doesn't cause a delay.  Don't do this for
+        // Pixiv images.
+        if(helpers.mediaId.isLocal(mediaId))
+            ppixiv.mediaCache.refreshMediaInfo(mediaId);
+
         // Tell the preloader about the current image.
         ImagePreloader.singleton.setCurrentImage(mediaId);
 
