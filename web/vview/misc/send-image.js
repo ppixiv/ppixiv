@@ -97,6 +97,9 @@ export default class SendImage
     // or "display", to navigate to it.
     async send_image(mediaId, tabIds, action)
     {
+        if(tabIds.length == 0)
+            return;
+
         // Send everything we know about the image, so the receiver doesn't have to
         // do a lookup.
         let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId);
