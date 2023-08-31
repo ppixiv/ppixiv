@@ -85,7 +85,12 @@ class WebsocketClientConnection:
                 'message': message,
             }))
 
-        await asyncio.gather(*promises)
+        # If sending any messages fails, ignore it and let it clean up on its own without
+        # causing this connection to fail.
+        results = await asyncio.gather(*promises, return_exceptions=True)
+        for result in results:
+            if result is not None:
+                print('???', result)
 
 async def handle_websockets(request):
     connection = WebsocketClientConnection(request)
