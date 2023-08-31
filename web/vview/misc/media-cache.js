@@ -503,9 +503,14 @@ export default class MediaCache extends EventTarget
         searchResult = searchResult.filter(item => !item.isAdContainer);
 
         let allThumbInfo = [];
+        let mediaIds = [];
         for(let thumbInfo of searchResult)
         {
             let { remappedMediaInfo, profileImageUrl } = MediaCacheMappings.remapPartialMediaInfo(thumbInfo, source);
+
+            // Return media IDs for convenience.  Return all media IDs, even if we skip updating
+            // it below.
+            mediaIds.push(remappedMediaInfo.mediaId);
 
             // The profile image URL isn't included in image info since it's not present in full
             // info.  Store it separately.
@@ -524,13 +529,9 @@ export default class MediaCache extends EventTarget
         // batch loaded per image.
         let illustIds = allThumbInfo.map((info) => info.illustId);
         let extraData = await ppixiv.extraImageData.batchLoadAllPagesForIllust(illustIds);
-        let mediaIds = [];
 
         for(let mediaInfo of allThumbInfo)
         {
-            // Return media IDs for convenience.
-            mediaIds.push(helpers.mediaId.fromIllustId(mediaInfo.illustId));
-
             // Store extra data for each page.
             mediaInfo.extraData = extraData[mediaInfo.illustId] || {};
             mediaInfo.full = false;
