@@ -50,7 +50,6 @@ export default class App
 
         // Install polyfills.
         InstallPolyfills();
-        this.checkBrokenExtensions();
 
         // Create singletons.
         ppixiv.phistory = new VirtualHistory({ permanent: ppixiv.mobile });
@@ -160,6 +159,11 @@ export default class App
             helpers.html.moveChildren(document.head, html);
             helpers.html.moveChildren(document.body, html);
         }
+
+        // Dark Reader is terrible rubbish.  Don't use it.
+        let disableDarkReader = document.realCreateElement("meta");
+        disableDarkReader.name = "darkreader-lock";
+        document.head.appendChild(disableDarkReader);
 
         // Load image resources into blobs.
         await this.loadResourceBlobs();
@@ -272,23 +276,6 @@ export default class App
         // Init hooks if any.
         await Hooks?.init(this);
     };
-
-    checkBrokenExtensions()
-    {
-        // "Dark Reader" makes massive, invasive CSS and layout changes to every page the user
-        // views.  It causes our search screen to be black and causes all kinds of nastiness.
-        // Don't try to work around it (it's much too broken), but let the user know.
-        if(document.documentElement.dataset.darkreaderMode)
-        {
-            if(!localStorage.showedDarkReaderSucksWarning ||
-                Date.now() - localStorage.showedDarkReaderSucksWarningAt > 60*60*12)
-            {
-                localStorage.showedDarkReaderSucksWarning = 1;
-                localStorage.showedDarkReaderSucksWarningAt = Date.now();
-                alert("The \"Dark Reader\" extension breaks ppixiv.  If search doesn't work, try disabling it for this site.");
-            }
-        }
-    }
 
     // Pixiv puts listeners on popstate which we can't always remove, and can get confused and reload
     // the page when it sees navigations that don't work.
