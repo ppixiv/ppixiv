@@ -831,6 +831,9 @@ class FollowWidget extends Widget
             let url = new URL(pickup.contentUrl);
             url.search = "";
             extraLinks.push({url, type: "fanbox", label: "Fanbox"});
+
+            // Add fanbox kemono.party link (for thoose who can't pay 😢)
+            extraLinks.push({url: new URL(`https://kemono.party${url.pathname}`), type: "fanbox", label: "Kemono Fanbox"});
             break;
         }
 
