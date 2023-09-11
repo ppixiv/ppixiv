@@ -833,7 +833,7 @@ class FollowWidget extends Widget
             extraLinks.push({url, type: "fanbox", label: "Fanbox"});
 
             // Add fanbox kemono.party link (for thoose who can't pay 😢)
-            extraLinks.push({url: new URL(`https://kemono.party/fanbox/users/${userInfo.userId}`), type: "fanbox", label: "Kemono fanbox"});
+            extraLinks.push({url: new URL(`https://kemono.party/fanbox/user/${userInfo.userId}`), type: "fanbox", label: "Kemono fanbox"});
             break;
         }
 
