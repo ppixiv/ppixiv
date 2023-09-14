@@ -841,6 +841,9 @@ class FollowWidget extends Widget
         else if(userProfile?.body?.externalSiteWorksStatus?.booth)
             extraLinks.push({url: window.location, label: "Booth", icon: "mat:hourglass_full", disabled: true});
 
+        // Allow hooks to add additional links.
+        window.vviewHooks?.addUserLinks?.({ extraLinks, userInfo, userProfile });
+
         return extraLinks;
     }
 
