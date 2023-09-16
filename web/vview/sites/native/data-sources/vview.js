@@ -1,5 +1,5 @@
 import Widget from '/vview/widgets/widget.js';
-import DataSource, { PaginateMediaIds, TagDropdownWidget } from '/vview/data-sources/data-source.js';
+import DataSource, { PaginateMediaIds, TagDropdownWidget } from '/vview/sites/data-source.js';
 import LocalAPI from '/vview/misc/local-api.js';
 import { LocalSearchBoxWidget } from '/vview/widgets/local-widgets.js';
 import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';

@@ -1,4 +1,4 @@
-import DataSource from '/vview/data-sources/data-source.js';
+import DataSource from '/vview/sites/data-source.js';
 import Widget from '/vview/widgets/widget.js';
 import { helpers } from '/vview/misc/helpers.js';
 

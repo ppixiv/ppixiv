@@ -7,7 +7,7 @@
 //
 // We prefer to link to the /artworks page, but we handle /users/# as well.
 
-import DataSource, { PaginateMediaIds, TagDropdownWidget } from '/vview/data-sources/data-source.js';
+import DataSource, { PaginateMediaIds, TagDropdownWidget } from '/vview/sites/data-source.js';
 import Widget from '/vview/widgets/widget.js';
 import SavedSearchTags from '/vview/misc/saved-search-tags.js';
 import { DropdownMenuOpener } from '/vview/widgets/dropdown.js';

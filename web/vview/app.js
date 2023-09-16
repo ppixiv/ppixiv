@@ -9,7 +9,7 @@ import Muting from '/vview/misc/muting.js';
 import SendImage, { LinkThisTabPopup, SendHerePopup } from '/vview/misc/send-image.js';
 import Settings from '/vview/misc/settings.js';
 import { SlideshowStagingDialog } from '/vview/widgets/settings-widgets.js';
-import DataSource from '/vview/data-sources/data-source.js';
+import DataSource from '/vview/sites/data-source.js';
 import DialogWidget from '/vview/widgets/dialog.js';
 import MessageWidget from '/vview/widgets/message-widget.js';
 import MediaCache from '/vview/misc/media-cache.js';
@@ -23,7 +23,9 @@ import LocalAPI from '/vview/misc/local-api.js';
 import PointerListener from '/vview/actors/pointer-listener.js';
 import { getUrlForMediaId } from '/vview/misc/media-ids.js'
 import VirtualHistory from '/vview/util/virtual-history.js';
-import * as DataSources from '/vview/data-sources/all.js';
+import * as Sites from '/vview/sites/site.js';
+import * as SiteNative from '/vview/sites/native/site-native.js';
+import * as SitePixiv from '/vview/sites/pixiv/site-pixiv.js';
 import * as Hooks from '/vview/util/hooks.js';
 
 // This is the main top-level app controller.
@@ -77,6 +79,10 @@ export default class App
 
         // Don't restore the scroll position.  We handle this ourself.
         window.history.scrollRestoration = "manual";  // not phistory
+
+        // Register handlers for the site we're on.
+        SiteNative.register();
+        SitePixiv.register();
 
         if(ppixiv.mobile)
         {
@@ -390,7 +396,7 @@ export default class App
 
             // If we're active but we're on a page that isn't directly supported, redirect to
             // a supported page.  This should be synced with Startup.refresh_disabled_ui.
-            if(DataSources.getDataSourceForUrl(ppixiv.plocation) == null)
+            if(Sites.getDataSourceForUrl(ppixiv.plocation) == null)
                 args = new helpers.args("/ranking.php?mode=daily#ppixiv");
 
             // If the URL hash doesn't start with #ppixiv, the page was loaded with the base Pixiv
@@ -464,7 +470,7 @@ export default class App
 
         // Get the data source for the current URL.  If refresh is true, force a new data
         // source to be created instead of reusing an existing one.
-        let dataSource = DataSources.createDataSourceForUrl(ppixiv.plocation, {
+        let dataSource = Sites.createDataSourceForUrl(ppixiv.plocation, {
             force: refresh,
             startAtBeginning,
         });

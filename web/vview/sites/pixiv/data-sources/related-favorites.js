@@ -1,4 +1,4 @@
-import { DataSourceFromPage } from '/vview/data-sources/data-source.js';
+import { DataSourceFromPage } from '/vview/sites/data-source.js';
 import { helpers } from '/vview/misc/helpers.js';
 
 // bookmark_detail.php
