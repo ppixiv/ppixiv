@@ -246,7 +246,7 @@ export default class MediaInfo
     // we try to load extremely large images.  This can also be enabled on desktop for users with
     // very limited bandwidth.  For that use case it would make more sense to limit based on
     // file size, but that's not available.
-    getMainImageUrl(page=0, { ignore_limits=false }={})
+    getMainImageUrl(page=0, { ignoreLimits=false }={})
     {
         let mangaPage = this.mangaPages[page];
         if(mangaPage == null)
@@ -337,10 +337,10 @@ class PixivMediaInfo extends MediaInfo
         return createPartialPixivMediaInfo(this);
     }
 
-    getMainImageUrl(page=0, { ignore_limits=false }={})
+    getMainImageUrl(page=0, { ignoreLimits=false }={})
     {
         let maxPixels = ppixiv.settings.get("image_size_limit")
-        if(maxPixels != null && !ignore_limits)
+        if(maxPixels != null && !ignoreLimits)
         {
             let mangaPage = this.mangaPages[page];
             if(mangaPage == null)
