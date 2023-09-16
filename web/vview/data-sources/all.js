@@ -203,13 +203,13 @@ export function createDataSourceForUrl(url, {
 // the next time it's used.
 export function discardDataSource(dataSource)
 {
-    let urls_to_remove = [];
+    let urlsToRemove = [];
     for(let url in dataSourcesByUrl)
     {
         if(dataSourcesByUrl[url] === dataSource)
-            urls_to_remove.push(url);
+            urlsToRemove.push(url);
     }
 
-    for(let url of urls_to_remove)
+    for(let url of urlsToRemove)
         delete dataSourcesByUrl[url];
 }
