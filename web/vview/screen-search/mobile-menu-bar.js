@@ -1,7 +1,6 @@
 import Widget from '/vview/widgets/widget.js';
 import CreateSearchMenu from '/vview/screen-search/search-menu.js';
 import { SettingsDialog } from '/vview/widgets/settings-widgets.js';
-import * as Sites from '/vview/sites/site.js';
 import { DataSource_BookmarksBase } from '/vview/sites/pixiv/data-sources/bookmarks.js';
 import DialogWidget from '/vview/widgets/dialog.js';
 import LocalAPI from '/vview/misc/local-api.js';
@@ -129,7 +128,7 @@ class MobileEditSearchDialog extends DialogWidget
         for(let button of this.root.querySelectorAll(".navigation-button"))
         {
             let url = new URL(button.href);
-            let dataSourceClass = Sites.getDataSourceForUrl(url);
+            let dataSourceClass = ppixiv.site.getDataSourceForUrl(url);
 
             if(currentDataSource instanceof dataSourceClass)
                 return button;
