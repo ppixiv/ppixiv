@@ -5,7 +5,7 @@ import RecentBookmarkTags from '/vview/misc/recent-bookmark-tags.js';
 import PixivUgoiraDownloader from '/vview/misc/pixiv-ugoira-downloader.js';
 import CreateZIP from '/vview/misc/create-zip.js';
 import * as Recaptcha from '/vview/util/recaptcha.js';
-import { downloadUrls } from '/vview/util/gm-download.js';
+import { downloadPixivImages } from '/vview/util/gm-download.js';
 import { helpers } from '/vview/misc/helpers.js';
 
 export default class Actions
@@ -583,7 +583,7 @@ export default class Actions
 
         let results;
         try {
-            results = await downloadUrls(images);
+            results = await downloadPixivImages(images);
         } catch(e) {
             ppixiv.message.show(e.toString());
             return;

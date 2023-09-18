@@ -39,7 +39,7 @@ function _getDownloadServer()
 
 // Download a Pixiv image using a GM.xmlHttpRequest server port retrieved
 // with _getDownloadServer.
-function _downloadUsingServer(serverPort, url)
+function _downloadUsingServer(serverPort, { url, ...args })
 {
     return new Promise((accept, reject) => {
         if(url == null)
@@ -69,15 +69,7 @@ function _downloadUsingServer(serverPort, url)
 
         serverPort.realPostMessage({
             url: url.toString(),
-
-            options: {
-                responseType: "arraybuffer",
-                headers: {
-                    "Cache-Control": "max-age=360000",
-                    Referer: "https://www.pixiv.net/",
-                    Origin: "https://www.pixiv.net/",
-                },
-            },
+            ...args,
         }, [serverResponsePort]);
     });
 }
@@ -87,23 +79,40 @@ function _downloadUsingServer(serverPort, url)
 // This is only used to download Pixiv images to save to disk.  Pixiv doesn't have CORS
 // set up to give itself access to its own images, so we have to use GM.xmlHttpRequest to
 // do this.
-export async function downloadUrl(url)
+export async function downloadPixivImage(url)
 {
     let server = await _getDownloadServer();
     if(server == null)
         throw new Error("Downloading not available");
 
-    return await _downloadUsingServer(server, url);
+    return await _downloadUsingServer(server, {
+        url,
+        headers: {
+            "Cache-Control": "max-age=360000",
+            Referer: "https://www.pixiv.net/",
+            Origin: "https://www.pixiv.net/",
+        },
+    });
 }
 
-export async function downloadUrls(urls)
+export async function downloadPixivImages(urls)
 {
     let results = [];
     for(let url of urls)
     {
-        let result = await downloadUrl(url);
+        let result = await downloadPixivImage(url);
         results.push(result);
     }
 
     return results;
+}
+
+// Make a direct request to the download server.
+export async function sendRequest(args)
+{
+    let server = await _getDownloadServer();
+    if(server == null)
+        throw new Error("Downloading not available");
+
+    return await _downloadUsingServer(server, args);
 }

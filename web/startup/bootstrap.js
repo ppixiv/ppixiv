@@ -37,10 +37,33 @@ async function Bootstrap({env, rootUrl}={})
 
         serverPort.onmessage = (e) => {
             let responsePort = e.ports[0];
-            let { url } = e.data;
+            let {
+                url,
+                method="GET",
+                formData,
+                responseType="response", // or responseText
+                headers=null,
+            } = e.data;
 
             console.log("GM.xmlHttpRequest request for:", url);
 
+            // If we were given a FormData in the form of an object, convert it to a
+            // FormData.  For some reason FormData objects themselves can't be sent
+            // over a MessagePort.
+            let data = null;
+            if(formData)
+            {
+                data = new FormData();
+                for(let [key, value] of Object.entries(formData))
+                {
+                    // Convert ArrayBuffers to blobs.
+                    if(value instanceof ArrayBuffer)
+                        value = new Blob([value]);
+                
+                    data.append(key, value);
+                }
+            }
+        
             // It's harmless for the site to gain access to GM.xmlHttpRequest, since we only @connect
             // to the site's own image host anyway.  But we might as well can check anyway:
             url = new URL(url);
@@ -51,13 +74,15 @@ async function Bootstrap({env, rootUrl}={})
             }
 
             GM.xmlHttpRequest({
-                ...e.data.options,
+                method, headers,
+                responseType: "arraybuffer",
 
                 // TamperMonkey takes a URL object, but ViolentMonkey throws an exception unless we
                 // convert to a string.
                 url: url.toString(),
+                data,
 
-                onload: (result) => responsePort.xhrServerPostMessage({ success: true, response: result.response }),
+                onload: (result) => responsePort.xhrServerPostMessage({ success: true, response: result[responseType] }),
                 onerror: (e) => {
                     responsePort.xhrServerPostMessage({ success: false, error: e.error });
                 },
