@@ -90,12 +90,6 @@ export default class ViewerImagesMobile extends ViewerImages
                 this._reposition();
             },
 
-            onanimationfinished: () => {
-                // We could do this to save the current zoom level, since we didn't use it during the
-                // fling, but for now we don't save the zoom level on mobile anyway.
-                // this.setZoom({ level: this._zoomLevel });
-            },
-
             // Return the bounding box of where we want the position to stay.
             getBounds: () =>
             {
@@ -167,6 +161,9 @@ export default class ViewerImagesMobile extends ViewerImages
             {
                 // If we enabled moving towards a target position, disable it when the animation finishes.
                 this.moveToTarget = false;
+
+                // Save the zoom level for later images as either fit or cover.
+                ppixiv.settings.set("zoom-level", this._zoomLevel == 0? 0:"cover");
             },
 
             // We don't want to zoom under zoom factor 1x.  Return the zoom ratio needed to bring

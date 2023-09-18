@@ -63,14 +63,9 @@ export default class ViewerImages extends Viewer
         this._animations = { };
 
         // Restore the most recent zoom mode.
-        if(ppixiv.mobile)
-            this.setZoom({ enabled: true, level: "cover" });
-        else
-        {
-            let enabled = ppixiv.settings.get("zoom-mode") == "locked";
-            let level = ppixiv.settings.get("zoom-level", "cover");
-            this.setZoom({ enabled, level });
-        }
+        let enabled = ppixiv.settings.get("zoom-mode") == "locked";
+        let level = ppixiv.settings.get("zoom-level", "cover");
+        this.setZoom({ enabled, level });
 
         this._imageContainer = new ImagesContainer({ container: this._cropBox });
         this._editingContainer = new ImageEditingOverlayContainer({
