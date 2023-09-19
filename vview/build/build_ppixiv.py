@@ -21,6 +21,21 @@ def get_git_tag():
         
     result = subprocess.run(['git', 'describe', '--tags', '--dirty', '--match=r*'], capture_output=True)
     _git_tag = result.stdout.strip().decode()
+
+    # Work around TamperMonkey's broken attempts at parsing versions: it interprets a
+    # standard git devel tag like "100-10" as "major version 100, minor version negative 10" and
+    # fails to update.  Work around this by changing these tags from "r100-10-abcdef-dirty" to
+    # "r100.10.abcdef.dirty".
+    #
+    # You should never parse version numbers as if the entire world uses the same versioning scheme
+    # that you do.  It should only check if the version is different and update if it changes, without
+    # trying to figure out if it's newer or older.  If the version is older you should update to it
+    # anyway, since if a script author rolled back a script update, it was probably for a reason.
+    #
+    # This only affects development versions.  Release versions are just "r123", which it doesn't have
+    # problems with.
+    _git_tag = _git_tag.replace('-', '.')
+
     return _git_tag
 
 def to_javascript_string(s):
