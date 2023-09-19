@@ -44,6 +44,11 @@ export default class ScreenIllust extends Screen
                 <div class=ui>
                 </div>
 
+                <!-- This is displayed while loading translations for the current image. -->
+                <div class=translation-status>
+                    <div class=translation-contents>${ helpers.createIcon("mat:translate") }</div>
+                </div>
+
                 <div class=fade-search></div>
             </div>
         `});

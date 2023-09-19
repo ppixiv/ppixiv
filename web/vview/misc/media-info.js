@@ -337,10 +337,10 @@ class PixivMediaInfo extends MediaInfo
         return createPartialPixivMediaInfo(this);
     }
 
-    getMainImageUrl(page=0, { ignoreLimits=false }={})
+    getMainImageUrl(page=0, { ignoreLimits=false, forceLowRes=false }={})
     {
         let maxPixels = ppixiv.settings.get("image_size_limit")
-        if(maxPixels != null && !ignoreLimits)
+        if((maxPixels != null && !ignoreLimits) || forceLowRes)
         {
             let mangaPage = this.mangaPages[page];
             if(mangaPage == null)

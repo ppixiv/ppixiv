@@ -18,6 +18,7 @@ import { helpers, PointerEventMovement } from '/vview/misc/helpers.js';
 import * as Recaptcha from '/vview/util/recaptcha.js';
 import ExtraImageData from '/vview/misc/extra-image-data.js';
 import GuessImageURL from '/vview/misc/guess-image-url.js';
+import ImageTranslations from '/vview/misc/image-translation.js';
 import PointerListener from '/vview/actors/pointer-listener.js';
 import { getUrlForMediaId } from '/vview/misc/media-ids.js'
 import VirtualHistory from '/vview/util/virtual-history.js';
@@ -64,7 +65,8 @@ export default class App
         ppixiv.tagTranslations = new TagTranslations();
         ppixiv.guessImageUrl = new GuessImageURL();
         ppixiv.muting = new Muting();
-        
+        ppixiv.imageTranslations = new ImageTranslations();
+
         // Set up the PointerListener singleton.
         PointerListener.installGlobalHandler();
 
@@ -509,6 +511,9 @@ export default class App
             displayedMediaId ??= newScreen.displayedMediaId;
             this._contextMenu.setMediaId(displayedMediaId);
         }
+
+        // Tell translations the media ID we're viewing.
+        ppixiv.imageTranslations.setDisplayedMediaId(mediaId);
 
         // Restore state from history if this is an initial load (which may be
         // restoring a tab), for browser forward/back, or if we're exiting from

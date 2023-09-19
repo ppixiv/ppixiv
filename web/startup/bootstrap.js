@@ -41,11 +41,11 @@ async function Bootstrap({env, rootUrl}={})
                 url,
                 method="GET",
                 formData,
-                responseType="response", // or responseText
+                responseType="arraybuffer",
                 headers=null,
             } = e.data;
 
-            console.log("GM.xmlHttpRequest request for:", url);
+            // console.log("GM.xmlHttpRequest request for:", url);
 
             // If we were given a FormData in the form of an object, convert it to a
             // FormData.  For some reason FormData objects themselves can't be sent
@@ -67,7 +67,10 @@ async function Bootstrap({env, rootUrl}={})
             // It's harmless for the site to gain access to GM.xmlHttpRequest, since we only @connect
             // to the site's own image host anyway.  But we might as well can check anyway:
             url = new URL(url);
-            if(url.hostname != "i.pximg.net" && url.hostname != "i-cf.pximg.net")
+            let allowedHosts = [
+                "i.pximg.net", "i-cf.pximg.net", "api.cotrans.touhou.ai"
+            ];
+            if(allowedHosts.indexOf(url.hostname) == -1)
             {
                 responsePort.xhrServerPostMessage({ success: false, error: `Unexpected ppdownload URL: ${url}` });
                 return;
@@ -75,16 +78,30 @@ async function Bootstrap({env, rootUrl}={})
 
             GM.xmlHttpRequest({
                 method, headers,
-                responseType: "arraybuffer",
+                responseType,
 
                 // TamperMonkey takes a URL object, but ViolentMonkey throws an exception unless we
                 // convert to a string.
                 url: url.toString(),
                 data,
 
-                onload: (result) => responsePort.xhrServerPostMessage({ success: true, response: result[responseType] }),
+                onload: (result) => {
+                    let success = result.status < 400;
+                    let error = `HTTP ${result.status}`;
+                    let { response } = result;
+
+                    // If the response is an ArrayBuffer, add it to the transfer list so we don't
+                    // make a copy.
+                    let transfer = [];
+                    if(response instanceof ArrayBuffer)
+                        transfer.push(response);
+
+                    responsePort.xhrServerPostMessage({ success, error, response }, transfer);
+                },
+
+                // This API is broken and doesn't actually include any information about the error.
                 onerror: (e) => {
-                    responsePort.xhrServerPostMessage({ success: false, error: e.error });
+                    responsePort.xhrServerPostMessage({ success: false, error: "Request error" });
                 },
             });
         };

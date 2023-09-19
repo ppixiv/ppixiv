@@ -249,6 +249,17 @@ export async function waitForImageDimensions(img, signal)
     });
 }
 
+// Convert Canvas.toBlob to an async.
+export function canvasToBlob(canvas, {
+    type="image/jpeg",
+    quality=1,
+})
+{
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), type, quality);
+    });
+}
+
 // Wait up to ms for promise to complete.  If the promise completes, return its
 // result, otherwise return "timed-out".
 export async function awaitWithTimeout(promise, ms)
@@ -441,3 +452,10 @@ export function sortQueryParameters(search)
     return result;
 }
 
+export function arrayBufferToHex(data)
+{
+    data = new Uint8Array(data);
+    let hashArray = Array.from(data);
+    let hash = hashArray.map((byte) => byte.toString(16).padStart(2, "0"));
+    return hash.join("");
+}
