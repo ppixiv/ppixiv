@@ -1,4 +1,3 @@
-// XXX test
 import DataSource from '/vview/sites/data-source.js';
 import { helpers } from '/vview/misc/helpers.js';
 
