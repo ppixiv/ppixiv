@@ -365,8 +365,31 @@ export default class MoreOptionsDropdown extends IllustWidget
                     url: "#no-ppixiv",
                 });
             },
+
+            toggleTranslations: () => {
+                return new MenuOptionToggle({
+                    ...sharedOptions,
+                    label: "Translate",
+                    icon: "mat:translate",
+                    requires: ({mediaId}) => {
+                        if(mediaId == null || this.mediaInfo == null)
+                            return false;
+
+                        // Disable this for animations.
+                        return this.mediaInfo.illustType != 2;
+                    },
+                    checked: ppixiv.imageTranslations.getTranslationsEnabled(this.mediaId),
+
+                    onclick: () => {
+                        let enabled = ppixiv.imageTranslations.getTranslationsEnabled(this.mediaId)
+                        ppixiv.imageTranslations.setTranslationsEnabled(this.mediaId, !enabled);
+                        this.refresh();
+                    },
+                });
+            },
         };
 
+        let screenName = ppixiv.app.getDisplayedScreen({ name: true })
         this._menuOptions = [];
         if(!ppixiv.native)
         {
@@ -391,6 +414,9 @@ export default class MoreOptionsDropdown extends IllustWidget
             this._menuOptions.push(menuOptions.similarLocalImages());
         }
 
+        if(!ppixiv.native && !ppixiv.mobile && screenName == "illust")
+            this._menuOptions.push(menuOptions.toggleTranslations());
+
         if(ppixiv.sendImage.enabled)
         {
             this._menuOptions.push(menuOptions.sendToTab());
@@ -399,7 +425,6 @@ export default class MoreOptionsDropdown extends IllustWidget
 
         // These are in the top-level menu on mobile.  Don't show these if we're on the search
         // view either, since they want to actually be on the illust view, not hovering a thumbnail.
-        let screenName = ppixiv.app.getDisplayedScreen({ name: true })
         if(screenName == "illust")
         {
             this._menuOptions.push(menuOptions.toggleSlideshow());
