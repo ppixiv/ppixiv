@@ -225,7 +225,11 @@ export default class ViewerImages extends Viewer
 
         // Start refreshing the image with this data.
         let { url, previewUrl, inpaintUrl } = imageInfo;
-        this._refreshImageRunner.call(this._refreshImage.bind(this), { url, previewUrl, inpaintUrl });
+
+        // Get the translation overlay URL if we have one.
+        let translationUrl = ppixiv.imageTranslations.getTranslationUrl(this.mediaId);
+        
+        this._refreshImageRunner.call(this._refreshImage.bind(this), { url, previewUrl, translationUrl, inpaintUrl });
     }
 
     // Return what we know of:
@@ -311,7 +315,7 @@ export default class ViewerImages extends Viewer
     }
 
     // Refresh the image from imageInfo.
-    async _refreshImage({ url, previewUrl, inpaintUrl, signal })
+    async _refreshImage({ url, previewUrl, translationUrl, inpaintUrl, signal })
     {
         // When quick view displays an image on mousedown, we want to see the mousedown too
         // now that we're displayed.
@@ -328,7 +332,7 @@ export default class ViewerImages extends Viewer
             previewUrl = null;
 
         // Set the image URLs.
-        this._imageContainer.setImageUrls(url, inpaintUrl, previewUrl);
+        this._imageContainer.setImageUrls({ imageUrl: url, previewUrl, translationUrl, inpaintUrl });
 
         // If the main image is already displayed, the image was already displayed and we're just
         // refreshing.
@@ -1598,6 +1602,7 @@ class ImagesContainer extends Widget
         super({...options, template: `
             <div class=inner-image-container>
                 <img class="filtering displayed-image main-image" hidden>
+                <img class="filtering displayed-image translation-image" hidden>
                 <img class="filtering displayed-image inpaint-image" hidden>
                 <img class="filtering displayed-image low-res-preview" hidden>
             </div>
@@ -1605,6 +1610,7 @@ class ImagesContainer extends Widget
 
         this.mainImage = this.root.querySelector(".main-image");
         this.inpaintImage = this.root.querySelector(".inpaint-image");
+        this.translationImage = this.root.querySelector(".translation-image");
         this.previewImage = this.root.querySelector(".low-res-preview");
     }
 
@@ -1629,7 +1635,7 @@ class ImagesContainer extends Widget
         super.shutdown();
     }
 
-    setImageUrls(imageUrl, inpaintUrl, previewUrl)
+    setImageUrls({ imageUrl, inpaintUrl, translationUrl, previewUrl })
     {
         // Work around an ancient legacy browser mess: img.src is "" by default (no image), but if
         // you set it back to "", it ends up being resolved as an empty URL and getting set to window.location,
@@ -1645,6 +1651,7 @@ class ImagesContainer extends Widget
 
         setImageSource(this.mainImage, imageUrl);
         setImageSource(this.inpaintImage, inpaintUrl);
+        setImageSource(this.translationImage, translationUrl);        
         setImageSource(this.previewImage, previewUrl);
 
         this._refreshInpaintVisibility();
@@ -1652,7 +1659,7 @@ class ImagesContainer extends Widget
 
     get complete()
     {
-        return this.mainImage.complete && this.inpaintImage.complete;
+        return this.mainImage.complete && this.inpaintImage.complete && this.translationImage.complete;
     }
 
     decode()
@@ -1662,6 +1669,8 @@ class ImagesContainer extends Widget
             promises.push(this.mainImage.decode());
         if(this.inpaintImage.src)
             promises.push(this.inpaintImage.decode());
+        if(this.translationImage.src)
+            promises.push(this.translationImage.decode());
         return Promise.all(promises);
     }
 
@@ -1683,10 +1692,11 @@ class ImagesContainer extends Widget
             return null;
     }
 
-    // inpaintImage is visible when the main image is, but only if it has an image.
+    // inpaintImage and translationImage are visible when the main image is, but only if they have an image.
     _refreshInpaintVisibility()
     {
         this.inpaintImage.hidden = this.mainImage.hidden || !this.inpaintImage.src;
+        this.translationImage.hidden = this.mainImage.hidden || !this.translationImage.src;
     }
 
     get width() { return this.mainImage.width; }
