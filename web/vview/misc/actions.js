@@ -562,17 +562,9 @@ export default class Actions
         }
 
         // If we're in ZIP mode, download all images in the post.
-        //
-        // Pixiv's host for images changed from i.pximg.net to i-cf.pximg.net.  This will fail currently for that
-        // host, since it's not in @connect, and adding that will prompt everyone for permission.  Work around that
-        // by replacing i-cf.pixiv.net with i.pixiv.net, since that host still works fine.  This only affects downloads.
         let images = [];
         for(let page of mediaInfo.mangaPages)
-        {
-            let url = page.urls.original;
-            url = url.replace(/:\/\/i-cf.pximg.net/, "://i.pximg.net");
-            images.push(url);
-        }
+            images.push(page.urls.original);
 
         // If we're in image mode for a manga post, only download the requested page.
         let mangaPage = helpers.mediaId.parse(mediaId).page;

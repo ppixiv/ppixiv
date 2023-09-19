@@ -48,11 +48,7 @@ function _downloadUsingServer(serverPort, { url, ...args })
             return;
         }
 
-        // We use i-cf for image URLs, but we don't currently have this in @connect,
-        // so we can't use that here.  Switch from i-cf back to the original URLs.
         url = new URL(url);
-        if(url.hostname == "i-cf.pximg.net")
-            url.hostname = "i.pximg.net";
 
         // Send a message to the sandbox to retrieve the image with GM.xmlHttpRequest, giving
         // it a message port to send the result back on.
