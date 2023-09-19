@@ -282,7 +282,6 @@ export default class App
         document.body.appendChild(testOverlayScrollbars);
 
         let hasOverlayScrollbars = testOverlayScrollbars.offsetWidth == testOverlayScrollbars.scrollWidth;
-        console.log("hasOverlayScrollbars:", hasOverlayScrollbars);
         helpers.html.setClass(document.documentElement, "has-overlay-scrollbars", hasOverlayScrollbars);
 
         testOverlayScrollbars.remove();
