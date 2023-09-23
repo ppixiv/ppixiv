@@ -243,6 +243,7 @@ export default class ImageTranslations
     {
         let { size, translator, direction, detector, target_language, forceLowRes } = this._currentSettings;
         let { url } = mediaInfo.getMainImageUrl(page, { forceLowRes });
+        url = helpers.pixiv.adjustImageUrlHostname(url);
 
         // Download the image.
         console.log(`Downloading image for translation: ${url}`);
