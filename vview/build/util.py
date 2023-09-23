@@ -56,3 +56,26 @@ def download_file(url, filename=None):
 
         # Clean up the temp file if we didn't rename it.
         output_temp.unlink(missing_ok=True)
+
+def download_sass(output_path):
+    """
+    Download a dart-sass prebuilt into output_path.
+    """
+    url = 'https://github.com/sass/dart-sass/releases/download/1.55.0/dart-sass-1.55.0-windows-x64.zip'
+    output_file = download_file(url)
+
+    # Extract dart-sass.
+    #
+    # This is another annoying GitHub ZIP.  It's also doubly-nested, with all the files
+    # we want inside dart-sass/src.  Just extract the files we need to simplify the tree.
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    print(f'Extracting dart-sass to {output_path}')
+    zipfile = ZipFile(output_file)
+
+    for filename in ('dart.exe', 'sass.snapshot', 'LICENSE'):
+        input_file = 'dart-sass/src/' + filename
+        output_file = output_path / filename
+        with zipfile.open(input_file, 'r') as input_file:
+            with output_file.open('wb') as output_file:
+                shutil.copyfileobj(input_file, output_file)
