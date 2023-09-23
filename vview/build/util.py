@@ -89,6 +89,13 @@ def download_sass(output_path):
     """
     Download a dart-sass prebuilt into output_path.
     """
+    # Do a quick check to see if all of the files already exist.
+    exe_suffix = '.exe' if sys.platform == 'win32' else ''
+    files = (f'dart{exe_suffix}', 'sass.snapshot', 'LICENSE')
+    all_files_exist = all((output_path / filename).exists() for filename in files)
+    if all_files_exist:
+        return
+
     # Download a SASS prebuilt for this platform.
     arch = f'{sys.platform}-{platform.machine()}'
     paths = {
@@ -105,9 +112,8 @@ def download_sass(output_path):
     output_path.mkdir(parents=True, exist_ok=True)
     print(f'Extracting dart-sass to {output_path}')
 
-    exe_suffix = '.exe' if sys.platform == 'win32' else ''
     with _open_zip_or_tar(output_file) as archive:
-        for filename in (f'dart{exe_suffix}', 'sass.snapshot', 'LICENSE'):
+        for filename in files:
             input_file = 'dart-sass/src/' + filename
             output_file = output_path / filename
             with archive.open(input_file, 'r') as input_file:
