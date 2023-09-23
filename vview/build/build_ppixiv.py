@@ -302,7 +302,7 @@ class Build(object):
                 '--no-embed-source-map',
                 str(path),
                 str(output_css),
-            ], capture_output=True, shell=True)
+            ], capture_output=True)
         except FileNotFoundError as e:
             # If dart-sass doesn't exist in bin/dart-sass, it probably hasn't been downloaded.  Run
             # vview.build.build_vview first at least once to download it.
