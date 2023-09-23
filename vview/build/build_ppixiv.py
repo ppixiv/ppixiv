@@ -1,4 +1,5 @@
 import argparse, base64, collections, errno, glob, hashlib, mimetypes, json, io, os, random, re, sys, string, subprocess, tempfile
+import urllib.parse
 from pathlib import Path
 from pprint import pprint
 
@@ -341,8 +342,12 @@ class Build(object):
             expected_wrong_url += '/'
 
         def fix_url(url):
+            # Resolve the path relative to the CSS file.
+            url = str(urllib.parse.urljoin(output_css.as_uri(), url))
+
+            # The path inside the map is relative to the CSS file, so is relative to 
             if not url.startswith(expected_wrong_url):
-                raise Exception(f'Expected CSS source map path {url} to be inside {expected_wrong_url}')
+                raise Exception(f'Expected CSS source map URL {url} to be inside {expected_wrong_url}')
             return url[len(expected_wrong_url):]
         
         source_map['sources'] = [fix_url(url) for url in source_map['sources']]
