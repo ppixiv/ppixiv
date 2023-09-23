@@ -251,8 +251,8 @@ export default class ImageTranslations
         console.log(`Got image: ${url}`);
 
         // Run preprocessing.  This isn't needed if we're using the low-res image,.
-        // if(!forceLowRes)
-        file = await this._preprocessImage(file);
+        if(!forceLowRes)
+            file = await this._preprocessImage(file);
 
         let response;
         try {
