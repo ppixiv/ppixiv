@@ -1,5 +1,6 @@
 import argparse, base64, collections, errno, glob, hashlib, mimetypes, json, io, os, random, re, sys, string, subprocess, tempfile
 import urllib.parse
+from . import util
 from pathlib import Path
 from pprint import pprint
 
@@ -104,8 +105,21 @@ class Build(object):
             if e.errno != errno.EEXIST:
                 raise
 
-        cls().build_with_settings(is_release=is_release, git_tag=git_tag, deploy=args.deploy, latest=args.latest,
+        build = cls()
+
+        # Before building, download dart-sass if needed.  This lets the ppixiv build work
+        # if vview isn't being used.
+        build._download_sass()
+
+        build.build_with_settings(is_release=is_release, git_tag=git_tag, deploy=args.deploy, latest=args.latest,
             debug_server_url=args.url)
+
+    def _download_sass(self):
+        """
+        Download a dart-sass prebuilt into bin/dart-sass.
+        """
+        output_dir = self.root / 'bin' / 'dart-sass'
+        util.download_sass(output_dir)
 
     def build_with_settings(self, *, is_release=False, git_tag='devel', deploy=False, latest=False, debug_server_url=None):
         self.is_release = is_release
