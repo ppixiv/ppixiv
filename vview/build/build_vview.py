@@ -12,6 +12,7 @@ import argparse, os, sys, urllib, tempfile, subprocess, shutil, ctypes
 from pathlib import Path
 from urllib import request
 from zipfile import ZipFile
+from . import util
 
 class BuildError(Exception): pass
 
@@ -96,53 +97,6 @@ class VViewBuild:
         else:
             return False
 
-    def download_file(self, url, filename=None):
-        """
-        Download url to our local temporary directory and return its path.
-        """
-        if filename is None:
-            filename = urllib.parse.urlparse(url).path
-            filename = os.path.basename(filename)
-
-        output_file = self.temp_dir / filename
-
-        # Stop if we already have the file.  We assume the file is valid, and that the filename
-        # is unique so the contents of the URL won't change.
-        if output_file.exists():
-            print(f'Already exists: {output_file}')
-            return output_file
-
-        output_temp = output_file.with_suffix('.temp')
-
-        print(f'Downloading: {url}')
-        try:
-            with output_temp.open('w+b') as output:
-                with request.urlopen(url) as req:
-                    # Store req.length to work around a weird bug: req.length returns the number of bytes
-                    # remaining instead of the length of the result.
-                    expected_size = req.length
-                    while True:
-                        data = req.read(1024*1024)
-                        output.write(data)
-                        print(f'\rDownloading {output.tell()} / {expected_size}...', end='', flush=True)
-                        if not data:
-                            break
-
-                    if output.tell() != expected_size:
-                        raise BuildError(f'Incomplete file (expected {expected_size}, got {output.tell()})')
-
-            # Rename the file to its final filename.
-            output_temp.rename(output_file)
-            return output_file
-        except urllib.error.HTTPError as e:
-            raise BuildError(f'Error downloading {url}: {e.reason}')
-        finally:
-            # We probably left ourself on a "downloading" line, so move off of it.
-            print('')
-
-            # Clean up the temp file if we didn't rename it.
-            output_temp.unlink(missing_ok=True)
-
     def download_embedded_python(self):
         """
         Download a matching embedded version of Python, and extract it into bin/Python.
@@ -155,7 +109,7 @@ class VViewBuild:
         """
         version = f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}'
         url = f'https://www.python.org/ftp/python/{version}/python-{version}-embed-amd64.zip'
-        output_file = self.download_file(url)
+        output_file = util.download_file(url)
 
         # Extract the ZIP into bin/Python.
         python_embed_dir = self.bin_dir / 'Python'            
@@ -198,7 +152,7 @@ class VViewBuild:
         # https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2021-11-30-12-21
         # https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2021-11-30-12-21/ffmpeg-N-104704-ge22dff43e7-win64-lgpl-shared.zip
         url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2021-11-30-12-21/ffmpeg-N-104704-ge22dff43e7-win64-lgpl-shared.zip'
-        output_file = self.download_file(url)
+        output_file = util.download_file(url)
 
         # Extract FFmpeg.
         #
@@ -238,7 +192,7 @@ class VViewBuild:
         Download a dart-sass prebuild into bin/dart-sass.
         """
         url = 'https://github.com/sass/dart-sass/releases/download/1.55.0/dart-sass-1.55.0-windows-x64.zip'
-        output_file = self.download_file(url)
+        output_file = util.download_file(url)
 
         # Extract dart-sass.
         #
@@ -259,7 +213,7 @@ class VViewBuild:
 
     def download_upscaler(self):
         url = 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip'
-        output_file = self.download_file(url)
+        output_file = util.download_file(url)
         print(output_file)
 
         output_dir = self.bin_dir / 'upscaler'
@@ -288,7 +242,7 @@ class VViewBuild:
 
         # The build ZIP doesn't have the license.  Grab it from the repository.
         license_url = 'https://raw.githubusercontent.com/xinntao/Real-ESRGAN/v0.2.5.0/LICENSE'
-        license_file = self.download_file(license_url, filename='ESRGAN license.txt')
+        license_file = util.download_file(license_url, filename='ESRGAN license.txt')
         shutil.copyfile(license_file, output_dir / 'LICENSE.txt')
 
     def find_msbuild(self):
@@ -419,7 +373,7 @@ class VViewBuild:
 
         # Download get-pip.py.
         url = f'https://bootstrap.pypa.io/get-pip.py'
-        get_pip = self.download_file(url)
+        get_pip = util.download_file(url)
 
         result = subprocess.run(args=[
             self.vvpython,
