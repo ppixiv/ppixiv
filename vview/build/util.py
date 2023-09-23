@@ -1,9 +1,10 @@
 # Helpers used by build_ppixiv and build_vview.
 
-import argparse, os, sys, urllib, tempfile, subprocess, shutil, ctypes
+import os, sys, urllib, tempfile, subprocess, shutil, gzip, contextlib, platform
 from pathlib import Path
 from urllib import request
 from zipfile import ZipFile
+from tarfile import TarFile
 
 _temp_dir = Path(tempfile.gettempdir()) / 'vview-build'
 
@@ -57,25 +58,58 @@ def download_file(url, filename=None):
         # Clean up the temp file if we didn't rename it.
         output_temp.unlink(missing_ok=True)
 
+@contextlib.contextmanager
+def _open_zip_or_tar(path):
+    """
+    Open path as a ZipFile or TarFile.
+
+    This is to work around the dart-sass prebuilts having different archive formats
+    on each platform.
+    """
+    if path.suffix == '.zip':
+        yield ZipFile(path, mode='r')
+        return
+
+    if path.suffix != '.gz':
+        raise Exception(f'Unrecognized archive format: {path}')
+
+    # .tar.gz:
+    with gzip.open(path, 'r') as f:
+        tar = TarFile(fileobj=f, mode='r')
+
+        # Monkey patch TarFile.open into the object to work around it being inconsistent
+        # with ZipFile.
+        def _open(path, mode):
+            return tar.extractfile(path)
+        tar.open = _open
+
+        yield tar
+
 def download_sass(output_path):
     """
     Download a dart-sass prebuilt into output_path.
     """
-    url = 'https://github.com/sass/dart-sass/releases/download/1.55.0/dart-sass-1.55.0-windows-x64.zip'
+    # Download a SASS prebuilt for this platform.
+    arch = f'{sys.platform}-{platform.machine()}'
+    paths = {
+        'win32-AMD64': 'windows-x64.zip',
+        'linux-x86_64': 'linux-x64.tar.gz',
+        'darwin-arm64': 'macos-arm64.tar.gz',
+        'darwin-x86_64': 'macos-x64.tar.gz',
+    }
+    suffix = paths[arch]
+    url = f'https://github.com/sass/dart-sass/releases/download/1.68.0/dart-sass-1.68.0-{suffix}'
     output_file = download_file(url)
 
-    # Extract dart-sass.
-    #
-    # This is another annoying GitHub ZIP.  It's also doubly-nested, with all the files
-    # we want inside dart-sass/src.  Just extract the files we need to simplify the tree.
+    # Just extract the files we need and flatten the file tree.
     output_path.mkdir(parents=True, exist_ok=True)
-
     print(f'Extracting dart-sass to {output_path}')
-    zipfile = ZipFile(output_file)
 
-    for filename in ('dart.exe', 'sass.snapshot', 'LICENSE'):
-        input_file = 'dart-sass/src/' + filename
-        output_file = output_path / filename
-        with zipfile.open(input_file, 'r') as input_file:
-            with output_file.open('wb') as output_file:
-                shutil.copyfileobj(input_file, output_file)
+    exe_suffix = '.exe' if sys.platform == 'win32' else ''
+    with _open_zip_or_tar(output_file) as archive:
+        for filename in (f'dart{exe_suffix}', 'sass.snapshot', 'LICENSE'):
+            input_file = 'dart-sass/src/' + filename
+            output_file = output_path / filename
+            with archive.open(input_file, 'r') as input_file:
+                with output_file.open('wb') as output_file:
+                    shutil.copyfileobj(input_file, output_file)
