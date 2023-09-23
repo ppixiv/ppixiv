@@ -114,8 +114,11 @@ def download_sass(output_path):
 
     with _open_zip_or_tar(output_file) as archive:
         for filename in files:
-            input_file = 'dart-sass/src/' + filename
-            output_file = output_path / filename
-            with archive.open(input_file, 'r') as input_file:
-                with output_file.open('wb') as output_file:
+            input_filename = 'dart-sass/src/' + filename
+            output_filename = output_path / filename
+            with archive.open(input_filename, 'r') as input_file:
+                with output_filename.open('wb') as output_file:
                     shutil.copyfileobj(input_file, output_file)
+
+                # For LInux, just mark all files executable.
+                os.chmod(output_filename, 0o755)
