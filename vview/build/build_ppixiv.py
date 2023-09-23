@@ -285,13 +285,8 @@ class Build(object):
 
         # The path to dart-sass:
         dart_path = self.root / 'bin' / 'dart-sass'
-        dart_exe = dart_path / 'dart.exe'
+        dart_exe = dart_path / 'dart'
         sass = dart_path / 'sass.snapshot'
-
-        # If dart-sass doesn't exist in bin/dart-sass, it probably hasn't been downloaded.  Run
-        # vview.build.build_vview first at least once to download it.
-        if not dart_exe.exists():
-            raise Exception(f'dart-sass not found in {dart_path}')
 
         output_css = self._make_temp_path().with_suffix('.css')
         output_map = output_css.with_suffix('.css.map')
@@ -302,11 +297,16 @@ class Build(object):
             dart_exe, sass,
         ]
 
-        result = subprocess.run(dart_args + [
-            '--no-embed-source-map',
-            str(path),
-            str(output_css),
-        ], capture_output=True, shell=True)
+        try:
+            result = subprocess.run(dart_args + [
+                '--no-embed-source-map',
+                str(path),
+                str(output_css),
+            ], capture_output=True, shell=True)
+        except FileNotFoundError as e:
+            # If dart-sass doesn't exist in bin/dart-sass, it probably hasn't been downloaded.  Run
+            # vview.build.build_vview first at least once to download it.
+            raise Exception(f'dart-sass not found in {dart_path}') from None
 
         if result.returncode:
             # Errors from dart are printed to stderr, but errors from SASS itself go to
