@@ -68,9 +68,14 @@ async function Bootstrap({env, rootUrl}={})
             // to the site's own image host anyway.  But we might as well can check anyway:
             url = new URL(url);
             let allowedHosts = [
-                "i.pximg.net", "i-cf.pximg.net", "api.cotrans.touhou.ai"
+                "i.pximg.net", "i-cf.pximg.net", "cotrans.touhou.ai"
             ];
-            if(allowedHosts.indexOf(url.hostname) == -1)
+            let anyMatches = false;
+            for(let host of allowedHosts)
+                if(url.hostname.endsWith(host))
+                    anyMatches = true;
+
+            if(!anyMatches)
             {
                 responsePort.xhrServerPostMessage({ success: false, error: `Unexpected ppdownload URL: ${url}` });
                 return;
