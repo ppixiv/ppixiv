@@ -376,7 +376,7 @@ export default class ImageTranslations
             // Reduce the image dimensions to the max size.
             let width = img.naturalWidth;
             let height = img.naturalHeight;
-            let maxSize = 4096;
+            let maxSize = 2048;
             let resizeBy = 1;
             resizeBy = Math.min(resizeBy, maxSize / width);
             resizeBy = Math.min(resizeBy, maxSize / height);
