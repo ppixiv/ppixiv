@@ -91,18 +91,6 @@ export async function downloadPixivImage(url)
     });
 }
 
-export async function downloadPixivImages(urls)
-{
-    let results = [];
-    for(let url of urls)
-    {
-        let result = await downloadPixivImage(url);
-        results.push(result);
-    }
-
-    return results;
-}
-
 // Make a direct request to the download server.
 export async function sendRequest(args)
 {

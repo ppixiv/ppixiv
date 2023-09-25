@@ -5,7 +5,7 @@ import RecentBookmarkTags from '/vview/misc/recent-bookmark-tags.js';
 import PixivUgoiraDownloader from '/vview/misc/pixiv-ugoira-downloader.js';
 import CreateZIP from '/vview/misc/create-zip.js';
 import * as Recaptcha from '/vview/util/recaptcha.js';
-import { downloadPixivImages } from '/vview/util/gm-download.js';
+import { downloadPixivImage } from '/vview/util/gm-download.js';
 import { helpers } from '/vview/misc/helpers.js';
 
 export default class Actions
@@ -562,20 +562,27 @@ export default class Actions
         }
 
         // If we're in ZIP mode, download all images in the post.
-        let images = [];
-        for(let page of mediaInfo.mangaPages)
-            images.push(page.urls.original);
+        let pages = [];
+        for(let page = 0; page < mediaInfo.mangaPages.length; ++page)
+            pages.push(page);
 
         // If we're in image mode for a manga post, only download the requested page.
         let mangaPage = helpers.mediaId.parse(mediaId).page;
         if(downloadType == "image")
-            images = [images[mangaPage]];
+            pages = [mangaPage];
 
-        ppixiv.message.show(images.length > 1? `Downloading ${images.length} pages...`:`Downloading image...`);
+        ppixiv.message.show(pages.length > 1? `Downloading ${pages.length} pages...`:`Downloading image...`);
 
-        let results;
+        let results = [];
         try {
-            results = await downloadPixivImages(images);
+            for(let page of pages)
+            {
+                let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
+                let url = mediaInfo.mangaPages[page].urls.original;
+                let result = await downloadPixivImage(url);
+                result.extension = helpers.strings.getExtension(url);
+                results.push(result);
+            }
         } catch(e) {
             ppixiv.message.show(e.toString());
             return;
@@ -584,11 +591,10 @@ export default class Actions
         ppixiv.message.hide();
 
         // If there's just one image, save it directly.
-        if(images.length == 1)
+        if(pages.length == 1)
         {
-            let url = images[0];
             let blob = new Blob([results[0]]);
-            let ext = helpers.strings.getExtension(url);
+            let ext = results[0].extension;
             let filename = userInfo.name + " - " + mediaInfo.illustId;
 
             // If this is a single page of a manga post, include the page number.
@@ -603,10 +609,9 @@ export default class Actions
         // There are multiple images, and since browsers are stuck in their own little world, there's
         // still no way in 2018 to save a batch of files to disk, so ZIP the images.
         let filenames = [];
-        for(let i = 0; i < images.length; ++i)
+        for(let i = 0; i < pages.length; ++i)
         {
-            let url = images[i];
-            let ext = helpers.strings.getExtension(url);
+            let ext = results[i].extension;
             let filename = i.toString().padStart(3, '0') + "." + ext;
             filenames.push(filename);
         }
