@@ -311,6 +311,62 @@ export function vsync({signal=null}={})
     });
 }
 
+
+// Wait until the given WebSocket is opened.  Return true on success or false on error.
+export function waitForWebSocketOpened(websocket, { signal }={})
+{
+    return new Promise((resolve) => {
+        let cleanupAbort =  new AbortController();
+
+        let onopen = (e) => {
+            cleanupAbort.abort();
+            resolve(true);
+        };
+        let onerror = (e) => {
+            cleanupAbort.abort();
+            resolve(false);
+        };
+        websocket.addEventListener("open", onopen, { signal: cleanupAbort.signal });
+        websocket.addEventListener("error", onerror, { signal: cleanupAbort.signal });
+
+        // If we were given a signal, stop if we're signalled as if the socket was closed.
+        if(signal)
+            signal.addEventHandler("abort", () => onclose(), { signal: cleanupAbort.signal });
+    });
+}
+
+// Return the next WebSockets message.  If the connection is closed, return null.
+export function waitForWebSocketMessage(websocket, { signal }={})
+{
+    return new Promise((resolve) => {
+        let cleanupAbort =  new AbortController();
+
+        let onmessage = (e) => {
+            cleanupAbort.abort();
+
+            try {
+                let data = JSON.parse(e.data);
+                resolve(data);
+            } catch(e) {
+                console.log("Invalid data received from socket:", websocket);
+                console.log(e.data);
+            }
+        };
+
+        let onclose = (e) => {
+            cleanupAbort.abort();
+            resolve(null);
+        };
+
+        websocket.addEventListener("message", onmessage, { signal: cleanupAbort.signal });
+        websocket.addEventListener("close", onclose, { signal: cleanupAbort.signal });
+
+        // If we were given a signal, stop if we're signalled as if the socket was closed.
+        if(signal)
+            signal.addEventHandler("abort", () => onclose(), { signal: cleanupAbort.signal });
+    });
+}
+
 export function arrayEqual(lhs, rhs)
 {
     if(lhs.length != rhs.length)

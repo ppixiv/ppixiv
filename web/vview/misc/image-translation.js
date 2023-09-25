@@ -240,6 +240,7 @@ export default class ImageTranslations
     // Request an image translation.  Return the translation URL.
     async _translateImage(mediaInfo, page)
     {
+        let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaInfo.mediaId, page);
         let { size, translator, direction, detector, target_language, forceLowRes } = this._currentSettings;
         let { url } = mediaInfo.getMainImageUrl(page, { forceLowRes });
         url = helpers.pixiv.adjustImageUrlHostname(url);
@@ -274,13 +275,81 @@ export default class ImageTranslations
         }
 
         response = JSON.parse(response);
-        let { id, result } = response;
 
-        // If we didn't get an immediate result, wait for it.
-        if(result?.translation_mask == null)
-            result = await this._waitForTranslationResult(id);
+        // We expect to either get a request ID, an error, or a translation result.
+        let { id, error, translation_mask } = response;
 
-        return result.translation_mask;
+        if(error != null)
+        {
+            console.log(`Translation error for ${pageMediaId}: ${error}`);
+            return null;
+        }
+
+        if(translation_mask != null)
+        {
+            console.log(`Cached translation result for ${pageMediaId}: ${translation_mask}`);
+            return translation_mask;
+        }
+
+        if(id == null)
+        {
+            // We didn't get anything, so we don't understand this response.
+            console.log(`Unexpected translation response for ${pageMediaId}:`, response);
+            return null;
+        }
+
+        // Open the queue socket to wait for the result.
+        let websocket = new WebSocket(`wss://api.cotrans.touhou.ai/task/${id}/event/v1`);
+
+        if(!await helpers.other.waitForWebSocketOpened(websocket))
+        {
+            console.log("Couldn't connect to translation socket");
+            return null;
+        }
+
+        // Handle messages from the socket.
+        try {
+            while(1)
+            {
+                let data = await helpers.other.waitForWebSocketMessage(websocket);
+                if(data == null)
+                {
+                    console.log(`Translation socket closed without a result: ${pageMediaId}`);
+                    return null;
+                }
+
+                switch(data.type)
+                {
+                case "status":
+                    // console.log(`Translation status: ${data.status}`);
+                    continue;
+
+                case "pending":
+                    // Our position in the queue changed.
+                    continue;
+
+                case "result":
+                    console.log(`Translation result for ${pageMediaId}: ${data.result.translation_mask}`);
+                    return data.result.translation_mask;
+
+                case "error":
+                    console.log(`Translation error for ${pageMediaId}: $[data.error}`);
+                    return null;
+
+                case "not_found":
+                    // The ID is unknown.  This is either a bug or a server problem.
+                    console.log(`Translation error for ${pageMediaId}: ID not found`);
+                    return null;
+
+                default:
+                    // Ignore messages that we don't understand.
+                    console.log(`Unknown translation queue message for ${pageMediaId}}:`, data);
+                    continue;
+                }        
+            }
+        } finally {
+            websocket.close();
+        }
     }
 
     async _preprocessImage(data)
@@ -321,7 +390,6 @@ export default class ImageTranslations
             let canvas = document.createElement("canvas");
             canvas.width = Math.round(width * resizeBy);
             canvas.height = Math.round(height * resizeBy);
-            console.log(canvas.width, canvas.height);
 
             let context = canvas.getContext("2d");
             context.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, canvas.width, canvas.height);
@@ -332,47 +400,6 @@ export default class ImageTranslations
         } finally {
             URL.revokeObjectURL(blobUrl);
         }
-    }
-
-    // Wait for an async translation to complete, and return the result.  Throw an exception
-    // on error.
-    _waitForTranslationResult(id)
-    {
-        let websocket = new WebSocket(`wss://api.cotrans.touhou.ai/task/${id}/event/v1`);
-
-        let promise = new Promise((resolve, reject) => {
-            websocket.addEventListener("message", (e) => {
-                let data = JSON.parse(e.data);
-                switch(data.type)
-                {
-                case "status":
-                    // console.log(`Translation status: ${data.status}`);
-                    break;
-
-                case "result":
-                    console.log(`Translation result: ${data.result.translation_mask}`);
-                    resolve(data.result);
-                    break;
-                case "error":
-                    console.log("Translation error:", data.result);
-                    reject(new Error("Translation failed"));
-                    break;
-                case "not_found":
-                    // The ID is unknown.
-                    console.log("Translation error: ID not found");
-                    reject(new Error("Translation failed"));
-                    break;
-                }
-            });
-
-            websocket.addEventListener("error", (e) => {
-                reject(new Error("Couldn't connect to translation WebSocket"));
-            });
-        });
-
-        promise.finally(() => websocket.close());
-
-        return promise;
     }
 }
 
