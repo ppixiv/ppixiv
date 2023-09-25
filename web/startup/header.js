@@ -10,8 +10,7 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @connect     pixiv.net
-// @connect     i.pximg.net
-// @connect     i-cf.pximg.net
-// @connect     api.cotrans.touhou.ai
+// @connect     pximg.net
+// @connect     cotrans.touhou.ai
 // @connect     self
 // @namespace   ppixiv
