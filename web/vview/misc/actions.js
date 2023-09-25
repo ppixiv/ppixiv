@@ -578,6 +578,20 @@ export default class Actions
             for(let page of pages)
             {
                 let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
+
+                // If translations for this image are enabled, try to save the image with translations.
+                // If translations are disabled for this image, this will be null.
+                let translatedCanvas = await ppixiv.imageTranslations.getTranslatedImage(pageMediaId);
+                if(translatedCanvas != null)
+                {
+                    let blob = await helpers.other.canvasToBlob(translatedCanvas, { type: "image/jpeg", quality: 0.95 });
+                    let result = await blob.arrayBuffer();
+                    result.extension = "jpg";
+                    results.push(result);
+                    continue;
+                }
+
+                // Download the image normally.
                 let url = mediaInfo.mangaPages[page].urls.original;
                 let result = await downloadPixivImage(url);
                 result.extension = helpers.strings.getExtension(url);

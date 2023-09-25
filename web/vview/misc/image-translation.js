@@ -56,6 +56,9 @@ export default class ImageTranslations
         }
 
         this._checkTranslationQueue();
+
+        // Fire callbacks if we turn translations on or off.
+        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     getTranslationsEnabled(mediaId)
@@ -409,6 +412,107 @@ export default class ImageTranslations
         } finally {
             URL.revokeObjectURL(blobUrl);
         }
+    }
+
+    // Return a canvas with the given image and its translation composited, or null if we weren't
+    // able to load a translation.
+    async getTranslatedImage(mediaId)
+    {
+        // Translations must already be enabled for this post.
+        if(!this.getTranslationsEnabled(mediaId))
+            return null;
+
+        let [_, page] = helpers.mediaId.toIllustIdAndPage(mediaId);
+        let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: true });
+
+        // Even if translations are using the low-res image, download the full image for saving.
+        let { url } = mediaInfo.getMainImageUrl(page);
+
+        // Wait for the translation to complete if needed.
+        await this.waitForTranslation(mediaId);
+
+        // The translation URL will be null if there's no translated text on this page or if translation failed.
+        let translationUrl = this.getTranslationUrl(mediaId);
+        if(translationUrl == null)
+            return null;
+
+        // Composite the images together.
+        let canvas = document.createElement("canvas");
+        let context = canvas.getContext("2d");
+        let createdCanvas = false;
+        for(let imageUrl of [
+            url, translationUrl,
+        ])
+        {
+            // Download the image.  We need to use downloadPixivImage for both of these images, since
+            // neither supports CORS.
+            let arrayBuffer = await downloadPixivImage(imageUrl);
+            let blob = new Blob([arrayBuffer]);
+            let imageBlobUrl = URL.createObjectURL(blob);
+
+            let img = document.createElement("img");
+            img.src = imageBlobUrl;
+            try {
+                let imageLoadResult = await helpers.other.waitForImageLoad(img);
+                if(imageLoadResult == "failed")
+                {
+                    console.log(`Image load failed: ${imageUrl}`);
+                    return null;
+                }
+            } finally {
+                URL.revokeObjectURL(imageBlobUrl);
+            }
+
+            // Set up the canvas when we get the main image.
+            if(!createdCanvas)
+            {
+                createdCanvas = true;
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+            }
+
+            context.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, canvas.width, canvas.height);
+        }
+        
+        return canvas;
+    }
+
+    // If translations are enabled for mediaId, wait for the translation result.  If translations
+    // are turned off, return immediately.
+    waitForTranslation(mediaId, { signal }={})
+    {
+        return new Promise((resolve) => {
+            // Return true if we should resolve.
+            let isReady = () =>
+            {
+                if(!this.getTranslationsEnabled(mediaId))
+                {
+                    console.error(`Translations not enabled for ${mediaId}`);
+                    return true;
+                }
+
+                return this._translatedUrls.has(this._getIdForMediaId(mediaId));
+            }
+
+            // Just resolve now if the result is already ready.
+            if(isReady())
+            {
+                resolve();
+                return;
+            }
+
+            // mediamodified will be fired when we get a translation, and also if translations
+            // are disabled while we're waiting.
+            let cleanupAbort =  new AbortController();
+
+            ppixiv.mediaCache.addEventListener("mediamodified", (e) => {
+                if(isReady())
+                {
+                    cleanupAbort.abort();
+                    resolve();
+                }
+            }, { signal: cleanupAbort.signal });
+        });
     }
 }
 
