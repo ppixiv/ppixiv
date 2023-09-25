@@ -53,6 +53,9 @@ export default class Settings extends EventTarget
         // If not null, this limits the size of loaded images.
         this.configure("image_size_limit", { defaultValue: ppixiv.mobile? 4000*4000:null });
 
+        // Translation settings:
+        this.configure("translation_api_url", { defaultValue: "https://api.cotrans.touhou.ai" });
+
         // Run any one-time settings migrations.
         this.migrate();
     }

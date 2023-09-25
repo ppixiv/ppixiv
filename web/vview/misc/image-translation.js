@@ -10,7 +10,6 @@ import MediaInfo  from '/vview/misc/media-info.js';
 // The cotrans script seems to have no limit to the number of requests it'll start, but
 // for sanity we set a request limit.
 const MaxParallelTranslationRequests = 5;
-const translationApiUrl = 'https://api.cotrans.touhou.ai/task/upload/v1';
 
 export default class ImageTranslations
 {
@@ -253,6 +252,8 @@ export default class ImageTranslations
         // Run preprocessing.  This isn't needed if we're using the low-res image,.
         if(!forceLowRes)
             file = await this._preprocessImage(file);
+
+        let translationApiUrl = ppixiv.settings.get("translation_api_url") + '/task/upload/v1';
 
         let response;
         try {
