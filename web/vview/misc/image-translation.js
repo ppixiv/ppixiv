@@ -274,7 +274,7 @@ export default class ImageTranslations
                 responseType: "text",
                 formData: {
                     size, translator, direction, detector, target_language,
-                    retry: "true",
+                    retry: "false",
                     file,
                  },
             });
