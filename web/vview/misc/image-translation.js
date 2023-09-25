@@ -9,7 +9,7 @@ import MediaInfo  from '/vview/misc/media-info.js';
 
 // The cotrans script seems to have no limit to the number of requests it'll start, but
 // for sanity we set a request limit.
-const MaxParallelTranslationRequests = 5;
+const MaxParallelTranslationRequests = 3;
 
 export default class ImageTranslations
 {
@@ -216,10 +216,16 @@ export default class ImageTranslations
         };
     }
 
-    // Return a unique ID for the current set of settings.
-    get _currentSettingsId()
+    _settingsForImage(mediaId)
     {
-        let settings = JSON.stringify(this._currentSettings);
+        let settings = { ...this._currentSettings };
+        return settings;
+    }
+
+    // Return a string identifying a specific set of settings.
+    _idForSettings(settings)
+    {
+        settings = JSON.stringify(settings);
         let settingsId = this._settingsToId.get(settings);
         if(settingsId != null)
             return settingsId;
@@ -234,14 +240,17 @@ export default class ImageTranslations
     // change, and not need to request them again if the settings change is reverted.
     _getIdForMediaId(mediaId)
     {
-        return `${mediaId}|${this._currentSettingsId}`;
+        let settings = this._settingsForImage(mediaId);
+        let settingsId = this._idForSettings(settings);
+        return `${mediaId}|${settingsId}`;
     }
 
     // Request an image translation.  Return the translation URL.
     async _translateImage(mediaInfo, page)
     {
         let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaInfo.mediaId, page);
-        let { size, translator, direction, detector, target_language, forceLowRes } = this._currentSettings;
+        let settings = this._settingsForImage(mediaInfo.mediaId);
+        let { size, translator, direction, detector, target_language, forceLowRes } = settings;
         let { url } = mediaInfo.getMainImageUrl(page, { forceLowRes });
         url = helpers.pixiv.adjustImageUrlHostname(url);
 
