@@ -339,24 +339,24 @@ class PixivMediaInfo extends MediaInfo
 
     getMainImageUrl(page=0, { ignoreLimits=false, forceLowRes=false }={})
     {
-        let maxPixels = ppixiv.settings.get("image_size_limit")
-        if((maxPixels != null && !ignoreLimits) || forceLowRes)
-        {
-            let mangaPage = this.mangaPages[page];
-            if(mangaPage == null)
-                return { };
+        let mangaPage = this.mangaPages[page];
+        if(mangaPage == null)
+            return { };
 
-            let pixels = mangaPage.width * mangaPage.height;
-            let huge = pixels > maxPixels;
-            if(huge)
-            {
-                // Use the downscaled image.  This is currently always rescaled to fit a max
-                // resolution of 1200.
-                let ratio = Math.min(1, 1200 / mangaPage.width, 1200 / mangaPage.height);
-                let width = Math.round(mangaPage.width * ratio);
-                let height = Math.round(mangaPage.height * ratio);
-                return { url: mangaPage.urls.regular, width, height };
-            }
+        // Use the low-res image if image_size_limit is set and ignoreLimits is false.
+        let pixels = mangaPage.width * mangaPage.height;
+        let maxPixels = ppixiv.settings.get("image_size_limit");
+        if(!ignoreLimits && maxPixels != null && pixels > maxPixels)
+            forceLowRes = true;
+
+        if(forceLowRes)
+        {
+            // Use the downscaled image.  This is currently always rescaled to fit a max
+            // resolution of 1200.
+            let ratio = Math.min(1, 1200 / mangaPage.width, 1200 / mangaPage.height);
+            let width = Math.round(mangaPage.width * ratio);
+            let height = Math.round(mangaPage.height * ratio);
+            return { url: mangaPage.urls.regular, width, height };
         }
         
         return super.getMainImageUrl(page);
