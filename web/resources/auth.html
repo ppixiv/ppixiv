@@ -82,17 +82,17 @@ async function post(path, data={})
 }
 
 // Check if we're already logged in (as a non-guest user).
-async function check_login()
+async function checkLogin()
 {
     let result = await post("/api/info");
     if(result.success && result.username != "guest")
     {
         console.log("Already logged in");
-        redirect_back();
+        redirectBack();
     }
 }
 
-function redirect_back()
+function redirectBack()
 {
     let query = new URLSearchParams(document.location.search);
     let url = query.get('url');
@@ -112,7 +112,7 @@ function redirect_back()
 }
 
 // When the window gains focus, check if we were logged in in another tab.
-window.addEventListener("focus", async(e) => { await check_login(); });
+window.addEventListener("focus", async(e) => { await checkLogin(); });
 
 async function login(username, password)
 {
@@ -122,21 +122,20 @@ async function login(username, password)
 
     if(!result.success)
     {
-        set_message(result.reason);
+        setMessage(result.reason);
         return;
     }
 
     // Save the token.  If we're on HTTPS, set it as a secure token.
     let token = result.token;
     let secure = document.location.protocol == "https:"? "; Secure; SameSite=Strict":"";
-    console.log(result.token, secure);
     document.cookie = `auth_token=${token}; max-age=99999999; path=/${secure}`;
 
     // Redirect back to the original URL.
-    redirect_back();
+    redirectBack();
 }
 
-function set_message(text)
+function setMessage(text)
 {
     let error = document.querySelector("#error");
     error.innerText = text;
@@ -145,15 +144,15 @@ function set_message(text)
 
 async function setup()
 {
-    let input_username = document.querySelector("#username");
-    let input_password = document.querySelector("#password");
+    let inputUsername = document.querySelector("#username");
+    let inputPassword = document.querySelector("#password");
 
     document.querySelector("#submit").addEventListener("click", (e) => {
         e.preventDefault();
-        login(input_username.value, input_password.value);
+        login(inputUsername.value, inputPassword.value);
     });
 
-    await check_login();
+    await checkLogin();
 }
 
 setup();
