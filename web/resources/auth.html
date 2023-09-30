@@ -126,10 +126,11 @@ async function login(username, password)
         return;
     }
 
-    // Save the token.
+    // Save the token.  If we're on HTTPS, set it as a secure token.
     let token = result.token;
-    document.cookie = `auth_token=${token}; max-age=99999999; path=/`;
-    console.log(result.token);
+    let secure = document.location.protocol == "https:"? "; Secure; SameSite=Strict":"";
+    console.log(result.token, secure);
+    document.cookie = `auth_token=${token}; max-age=99999999; path=/${secure}`;
 
     // Redirect back to the original URL.
     redirect_back();
