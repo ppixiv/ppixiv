@@ -455,6 +455,7 @@ let pageTitles = {
     userMuting: "Muted users",
     linkedTabs: "Linked tabs",
     translation: "Translation",
+    translationOverride: "Translation",
     other: "Other",
     whatsNew: "What's New",
 };
@@ -678,10 +679,10 @@ export class SettingsDialog extends DialogWidget
                 settingsWidgets.unlinkAllTabs();
             },
 
-            translation: () => {
-                // ImageTranslations handles these settings.
-                createTranslationSettingsWidgets({ globalOptions });
-            },
+            // ImageTranslations handles these settings.  translationOverride is the settings override version
+            // when we're viewing an image.
+            translation: () => createTranslationSettingsWidgets({ globalOptions, editOverrides: false }),
+            translationOverride: () => createTranslationSettingsWidgets({ globalOptions, editOverrides: true }),
 
             other: () => {
                 if(ppixiv.native && !LocalAPI.localInfo.local)

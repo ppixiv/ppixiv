@@ -398,7 +398,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                         if(!isEnabled())
                             return;
 
-                        new SettingsPageDialog({ settingsPage: "translation" });
+                        new SettingsPageDialog({ settingsPage: "translationOverride" });
 
                         this.parent.hide();
                         return true;
