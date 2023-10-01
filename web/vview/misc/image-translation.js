@@ -11,6 +11,29 @@ import MediaInfo  from '/vview/misc/media-info.js';
 // for sanity we set a request limit.
 const MaxParallelTranslationRequests = 3;
 
+// Map from our settings to API fields:
+const AllSettings = {
+    // If true, translate using a lower resolution Pixiv image.  This is usually good enough,
+    // and is much faster.  Unfortunately there's no way to provide a low-res image for translation
+    // and to receive a high-res result, so this causes the text to also be lower resolution.
+    translation_low_res: "forceLowRes",
+
+    // S: 1024
+    // M: 1536
+    // L: 2048
+    // XL: 2560
+    translation_size: "size",
+
+    // gpt3.5, youdao, baidu, google, deepl, papago, offline
+    translation_translator: "translator",
+
+    // auto, h, v
+    translation_direction: "direction",
+
+    // CHS, CHT, JPN, ENG, KOR, VIN, CSY, NLD, FRA, DEU, HUN, ITA, PLK, PTB, ROM, RUS, UKR, ESP, TRK
+    translation_language: "target_language",
+};
+
 export default class ImageTranslations
 {
     constructor()
@@ -20,6 +43,11 @@ export default class ImageTranslations
         this._translatedUrls = new Map();
         this._translationRequests = new Map();
         this._settingsToId = new Map();
+        this._mediaIdSettingsOverrides = new Map();
+
+        // Start translations if needed when settings change.
+        for(let settingsKey of Object.keys(AllSettings))
+            ppixiv.settings.addEventListener(settingsKey, () => this._checkTranslationQueue());
     }
 
     // Set the media ID that the viewer is currently displaying.  We'll only actively
@@ -103,6 +131,8 @@ export default class ImageTranslations
         for(let page = currentPage-1; page >= 0; --page)
             pagesToLoad.push(page);
 
+        pagesToLoad = [0];
+
         for(let page of pagesToLoad)
         {
             // Stop once we've started the maximum number of requests.  We'll come back and start
@@ -110,6 +140,7 @@ export default class ImageTranslations
             if(this._translationRequests.size >= MaxParallelTranslationRequests)
                 break;
 
+            // XXX: this is settings-specific
             let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
 
             // Skip this page if we already have it, or if a request is already queued.
@@ -193,36 +224,83 @@ export default class ImageTranslations
     // Return settings that affect the result.
     get _currentSettings()
     {
-        return {
-            // If true, translate using a lower resolution Pixiv image.  This is usually good enough,
-            // and is much faster.  Unfortunately there's no way to provide a low-res image for translation
-            // and to receive a high-res result, so this causes the text to also be lower resolution.
-            forceLowRes: true,
-
-            // S: 1024
-            // M: 1536
-            // L: 2048
-            // XL: 2560
-            size: "M",
-
-            // gpt3.5, youdao, baidu, google, deepl, papago, offline
-            translator: "gpt3.5",
-
-            // auto, h, v
-            direction: "auto",
-
+        let settings = {
             // "ctd" is the only option.
             detector: "default",
-
-            // CHS, CHT, JPN, ENG, KOR, VIN, CSY, NLD, FRA, DEU, HUN, ITA, PLK, PTB, ROM, RUS, UKR, ESP, TRK
-            target_language: "ENG",
         };
+
+        for(let [settingsKey, apiKey] of Object.entries(AllSettings))
+            settings[apiKey] = ppixiv.settings.get(settingsKey);
+
+        return settings;
     }
 
     _settingsForImage(mediaId)
     {
-        let settings = { ...this._currentSettings };
+        let settings = {
+            // "ctd" is the only option for this, so we don't have a setting for it.
+            detector: "default",
+        };
+
+        // If we have overrides for this image, overlay them on top.
+        let overrides = this._mediaIdSettingsOverrides.get(mediaId) ?? {};
+
+        for(let [settingsKey, apiKey] of Object.entries(AllSettings))
+            settings[apiKey] = overrides[settingsKey] ?? ppixiv.settings.get(settingsKey);
+
         return settings;
+    }
+
+    // Return a settings object for a single media ID.  This can be used interchangably with
+    // ppixiv.settings to edit settings for one media ID.
+    getSettingHandlerForImage(mediaId)
+    {
+        return {
+            get: (settingName) => {
+                return this.getSettingForImage(mediaId, settingName);
+            },
+            set: (settingName, value) => {
+                return this.setSettingForImage(mediaId, settingName, value);
+            },
+
+            // This isn't used.
+            addEventListener: () => null,
+        };
+    }
+
+    // Get and set settings overrides for a single media ID.  Setting names are the same as
+    // the equivalent regular settings names.  Setting an override to the current global setting
+    // removes the override.  These aren't stored between sessions.
+    getSettingForImage(mediaId, settingName)
+    {
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
+
+        let defaultValue = ppixiv.settings.get(settingName);
+        let overrides = this._mediaIdSettingsOverrides.get(mediaId);
+        if(overrides == null)
+            return defaultValue;
+
+        return overrides[settingName] ?? defaultValue;
+    }
+
+    setSettingForImage(mediaId, settingName, value)
+    {
+        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
+
+        let overrides = this._mediaIdSettingsOverrides.get(mediaId);
+        if(overrides == null)
+        {
+            overrides = {};
+            this._mediaIdSettingsOverrides.set(mediaId, overrides);
+        }
+
+        let defaultValue = ppixiv.settings.get(settingName);
+        if(value == defaultValue)
+            delete overrides[settingName];
+        else
+            overrides[settingName] = value;
+
+        this._checkTranslationQueue();
     }
 
     // Return a string identifying a specific set of settings.
