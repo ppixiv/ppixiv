@@ -266,8 +266,6 @@ export default class ImageTranslations extends EventTarget
     // removes the override.  These aren't stored between sessions.
     getSettingForImage(mediaId, settingName)
     {
-        mediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
-
         let defaultValue = ppixiv.settings.get(settingName);
         let overrides = this._mediaIdSettingsOverrides.get(mediaId);
         if(overrides == null)
