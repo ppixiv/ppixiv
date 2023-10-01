@@ -26,6 +26,7 @@ export default class Settings extends EventTarget
         this.noValue = new Object();
 
         // Register settings.
+        this.configure("dev", { defaultValue: false });
         this.configure("zoom-mode", { sticky: true });
         this.configure("zoom-level", { sticky: true });
         this.configure("linked_tabs", { session: true });
