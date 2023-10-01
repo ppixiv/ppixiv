@@ -55,7 +55,7 @@ export default class Settings extends EventTarget
 
         // Translation settings:
         this.configure("translation_api_url", { defaultValue: "https://api.cotrans.touhou.ai" });
-        this.configure("translation_low_res", { defaultValue: true });
+        this.configure("translation_low_res", { defaultValue: false });
         this.configure("translation_size", { defaultValue: "M" });
         this.configure("translation_translator", { defaultValue: "gpt3.5" });
         this.configure("translation_direction", { defaultValue: "auto" });

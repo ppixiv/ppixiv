@@ -755,7 +755,7 @@ export function createTranslationSettingsWidgets({ globalOptions, editOverrides 
 
     settingsWidgets.translationLanguage();
     settingsWidgets.translationTranslator();
-    settingsWidgets.translationLowRes();
+    // settingsWidgets.translationLowRes();
     settingsWidgets.translationSize();
     settingsWidgets.translationDirection();
 }
