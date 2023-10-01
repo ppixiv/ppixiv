@@ -609,6 +609,19 @@ export default class App
         return this._currentScreen?.screenType;
     }
 
+    // If we're viewing an illustration, return its media ID.
+    //
+    // Most of the time, we tell the screen and widgets what to display.  This is used for
+    // edge cases where we just need to know the current ID.
+    get displayedMediaId()
+    {
+        if(this._currentScreen?.screenType != "illust" || this._dataSource == null)
+            return null;
+
+        let args = helpers.args.location;
+        return this._dataSource.getUrlMediaId(args);
+    }
+
     _setActiveScreenInUrl(args, screen)
     {
         // If this is the default, just remove it.

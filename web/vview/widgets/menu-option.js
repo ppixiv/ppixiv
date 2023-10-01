@@ -212,6 +212,7 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
     constructor({
         setting=null,
         onclick=null,
+        settings=null,
 
         // Most settings are just booleans, but this can be used to toggle between
         // string keys.  This can make adding more values to the option easier later
@@ -233,11 +234,12 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
             },
         });
 
+        this.settings = settings ?? ppixiv.settings;
         this.setting = setting;
         this.onValue = onValue;
         this.offValue = offValue;
         if(this.setting)
-            ppixiv.settings.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdownSignal });
+            this.settings.addEventListener(this.setting, this.refresh.bind(this), { signal: this.shutdownSignal });
     }
 
     refresh()
@@ -253,12 +255,13 @@ export class MenuOptionToggleSetting extends MenuOptionToggle
 
     get value()
     {
-        return ppixiv.settings.get(this.setting) == this.onValue;
+        return this.settings.get(this.setting) == this.onValue;
     }
 
     set value(value)
     {
-        ppixiv.settings.set(this.setting, value? this.onValue:this.offValue);
+        this.settings.set(this.setting, value? this.onValue:this.offValue);
+        this.refresh();
     }
 }
 
@@ -363,11 +366,15 @@ export class MenuOptionSlider extends MenuOption
 
 export class MenuOptionSliderSetting extends MenuOptionSlider
 {
-    constructor({setting, ...options})
+    constructor({
+        setting,
+        settings=null,
+        ...options})
     {
         super(options);
 
         this.setting = setting;
+        this.settings = settings ?? ppixiv.settings;
     }
 
     get minValue() { return this.options.min; }
@@ -375,12 +382,12 @@ export class MenuOptionSliderSetting extends MenuOptionSlider
 
     get value()
     {
-        return ppixiv.settings.get(this.setting);
+        return this.settings.get(this.setting);
     }
 
     set value(value)
     {
-        ppixiv.settings.set(this.setting, value);
+        this.settings.set(this.setting, value);
         this.refresh();
     }
 };
@@ -393,6 +400,7 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
         label,
         values,
         explanation,
+        settings=null,
         ...options})
     {
         super({
@@ -401,6 +409,7 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
         });
 
         this._getExplanation = explanation;
+        this.settings = settings ?? ppixiv.settings;
         this.setting = setting;
 
         this.button = helpers.createBoxLink({
@@ -439,12 +448,12 @@ export class MenuOptionOptionsSetting extends MenuOptionButton
 
     get value()
     {
-        return ppixiv.settings.get(this.setting);
+        return this.settings.get(this.setting);
     }
 
     set value(value)
     {
-        ppixiv.settings.set(this.setting, value);
+        this.settings.set(this.setting, value);
         this.refresh();
     }
 

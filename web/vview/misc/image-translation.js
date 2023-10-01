@@ -5,8 +5,9 @@
 
 import { helpers } from '/vview/misc/helpers.js';
 import { downloadPixivImage, sendRequest } from '/vview/util/gm-download.js';
-import MediaInfo  from '/vview/misc/media-info.js';
-
+import Widget from '/vview/widgets/widget.js';
+import { MenuOptionOptionsSetting, MenuOptionToggleSetting, MenuOptionToggle } from '/vview/widgets/menu-option.js';
+   
 // The cotrans script seems to have no limit to the number of requests it'll start, but
 // for sanity we set a request limit.
 const MaxParallelTranslationRequests = 3;
@@ -34,10 +35,12 @@ const AllSettings = {
     translation_language: "target_language",
 };
 
-export default class ImageTranslations
+export default class ImageTranslations extends EventTarget
 {
     constructor()
     {
+        super();
+
         this._displayedMediaId = null;
         this._translateMediaIds = new Set();
         this._translatedUrls = new Map();
@@ -47,7 +50,25 @@ export default class ImageTranslations
 
         // Start translations if needed when settings change.
         for(let settingsKey of Object.keys(AllSettings))
-            ppixiv.settings.addEventListener(settingsKey, () => this._checkTranslationQueue());
+        {
+            ppixiv.settings.addEventListener(settingsKey, () => {
+                this._checkTranslationQueue();
+                this.callTranslationUrlsListeners();
+            });
+        }
+    }
+
+    // Return true if image translation is supported.
+    get supported()
+    {
+        return !ppixiv.native && !ppixiv.ios;
+    }
+
+    // Fire an event if translation URLs may have changed: we have a new translation, or settings
+    // have changed.
+    callTranslationUrlsListeners()
+    {
+        this.dispatchEvent(new Event("translation-urls-changed"));
     }
 
     // Set the media ID that the viewer is currently displaying.  We'll only actively
@@ -69,24 +90,10 @@ export default class ImageTranslations
         else
             this._translateMediaIds.delete(mediaId);
 
-        // Let anyone listening know that the translation URL for pages on this image may
-        // have changed.  We need to do this for all pages, but only for pages we actually
-        // have a URL for.
-        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: true });
-        if(mediaInfo != null)
-        {
-            for(let page = 0; page < mediaInfo.pageCount; ++page)
-            {
-                let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
-                if(this._translatedUrls.has(this._getIdForMediaId(pageMediaId)))
-                    MediaInfo.callMediaInfoModifiedCallbacks(pageMediaId);
-            }
-        }
-
         this._checkTranslationQueue();
 
         // Fire callbacks if we turn translations on or off.
-        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
+        this.callTranslationUrlsListeners();
     }
 
     getTranslationsEnabled(mediaId)
@@ -130,8 +137,6 @@ export default class ImageTranslations
             pagesToLoad.push(page);
         for(let page = currentPage-1; page >= 0; --page)
             pagesToLoad.push(page);
-
-        pagesToLoad = [0];
 
         for(let page of pagesToLoad)
         {
@@ -205,7 +210,7 @@ export default class ImageTranslations
         this._translatedUrls.set(this._getIdForMediaId(mediaId), translationUrl);
 
         // Trigger a refresh for this image now that we have its translation image.
-        MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
+        this.callTranslationUrlsListeners();
     }
 
     // Return the translation overlay URL for the given media ID if we have one and translations
@@ -221,20 +226,7 @@ export default class ImageTranslations
         return this._translatedUrls.get(this._getIdForMediaId(mediaId));
     }
 
-    // Return settings that affect the result.
-    get _currentSettings()
-    {
-        let settings = {
-            // "ctd" is the only option.
-            detector: "default",
-        };
-
-        for(let [settingsKey, apiKey] of Object.entries(AllSettings))
-            settings[apiKey] = ppixiv.settings.get(settingsKey);
-
-        return settings;
-    }
-
+    // Return current settings for mediaId.
     _settingsForImage(mediaId)
     {
         let settings = {
@@ -260,7 +252,8 @@ export default class ImageTranslations
                 return this.getSettingForImage(mediaId, settingName);
             },
             set: (settingName, value) => {
-                return this.setSettingForImage(mediaId, settingName, value);
+                this.setSettingForImage(mediaId, settingName, value);
+                this.callTranslationUrlsListeners();
             },
 
             // This isn't used.
@@ -594,3 +587,175 @@ export default class ImageTranslations
     }
 }
 
+// A MenuOptionToggle to toggle translation for an image.
+export class MenuOptionToggleImageTranslation extends MenuOptionToggle
+{
+    constructor({ mediaId, ...options })
+    {
+        super({
+            label: "Translate this image",
+            onclick: (e) => this.value = !this.value,
+            ...options
+        });
+
+        this.mediaId = mediaId;
+    }
+
+    refresh()
+    {
+        super.refresh();
+        this.checkbox.checked = this.value;
+    }
+
+    get value()
+    {
+        return ppixiv.imageTranslations.getTranslationsEnabled(this.mediaId);
+    }
+
+    set value(value)
+    {
+        ppixiv.imageTranslations.setTranslationsEnabled(this.mediaId, value);
+        this.refresh();
+    }
+}
+
+function createTranslationSettingsWidget({ globalOptions, editOverrides })
+{
+    // If we're editing overrides, use the settings handler for this image.  Otherwise, just edit
+    // settings normally.  We access the current media ID directly here (noromal settings pages
+    // don't need it, so it's not propagated here) and assume the current image won't change
+    // while a dialog is open.
+    let settings = ppixiv.settings;
+    let displayedMediaId = ppixiv.app.displayedMediaId;
+    if(editOverrides)
+        settings = editOverrides? ppixiv.imageTranslations.getSettingHandlerForImage(displayedMediaId):ppixiv.settings;
+
+    return {
+        // Translation settings
+        translateThisImage: () => {
+            // This is only used if we have a valid media ID.
+            return new MenuOptionToggleImageTranslation({
+                ...globalOptions,
+                mediaId: displayedMediaId,
+            });
+        },
+
+        translationLanguage: () => {
+            return new MenuOptionOptionsSetting({
+                ...globalOptions,
+                setting: "translation_language",
+                settings,
+                label: "Language",
+                values: {
+                    ENG: "English",
+                    CHS: "Chinese (Simplified)",
+                    CHT: "Chinese (Traditional)",
+                    CSY: "Czech",
+                    NLD: "Dutch",
+                    FRA: "French",
+                    DEU: "German",
+                    HUN: "Hungarian",
+                    ITA: "Italian",
+                    JPN: "Japanese",
+                    KOR: "Korean",
+                    PLK: "Polish",
+                    PTB: "Portuguese (Brazil)",
+                    ROM: "Romanian",
+                    RUS: "Russian",
+                    ESP: "Spanish",
+                    TRK: "Turkish",
+                    UKR: "Ukrainian",
+                    VIN: "Vietnames",
+                    ARA: "Arabic",
+                    SRP: "Serbian",
+                    HRV: "Croatian",
+                },
+            });
+        },
+
+        translationTranslator: () => {
+            return new MenuOptionOptionsSetting({
+                ...globalOptions,
+                setting: "translation_translator",
+                settings,
+                label: "Translation engine",
+                values: {
+                    "gpt3.5": "GPT3.5",
+                    googleL: "Google",
+                    youdao: "Youdao",
+                    baidu: "Baidu",
+                    deepl: "Deepl",
+                    papago: "Papago",
+                    offline: "Offline",
+                    none: "None (remove text)",
+                },
+            });
+        },
+
+        translationLowRes: () => {
+            return new MenuOptionToggleSetting({
+                ...globalOptions,
+                setting: "translation_low_res",
+                settings,
+                label: "Use low res image for translations (faster)",
+            });
+        },
+
+        translationSize: () => {
+            return new MenuOptionOptionsSetting({
+                ...globalOptions,
+                setting: "translation_size",
+                settings,
+                label: "Translation resolution",
+                values: {
+                    S: "1024x1024",
+                    M: "1536x1536",
+                    L: "2048x2048",
+                    XL: "2560x2560",
+                },
+            });
+        },
+
+        translationDirection: () => {
+            return new MenuOptionOptionsSetting({
+                ...globalOptions,
+                setting: "translation_direction",
+                settings,
+                label: "Text direction",
+                values: {
+                    auto: "Automatic",
+                    h: "Horizontal",
+                    v: "Vertical",
+                },
+            });
+        },        
+    }
+}
+
+// Create settings widgets.  If editOverrides is true, edit settings overrides for the current image.
+export function createTranslationSettingsWidgets({ globalOptions, editOverrides })
+{
+    let settingsWidgets = createTranslationSettingsWidget({ globalOptions, editOverrides });
+
+    // If this is the override settings page, add the explanation header.
+    if(editOverrides)
+    {
+        new Widget({
+            ...globalOptions,
+            template: `
+                <div style="padding: 0.5em;">
+                    These settings will only affect this image, and aren't saved.  Settings for
+                    all images can be changed from settings.
+                </div>
+            `,
+        });
+
+        settingsWidgets.translateThisImage();
+    }
+
+    settingsWidgets.translationLanguage();
+    settingsWidgets.translationTranslator();
+    settingsWidgets.translationLowRes();
+    settingsWidgets.translationSize();
+    settingsWidgets.translationDirection();
+}

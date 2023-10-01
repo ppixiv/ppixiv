@@ -98,6 +98,7 @@ export default class ViewerImages extends Viewer
 
         ppixiv.mediaCache.addEventListener("mediamodified", ({mediaId}) => this._mediaInfoModified({mediaId}), this._signal);
         ppixiv.settings.addEventListener("upscaling", () => this._refreshFromMediaInfo(), this._signal);
+        ppixiv.imageTranslations.addEventListener("translation-urls-changed", () => this._refreshFromMediaInfo(), this._signal);
 
         // Create the inpaint editor.
         if(!ppixiv.mobile)

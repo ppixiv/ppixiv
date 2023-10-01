@@ -4,6 +4,7 @@ import { SettingsDialog, SettingsPageDialog } from '/vview/widgets/settings-widg
 import { SendImagePopup } from '/vview/misc/send-image.js';
 import { MenuOptionButton, MenuOptionToggle, MenuOptionToggleSetting } from '/vview/widgets/menu-option.js';
 import { MutedTagsForPostDialog } from '/vview/widgets/mutes.js';
+import { MenuOptionToggleImageTranslation } from '/vview/misc/image-translation.js';
 import Actions from '/vview/misc/actions.js';
 import { IllustWidget } from '/vview/widgets/illust-widgets.js';
 import { helpers } from '/vview/misc/helpers.js';
@@ -312,7 +313,7 @@ export default class MoreOptionsDropdown extends IllustWidget
                 new MenuOptionButton({
                     container: widget.root.querySelector(".checkbox"),
                     containerPosition: "beforebegin",
-                    label: "Edit",
+                    icon: "mat:settings",
                     classes: ["small-font"],
 
                     onclick: (e) => {
@@ -367,25 +368,44 @@ export default class MoreOptionsDropdown extends IllustWidget
             },
 
             toggleTranslations: () => {
-                return new MenuOptionToggle({
+                let isEnabled = () => {
+                    if(this.mediaId == null || this.mediaInfo == null)
+                        return false;
+
+                    // Disable this for animations.
+                    return this.mediaInfo.illustType != 2;
+                };
+
+                let widget = new MenuOptionToggleImageTranslation({
                     ...sharedOptions,
+                    requires: () => isEnabled(),
+                    mediaId: this.mediaId,
                     label: "Translate",
                     icon: "mat:translate",
-                    requires: ({mediaId}) => {
-                        if(mediaId == null || this.mediaInfo == null)
-                            return false;
+                });
 
-                        // Disable this for animations.
-                        return this.mediaInfo.illustType != 2;
-                    },
-                    checked: ppixiv.imageTranslations.getTranslationsEnabled(this.mediaId),
+                new MenuOptionButton({
+                    container: widget.root.querySelector(".checkbox"),
+                    containerPosition: "beforebegin",
+                    icon: "mat:settings",
+                    classes: ["small-font"],
 
-                    onclick: () => {
-                        let enabled = ppixiv.imageTranslations.getTranslationsEnabled(this.mediaId)
-                        ppixiv.imageTranslations.setTranslationsEnabled(this.mediaId, !enabled);
-                        this.refresh();
+                    onclick: (e) => {
+                        e.stopPropagation();
+
+                        // Don't show the per-image options dialog if translations aren't supported for
+                        // this image.
+                        if(!isEnabled())
+                            return;
+
+                        new SettingsPageDialog({ settingsPage: "translation" });
+
+                        this.parent.hide();
+                        return true;
                     },
                 });
+
+                return widget;
             },
         };
 
@@ -414,7 +434,7 @@ export default class MoreOptionsDropdown extends IllustWidget
             this._menuOptions.push(menuOptions.similarLocalImages());
         }
 
-        if(!ppixiv.native && !ppixiv.mobile && screenName == "illust")
+        if(screenName == "illust" && ppixiv.imageTranslations.supported)
             this._menuOptions.push(menuOptions.toggleTranslations());
 
         if(ppixiv.sendImage.enabled)

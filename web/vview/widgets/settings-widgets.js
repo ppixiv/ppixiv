@@ -1,6 +1,7 @@
 import Widget from '/vview/widgets/widget.js';
 import { MenuOptionButton, MenuOptionRow, MenuOptionOptionsSetting, MenuOptionsThumbnailSizeSlider } from '/vview/widgets/menu-option.js';
 import { MenuOptionSliderSetting, MenuOptionToggleSetting } from '/vview/widgets/menu-option.js';
+import { createTranslationSettingsWidgets } from '/vview/misc/image-translation.js';
    
 import { EditMutedTagsWidget } from '/vview/widgets/mutes.js';
 import { LinkTabsPopup } from '/vview/misc/send-image.js';
@@ -453,6 +454,7 @@ let pageTitles = {
     tagMuting: "Muted tags",
     userMuting: "Muted users",
     linkedTabs: "Linked tabs",
+    translation: "Translation",
     other: "Other",
     whatsNew: "What's New",
 };
@@ -500,6 +502,9 @@ export class SettingsDialog extends DialogWidget
             this._createPageButton("tagMuting");
             this._createPageButton("userMuting");
         }
+
+        if(ppixiv.imageTranslations.supported)
+            this._createPageButton("translation");
 
         if(ppixiv.sendImage.enabled)
             this._createPageButton("linkedTabs");
@@ -671,6 +676,11 @@ export class SettingsDialog extends DialogWidget
             linkedTabs: () => {
                 settingsWidgets.linkTabs();
                 settingsWidgets.unlinkAllTabs();
+            },
+
+            translation: () => {
+                // ImageTranslations handles these settings.
+                createTranslationSettingsWidgets({ globalOptions });
             },
 
             other: () => {
