@@ -60,7 +60,7 @@ function _downloadUsingServer(serverPort, { url, ...args })
             if(e.data.success)
                 accept(e.data.response);
             else
-                reject(e.data.error);
+                reject(new Error(e.data.error));
         };
 
         serverPort.realPostMessage({

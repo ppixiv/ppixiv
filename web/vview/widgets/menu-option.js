@@ -76,12 +76,14 @@ export class MenuOptionRow extends MenuOption
             </div>
         `});
 
-        if(label != null)
-        {
-            let span = this.root.querySelector(".label-box");
-            span.hidden = false;
-            span.innerText = label;
-        }
+        this.label = label;
+    }
+
+    set label(label)
+    {
+        let span = this.root.querySelector(".label-box");
+        span.hidden = label == null;
+        span.innerText = label ?? "";
     }
 }
 

@@ -6,7 +6,7 @@
 import { helpers } from '/vview/misc/helpers.js';
 import { downloadPixivImage, sendRequest } from '/vview/util/gm-download.js';
 import Widget from '/vview/widgets/widget.js';
-import { MenuOptionOptionsSetting, MenuOptionToggleSetting, MenuOptionToggle } from '/vview/widgets/menu-option.js';
+import { MenuOptionOptionsSetting, MenuOptionToggleSetting, MenuOptionToggle, MenuOptionRow, MenuOptionButton } from '/vview/widgets/menu-option.js';
    
 // The cotrans script seems to have no limit to the number of requests it'll start, but
 // for sanity we set a request limit.
@@ -35,6 +35,8 @@ const AllSettings = {
     translation_language: "target_language",
 };
 
+class TranslationError extends Error { };
+
 export default class ImageTranslations extends EventTarget
 {
     constructor()
@@ -43,7 +45,10 @@ export default class ImageTranslations extends EventTarget
 
         this._displayedMediaId = null;
         this._translateMediaIds = new Set();
-        this._translatedUrls = new Map();
+
+        // This contains URLs to inpaint images, null if translation succeeded but was blank, or
+        // exceptions for failed translations.
+        this._translations = new Map();
         this._translationRequests = new Map();
         this._settingsToId = new Map();
         this._mediaIdSettingsOverrides = new Map();
@@ -53,7 +58,7 @@ export default class ImageTranslations extends EventTarget
         {
             ppixiv.settings.addEventListener(settingsKey, () => {
                 this._checkTranslationQueue();
-                this.callTranslationUrlsListeners();
+                this._callTranslationUrlsListeners();
             });
         }
     }
@@ -69,7 +74,7 @@ export default class ImageTranslations extends EventTarget
 
     // Fire an event if translation URLs may have changed: we have a new translation, or settings
     // have changed.
-    callTranslationUrlsListeners()
+    _callTranslationUrlsListeners()
     {
         this.dispatchEvent(new Event("translation-urls-changed"));
     }
@@ -96,7 +101,7 @@ export default class ImageTranslations extends EventTarget
         this._checkTranslationQueue();
 
         // Fire callbacks if we turn translations on or off.
-        this.callTranslationUrlsListeners();
+        this._callTranslationUrlsListeners();
     }
 
     getTranslationsEnabled(mediaId)
@@ -152,7 +157,7 @@ export default class ImageTranslations extends EventTarget
             let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
 
             // Skip this page if we already have it, or if a request is already queued.
-            if(this._translatedUrls.has(this._getIdForMediaId(pageMediaId)) || this._translationRequests.has(this._getIdForMediaId(pageMediaId)))
+            if(this._translations.has(this._getIdForMediaId(pageMediaId)) || this._translationRequests.has(this._getIdForMediaId(pageMediaId)))
                 continue;
 
             // Start this translation.
@@ -186,7 +191,7 @@ export default class ImageTranslations extends EventTarget
         // Show the indicator if we want translations for the current image and don't have it yet.
         let showLoadingIndicator = this._displayedMediaId != null &&
             this.getTranslationsEnabled(this._displayedMediaId) &&
-            !this._translatedUrls.has(this._getIdForMediaId(this._displayedMediaId));
+            !this._translations.has(this._getIdForMediaId(this._displayedMediaId));
         helpers.html.setDataSet(document.documentElement.dataset, "loadingTranslation", showLoadingIndicator);
     }
 
@@ -198,7 +203,21 @@ export default class ImageTranslations extends EventTarget
         console.assert(mediaInfo != null);
 
         // Request the low-res version of the image.
-        let translationUrl = await this._translateImage(mediaInfo, page);
+        let translationUrl;
+        try {
+            translationUrl = await this._translateImage(mediaInfo, page);
+        } catch(e) {
+            // Only log this as an error if it's something other than a TranslationError, so
+            // we don't spam stack traces for API errors.
+            let log = `Error translating ${mediaInfo.mediaId}: ${e.message}`;
+            if(e instanceof TranslationError)
+                console.log(log);
+            else
+                console.error(log);
+
+            // Store the exception as the result.
+            translationUrl = e;
+        }
 
         // If this URL is returned, there's no translation for this image.
         let blankImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQI12NgYAAAAAMAASDVlMcAAAAASUVORK5CYII=";
@@ -206,14 +225,14 @@ export default class ImageTranslations extends EventTarget
             translationUrl = null;
 
         // Preload the translation image.  Don't wait for this.
-        if(translationUrl != null)
+        if(translationUrl != null && !(translationUrl instanceof Error))
             helpers.other.preloadImages([translationUrl]);
 
         // Store the translation URL.
-        this._translatedUrls.set(this._getIdForMediaId(mediaId), translationUrl);
+        this._translations.set(this._getIdForMediaId(mediaId), translationUrl);
 
         // Trigger a refresh for this image now that we have its translation image.
-        this.callTranslationUrlsListeners();
+        this._callTranslationUrlsListeners();
     }
 
     // Return the translation overlay URL for the given media ID if we have one and translations
@@ -226,7 +245,38 @@ export default class ImageTranslations extends EventTarget
         if(!this._translateMediaIds.has(firstPageMediaId))
             return null;
 
-        return this._translatedUrls.get(this._getIdForMediaId(mediaId));
+        let url = this._translations.get(this._getIdForMediaId(mediaId));
+        if(url instanceof Error)
+            return null;
+        else
+            return url;
+    }
+
+    // If an error occurred translating mediaId, return it as a string.  Otherwise, return null.
+    getTranslationError(mediaId)
+    {
+        // Don't display any errors if translations for this image have been turned back off.
+        let firstPageMediaId = helpers.mediaId.getMediaIdFirstPage(mediaId);
+        if(!this._translateMediaIds.has(firstPageMediaId))
+            return null;
+
+        let url = this._translations.get(this._getIdForMediaId(mediaId));
+        if(url instanceof Error)
+            return url.message;
+        else
+            return null;
+    }
+
+    // If a translation failed with an error, clear the error so it can be retried.
+    retryTranslation(mediaId)
+    {
+        let id = this._getIdForMediaId(mediaId);
+        let url = this._translations.get(id);
+        if(url instanceof Error)
+            this._translations.delete(id);
+
+        this._checkTranslationQueue();
+        this._callTranslationUrlsListeners();
     }
 
     // Return current settings for mediaId.
@@ -256,7 +306,7 @@ export default class ImageTranslations extends EventTarget
             },
             set: (settingName, value) => {
                 this.setSettingForImage(mediaId, settingName, value);
-                this.callTranslationUrlsListeners();
+                this._callTranslationUrlsListeners();
             },
 
             // This isn't used.
@@ -320,7 +370,7 @@ export default class ImageTranslations extends EventTarget
         return `${mediaId}|${settingsId}`;
     }
 
-    // Request an image translation.  Return the translation URL.
+    // Request an image translation.  Return the translation URL, or an Exception object on error.
     async _translateImage(mediaInfo, page)
     {
         let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaInfo.mediaId, page);
@@ -354,8 +404,7 @@ export default class ImageTranslations extends EventTarget
                  },
             });
         } catch(e) {
-            console.error(`Error requesting translation for ${url}:`, e);
-            return null;
+            throw new TranslationError(e);
         }
 
         response = JSON.parse(response);
@@ -364,10 +413,7 @@ export default class ImageTranslations extends EventTarget
         let { id, error, translation_mask } = response;
 
         if(error != null)
-        {
-            console.log(`Translation error for ${pageMediaId}: ${error}`);
-            return null;
-        }
+            throw new TranslationError(`Translation error for ${pageMediaId}: ${error}`);
 
         if(translation_mask != null)
         {
@@ -378,18 +424,14 @@ export default class ImageTranslations extends EventTarget
         if(id == null)
         {
             // We didn't get anything, so we don't understand this response.
-            console.log(`Unexpected translation response for ${pageMediaId}:`, response);
-            return null;
+            throw new TranslationError(`Unexpected translation response for ${pageMediaId}:`, response);
         }
 
         // Open the queue socket to wait for the result.
         let websocket = new WebSocket(`wss://api.cotrans.touhou.ai/task/${id}/event/v1`);
 
         if(!await helpers.other.waitForWebSocketOpened(websocket))
-        {
-            console.log("Couldn't connect to translation socket");
-            return null;
-        }
+            throw new TranslationError("Couldn't connect to translation socket");
 
         // Handle messages from the socket.
         try {
@@ -397,10 +439,7 @@ export default class ImageTranslations extends EventTarget
             {
                 let data = await helpers.other.waitForWebSocketMessage(websocket);
                 if(data == null)
-                {
-                    console.log(`Translation socket closed without a result: ${pageMediaId}`);
-                    return null;
-                }
+                    throw new TranslationError(`Translation socket closed without a result: ${pageMediaId}`);;
 
                 switch(data.type)
                 {
@@ -417,13 +456,11 @@ export default class ImageTranslations extends EventTarget
                     return data.result.translation_mask;
 
                 case "error":
-                    console.log(`Translation error for ${pageMediaId}: $[data.error}`);
-                    return null;
+                    throw new TranslationError(`Translation error for ${pageMediaId}: $[data.error}`);
 
                 case "not_found":
                     // The ID is unknown.  This is either a bug or a server problem.
-                    console.log(`Translation error for ${pageMediaId}: ID not found`);
-                    return null;
+                    throw new TranslationError(`Translation error for ${pageMediaId}: ID not found`);
 
                 default:
                     // Ignore messages that we don't understand.
@@ -563,7 +600,7 @@ export default class ImageTranslations extends EventTarget
                     return true;
                 }
 
-                return this._translatedUrls.has(this._getIdForMediaId(mediaId));
+                return this._translations.has(this._getIdForMediaId(mediaId));
             }
 
             // Just resolve now if the result is already ready.
@@ -617,6 +654,40 @@ export class MenuOptionToggleImageTranslation extends MenuOptionToggle
     {
         ppixiv.imageTranslations.setTranslationsEnabled(this.mediaId, value);
         this.refresh();
+    }
+}
+
+// Show translation errors and allow retrying.
+export class MenuOptionRetryTranslation extends MenuOptionRow
+{
+    constructor({ mediaId, ...options })
+    {
+        super({
+            label: "There was an error translating this image",
+            onclick: (e) => this.value = !this.value,
+            ...options
+        });
+
+        new MenuOptionButton({
+            icon: "wallpaper",
+            label: "Retry",
+            container: this.root,
+            onclick: () => {
+                ppixiv.imageTranslations.retryTranslation(this.mediaId);
+            },
+        });
+
+        ppixiv.imageTranslations.addEventListener("translation-urls-changed", () => this.refresh(), this._signal);
+
+        this.mediaId = mediaId;
+    }
+
+    refresh()
+    {
+        super.refresh();
+
+        let error = ppixiv.imageTranslations.getTranslationError(this.mediaId);
+        this.visible = error;
     }
 }
 
@@ -730,6 +801,13 @@ function createTranslationSettingsWidget({ globalOptions, editOverrides })
                 },
             });
         },        
+    
+        retryTranslation: () => {
+            return new MenuOptionRetryTranslation({
+                ...globalOptions,
+                mediaId: displayedMediaId,
+            });
+        },
     }
 }
 
@@ -759,4 +837,5 @@ export function createTranslationSettingsWidgets({ globalOptions, editOverrides 
     // settingsWidgets.translationLowRes();
     settingsWidgets.translationSize();
     settingsWidgets.translationDirection();
+    settingsWidgets.retryTranslation();
 }
