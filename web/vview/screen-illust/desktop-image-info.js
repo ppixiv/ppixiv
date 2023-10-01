@@ -347,7 +347,7 @@ export default class DesktopImageInfo extends Widget
         let userId = mediaInfo.userId;
 
         // Show the author if it's someone else's post, or the edit link if it's ours.
-        let ourPost = ppixiv.pixivInfo.userId == userId;
+        let ourPost = ppixiv.pixivInfo?.userId == userId;
         this.querySelector(".author-block").hidden = ourPost;
         this.querySelector(".edit-post").hidden = !ourPost;
         this.querySelector(".edit-post").href = "/member_illust_mod.php?mode=mod&illust_id=" + illustId;
