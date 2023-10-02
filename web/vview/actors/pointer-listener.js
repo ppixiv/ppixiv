@@ -109,6 +109,8 @@ export default class PointerListener
 
     _buttonChanged(buttons, event)
     {
+        // If shift is held, ignore this event. This is used to drag images outside the browser
+        if(event.shiftKey) return;
         // We need to register pointermove to see presses past the first.
         if(buttons)
             this._registerEventsWhilePressed();

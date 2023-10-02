@@ -78,6 +78,11 @@ export default class ViewerImages extends Viewer
         this.shutdownSignal.addEventListener("abort", () => resizeObserver.disconnect());
 
         this.root.addEventListener("dragstart", (e) => e.preventDefault(), this._signal);
+        this.root.addEventListener("dragstart", (e) => {
+            // If shift is held, ignore this event. This is used to drag images outside the browser
+            if(e.shiftKey) return;
+            e.preventDefault()
+        }, this._signal);
         this.root.addEventListener("selectstart", (e) => e.preventDefault(), this._signal);
 
         // Start or stop panning if the user changes it while we're active, eg. by pressing ^P.
