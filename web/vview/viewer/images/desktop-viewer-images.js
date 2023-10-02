@@ -24,6 +24,8 @@ export default class ViewerImagesDesktop extends ViewerImages
     {
         if(e.mouseButton != 0 || this._slideshowMode)
             return;
+        if(e.shiftKey)
+            return;
 
         if(e.pressed && this.capturedPointerId == null)
         {
