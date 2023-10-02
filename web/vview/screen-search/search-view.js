@@ -100,7 +100,7 @@ class ThumbnailGrid
         if(row.children.length == 0)
             return 0;
 
-        // Get the height of the tallest thumb.  We'll allow thumbs to expand up to this height.
+        // Get the average height of thumbs on this row.  We'll expand thumbs vertically to this height.
         let totalHeight = 0;
         for(let thumb of row.children)
             totalHeight += thumb.origHeight;
@@ -165,6 +165,11 @@ class ThumbnailGrid
 
     applySizes(row)
     {
+        // Tell the row its height for content-intrinsic-size.  All thumbs on a row always have the
+        // same height.
+        let rowHeight = row.children[0]?.currentHeight ?? 128;
+        row.style.setProperty("--row-height", `${rowHeight}px`);
+
         for(let thumb of row.children)
         {
             thumb.style.setProperty("--thumb-width", `${thumb.currentWidth}px`);
@@ -1306,8 +1311,12 @@ export default class SearchView extends Widget
         if(firstVisibleThumbNode == null)
             return null;
 
+        // Save relative to the row instead of the thumb, since the thumb's offsetParent is the
+        // row and its offsetTop is 0.
+        let row = firstVisibleThumbNode.parentNode;
+
         return {
-            savedScroll: helpers.html.saveScrollPosition(this.scrollContainer, firstVisibleThumbNode),
+            savedScroll: helpers.html.saveScrollPosition(this.scrollContainer, row),
             mediaId: firstVisibleThumbNode.dataset.id,
         }
     }
@@ -1323,7 +1332,8 @@ export default class SearchView extends Widget
         if(restoreScrollPositionNode == null)
             return false;
 
-        helpers.html.restoreScrollPosition(this.scrollContainer, restoreScrollPositionNode, scroll.savedScroll);
+        let row = restoreScrollPositionNode.parentNode;
+        helpers.html.restoreScrollPosition(this.scrollContainer, row, scroll.savedScroll);
         return true;
     }
 
@@ -1785,12 +1795,17 @@ export default class SearchView extends Widget
         // If we were displaying an image, pulse it to make it easier to find your place.
         this.pulseThumbnail(mediaId);
 
+        // Get the vertical position and height of the thumb.  Use the containing row instead
+        // of the thumb itself for this, since the thumb's offsetParent is the row and its
+        // offsetTop is 0.
+        let { offsetTop, offsetHeight } = thumb.parentNode;
+
         // Stop if the thumb is already fully visible.
-        if(thumb.offsetTop >= this.scrollContainer.scrollTop &&
-            thumb.offsetTop + thumb.offsetHeight < this.scrollContainer.scrollTop + this.scrollContainer.offsetHeight)
+        if(offsetTop >= this.scrollContainer.scrollTop &&
+            offsetTop + offsetHeight < this.scrollContainer.scrollTop + this.scrollContainer.offsetHeight)
             return true;
 
-        let y = thumb.offsetTop + thumb.offsetHeight/2 - this.scrollContainer.offsetHeight/2;
+        let y = offsetTop + offsetHeight/2 - this.scrollContainer.offsetHeight/2;
 
         // If we set y outside of the scroll range, iOS will incorrectly report scrollTop briefly.
         // Clamp the position to avoid this.

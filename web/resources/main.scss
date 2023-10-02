@@ -1414,11 +1414,17 @@ body.hide-r18g .r18g { display: none; }
         }
     }
 
+    // content-visibility is broken on iOS and causes thumbs to not be displayed.
+    html:not(.ios) & .row {
+        content-visibility: auto;
+        contain-intrinsic-height: var(--row-height);
+        contain: strict;
+    }
+
     .thumbnail-box {
         position: relative;
         width: var(--thumb-width);
         height: var(--thumb-height);
-        min-height: var(--thumb-height);
         flex-shrink: 0;
 
         .thumb {
