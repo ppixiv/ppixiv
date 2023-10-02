@@ -409,6 +409,10 @@ input, textarea, [contenteditable] {
         position: absolute;
         width: 100%;
         height: 100%;
+
+        // Make sure interactions with the image only see the main image, so things like saving
+        // images only save the main image.
+        &:not(.main-image) { pointer-events: none; }
     }
 
     .inpaint-image, .low-res-preview
