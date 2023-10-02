@@ -1,4 +1,4 @@
-import os, shutil, stat, uuid, zipfile
+import os, shutil, stat, tempfile, uuid, zipfile
 from collections import namedtuple
 from pathlib import Path, PurePosixPath
 from datetime import datetime, timezone
@@ -387,7 +387,7 @@ class ZipPath(PathBase):
     @contextmanager
     def extract_file(self):
         temp_filename = f'vview-temp-{uuid.uuid4()}{self.suffix}'
-        temp_file = Path(os.environ['TEMP']) / temp_filename
+        temp_file = Path(tempfile.gettempdir()) / temp_filename
 
         # Copy the file out.
         with self.open('rb') as src:

@@ -132,7 +132,7 @@ async def _create_correction(source_image, lines):
 
         # Write the output to a file.  It would be better to stream this, but asyncio is
         # a pain and I don't feel like fighting with it right now.
-        tempdir = Path(os.environ['TEMP'])
+        tempdir = Path(tempfile.gettempdir())
         temp_filename = 'vview-temp-%s.bmp' % str(uuid.uuid4())
         temp_file = Path(tempdir) / temp_filename
 

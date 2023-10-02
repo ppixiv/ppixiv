@@ -1,5 +1,5 @@
 # Helpers that don't have dependancies on our other modules.
-import asyncio, concurrent, os, io, struct, logging, os, re, threading, time, traceback, sys, queue, uuid
+import asyncio, concurrent, os, io, struct, logging, os, re, tempfile, threading, time, traceback, sys, queue, uuid
 from contextlib import contextmanager
 from pathlib import Path
 from PIL import Image, ImageFile, ExifTags
@@ -89,7 +89,7 @@ def mime_type(path):
     ext = _get_ext(path)
     return mime_type_from_ext(ext)
 
-_temp_path = Path(os.environ['TEMP']) / 'vview-temp'
+_temp_path = Path(tempfile.gettempdir()) / 'vview-temp'
 
 def get_temporary_path(ext='.bin'):
     """
