@@ -7,7 +7,7 @@ import { helpers, SafetyBackoffTimer } from '/vview/misc/helpers.js';
 
 export default class DataSource extends EventTarget
 {
-    constructor(url)
+    constructor({url})
     {
         super();
 
@@ -88,7 +88,7 @@ export default class DataSource extends EventTarget
         let result = this.loadedPages[page] || this.loadingPages[page];
         if(result == null)
         {
-            result = this._loadPageAsync(page, cause);
+            result = this._loadPageAsync(page, { cause });
             this.loadingPages[page] = result;
             result.finally(() => {
                 // Move the load from loadingPages to loadedPages.
@@ -141,7 +141,7 @@ export default class DataSource extends EventTarget
         return page >= lowestPage-1 && page <= highestPage+1;
     }
 
-    async _loadPageAsync(page, cause)
+    async _loadPageAsync(page, { cause })
     {
         // Stop if this page is outside the range this data source can load.
         if(!this.canLoadPage(page))
@@ -154,7 +154,7 @@ export default class DataSource extends EventTarget
         if(this.idList.isPageLoaded(page))
             return true;
         
-        console.log("Load page", page, "for:", cause);
+        console.log(`Load page ${page} for: ${cause}`);
 
         // Before starting, await at least once so we get pushed to the event loop.  This
         // guarantees that loadPage has a chance to store us in this.loadingPages before

@@ -9,11 +9,11 @@ export default class DataSource_Illust extends DataSource
 {
     get name() { return "illust"; }
 
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
-        this.mediaId = this.getUrlMediaId(new helpers.args(url));
+        this.mediaId = this.getUrlMediaId(new helpers.args(this.url));
 
         this._loadMediaInfo();
     }

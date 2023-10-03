@@ -13,7 +13,7 @@ export default class DataSource_SimilarIllusts extends DataSource
     getDisplayingText() { return "Similar Illustrations"; }
     get estimatedItemsPerPage() { return 60; }
 
-    async _loadPageAsync(page, cause)
+    async _loadPageAsync(page, args)
     {
         // The first time we load a page, get info about the source illustration too, so
         // we can show it in the UI.
@@ -32,7 +32,7 @@ export default class DataSource_SimilarIllusts extends DataSource
             });
         }
 
-        return await super._loadPageAsync(page, cause);
+        return await super._loadPageAsync(page, args);
     }
      
     async loadPageInternal(page)

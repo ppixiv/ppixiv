@@ -68,7 +68,7 @@ export class Site
         // The search page isn't part of the canonical URL, but keep it in the URL we create
         // the data source with, so it starts at the current page.
         let baseUrl = helpers.getCanonicalUrl(url, { startAtBeginning }).url.toString();
-        let dataSource = new dataSourceClass(baseUrl);
+        let dataSource = new dataSourceClass({ url: baseUrl });
         this.dataSourcesByUrl[canonicalUrl] = dataSource;
         return dataSource;
     }

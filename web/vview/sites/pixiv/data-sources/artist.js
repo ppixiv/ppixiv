@@ -18,9 +18,9 @@ export default class DataSources_Artist extends DataSource
     get name() { return "artist"; }
     get ui() { return UI; }
 
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
     }
 
     get supportsStartPage() { return true; }

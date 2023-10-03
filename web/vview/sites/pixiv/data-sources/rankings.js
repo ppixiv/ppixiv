@@ -23,9 +23,9 @@ export default class DataSource_Rankings extends DataSource
     // This gives a tiny number of results per page on mobile.
     get estimatedItemsPerPage() { return ppixiv.mobile? 18:50; }
 
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
         this.maxPage = 999999;
     }

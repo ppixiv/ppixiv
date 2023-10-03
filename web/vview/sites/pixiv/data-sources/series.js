@@ -6,9 +6,9 @@ export default class DataSource_MangaPages extends DataSource
 {
     get name() { return "series"; }
 
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
         this.seriesInfo = null;
         this.userInfo = null;

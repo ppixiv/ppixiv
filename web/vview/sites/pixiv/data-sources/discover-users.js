@@ -13,9 +13,9 @@ export default class DataSource_DiscoverUsers extends DataSource
 {
     get name() { return "discovery_users"; }
 
-    constructor(url)
+    constructor(options)
     {
-        super(url);
+        super(options);
 
         let args = new helpers.args(this.url);
         let userId = args.hash.get("user_id");

@@ -20,9 +20,9 @@ export class DataSource_BookmarksBase extends DataSource
     get name() { return "bookmarks"; }
     get ui() { return UI; }
   
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
         this.bookmarkTagCounts = [];
 

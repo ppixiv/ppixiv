@@ -11,9 +11,9 @@ export default class DataSource_NewPostsByFollowing extends DataSource
     getDisplayingText() { return "Following"; }
     get ui() { return UI; }
 
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
         this.bookmarkTags = [];
     }
 

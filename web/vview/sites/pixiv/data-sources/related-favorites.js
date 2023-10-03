@@ -17,9 +17,9 @@ export default class DataSource_RelatedFavorites extends DataSourceFromPage
             return "Users who bookmarked image";
     };
     
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
         this.illustInfo = null;
     }

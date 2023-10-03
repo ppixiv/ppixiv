@@ -40,9 +40,9 @@ export default class DataSource_Search extends DataSource
     get name() { return "search"; }
     get ui() { return UI; }
 
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
         // Add the search tags to tag history.  We only do this at the start when the
         // data source is created, not every time we navigate back to the search.

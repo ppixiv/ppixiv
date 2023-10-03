@@ -7,12 +7,12 @@ export default class DataSource_MangaPages extends DataSource
     get name() { return "manga"; }
     get allowExpandingMangaPages() { return false; }
 
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
         // /artworks/#
-        url = new URL(url);
+        let url = new URL(this.url);
         url = helpers.pixiv.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
         let illustId = parts[2];

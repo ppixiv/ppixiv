@@ -13,9 +13,9 @@ class VViewBase extends DataSource
     get ui() { return UI; }
     get autoLoadPreviousPages() { return true; }
 
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
         this.reachedEnd = false;
         this.prevPageUuid = null;

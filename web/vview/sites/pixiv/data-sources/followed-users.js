@@ -9,9 +9,9 @@ export default class DataSource_Follows extends DataSource
     get supportsStartPage() { return true;}
     get ui() { return UI; }
   
-    constructor(url)
+    constructor(args)
     {
-        super(url);
+        super(args);
 
         this.followTags = [];
     }
