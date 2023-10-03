@@ -515,3 +515,14 @@ export function arrayBufferToHex(data)
     let hash = hashArray.map((byte) => byte.toString(16).padStart(2, "0"));
     return hash.join("");
 }
+
+// Find an item in a list with a given ID.
+export function findById(array, name, id)
+{
+    for(let item of array)
+    {
+        if(item[name] == id)
+            return item;
+    }
+    return null;
+}

@@ -350,6 +350,8 @@ class AppStartup
         let firstPart = parts[1]; // helpers.pixiv.getPageTypeFromUrl
         if(firstPart == "artworks")
             return true; // manga, current_illust
+        else if(firstPart == "user" && parts[3] == "series")
+            return true; // series
         else if(firstPart == "users")
             return true; // follows, artist, bookmarks, bookmarks_merged, bookmarks
         else if(pathname == "/new_illust.php" || pathname == "/new_illust_r18.php")

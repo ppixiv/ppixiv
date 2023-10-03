@@ -9,6 +9,7 @@ import Artist from '/vview/sites/pixiv/data-sources/artist.js';
 import Illust from '/vview/sites/pixiv/data-sources/illust.js';
 import FollowedUsers from '/vview/sites/pixiv/data-sources/followed-users.js';
 import MangaPages from '/vview/sites/pixiv/data-sources/manga-pages.js';
+import Series from '/vview/sites/pixiv/data-sources/series.js';
 import SearchIllusts from '/vview/sites/pixiv/data-sources/search-illusts.js';
 import NewPostsByFollowing from '/vview/sites/pixiv/data-sources/new-posts-by-following.js';
 import NewPostsByEveryone from '/vview/sites/pixiv/data-sources/new-posts-by-everyone.js';
@@ -26,6 +27,7 @@ let allDataSources = {
     Artist,
     Illust,
     MangaPages,
+    Series,
     Bookmarks,
     BookmarksMerged,
     NewPostsByEveryone,
@@ -298,7 +300,8 @@ export default class SitePixiv extends Site.Site
         let args = new helpers.args(url);
 
         args = new helpers.args(url);
-        let firstPathSegment = helpers.pixiv.getPageTypeFromUrl(url);
+        let parts = url.pathname.split("/");
+        let firstPathSegment = parts[1];
 
         if(firstPathSegment == "artworks")
         {
@@ -307,6 +310,8 @@ export default class SitePixiv extends Site.Site
             else
                 return allDataSources.Illust;
         }
+        else if(firstPathSegment == "user" && parts[3] == "series")
+            return allDataSources.Series;
         else if(firstPathSegment == "users")
         {
             // This is one of:
