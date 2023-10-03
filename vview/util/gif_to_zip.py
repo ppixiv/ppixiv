@@ -36,6 +36,11 @@ def get_frame_durations(file):
     return frame_durations
 
 def _create_ugoira(file, output_file, frame_durations):
+    # For some reason, PIL's GIF implementation seeks the file, which is catastrophically
+    # slow when it's inside a compressed file.  Work around this by reading the file into
+    # memory.
+    file = BytesIO(file.read())
+
     try:
         # Be sure that we always close output_file, or the request will deadlock.
         with output_file:
