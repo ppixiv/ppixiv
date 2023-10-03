@@ -102,6 +102,7 @@ export default class MediaInfo
     get illustComment() { return this._getInfo("illustComment", ""); }
 
     get ugoiraMetadata() { return this._getInfo("ugoiraMetadata"); }
+    get seriesNavData() { return this._getInfo("seriesNavData"); }
     
     // Local images:
     get localPath() { return this._getInfo("localPath"); }
@@ -376,8 +377,9 @@ class VviewMediaInfo extends MediaInfo
 
     get isLocal() { return true; }
 
-    // This isn't used locally, but don't warn about accesses to it.
+    // These aren't used locally, but don't warn about accesses to them.
     get ugoiraMetadata() { return null; }
+    get seriesNavData() { return null; }
 
     // Preprocess API data to fit our data model.  We don't do this in the constructor
     // since we don't want it to happen a second time when loading from serialized data.

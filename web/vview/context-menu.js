@@ -23,6 +23,7 @@ import ClickOutsideListener from '/vview/widgets/click-outside-listener.js';
 import Actions from '/vview/misc/actions.js';
 import { getUrlForMediaId } from '/vview/misc/media-ids.js'
 import LocalAPI from '/vview/misc/local-api.js';
+import { GetMediaInfo } from '/vview/widgets/illust-widgets.js';
 import { helpers, ClassFlags, KeyListener, OpenWidgets } from '/vview/misc/helpers.js';
 
 export default class ContextMenu extends Widget
@@ -36,9 +37,10 @@ export default class ContextMenu extends Widget
             <div class=popup-context-menu>
                 <div class=button-strip>
                     <div class="button-block shift-right">
-                        <div class="button button-view-manga" data-popup="View manga pages">
-                            ${ helpers.createIcon("ppixiv:thumbnails") }
-                        </div>
+                        <a href=# class="button button-view-manga" data-popup="View manga pages">
+                            ${ helpers.createIcon("ppixiv:thumbnails", { classes: ["manga"] }) }
+                            ${ helpers.createIcon("mat:menu_book", { classes: ["series"] }) }
+                        </a>
                     </div>
 
                     <div class=button-block>
@@ -163,7 +165,6 @@ export default class ContextMenu extends Widget
         });
 
         this._buttonViewManga = this.root.querySelector(".button-view-manga");
-        this._buttonViewManga.addEventListener("click", this._clickedViewManga);
 
         this._buttonFullscreen = this.root.querySelector(".button-fullscreen");
         this._buttonFullscreen.addEventListener("click", this._clickedFullscreen);
@@ -213,6 +214,43 @@ export default class ContextMenu extends Widget
             this._moreOptionsDropdownOpener.visible = !this._moreOptionsDropdownOpener.visible;
         });
 
+        // Load full media info when the context menu is open, so we can find out if the post
+        // is in a series.
+        this.getMediaInfo = new GetMediaInfo({
+            parent: this,
+            neededData: "full",
+            onrefresh: async({mediaInfo}) => {
+                let seriesId = mediaInfo?.seriesNavData?.seriesId;
+
+                this._buttonViewManga.dataset.popup = 
+                    mediaInfo == null? "":
+                    seriesId != null? "View series":"View manga pages";
+                
+                let enabled = seriesId != null || mediaInfo?.pageCount > 1;
+                helpers.html.setClass(this._buttonViewManga, "enabled", enabled);
+                this._buttonViewManga.style.pointerEvents = enabled?"":"none";
+
+                this._buttonViewManga.querySelector(".manga").hidden = seriesId != null;
+                this._buttonViewManga.querySelector(".series").hidden = seriesId == null;
+
+                // Set the manga page or series link.
+                if(enabled)
+                {
+                    if(seriesId != null)
+                    {
+                        let args = new helpers.args("/", ppixiv.plocation);
+                        args.path  = `/user/${mediaInfo.userId}/series/${seriesId}`;
+                        this._buttonViewManga.href = args.url.toString();
+                    }
+                    else
+                    {
+                        let args = getUrlForMediaId(mediaInfo?.mediaId, { manga: true });
+                        this._buttonViewManga.href = args.url.toString();
+                    }
+                }
+            },
+        });
+
         this.illustWidgets = [
             this.avatarWidget,
             new LikeButtonWidget({
@@ -241,7 +279,6 @@ export default class ContextMenu extends Widget
         this.bookmarkButtons = [];
         for(let a of this.root.querySelectorAll("[data-bookmark-type]"))
         {
-            
             // The bookmark buttons, and clicks in the tag dropdown:
             let bookmarkWidget = new BookmarkButtonWidget({
                 container: a,
@@ -1144,19 +1181,18 @@ export default class ContextMenu extends Widget
     // Update selection highlight for the context menu.
     refresh()
     {
+        let mediaId = this._effectiveMediaId;
+        if(this.visible)
+            this.getMediaInfo.id = mediaId;
+
         // If we're not visible, don't refresh an illust until we are, so we don't trigger
         // data loads.  Do refresh even if we're hidden if we have no illust to clear
         // the previous illust's display even if we're not visible, so it's not visible the
         // next time we're displayed.
-        let mediaId = this._effectiveMediaId;
         if(!this.visible && mediaId != null)
             return;
 
         let userId = this._effectiveUserId;
-        let info = mediaId? ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false }):null;
-
-        this._buttonViewManga.dataset.popup = "View manga pages";
-        helpers.html.setClass(this._buttonViewManga, "enabled", info?.pageCount > 1);
         helpers.html.setClass(this._buttonFullscreen, "selected", helpers.isFullscreen());
 
         this._refreshTooltip();
@@ -1208,15 +1244,6 @@ export default class ContextMenu extends Widget
             for(let button of this.root.querySelectorAll(".button-zoom-level"))
                 helpers.html.setClass(button, "selected", this._currentViewer.getLockedZoom() && button.dataset.level == zoomLevel);
         }
-    }
-
-    _clickedViewManga = (e) =>
-    {
-        if(!this._buttonViewManga.classList.contains("enabled"))
-            return;
-
-        let args = getUrlForMediaId(this._effectiveMediaId, { manga: true });
-        helpers.navigate(args);
     }
 
     _clickedFullscreen = async (e) =>
