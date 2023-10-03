@@ -184,14 +184,14 @@ export default class SearchView extends Widget
     {
         super({...options, template: `
             <div class=search-view data-context-menu-target>
-                <div class=no-results hidden>
-                    <div class=message>No results</div>
-                </div>
-
                 <div class=artist-header hidden>
                     <div class=shape>
                         <img class=bg>
                     </div>
+                </div>
+
+                <div class=no-results hidden>
+                    <div class=message>No results</div>
                 </div>
 
                 <div class=thumbnails></div>
