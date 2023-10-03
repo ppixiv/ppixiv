@@ -894,18 +894,34 @@ export default class ContextMenu extends Widget
             mediaId = ppixiv.app.getMediaIdAtElement(node).mediaId;
         }
 
+        // Handle VVbrowser-specific hotkeys.
+        if(LocalAPI.isVVbrowser())
+        {
+            // Handle alt-left and alt-right for navigation.  This isn't done by VVBrowser itself.
+            // Don't use phistory here.  It doesn't handle forwards navigation, and we know
+            // we're not in phistory permanent mode since VVbrowser isn't used on mobile.           
+            if(e.altKey && e.key == "ArrowLeft")
+            {
+                navigation.back();
+                e.preventDefault();
+            }
+            else if(e.altKey && e.key == "ArrowRight")
+            {
+                navigation.forward();
+                e.preventDefault();
+            }
+        }
+
         // All of these hotkeys require Ctrl.
         if(!e.ctrlKey)
             return;
 
         if(e.key.toUpperCase() == "V")
         {
-            (async() => {
-                if(mediaId == null)
-                    return;
+            if(mediaId == null)
+                return;
 
-                Actions.likeImage(mediaId);
-            })();
+            Actions.likeImage(mediaId);
 
             return true;
         }
