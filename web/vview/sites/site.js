@@ -47,22 +47,19 @@ export class Site
         // Canonicalize the URL to see if we already have a data source for this URL.  We only
         // keep one data source around for each canonical URL (eg. search filters).
         let canonicalUrl = helpers.getCanonicalUrl(url, { startAtBeginning: true }).url.toString();
-        if(!force && canonicalUrl in this.dataSourcesByUrl)
+        let oldDataSource = this.dataSourcesByUrl[canonicalUrl];
+        if(!force && oldDataSource != null)
         {
             // console.log("Reusing data source for", url.toString());
-            let dataSource = this.dataSourcesByUrl[canonicalUrl];
-            if(dataSource)
-            {
-                // If the URL has a page number in it, only return it if this data source can load the
-                // page the caller wants.  If we have a data source that starts at page 10 and the caller
-                // wants page 1, the data source probably won't be able to load it since pages are always
-                // contiguous.
-                let page = dataSource.getStartPage(args);
-                if(!dataSource.canLoadPage(page))
-                    console.log(`Not using cached data source because it can't load page ${page}`);
-                else
-                    return dataSource;
-            }
+            // If the URL has a page number in it, only return it if this data source can load the
+            // page the caller wants.  If we have a data source that starts at page 10 and the caller
+            // wants page 1, the data source probably won't be able to load it since pages are always
+            // contiguous.
+            let page = oldDataSource.getStartPage(args);
+            if(!oldDataSource.canLoadPage(page))
+                console.log(`Not using cached data source because it can't load page ${page}`);
+            else
+                return oldDataSource;
         }
         
         // The search page isn't part of the canonical URL, but keep it in the URL we create
