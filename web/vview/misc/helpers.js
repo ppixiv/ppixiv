@@ -811,7 +811,7 @@ export class Timer
     }
 };
 
-// Polyfill movementX and movementY for iOS.
+// Polyfill movementX and movementY for iOS < 17.
 export class PointerEventMovement
 {
     constructor()
