@@ -14,7 +14,7 @@ export default class DataSource_MangaPages extends DataSource
         this.userInfo = null;
 
         // /user/#/series/#
-        url = new URL(url);
+        let url = new URL(this.url);
         url = helpers.pixiv.getUrlWithoutLanguage(url);
         let parts = url.pathname.split("/");
         this.seriesId = parts[4];
