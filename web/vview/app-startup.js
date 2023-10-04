@@ -865,17 +865,9 @@ class ModuleImporter_Compat extends ModuleImporter
             // Load the source map with a blob URL, so it doesn't clutter the devtools source view.
             // This doesn't work in Chrome for some reason (only data: URLs do), but we only need
             // this for iOS.  The data URL code path is left here in case it's useful.
-            if(!ppixiv.ios)
-            {
-                let encodedSourceMap = ModuleImporter_Compat.encodeBase64(map);
-                source += `\n//# sourceMappingURL=data:application/json;base64,${encodedSourceMap}`;
-            }
-            else
-            {
-                let sourceMapBlob = new Blob([map], { type: "application/json" });
-                let sourceMapUrl = URL.createObjectURL(sourceMapBlob);
-                source += `\n//# sourceMappingURL=${sourceMapUrl}\n`;
-            }
+            let sourceMapBlob = new Blob([map], { type: "application/json" });
+            let sourceMapUrl = URL.createObjectURL(sourceMapBlob);
+            source += `\n//# sourceMappingURL=${sourceMapUrl}\n`;
         }
 
         // Load this script into a blob.
