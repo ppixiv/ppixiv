@@ -64,8 +64,8 @@ async function Bootstrap({env, rootUrl}={})
                 }
             }
         
-            // It's harmless for the site to gain access to GM.xmlHttpRequest, since we only @connect
-            // to the site's own image host anyway.  But we might as well can check anyway:
+            // Some script managers don't implement @connect and let user scripts access anything.
+            // Check the hostnames we give access to in case the script manager isn't.
             url = new URL(url);
             let allowedHosts = [
                 "i.pximg.net", "i-cf.pximg.net", "cotrans.touhou.ai"
