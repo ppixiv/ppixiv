@@ -39,10 +39,6 @@ class AppStartup
                 return;
             }
 
-            // init.js gives us the list of source and resource files to load.  If we're running
-            // natively, just fetch it normally.  If we're running as a user script (this is used
-            // for debugging), use a sync XHR to try to mimic the regular environment as closely
-            // as possible.  This avoids going async and letting page scripts run.
             let url = new URL("/vview/init.js", rootUrl);
             let request = await fetch(url);
             env = await request.json();
