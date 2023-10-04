@@ -6,6 +6,7 @@ import MoreOptionsDropdown from '/vview/widgets/more-options-dropdown.js';
 import { BookmarkTagListWidget } from '/vview/widgets/bookmark-tag-list.js';
 import { AvatarWidget } from '/vview/widgets/user-widgets.js';
 import { IllustWidget, GetMediaInfo } from '/vview/widgets/illust-widgets.js';
+import { getUrlForMediaId } from '/vview/misc/media-ids.js'
 import DialogWidget from '/vview/widgets/dialog.js';
 import WidgetDragger from '/vview/actors/widget-dragger.js';
 import IsolatedTapHandler from '/vview/actors/isolated-tap-handler.js';
@@ -35,11 +36,7 @@ export default class MobileImageUI extends Widget
                         </div>
 
                         <vv-container class="bookmark-button-container"></vv-container>
-
-                        <div class="item button-view-manga enabled">
-                            ${ helpers.createIcon("ppixiv:thumbnails") }
-                            <span class=label>Pages</span>
-                        </div>
+                        <vv-container class="manga-button-container"></vv-container>
 
                         <div class="item button-more enabled">
                             ${ helpers.createIcon("settings") }
@@ -107,8 +104,6 @@ export default class MobileImageUI extends Widget
 
         this._mediaId = null;
 
-        this.querySelector(".button-view-manga").addEventListener("click", this.clickedViewManga);
-
         this.querySelector(".button-more").addEventListener("click", (e) => {
             new MoreOptionsDialog({
                 mediaId: this._mediaId
@@ -128,6 +123,9 @@ export default class MobileImageUI extends Widget
 
         this.buttonBookmark = this.querySelector(".bookmark-button-container");
         this.bookmarkButtonWidget = new ImageBookmarkedWidget({ container: this.buttonBookmark });
+
+        this.viewManga = this.querySelector(".manga-button-container");
+        this.viewMangaWidget = new ViewMangaWidget({ container: this.viewManga });
 
         this.buttonBookmark.addEventListener("click", (e) => {
             new BookmarkTagDialog({
@@ -258,10 +256,6 @@ export default class MobileImageUI extends Widget
         if(!this.visible && this._mediaId != null)
             return
 
-        let buttonViewManga = this.root.querySelector(".button-view-manga");
-        buttonViewManga.dataset.popup = "View manga pages";
-        buttonViewManga.hidden = !ppixiv.app.navigateOutEnabled;
-
         helpers.html.setClass(this.root.querySelector(".button-bookmark"), "enabled", true);
 
         // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
@@ -271,12 +265,8 @@ export default class MobileImageUI extends Widget
         {
             let mediaId = this._mediaId;
             this.bookmarkButtonWidget.setMediaId(mediaId);
+            this.viewMangaWidget.setMediaId(mediaId);
         }
-    }
-
-    clickedViewManga = (e) =>
-    {
-        ppixiv.app.navigateOut();
     }
 }
 
@@ -308,6 +298,65 @@ class ImageBookmarkedWidget extends IllustWidget
         helpers.html.setClass(this.root,  "enabled",     mediaInfo != null);
         helpers.html.setClass(this.root,  "bookmarked",  bookmarked);
         helpers.html.setClass(this.root,  "public",      !privateBookmark);
+    }
+}
+
+class ViewMangaWidget extends IllustWidget
+{
+    constructor({ ...options })
+    {
+        super({
+            ...options,
+            template: `
+                <div class="item button-view-manga enabled">
+                    <vv-container class=manga>
+                        ${ helpers.createIcon("ppixiv:thumbnails") }
+                        <span class=label>Pages</span>
+                    </vv-container>
+
+                    <vv-container class=series hidden>
+                        ${ helpers.createIcon("mat:menu_book") }
+                        <span class=label>Series</span>
+                    </vv-container>
+                </div>
+            `
+        });
+
+        this.root.addEventListener("click", (e) => this.onClick());
+    }
+    
+    get neededData() { return "full"; }
+
+    refreshInternal({ mediaInfo })
+    {
+        let seriesId = mediaInfo?.seriesNavData?.seriesId;
+
+        this.root.dataset.popup = 
+            mediaInfo == null? "":
+            seriesId != null? "View series":"View manga pages";
+        
+        let enabled = seriesId != null || mediaInfo?.pageCount > 1;
+        this.root.hidden = !enabled;
+
+        this.querySelector(".manga").hidden = seriesId != null;
+        this.querySelector(".series").hidden = seriesId == null;
+  
+        // Store where we should go on click.
+        if(seriesId != null)
+        {
+            this.navigateArgs = new helpers.args("/", ppixiv.plocation);
+            this.navigateArgs.path  = `/user/${mediaInfo.userId}/series/${seriesId}`;
+        }
+        else if(mediaInfo?.pageCount > 1)
+            this.navigateArgs = getUrlForMediaId(mediaInfo?.mediaId, { manga: true });
+        else
+            this.navigateArgs = null;
+    }
+
+    onClick(e)
+    {
+        if(this.navigateArgs)
+            helpers.navigate(this.navigateArgs);
     }
 }
 

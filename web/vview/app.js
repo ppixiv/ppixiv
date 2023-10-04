@@ -643,36 +643,6 @@ export default class App
             delete args.state.zoom;
     }
 
-    get navigateOutEnabled()
-    {
-        if(this._currentScreen?.screenType != "illust" || this._dataSource == null)
-            return false;
-
-        let mediaId = this._dataSource.getUrlMediaId(helpers.args.location);
-        if(mediaId == null)
-            return false;
-            
-        let info = ppixiv.mediaCache.getMediaInfoSync(mediaId, { full: false });
-        if(info == null)
-            return false;
-
-        return info.pageCount > 1;
-    }
-
-    // Navigate from an illust view for a manga page to the manga view for that post.
-    navigateOut()
-    {
-        if(!this.navigateOutEnabled)
-            return;
-            
-        let mediaId = this._dataSource.getUrlMediaId(helpers.args.location);
-        if(mediaId == null)
-            return;
-
-        let args = getUrlForMediaId(mediaId, { manga: true });
-        this.navigateFromIllustToSearch(args);
-    }
-
     // This is called by ScreenIllust when it wants ScreenSearch to try to display a
     // media ID in a data source, so it's ready for a transition to start.  This only
     // has an effect if search isn't already active.

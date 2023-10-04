@@ -196,7 +196,13 @@ export default class DesktopImageInfo extends Widget
         for(let button of this.root.querySelectorAll(".download-button"))
             button.addEventListener("click", this.clickedDownload);
         this.root.querySelector(".download-manga-button").addEventListener("click", this.clickedDownload);
-        this.root.querySelector(".view-manga-button").addEventListener("click", (e) => ppixiv.app.navigateOut());
+        this.root.querySelector(".view-manga-button").addEventListener("click", (e) => {
+            if(this.mediaId == null)
+                return;
+    
+            let args = getUrlForMediaId(this.mediaId, { manga: true });
+            helpers.navigate(args);
+        });
 
         // Don't propagate wheel events if the contents can scroll, so moving the scroller doesn't change the
         // image.  Most of the time the contents will fit, so allow changing the page if there's no need to
