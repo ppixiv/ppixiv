@@ -761,9 +761,8 @@ class ModuleImporter_Compat extends ModuleImporter
         // Create each script.
         for(let path of Object.keys(sources))
         {
-            let success = await this._createScript(path, { sources, scriptUrls: scripts, stack: [] });
-            if(!success)
-                return false;
+            // Keep trying to load if a script fails, so we act more like the native importer.
+            await this._createScript(path, { sources, scriptUrls: scripts, stack: [] });
         }
         return true;
     }
