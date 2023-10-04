@@ -66,9 +66,6 @@ export default class ImageTranslations extends EventTarget
     // Return true if image translation is supported.
     get supported()
     {
-        if(!ppixiv.settings.get("dev"))
-            return false;
-
         return !ppixiv.native && !ppixiv.ios;
     }
 
