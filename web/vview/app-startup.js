@@ -21,6 +21,10 @@ class AppStartup
     // when we're running natively, and just start directly.
     async initialSetup({env, rootUrl})
     {
+        // Set a dark background color early to try to prevent flashbangs if the page is rendered
+        // before we get styles set up.
+        document.documentElement.style.backgroundColor = "#000";
+
         let native = location.hostname != "pixiv.net" && location.hostname != "www.pixiv.net";
         let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
         let android = navigator.userAgent.indexOf('Android') != -1;
