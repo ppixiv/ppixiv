@@ -3,6 +3,16 @@ import widget from '/vview/widgets/widget.js';
 
 let updateHistory = [
     {
+        version: 229,
+        text: `
+            Select "Translate" from the context menu while viewing an image to enable translation
+            using <a href=https://cotrans.touhou.ai/>Cotrans</a> (experimental).
+            <p>
+            Added support for viewing Pixiv image series.
+        `,
+    },
+
+    {
         version: 218,
         text: `
             Added support for the "Hide AI works" filter on searches.
