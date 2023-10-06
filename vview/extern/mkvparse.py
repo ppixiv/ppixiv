@@ -608,7 +608,7 @@ def resync(f):
     sys.stderr.write("mvkparse: Resyncing\n")
     while True:
         b = f.read(1);
-        if b == b"": return (None, None);
+        if b == b"": return (None, None, None)
         if b == b"\x1F":
             b2 = f.read(3);
             if b2 == b"\x43\xB6\x75":
