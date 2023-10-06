@@ -657,7 +657,7 @@ def mkvparse(f, handler):
                     (id_, size, hsize) = read_ebml_element_header(f)
                 except _FinishedParsing:
                     break
-                if not (id_ in element_types_names): 
+                if id_ not in element_types_names:
                     log.info("mkvparse: Unknown element with id %x and size %d" % (id_, size))
                     (resync_element_id, resync_element_size, resync_element_headersize) = resync(f)
                     if resync_element_id:
@@ -682,13 +682,13 @@ def mkvparse(f, handler):
 
         except _ParseError:
             log.info('Error parsing MKV')
-
-            handler.before_handling_an_element()
-            (resync_element_id, resync_element_size, resync_element_headersize) = resync(f)
-            if resync_element_id:
-                continue
-            else:
-                break
+            break
+            #handler.before_handling_an_element()
+            #(resync_element_id, resync_element_size, resync_element_headersize) = resync(f)
+            #if resync_element_id:
+            #    continue
+            #else:
+            #    break
         
         if name=="EBML" and type(data) == list:
             d = dict(tree)
