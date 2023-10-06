@@ -14,6 +14,7 @@ from struct import unpack
 log = logging.getLogger(__name__)
 
 class _FinishedParsing(Exception): pass
+class _ParseError(Exception): pass
 
 if sys.version < '3':
     range=xrange
@@ -36,7 +37,7 @@ def get_major_bit_number(n):
         0b01111111 -> (1, 0b00111111)
     '''
     if not n:
-        raise Exception("Bad number")
+        raise _ParseError("Bad number")
     i = 0x80
     r=0
     while not n&i:
@@ -679,7 +680,7 @@ def mkvparse(f, handler):
                 tree = read_ebml_element_tree(f, size)
                 data = tree
 
-        except Exception:
+        except _ParseError:
             log.exception('Error parsing MKV')
 
             handler.before_handling_an_element()
