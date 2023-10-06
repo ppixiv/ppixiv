@@ -293,6 +293,9 @@ class ZipPath(PathBase):
     def with_suffix(self, name):
         return ZipPath(shared_zip=self.zip, at=self._path.with_suffix(name))
 
+    def with_stem(self, stem):
+        return ZipPath(shared_zip=self.zip, at=self._path.with_stem(name))
+
     @property
     def filesystem_path(self):
         return Path(self.zip.path)

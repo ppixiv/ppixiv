@@ -57,6 +57,7 @@ class PathBase:
 
     def with_name(self, name): raise NotImplemented()
     def with_suffix(self, suffix): raise NotImplemented()
+    def with_stem(self, stem): raise NotImplemented()
 
     @property
     def real_file(self):

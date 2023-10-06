@@ -124,6 +124,9 @@ class FilesystemPath(PathBase):
     def with_suffix(self, suffix):
         return FilesystemPath(self._path.with_suffix(suffix))
 
+    def with_stem(self, stem):
+        return FilesystemPath(self._path.with_stem(stem))
+
     @property
     def real_file(self):
         # If this is a ZIP, we're treating it like a directory and listing its contents
