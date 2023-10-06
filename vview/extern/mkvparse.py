@@ -35,12 +35,12 @@ def get_major_bit_number(n):
     '''
     if not n:
         raise Exception("Bad number")
-    i=0x80;
+    i = 0x80
     r=0
     while not n&i:
         r+=1
         i>>=1
-    return (r,n&~i);
+    return (r, n&~i)
 
 def read_matroska_number(f, unmodified=False, signed=False):
     '''
@@ -509,11 +509,11 @@ def read_ebml_element_tree(f, total_size):
         (id_, size, hsize) = read_ebml_element_header(f)
         if size == -1:
             log.info("mkvparse: Element %x without size? Damaged data? Skipping %d bytes" % (id_, size, total_size))
-            f.read(total_size);
-            break;
+            f.read(total_size)
+            break
         if size>total_size:
             log.info("mkvparse: Element %x with size %d? Damaged data? Skipping %d bytes" % (id_, size, total_size))
-            f.read(total_size);
+            f.read(total_size)
             break
         type_ = EET.BINARY
         name = "unknown_%x"%id_
@@ -549,7 +549,8 @@ def handle_block(buffer, handler, cluster_timecode, timecode_scale=1000000, dura
     pos=0
     (tracknum, pos) = parse_matroska_number(buffer, pos, signed=False)
     (tcode, pos) = parse_fixedlength_number(buffer, pos, 2, signed=True)
-    flags = ord(buffer[pos]); pos+=1
+    flags = ord(buffer[pos])
+    pos+=1
     f_keyframe = (flags&0x80 == 0x80)
     f_invisible = (flags&0x08 == 0x08)
     f_discardable = (flags&0x01 == 0x01)
@@ -567,7 +568,8 @@ def handle_block(buffer, handler, cluster_timecode, timecode_scale=1000000, dura
         handler.frame(tracknum, block_timecode, header_removal_prefix+buf, 0, duration, f_keyframe, f_invisible, f_discardable)
         return
     
-    numframes = ord(buffer[pos]); pos+=1
+    numframes = ord(buffer[pos])
+    pos+=1
     numframes+=1
 
     lengths=[]
@@ -607,10 +609,10 @@ def handle_block(buffer, handler, cluster_timecode, timecode_scale=1000000, dura
 def resync(f):
     log.info("mvkparse: Resyncing")
     while True:
-        b = f.read(1);
+        b = f.read(1)
         if b == b"": return (None, None, None)
         if b == b"\x1F":
-            b2 = f.read(3);
+            b2 = f.read(3)
             if b2 == b"\x43\xB6\x75":
                 (seglen, x) = read_matroska_number(f)
                 return (0x1F43B675, seglen, x+4) # cluster
@@ -650,14 +652,14 @@ def mkvparse(f, handler):
                     handler.before_handling_an_element()
                     (id_, size, hsize) = read_ebml_element_header(f)
                 except StopIteration:
-                    break;
+                    break
                 if not (id_ in element_types_names): 
                     log.info("mkvparse: Unknown element with id %x and size %d" % (id_, size))
                     (resync_element_id, resync_element_size, resync_element_headersize) = resync(f)
                     if resync_element_id:
-                        continue;
+                        continue
                     else:
-                        break;
+                        break
             else: 
                 id_ = resync_element_id
                 size=resync_element_size
@@ -680,9 +682,9 @@ def mkvparse(f, handler):
             handler.before_handling_an_element()
             (resync_element_id, resync_element_size, resync_element_headersize) = resync(f)
             if resync_element_id:
-                continue;
+                continue
             else:
-                break;
+                break
         
         if name=="EBML" and type(data) == list:
             d = dict(tree)
@@ -731,7 +733,7 @@ def mkvparse(f, handler):
         # cluster contents:
         elif name=="Timestamp" and type_ == EET.UNSIGNED:
             data=read_fixedlength_number(f, size, False)
-            current_cluster_timecode = data;
+            current_cluster_timecode = data
         elif name=="SimpleBlock" and type_ == EET.BINARY:
             data=f.read(size)
             handle_block(data, handler, current_cluster_timecode, timecode_scale, None,  header_removal_headers_for_tracks)
@@ -747,7 +749,7 @@ def mkvparse(f, handler):
             if type_!=EET.JUST_GO_ON and type_!=EET.MASTER:
                 data = read_simple_element(f, type_, size)
 
-        handler.ebml_top_element(id_, name, type_, data);
+        handler.ebml_top_element(id_, name, type_, data)
 
 
 
