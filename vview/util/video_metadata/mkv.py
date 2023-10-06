@@ -1,5 +1,7 @@
-import sys
+import logging, sys
 from ...extern import mkvparse
+
+log = logging.getLogger(__name__)
 
 class _ShortCircuitParsing(Exception): pass
 
@@ -68,7 +70,7 @@ def parse(f):
 
         return result.data
     except Exception as e:
-        print('Error reading MKV metadata from %s: %s' % (f, e))
+        log.exception('Error reading MKV metadata from %s' % f)
         return { }
 
 if __name__ == '__main__':
