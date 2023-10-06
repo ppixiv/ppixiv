@@ -13,6 +13,8 @@ from struct import unpack
 
 log = logging.getLogger(__name__)
 
+class _FinishedParsing(Exception): pass
+
 if sys.version < '3':
     range=xrange
 else:
@@ -20,7 +22,7 @@ else:
     def ord(something):
         if type(something)==bytes:
             if something == b"":
-                raise StopIteration
+                raise _FinishedParsing()
             return something[0]
         else:
             return something
@@ -49,11 +51,12 @@ def read_matroska_number(f, unmodified=False, signed=False):
 
         See examples in "parse_matroska_number" function
     '''
-    if unmodified and signed:
-        raise Exception("Contradictary arguments")
+    assert not (unmodified and signed)
+
     first_byte=f.read(1)
-    if(first_byte==""):
-        raise StopIteration
+    if first_byte == "":
+        raise _FinishedParsing()
+
     r = ord(first_byte)
     (n,r2) = get_major_bit_number(r)
     if not unmodified:
@@ -651,7 +654,7 @@ def mkvparse(f, handler):
                 try:
                     handler.before_handling_an_element()
                     (id_, size, hsize) = read_ebml_element_header(f)
-                except StopIteration:
+                except _FinishedParsing:
                     break
                 if not (id_ in element_types_names): 
                     log.info("mkvparse: Unknown element with id %x and size %d" % (id_, size))
