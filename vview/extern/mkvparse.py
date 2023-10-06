@@ -490,7 +490,7 @@ def read_simple_element(f, type_, size):
             data = unpack(">d", data)[0]
         else:
             data=read_fixedlength_number(f, size, False)
-            sys.stderr.write("mkvparse: Floating point of size %d is not supported\n" % size)
+            log.info("mkvparse: Floating point of size %d is not supported" % size)
             data = None
     else:
         data=f.read(size)
@@ -508,11 +508,11 @@ def read_ebml_element_tree(f, total_size):
     while(total_size>0):
         (id_, size, hsize) = read_ebml_element_header(f)
         if size == -1:
-            sys.stderr.write("mkvparse: Element %x without size? Damaged data? Skipping %d bytes\n" % (id_, size, total_size))
+            log.info("mkvparse: Element %x without size? Damaged data? Skipping %d bytes" % (id_, size, total_size))
             f.read(total_size);
             break;
         if size>total_size:
-            sys.stderr.write("mkvparse: Element %x with size %d? Damaged data? Skipping %d bytes\n" % (id_, size, total_size))
+            log.info("mkvparse: Element %x with size %d? Damaged data? Skipping %d bytes" % (id_, size, total_size))
             f.read(total_size);
             break
         type_ = EET.BINARY
@@ -605,7 +605,7 @@ def handle_block(buffer, handler, cluster_timecode, timecode_scale=1000000, dura
 
 
 def resync(f):
-    sys.stderr.write("mvkparse: Resyncing\n")
+    log.info("mvkparse: Resyncing")
     while True:
         b = f.read(1);
         if b == b"": return (None, None, None)
@@ -652,7 +652,7 @@ def mkvparse(f, handler):
                 except StopIteration:
                     break;
                 if not (id_ in element_types_names): 
-                    sys.stderr.write("mkvparse: Unknown element with id %x and size %d\n"%(id_, size))
+                    log.info("mkvparse: Unknown element with id %x and size %d" % (id_, size))
                     (resync_element_id, resync_element_size, resync_element_headersize) = resync(f)
                     if resync_element_id:
                         continue;
@@ -687,12 +687,12 @@ def mkvparse(f, handler):
         if name=="EBML" and type(data) == list:
             d = dict(tree)
             if 'EBMLReadVersion' in d:
-                if d['EBMLReadVersion'][1]>1: sys.stderr.write("mkvparse: Warning: EBMLReadVersion too big\n")
+                if d['EBMLReadVersion'][1]>1: log.info("mkvparse: Warning: EBMLReadVersion too big")
             if 'DocTypeReadVersion' in d:
-                if d['DocTypeReadVersion'][1]>2: sys.stderr.write("mkvparse: Warning: DocTypeReadVersion too big\n")
+                if d['DocTypeReadVersion'][1]>2: log.info("mkvparse: Warning: DocTypeReadVersion too big")
             dt = d['DocType'][1]
             if dt != "matroska" and dt != "webm": 
-                sys.stderr.write("mkvparse: Warning: EBML DocType is not \"matroska\" or \"webm\"")
+                log.info("mkvparse: Warning: EBML DocType is not \"matroska\" or \"webm\"")
         elif name=="Info" and type(data) == list:
             handler.segment_info = tree
             handler.segment_info_available()
@@ -717,18 +717,16 @@ def mkvparse(f, handler):
                 elif tt==0x20: d['type']='control'
                 if 'TrackTimestampScale' in d:
                     pass
-                    # sys.stderr.write("mkvparse: Warning: TrackTimestampScale is not supported\n")
+                    # log.info("mkvparse: Warning: TrackTimestampScale is not supported")
                 if 'ContentEncodings' in d:
                     try:
                         compr = dict(d["ContentEncodings"][1][0][1][1][0][1][1])
                         if compr["ContentCompAlgo"][1] == 3:
                             header_removal_headers_for_tracks[n] = compr["ContentCompSettings"][1]
                         else:
-                            sys.stderr.write("mkvparse: Warning: compression other than " \
-                                "header removal is not supported\n")
+                            log.info("mkvparse: Warning: compression other than header removal is not supported")
                     except:
-                        sys.stderr.write("mkvparse: Warning: unsuccessfully tried " \
-                                "to handle header removal compression\n")
+                        log.info("mkvparse: Warning: unsuccessfully tried to handle header removal compression")
             handler.tracks_available()
         # cluster contents:
         elif name=="Timestamp" and type_ == EET.UNSIGNED:
