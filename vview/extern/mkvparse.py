@@ -681,7 +681,7 @@ def mkvparse(f, handler):
                 data = tree
 
         except _ParseError:
-            log.exception('Error parsing MKV')
+            log.info('Error parsing MKV')
 
             handler.before_handling_an_element()
             (resync_element_id, resync_element_size, resync_element_headersize) = resync(f)
