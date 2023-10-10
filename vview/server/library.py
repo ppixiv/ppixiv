@@ -31,7 +31,7 @@
 # XXX: we shouldn't do a full refresh on changes, but not sure how to find out if
 # indexing is up to date for a path in order to use quick refresh
 
-import asyncio, collections, errno, itertools, os, time, traceback, json, heapq, natsort, random, math, logging, stat
+import asyncio, collections, errno, itertools, os, time, traceback, json, heapq, natsort, random, math, logging, stat, re
 from pprint import pprint
 from pathlib import Path, PurePosixPath
 
@@ -53,6 +53,41 @@ def _create_natsort():
         return not entry.is_dir(), *natsort_key(entry.stem)
 
     return key
+
+def _create_natsort_pages_reversed():
+    """
+    Create a natural sort key to sort in descending order, but to leave pages within a group in
+    ascending order.  For example:
+
+    Image 12350 #1.png
+    Image 12350 #2.png
+    Image 12345 #1.png
+    Image 12345 #2.png
+    Image 12345 #3.png
+
+    This allows viewing higher-numbered groups first, but keeping the pages within each group
+    in ascending order.
+
+    This sort actually does the opposite, and just reverses the pages within each group.  To
+    get the correct affect, use it as a reverse sort.
+    """
+    natsort_key = _create_natsort()
+
+    # Look for "prefix #123...".
+    pattern = re.compile(r'(.* #)(\d+)(.*)')
+    def reverse_pages(entry):
+        match = pattern.match(entry.stem)
+        if not entry.is_dir() and match:
+            # natsort doesn't handle negative numbers, so we can't just invert the page number.
+            prefix = match[1]
+            page = int(match[2])
+            suffix = match[3]
+            reversed_filename = f'{prefix}{1000000000000000 - page}{suffix}'
+            entry = entry.with_stem(reversed_filename)
+
+        return natsort_key(entry)
+
+    return reverse_pages
 
 # Sort orders that we can use for listing and searching.
 #
@@ -105,6 +140,13 @@ sort_orders = {
         'fs': _create_natsort(),
     },
 
+    # Like natural, but reverse the order of pages within a group.  This is an alternative to
+    # -natural to show older image groups first, but without reversing the order of pages within
+    # the group.
+    'natural-reverse-pages': {
+        'fs': _create_natsort_pages_reversed(),
+    },
+
     # Sort by time bookmarked.  Use bookmark_updated_at, so editing a bookmark bumps it to the top.
     'bookmarked-at': {
         'index': [('bookmark_updated_at', 'DESC')],
@@ -115,6 +157,18 @@ sort_orders = {
         'fs': lambda entry: 0,
     },
 }
+
+# The sort "normal" can be used anywhere, including searches, but doesn't sort
+# optimally.  The sort "natural" uses a natural sort and makes a lot more sense,
+# but only works when viewing a directory since Windows indexing doesn't support
+# it.  Additionally, "-natural-reverse-pages" is an alternative to "-natural"
+# to view files in descending order, but to leave pages within a group of images
+# in ascending order.
+#
+# There's currently no setting for this since there's no good place for it.  Setting
+# _default_directory_list_reverse_sort to -natural will disable this.
+_default_directory_list_sort = 'natural'
+_default_directory_list_reverse_sort = '-natural-reverse-pages' # or '-natural'
 
 def _get_sort(sort_order):
     """
@@ -677,9 +731,9 @@ class Library:
         # The normal sort for directory listings is the natural sort.  Substitute it
         # here, so the caller doesn't need to figure it out.
         if sort_order == 'normal':
-            sort_order = 'natural'
+            sort_order = _default_directory_list_sort
         elif sort_order == '-normal':
-            sort_order = '-natural'
+            sort_order = _default_directory_list_reverse_sort
 
         # Run scandir for each path, and chain them together into a single iterator.
         iterators = []
@@ -742,12 +796,10 @@ class Library:
         This is optimized for returning the files in large directories more quickly than we
         can with list, and doesn't scan file contents.
         """
-        # The normal sort for directory listings is the natural sort.  Substitute it
-        # here, so the caller doesn't need to figure it out.
         if sort_order == 'normal':
-            sort_order = 'natural'
+            sort_order = _default_directory_list_sort
         elif sort_order == '-normal':
-            sort_order = '-natural'
+            sort_order = _default_directory_list_reverse_sort
 
         scandir_results = path.scandir()
 
