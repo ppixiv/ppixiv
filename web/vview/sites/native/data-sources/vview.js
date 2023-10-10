@@ -425,7 +425,6 @@ class UI extends Widget
         }, {
             createOptions: { label: "Oldest" },
             setupOptions: { fields: {"#order": "ctime"} },
-
         }, {
             createOptions: { label: "New bookmarks" },
             setupOptions: { fields: {"#order": "bookmarked-at"},
