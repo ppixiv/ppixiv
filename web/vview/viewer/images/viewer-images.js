@@ -1451,13 +1451,12 @@ export default class ViewerImages extends Viewer
         // zoom, and use "cover" if the zoom level matches it.  The zoom we set here doesn't
         // have to be one that's selectable in the UI.  Be sure to set stopAnimation, so these
         // setZoom, etc. calls don't recurse into here.
-        this.setZoom({ enabled: true, stopAnimation: false });
         if(Math.abs(zoomLevel) < 0.001)
             this.setZoom({ enabled: false, stopAnimation: false });
         else if(Math.abs(zoomLevel - this._zoomLevelCover) < 0.01)
-            this.setZoom({ level: "cover", stopAnimation: false });
+            this.setZoom({ enabled: true, level: "cover", stopAnimation: false });
         else
-            this.setZoom({ level: zoomLevel, stopAnimation: false });
+            this.setZoom({ enabled: true, level: zoomLevel, stopAnimation: false });
 
         // Set the image position to match where the animation left it.
         this.setImagePosition([left, top], [0,0]);
