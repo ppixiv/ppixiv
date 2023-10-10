@@ -493,7 +493,7 @@ export default class ViewerImages extends Viewer
 
     shutdown()
     {
-        this._stopAnimation();
+        this._stopAnimation({ shuttingDown: true });
         this._cancelSaveToHistory();
         
         super.shutdown();
@@ -1399,6 +1399,10 @@ export default class ViewerImages extends Viewer
     // any fade-in animation alone.
     _stopAnimation({
         keepAnimations=[],
+
+        // If true, just shut down the animation.  If false, the zoom level will be set to match
+        // where the animation left off, which is used when exiting from pan mode.
+        shuttingDown=false,
     }={})
     {
         // Only continue if we have a main animation.  If we don't have an animation, we don't
@@ -1446,6 +1450,11 @@ export default class ViewerImages extends Viewer
         let matrix = new DOMMatrix(getComputedStyle(this._imageBox).transform);
         let zoomFactor = matrix.a, left = matrix.e, top = matrix.f;
         let zoomLevel = this.zoomFactorToZoomLevel(zoomFactor);
+
+        // If we're shutting down, all we need to do is clean up the animation.  Make sure we don't
+        // change the saved zoom mode, since another viewer may already be active.
+        if(shuttingDown)
+            return;
 
         // Apply the current zoom and pan position.  If the zoom level is 0 then just disable
         // zoom, and use "cover" if the zoom level matches it.  The zoom we set here doesn't
