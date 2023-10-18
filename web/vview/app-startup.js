@@ -670,13 +670,13 @@ class AppStartup
 // }
 //
 // The modules can then be imported, and import each other with their given paths.
-// This allows us to load modules packaged within our user script, and import then
+// This allows us to load modules packaged within our user script, and import them
 // mostly normally.
 //
 // One limitation is that relative paths won't work.  All imports need to use the
 // path given when the module is loaded.  This is a limitation of import maps.
 //
-// See ModuleImporter_Babel for a polyfill for browsers that don't support import maps.
+// See ModuleImporter_Compat for a polyfill for browsers that don't support import maps.
 class ModuleImporter
 {
     load(scripts) { }
@@ -959,40 +959,4 @@ class ModuleImporter_Compat extends ModuleImporter
 
         return import(url);
     }
-    static base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-
-    static encodeBase64(utf8)
-    {
-        let base64Chars = this.base64Chars;
-        let encoder = new TextEncoder();
-        let bytes = encoder.encode(utf8);
-
-        let result = "";
-        let i = 0;
-        while(i < bytes.length)
-        {
-            let chr1 = bytes[i++];
-            let chr2 = bytes[i++];
-            let chr3 = bytes[i++];
-
-            let enc1 = chr1 >> 2;
-            let enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-            let enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
-            let enc4 = chr3 & 63;
-
-            result += base64Chars[enc1] + base64Chars[enc2] + base64Chars[enc3] + base64Chars[enc4];
-        }
-
-        if((bytes.length % 3) == 2)
-        {
-            result = result.slice(0, result.length-1);
-            result += '=';
-        }
-        else if((bytes.length % 3) == 1)
-        {
-            result = result.slice(0, result.length-2);
-            result += '==';
-        }
-        return result;
-    }    
 }
