@@ -152,6 +152,7 @@ class AppStartup
                     position: fixed;
                     bottom: 10px;
                     left: 16px;
+                    z-index: 1;
                 }
                 .ppixiv-disabled-ui > a {
                     border: none;
