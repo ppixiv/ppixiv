@@ -753,7 +753,7 @@ function createTranslationSettingsWidget({ globalOptions, editOverrides })
                     googleL: "Google",
                     youdao: "Youdao",
                     baidu: "Baidu",
-                    deepl: "Deepl",
+                    deepl: "DeepL",
                     papago: "Papago",
                     offline: "Offline",
                     none: "None (remove text)",
