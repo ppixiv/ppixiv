@@ -200,7 +200,7 @@ export default class Args
             
         if(path)
         {
-            this.set_pathname_segment(parseInt(key), value);
+            this.setPathnameSegment(parseInt(key), value);
             return;
         }
 
@@ -230,7 +230,7 @@ export default class Args
     // If idx is at the end, a new segment will be added.  If it's more than one beyond the
     // end a warning will be printed, since this usually shouldn't result in pathnames with
     // empty segments.  If value is null, remove the segment instead.
-    set_pathname_segment(idx, value)
+    setPathnameSegment(idx, value)
     {
         idx++;
         let parts = this.path.split("/");

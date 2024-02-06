@@ -18,9 +18,23 @@ export default class DataSources_Artist extends DataSource
     get name() { return "artist"; }
     get ui() { return UI; }
 
-    constructor(args)
+    constructor({url, ...args})
     {
-        super(args);
+        // Work around Pixiv's weird tag URLs.  They put tags as a path component, eg. "/users/1234/artworks/tag".
+        // This is awkward for us since we treat the "/users/1234" page the same as "/users/1234/artworks",
+        // and we can't put tags in that URL since it has no third component.  Work around this by
+        // translating /users/1234 to /users/1234/artworks internally.
+        url = new URL(url);
+
+        let parts = url.pathname.split("/");
+        if(parts.length == 3) // /users/1234
+        {
+            parts.push("artworks");
+            url.pathname = parts.join("/");
+        }
+
+        url = url.toString();
+        super({url, ...args});
     }
 
     get supportsStartPage() { return true; }
@@ -66,8 +80,8 @@ export default class DataSources_Artist extends DataSource
         let userInfoPromise = this._loadUserInfo();
 
         let args = new helpers.args(this.url);
-        let tag = args.query.get("tag") || "";
-        if(tag == "")
+        let tag = this.currentTag;
+        if(tag == null)
         {
             // If we're not filtering by tag, use the profile/all request.  This returns all of
             // the user's illust IDs but no thumb data.
@@ -163,8 +177,15 @@ export default class DataSources_Artist extends DataSource
     // If we're filtering a follow tag, return it.  Otherwise, return null.
     get currentTag()
     {
-        let args = new helpers.args(this.url);
-        return args.query.get("tag");
+        // This used to use a nice, clean query argument, but for some reason Pixiv changed it to use
+        // a path field at some point.
+        let args = new helpers.args(helpers.pixiv.getUrlWithoutLanguage(this.url));
+
+        let tag = args.get("/3"); // /users/12345/type/tags
+        if(tag == null)
+            tag = args.query.get("tag");
+
+        return tag;
     }
 
     get uiInfo()
@@ -298,10 +319,10 @@ class UI extends Widget
             this.tagDropdown.setButtonPopupHighlight();
         }, this._signal);
 
-        let urlFormat = "users/id/type";
+        let urlFormat = "users/id/type/tag";
         dataSource.setupDropdown(this.querySelector(".search-type-button"), [{
-            createOptions: { label: "Works", dataset: { default: "1" } },
-            setupOptions:  { urlFormat, fields: {"/type": null}, defaults: {"/type": "artworks"} },
+            createOptions: { label: "Works" },
+            setupOptions:  { urlFormat, fields: {"/type": "artworks"} },
         }, {
             createOptions: { label: "Illusts" },
             setupOptions:  { urlFormat, fields: {"/type": "illustrations"} },
@@ -381,7 +402,7 @@ class UI extends Widget
                     dataType: "artist-tag",
                 });
 
-                dataSource.setItem(a, { fields: {"tag": tag != "All"? tag:null} });
+                dataSource.setItem(a, { urlFormat, fields: {"/tag": tag != "All"? tag:null} });
 
                 if(tag == "All")
                     a.dataset["default"] = 1;
