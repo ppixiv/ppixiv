@@ -210,7 +210,7 @@ async def api_bookmark_add(info):
     absolute_path = info.manager.resolve_path(path)
     info.manager.check_path(absolute_path, info.request, throw=True)
 
-    entry = info.manager.library.get(absolute_path)
+    entry = info.manager.library.get(absolute_path, throw=True)
     entry = info.manager.library.bookmark_edit(entry, tags=tags)
 
     # Index the image for similar image searching when it's bookmarked.  Normally this happens
@@ -481,9 +481,7 @@ async def api_illust(info):
     
 async def _get_api_illust_info(info, media_id, *, generate_inpaint=False, force_refresh=False):
     absolute_path = info.manager.resolve_path(media_id)
-    entry = info.manager.library.get(absolute_path, force_refresh=force_refresh)
-    if entry is None:
-        raise misc.Error('not-found', 'File not in library')
+    entry = info.manager.library.get(absolute_path, force_refresh=force_refresh, throw=True)
 
     # Check that the user has access to this file.
     info.user.check_image_access(entry, api=True)
@@ -773,9 +771,7 @@ async def api_edit_inpainting(info):
     path = PurePosixPath(info.request.match_info['path'])
     absolute_path = info.manager.resolve_path(path)
 
-    entry = info.manager.library.get(absolute_path)
-    if entry is None:
-        raise misc.Error('not-found', 'File not in library')
+    entry = info.manager.library.get(absolute_path, throw=True)
 
     changes = { }
     if 'inpaint' in info.data: changes['inpaint'] = info.data['inpaint']

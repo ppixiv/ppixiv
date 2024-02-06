@@ -702,13 +702,16 @@ class Library:
             'author': '',
         }
 
-    def get(self, path, *, force_refresh=False):
+    def get(self, path, *, force_refresh=False, throw=False):
         """
         Get the entry for a single file.
         """
         entry = self._get_entry(path, force_refresh=force_refresh)
         if entry is None:
-            return None
+            if throw:
+                raise misc.Error('not-found', 'File not in library')
+            else:
+                return None
 
         self._convert_to_path(entry)
         return entry
