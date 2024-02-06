@@ -517,11 +517,6 @@ export default class MediaCache extends EventTarget
             if(profileImageUrl)
                 this.cacheProfilePictureUrl(remappedMediaInfo.userId, profileImageUrl);
 
-            // If we already have full media info, don't replace it with partial info.  This can happen
-            // when a data source is refreshed.
-            if(this.getMediaInfoSync(remappedMediaInfo.mediaId, { full: true }) != null)
-                continue;
-
             allThumbInfo.push(remappedMediaInfo);
         }
 
