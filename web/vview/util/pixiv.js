@@ -38,6 +38,11 @@ export function getUrlWithoutLanguage(url)
 }
 
 // Split a Pixiv tag search into a list of tags.
+//
+// This doesn't handle every case.  Tags can contain parentheses, and even end with
+// parentheses: abc(def) is a valid tag and not a grouping.  Currently we'll parse
+// "abc" and "def" out as separate tags.  This is rare and only used for translations,
+// so it's not a major problem.
 export function splitSearchTags(search)
 {
     // Replace full-width spaces with regular spaces.  Pixiv treats this as a delimiter.
