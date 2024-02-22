@@ -16,9 +16,7 @@ async function Bootstrap({env, rootUrl}={})
         return;
 
     // Some script managers define this on window, some as a local, and some not at all.
-    let info = null;
-    if(typeof GM_info != "undefined")
-        info = GM_info;
+    let info = typeof GM_info != "undefined"? GM_info:null;
 
     console.log(`ppixiv is running in ${info?.scriptHandler} ${info?.version}`);
 

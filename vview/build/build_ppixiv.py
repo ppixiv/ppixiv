@@ -134,16 +134,44 @@ class Build(object):
     def deploy(self, latest=False):
         """
         Deploy the distribution to the website.
+
+        The build contains these files for each release:
+
+        /builds/r1234/ppixiv-main.user.js is main application.
+        /builds/r1234/ppixiv.user.js is the regular userscript stub, which loads ppixiv-main.user.js with
+        a @require.
+        /builds/r1234/ppixiv-launch.user.js is an alternate userscript stub, which uses launch.js to load
+        ppixiv-main.user.js.  This used on mobile to work around poor update handling on mobile script
+        managers.
+
+        /latest contains a copy of the latest build (except for ppixiv-main).
+        /beta contains the build files for a test release.
+        /install redirects to /latest/ppixiv.user.js, so the script can be installed from https://ppixiv.org/install.
+        /test redirects to /beta/ppixiv.user.js, so the test version can be installed from https://ppixiv.org/test.
         """
+        def create_file(text, output_filename):
+            url = f's3://{self.deploy_s3_bucket}/{output_filename}'
+            print(f'Uploading: {url}')
+            subprocess.run([
+                'aws', 's3', 'cp',
+                '--acl', 'public-read',
+                '-',
+                url,
+            ], input=text.encode('utf-8'), check=True)
+
         def copy_file(source, path, output_filename=None):
             if output_filename is None:
                 output_filename = os.path.basename(source)
-            subprocess.check_call([
+
+            url = f's3://{self.deploy_s3_bucket}/{path}/{output_filename}'
+            print(f'Uploading: {url}')
+            subprocess.run([
                 'aws', 's3', 'cp',
+                '--quiet',
                 '--acl', 'public-read',
                 source,
-                f's3://{self.deploy_s3_bucket}/{path}/{output_filename}',
-            ])
+                url,
+            ], check=True)
 
         if not self.is_release:
             # If we're deploying a dirty build, just copy the full build to https://ppixiv.org/beta
@@ -151,18 +179,20 @@ class Build(object):
             print('Deploying beta only')
             copy_file('output/ppixiv.user.js', 'beta')
             copy_file('output/ppixiv-main.user.js', 'beta')
+            create_file(self.build_launch(devel=True), 'beta/ppixiv-launch.user.js')
             return
 
         # Copy files for this version into https://ppixiv.org/builds/r1234.
         version = get_git_tag()
         for filename in ('ppixiv.user.js', 'ppixiv-main.user.js'):
             copy_file(f'output/{filename}', f'builds/{version}')
+        create_file(self.build_launch(devel=False), f'builds/{version}/ppixiv-launch.user.js')
 
         # Update the beta to point to this build.
         copy_file('output/ppixiv.user.js', 'beta')
 
         if latest:
-            # Copy the loader to https://ppixiv.org/latest:
+            # Copy the loader to https://ppixiv.org/latest/ppixiv.user.js:
             copy_file('output/ppixiv.user.js', 'latest')
 
     def build_release(self):
@@ -186,7 +216,7 @@ class Build(object):
         # into the 2MB size limit.
         output_loader_file = 'output/ppixiv.user.js'
         print('Building: %s' % output_loader_file)
-        result = self.build_header(for_debug=False)
+        result = self.build_header(version_name=self.get_release_version())
 
         # Add the URL where the above script will be available.  If this is a release, it'll be
         # in the regular distribution directory with the release in the URL.  If this is a debug
@@ -216,7 +246,7 @@ class Build(object):
         output_file = 'output/ppixiv-debug.user.js'
         print('Building: %s' % output_file)
 
-        result = self.build_header(for_debug=True)
+        result = self.build_header(version_name='testing', version_suffix='(testing)')
         result.append(f'// ==/UserScript==')
 
         # Add the loading code for debug builds, which just runs bootstrap_native.js.
@@ -243,6 +273,31 @@ class Build(object):
 
         with open(output_file, 'w+t', encoding='utf-8', newline='\n') as f:
             f.write(lines)
+
+    def build_launch(self, *, devel):
+        """
+        Build the ppixiv-launch version of the userscript.
+
+        This uses an alternative launcher that loads the current version directly from
+        our server, as a workaround for userscript managers with broken updating.  This
+        has a flag for whether to load the release or beta version, so this is generated
+        dynamically.
+        """
+        result = self.build_header(version_name='Loader', version_suffix='(testing, loader)' if devel else 'testing')
+        result.append(f'// ==/UserScript==')
+
+        result.append('''
+(async() => {
+    // If this is an iframe, don't do anything.
+    if(window.top != window.self)
+        return;
+
+    let { launch } = await import("https://ppixiv.org/launch.js");
+    eval(await launch({ devel: %(for_debug)s }));
+})();
+        ''' % { 'for_debug': 'true' if devel else 'false' })
+
+        return '\n'.join(result) + '\n'
 
     @property
     def root(self):
@@ -388,25 +443,20 @@ class Build(object):
 
         return data
 
-    def build_header(self, for_debug):
+    def build_header(self, *, version_name, version_suffix=None):
         result = []
         with open('web/startup/header.js', 'rt', encoding='utf-8') as input_file:
             for line in input_file.readlines():
                 line = line.strip()
 
                 # Change the name of the testing script so it can be distinguished in the script dropdown.
-                if line.startswith('// @name ') and for_debug:
-                    line += ' (testing)'
+                if line.startswith('// @name ') and version_suffix:
+                    line += f' {version_suffix}'
 
                 result.append(line)
 
         # Add @version.
-        if for_debug:
-            version = 'testing'
-        else:
-            version = self.get_release_version()
-            
-        result.append('// @version     %s' % version)
+        result.append('// @version     %s' % version_name)
 
         return result
 
@@ -448,7 +498,7 @@ class Build(object):
         return modules
 
     def build_output(self):
-        result = self.build_header(for_debug=False)
+        result = self.build_header(version_name=self.get_release_version())
         result.append(f'// ==/UserScript==')
 
         # Encapsulate the script.
