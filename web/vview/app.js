@@ -20,7 +20,6 @@ import ExtraImageData from '/vview/misc/extra-image-data.js';
 import GuessImageURL from '/vview/misc/guess-image-url.js';
 import ImageTranslations from '/vview/misc/image-translation.js';
 import PointerListener from '/vview/actors/pointer-listener.js';
-import { getUrlForMediaId } from '/vview/misc/media-ids.js'
 import VirtualHistory from '/vview/util/virtual-history.js';
 import SiteNative from '/vview/sites/native/site-native.js';
 import SitePixiv from '/vview/sites/pixiv/site-pixiv.js';
