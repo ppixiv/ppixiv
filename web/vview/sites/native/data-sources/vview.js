@@ -380,11 +380,11 @@ class UI extends Widget
             createOptions: { label: "All",           dataType: "local-type-all", dataset: { default: "1"} },
             setupOptions: { fields: {"#type": null} },
         }, {
-            createOptions: { label: "Videos",        dataType: "local-type-videos" },
-            setupOptions: { fields: {"#type": "videos"} },
-        }, {
             createOptions: { label: "Images",        dataType: "local-type-images" },
             setupOptions: { fields: {"#type": "images"} },
+        }, {
+            createOptions: { label: "Videos",        dataType: "local-type-videos" },
+            setupOptions: { fields: {"#type": "videos"} },
         }]);
 
         dataSource.setupDropdown(this.querySelector(".aspect-ratio-button"), [{
