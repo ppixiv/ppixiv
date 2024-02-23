@@ -282,7 +282,7 @@ class APIServer:
         origin = request.headers.get('Origin') or request.headers.get('Referer')
         if origin:
             origin = urllib.parse.urlparse(origin)
-            if origin.hostname != 'localhost':
+            if origin.hostname != 'localhost' and origin.hostname != '127.0.0.1':
                 return False
 
         return True
