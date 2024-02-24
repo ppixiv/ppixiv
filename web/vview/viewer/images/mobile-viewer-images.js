@@ -215,7 +215,7 @@ export default class ViewerImagesMobile extends ViewerImages
         }
 
         // Zoom to whichever one is further away from the current zoom.
-        let currentZoomLevel = this.getZoomLevel();
+        let currentZoomLevel = this._zoomLevelCurrent;
         let zoomDistanceIn = Math.abs(currentZoomLevel - zoomInLevel);
         let zoomDistanceOut = Math.abs(currentZoomLevel - zoomOutLevel);
 
