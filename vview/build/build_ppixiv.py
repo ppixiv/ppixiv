@@ -195,6 +195,9 @@ class Build(object):
             # Copy the loader to https://ppixiv.org/latest/ppixiv.user.js:
             copy_file('output/ppixiv.user.js', 'latest')
 
+            # This file doesn't change much, but make sure there's a copy in latest too.
+            create_file(self.build_launch(devel=False), f'latest/ppixiv-launch.user.js')
+
     def build_release(self):
         """
         Build the final output/ppixiv.user.js script.
