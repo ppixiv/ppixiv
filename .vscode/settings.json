@@ -1,9 +1,0 @@
-{
-    "search.useIgnoreFiles": true,
-    "scss.lint.emptyRules": "ignore",
-    "explorer.excludeGitIgnore": true,
-    "search.useGlobalIgnoreFiles": true,
-    "search.useParentIgnoreFiles": true,
-    "scss.lint.vendorPrefix": "ignore",
-    "scss.lint.unknownProperties": "ignore"
-}
