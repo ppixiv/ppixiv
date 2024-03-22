@@ -147,8 +147,14 @@ class APIServer:
         """
         Shut down any running requests.
         """
-        for task, request in dict(self.running_requests).items():
+        requests_to_cancel = list(self.running_requests.keys())
+        for task in requests_to_cancel:
             task.cancel()
+
+        # Wait for requests to actually shut down.  If they're still running when the
+        # process exits, it can cause a bunch of confusing exceptions.
+        async with asyncio.timeout(3):
+            await asyncio.gather(*requests_to_cancel, return_exceptions=True)
 
     async def handle_unknown_api_call(self, info):
         name = info.request.match_info['name']
