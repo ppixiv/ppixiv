@@ -21,7 +21,7 @@ mimetypes.add_type('text/scss', '.scss')
 
 def add_routes(router):
     router.add_get('/vview/init.js', handle_init)
-    router.add_get('/vview/{path:.*\.css}', handle_css)
+    router.add_get(r'/vview/{path:.*\.css}', handle_css)
     router.add_get('/vview/{path:.*}', handle_client)
 
     router.add_get('/', handle_resource('resources/index.html'))

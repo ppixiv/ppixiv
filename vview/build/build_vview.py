@@ -322,6 +322,7 @@ class VViewBuild:
         much yet since we haven't installed dependancies, but we should be able to run basic
         code.
         """
+        print(self.vvpython)
         result = subprocess.run(stdout=subprocess.PIPE, args=[
             self.vvpython,
             '-c',

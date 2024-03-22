@@ -655,7 +655,7 @@ class ThreadedQueue:
 
 import unicodedata
 def split_keywords(s):
-    """
+    r"""
     Split s into search keywords.
 
     A split like re.findall(r'\w+') has some problems: it includes underscores,

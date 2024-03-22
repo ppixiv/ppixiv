@@ -69,7 +69,7 @@ class APIServer:
         """
         futures = [site.stop() for site in self.sites]
         if futures:
-            await asyncio.wait(futures)
+            await asyncio.gather(*futures)
         self.sites = []
 
         if self.runner is not None:

@@ -143,10 +143,6 @@ extern "C" int RunVView(bool terminal)
         return 1;
     }
 
-    Py_SetProgramName(L"VView");
-    Py_SetPythonHome((top_dir + L"/").c_str());
-    Py_SetStandardStreamEncoding("utf-8", "utf-8");
-    
     // Do Python preconfiguration.
     {
         PyPreConfig preconfig;
@@ -167,8 +163,19 @@ extern "C" int RunVView(bool terminal)
         config.buffered_stdio = false;
         config.site_import = true;
 
+        PyConfig_SetString(&config, &config.program_name, L"VView8");
+        PyConfig_SetString(&config, &config.home, python_path.c_str());
+        PyConfig_SetString(&config, &config.stdio_encoding, L"utf-8");
+        PyConfig_SetString(&config, &config.stdio_errors, L"surrogateescape");
+
         // We're in isolated mode, but we do want to parse the commandline.
         config.parse_argv = 1;
+
+        // Set the Python path.
+        PyWideStringList_Append(&config.module_search_paths, top_dir.c_str());
+        PyWideStringList_Append(&config.module_search_paths, (python_path + L"\\python312.zip").c_str());
+        PyWideStringList_Append(&config.module_search_paths, python_path.c_str());
+        config.module_search_paths_set = 1;
 
         {
             // Put .pyc files inside our data directory, so we keep the installation
@@ -207,17 +214,6 @@ extern "C" int RunVView(bool terminal)
             if(PyStatus_IsExit(status))
                 return status.exitcode;
         }
-
-        // Set the Python path.
-        wstring path =
-            // Add the top of the distribution, for importing vview.
-            top_dir + L";" +
-
-            // Add bin/Python and python/Python/python310.zip, for Python standard
-            // libraries.  We also put our own .pyd's inside bin/Python.
-            python_path + L"\\python310.zip;" +
-            python_path;
-        Py_SetPath(path.c_str());
 
         status = Py_InitializeFromConfig(&config);
         if (PyStatus_Exception(status)) {

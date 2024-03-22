@@ -21,8 +21,8 @@
 #define Py_NO_ENABLE_SHARED
 #include "Python.h"
 
-// The header we actually want:
-#pragma comment(lib, "python310.lib")
+// The library we actually want:
+#pragma comment(lib, "python312.lib")
 
 #endif
 
