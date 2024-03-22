@@ -8,6 +8,7 @@ from tarfile import TarFile
 
 _temp_dir = Path(tempfile.gettempdir()) / 'vview-build'
 
+class BuildError(Exception): pass
 
 def download_file(url, filename=None):
     """

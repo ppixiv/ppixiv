@@ -13,8 +13,7 @@ from pathlib import Path
 from urllib import request
 from zipfile import ZipFile
 from . import util
-
-class BuildError(Exception): pass
+from .util import BuildError
 
 class VViewBuild:
     def build_all(self):
@@ -151,7 +150,7 @@ class VViewBuild:
         # much smaller, but currently we shell out to it
         # https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2021-11-30-12-21
         # https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2021-11-30-12-21/ffmpeg-N-104704-ge22dff43e7-win64-lgpl-shared.zip
-        url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2021-11-30-12-21/ffmpeg-N-104704-ge22dff43e7-win64-lgpl-shared.zip'
+        url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-03-21-12-56/ffmpeg-N-114298-g97d2990ea6-win64-lgpl-shared.zip'
         output_file = util.download_file(url)
 
         # Extract FFmpeg.
@@ -284,7 +283,7 @@ class VViewBuild:
         # don't actually have their include paths added to the build until the next execution.
         result = subprocess.run([
             msbuild,
-            'native\VView.sln',
+            r'native\VView.sln',
             '-property:RestorePackagesConfig=true',
             '-t:Restore',
             '-verbosity:minimal',
@@ -305,7 +304,7 @@ class VViewBuild:
         output_dir = self.bin_dir.name
         result = subprocess.run([
             msbuild,
-            'native\VView.sln',
+            r'native\VView.sln',
             # '-t:Clean',
             '-t:Build',
             '-verbosity:minimal',
