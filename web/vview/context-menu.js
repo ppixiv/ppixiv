@@ -932,7 +932,7 @@ export default class ContextMenu extends Widget
                 if(mediaId == null)
                     return;
 
-                let mediaInfo = ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
+                let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, { full: false });
 
                 // Ctrl-Shift-Alt-B: add a bookmark tag
                 if(e.altKey && e.shiftKey)
