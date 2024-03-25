@@ -53,10 +53,18 @@ async def handle_file(request):
     if convert_images and mime_type.startswith('image') and mime_type not in browser_image_types:
         return await _handle_browser_conversion(request)
     
-    return FileResponse(absolute_path, headers={
+    response = FileResponse(absolute_path, headers={
         'Cache-Control': 'public, immutable',
         'Content-Type': mime_type,
     })
+
+    # Work around aiohttp: instead of using the path you give it, it creates a Path initialized
+    # with it.  This causes it to create a WindowsPath instead of using the ZipPath objects we
+    # actually told it to use.  This used to work fine, but more recent versions of aiohttp no
+    # longer understand that they might be given a file that isn't a regular filesystem path.
+    response._path = absolute_path
+
+    return response
 
 def _bake_exif_rotation(image, exif):
     ORIENTATION = 0x112
