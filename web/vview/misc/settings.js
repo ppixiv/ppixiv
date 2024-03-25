@@ -43,6 +43,7 @@ export default class Settings extends EventTarget
         this.configure("extraMutes", { defaultValue: [] });
         this.configure("slideshow_skips_manga", { defaultValue: false });
         this.configure("pixiv_cdn", { defaultValue: "pixiv" }); // see helpers.pixiv.pixivImageHosts
+        this.configure("preload_manga", { defaultValue: ppixiv.mobile? "thumbnails":"full" });
 
         // Default to aspect ratio thumbs unless we're on a phone.
         this.configure("thumbnail_style", { defaultValue: helpers.other.isPhone()? "square":"aspect" });

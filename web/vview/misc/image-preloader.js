@@ -261,7 +261,7 @@ export default class ImagePreloader
             results.push(new ImgResourceLoader(url));
         }
 
-        if(!ppixiv.mobile)
+        if(ppixiv.settings.get("preload_manga") == "full")
         {
             // Preload the remaining pages.
             for(let p = 0; p < mediaInfo.mangaPages.length; ++p)
