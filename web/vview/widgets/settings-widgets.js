@@ -355,6 +355,7 @@ function createSettingsWidget({ globalOptions })
         preloadManga: () => {
             let values = {
                 full: "All pages",
+                partial: "Nearby pages",
                 thumbnails: "Thumbnails only",
             };
 

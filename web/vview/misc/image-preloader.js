@@ -261,7 +261,8 @@ export default class ImagePreloader
             results.push(new ImgResourceLoader(url));
         }
 
-        if(ppixiv.settings.get("preload_manga") == "full")
+        let preloadMode = ppixiv.settings.get("preload_manga");
+        if(preloadMode == "partial" || preloadMode == "full")
         {
             // Preload the remaining pages.
             for(let p = 0; p < mediaInfo.mangaPages.length; ++p)
@@ -269,8 +270,11 @@ export default class ImagePreloader
                 if(p == page)
                     continue;
 
-                // Stagger loading pages that aren't near the current page.
+                // Stagger loading pages that aren't near the current page.  If we're in
+                // partial preload mode, only preload nearby pages.
                 let staggered = p < page - 2 || p >= page + 2;
+                if(preloadMode == "partial" && staggered)
+                    continue;
 
                 let { url } = mediaInfo.getMainImageUrl(p);
                 results.push(new ImgResourceLoader(url, { staggered }));
