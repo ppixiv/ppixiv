@@ -25,7 +25,7 @@ class SearchDirEntryStat:
 
         self.st_size = data['SYSTEM.SIZE']
         self._st_atime = None
-        self._st_ctime = None
+        self.__st_birthtime = None
         self._st_mtime = None
 
         # SYSTEM.FILEATTRIBUTES is WIN32_FIND_DATA.dwFileAttributes.  Convert
@@ -45,7 +45,7 @@ class SearchDirEntryStat:
 
     def __repr__(self):
         fields = []
-        for field in ('st_mode', 'st_dev', 'st_size', 'st_atime', 'st_mtime', 'st_ctime'):
+        for field in ('st_mode', 'st_dev', 'st_size', 'st_atime', 'st_mtime', 'st_birthtime'):
             fields.append('%s=%s' % (field, getattr(self, field)))
         return f'SearchDirEntryStat({ ", ".join(fields) })'
 
@@ -78,12 +78,12 @@ class SearchDirEntryStat:
         return self._st_atime
 
     @property
-    def st_ctime(self):
-        if self._st_ctime is not None:
-            return self._st_ctime
+    def st_birthtime(self):
+        if self._st_birthtime is not None:
+            return self._st_birthtime
 
-        self._st_ctime = self._data['SYSTEM.DATECREATED'].timestamp() - time.timezone
-        return self._st_ctime
+        self.__st_birthtime = self._data['SYSTEM.DATECREATED'].timestamp() - time.timezone
+        return self.__st_birthtime
 
     @property
     def st_mtime(self):

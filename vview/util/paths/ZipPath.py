@@ -189,7 +189,7 @@ class SharedZipFile:
         """
         if self._cached_root_entry is None:
             # Use the ZIP's ctime as the root's timestamp.
-            ctime = self.path.stat().st_ctime
+            ctime = self.path.stat().st_birthtime
             timestamp = datetime.fromtimestamp(ctime, tz=timezone.utc)
             self._cached_root_entry = ZipPathInfo('', None, None, 0, True, timestamp)
 

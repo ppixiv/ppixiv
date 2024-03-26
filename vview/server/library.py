@@ -130,7 +130,7 @@ sort_orders = {
 
         # SQLite doesn't have floor(), so do it with round() instead.
         'index': [('round(ctime - 0.5)', 'ASC'), ('path_lowercase', 'ASC')],
-        'fs': lambda entry: (math.floor(entry.stat().st_ctime), entry.name),
+        'fs': lambda entry: (math.floor(entry.stat().st_birthtime), entry.name),
     },
 
     # A natural sort.  This also puts directories first, but sorts numbered files much better.
@@ -527,7 +527,7 @@ class Library:
         # To migrate older bookmarks from before this was added, use the file timestamp as the default
         # bookmark time.  This should be quick, but just to be safe, make sure we don't stat the file
         # if the file isn't bookmarked.
-        default_bookmark_time = path.stat().st_ctime if entry['bookmarked'] else 0
+        default_bookmark_time = path.stat().st_birthtime if entry['bookmarked'] else 0
         entry['bookmark_created_at'] = file_metadata.get('bookmark_created_at', default_bookmark_time)
         entry['bookmark_updated_at'] = file_metadata.get('bookmark_updated_at', default_bookmark_time)
         if 'width' not in entry:
@@ -606,7 +606,7 @@ class Library:
             'path': os.fspath(path),
             'is_directory': False,
             'parent': str(Path(path).parent),
-            'ctime': stat.st_ctime,
+            'ctime': stat.st_birthtime,
             'mtime': stat.st_mtime,
             'path_lowercase': str(path).lower(),
             'basename_if_directory_lowercase': None, # only set for directories
@@ -645,7 +645,7 @@ class Library:
             'basename_if_directory_lowercase': path.filesystem_file.name.lower(),
             'is_directory': True,
             'parent': str(Path(path).parent),
-            'ctime': stat.st_ctime,
+            'ctime': stat.st_birthtime,
             'mtime': stat.st_mtime,
             'filesystem_mtime': path.filesystem_file.stat().st_mtime,
             
@@ -693,7 +693,7 @@ class Library:
             'filesystem_mtime': path.filesystem_file.stat().st_mtime,
             'is_directory': is_directory,
             'parent': str(Path(path).parent),
-            'ctime': path_stat.st_ctime,
+            'ctime': path_stat.st_birthtime,
             'mtime': path_stat.st_mtime,
             'mime_type': mime_type,
             'title': '',
