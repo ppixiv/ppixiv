@@ -68,5 +68,5 @@ def show_errors():
         yield
     except Exception as e:
         error = traceback.format_exc()
-        show_error_dialog_if_no_console('Error launching VView', 'An unexpected error occurred:\n\n' + error)
+        show_error_dialog_if_no_console('Error launching VView', f'{e}\n\n{error}')
         raise
