@@ -58,25 +58,30 @@ def open_path_in_browser(path):
     width = None
     height = None
 
-    file_metadata = metadata_storage.load_file_metadata(path)
-    crop = file_metadata.get('crop')
-    if crop:
-        width = crop[2] - crop[0]
-        height = crop[3] - crop[1]
-    elif not path.is_dir():
-        # If the image wasn't cropped, just get the image dimensions.
+    if not path.is_dir():
+        # Get the image dimensions.
         mime_type = misc.mime_type(path)
-        try:
-            with path.open('rb', shared=True) as f:
-                media_metadata = misc.read_metadata(f, mime_type)
-                width = media_metadata['width']
-                height = media_metadata['height']
-        except IOError as e:
-            log.exception('Couldn\'t get image dimensions for opening in browser: %s' % path)
-    
+
+        with path.open('rb', shared=True) as f:
+            media_metadata = misc.read_metadata(f, mime_type)
+
+        if 'width' not in media_metadata or 'height' not in media_metadata:
+            raise ValueError('Unrecognized image format')
+
+        width = media_metadata.get('width')
+        height = media_metadata.get('height')
+
+        # See if we have a crop.  We still read the file above even if we're using the
+        # crop resolution, so error handling is the same (we still check that the file
+        # is readable).
+        file_metadata = metadata_storage.load_file_metadata(path)
+        crop = file_metadata.get('crop')
+        if crop:
+            width = crop[2] - crop[0]
+            height = crop[3] - crop[1]
+
     path = Path(path)
-    url_path = str(path).replace('\\', '/')
-    _open_url_path('open/' + url_path, width=width, height=height)
+    _open_url_path('open/' + path.as_posix(), width=width, height=height)
 
 def _browser_profile_path():
     """
