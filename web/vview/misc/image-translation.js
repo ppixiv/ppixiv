@@ -453,7 +453,7 @@ export default class ImageTranslations extends EventTarget
                     return data.result.translation_mask;
 
                 case "error":
-                    throw new TranslationError(`Translation error for ${pageMediaId}: $[data.error}`);
+                    throw new TranslationError(`Translation error for ${pageMediaId}: ${data.error}`);
 
                 case "not_found":
                     // The ID is unknown.  This is either a bug or a server problem.
