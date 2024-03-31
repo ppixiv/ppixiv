@@ -321,7 +321,8 @@ class ZipPath(PathBase):
             mode, 0, 0, 1, 0, 0, entry.size,
             timestamp, timestamp, timestamp, # int atime, mtime, ctime
             timestamp, timestamp, timestamp, # float atime, mtime, ctime
-            timestamp_ns, timestamp_ns, timestamp_ns, # atime_ns, mtime_ns, ctime_ns
+            timestamp_ns, timestamp_ns, timestamp_ns, # atime_ns, mtime_ns, ctime_ns,
+            timestamp, timestamp, # birthtime, birthtime_ns
         ))
 
     def scandir(self):
