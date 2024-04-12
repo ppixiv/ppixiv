@@ -93,10 +93,8 @@ class AppStartup
     
     async loadAndLaunchApp({modules})
     {
-        // Allow enabling import maps for testing.  We don't use them by default yet, since
-        // they're not supported on iOS (coming in 16.4) and it's easier to make sure things
-        // work everywhere by using the same loader everywhere.
-        let useImportMaps = false; //localStorage._ppixiv_importmaps;
+        // Use import maps if available.  They're implemented in all modern browsers.
+        let useImportMaps = HTMLScriptElement.supports?.('importmap');
         let ModuleImporterClass = useImportMaps? ModuleImporter_Native:ModuleImporter_Compat;
 
         // Load our modules.
