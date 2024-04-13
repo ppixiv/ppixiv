@@ -699,6 +699,23 @@ class ModuleImporter_Native extends ModuleImporter
         {
             imports[path] = url;
             this._knownModules.add(path);
+
+            // Work around a quirk in import maps.  The imports above are relative paths,
+            // eg. /vview/app.js -> blob URL.  However, if we're loading directly from the
+            // vview server, the imported scripts will be treated as importing an absolute
+            // path relative to their own URL, eg. https://localhost/vview/app.js, which won't
+            // be matched by the above.  Work around this by adding a second mapping from
+            // each path's absolute path.
+            //
+            // If we don't do this then the scripts will still load, but they won't have
+            // the cache bust timestamp added, so they won't update correctly when changed.
+            // This has no effect when loading from the user script.  Don't do this if the
+            // URL is a blob, since URL will throw.
+            if(!url.startsWith("blob:"))
+            {
+                path = new URL(path, url);
+                imports[path] = url;
+            }
         }
 
         // Generate an import map for our scripts.
