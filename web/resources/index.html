@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="vview">
 <meta name="viewport" content="viewport-fit=cover, initial-scale=1, user-scalable=no">
-<link rel="apple-touch-icon" href="/vview/resources/vview-icon.png">
-<link rel="manifest" href="/vview/resources/manifest.json">
+<link rel="apple-touch-icon" href="/resources/vview-icon.png">
+<link rel="manifest" href="/resources/manifest.json">
 <!-- This is displayed until we're loaded enough to set our own title.  Set something,
      so the browser doesn't just show the URL. -->
 <title>VView</title>
@@ -31,5 +31,4 @@
     })();
 </script>
 
-<script src=/vview/app-startup.js></script>
-<script>new AppStartup({rootUrl: new URL(window.location)})</script>
+<script src="/vview/app-bundle.js"></script>

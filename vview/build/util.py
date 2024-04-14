@@ -71,7 +71,7 @@ def _open_zip_or_tar(path):
         yield ZipFile(path, mode='r')
         return
 
-    if path.suffix != '.gz':
+    if path.suffix not in ('.gz', '.tgz'):
         raise Exception(f'Unrecognized archive format: {path}')
 
     # .tar.gz:
@@ -121,5 +121,44 @@ def download_sass(output_path):
                 with output_filename.open('wb') as output_file:
                     shutil.copyfileobj(input_file, output_file)
 
-                # For LInux, just mark all files executable.
+                # For Linux, just mark all files executable.
+                os.chmod(output_filename, 0o755)
+
+def download_esbuild(output_path):
+    """
+    Download an esbuild prebuilt into output_path.
+    """
+    # Do a quick check to see if all of the files already exist.
+    exe_suffix = '.exe' if sys.platform == 'win32' else ''
+    files = (f'esbuild{exe_suffix}', 'README.md')
+    all_files_exist = all((output_path / filename).exists() for filename in files)
+    if all_files_exist:
+        return
+
+    # Download a prebuilt for this platform.
+    arch = f'{sys.platform}-{platform.machine()}'
+    paths = {
+        'win32-AMD64': 'win32-x64',
+        'linux-x86_64': 'linux-x64',
+        'darwin-arm64': 'macos-arm64',
+        'darwin-x86_64': 'macos-x64',
+    }
+    name = paths[arch]
+
+    url = f'https://registry.npmjs.org/@esbuild/win32-x64/-/{name}-0.15.18.tgz'
+    output_file = download_file(url)
+
+    # Just extract the files we need and flatten the file tree.
+    output_path.mkdir(parents=True, exist_ok=True)
+    print(f'Extracting esbuild to {output_path}')
+
+    with _open_zip_or_tar(output_file) as archive:
+        for filename in files:
+            input_filename = 'package/' + filename
+            output_filename = output_path / filename
+            with archive.open(input_filename, 'r') as input_file:
+                with output_filename.open('wb') as output_file:
+                    shutil.copyfileobj(input_file, output_file)
+
+                # For Linux, just mark all files executable.
                 os.chmod(output_filename, 0o755)

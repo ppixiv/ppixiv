@@ -6,6 +6,6 @@
     "icons": [{
         "type": "image/png",
         "sizes": "192x192",
-        "src": "/vview/resources/vview-icon.png"
+        "src": "/resources/vview-icon.png"
     }]
 }

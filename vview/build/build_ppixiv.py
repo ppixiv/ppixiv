@@ -1,4 +1,4 @@
-import argparse, base64, collections, errno, glob, hashlib, mimetypes, json, io, os, random, re, sys, string, subprocess, tempfile
+import argparse, base64, collections, errno, hashlib, mimetypes, json, os, random, re, sys, string, subprocess, tempfile
 import urllib.parse
 from . import util
 from pathlib import Path
@@ -11,6 +11,12 @@ from pprint import pprint
 mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/scss', '.scss')
 mimetypes.add_type('application/x-font-woff', '.woff')
+
+def _root_path():
+    return Path(os.getcwd())
+
+class BuildError(Exception):
+    pass
 
 _git_tag = None
 def get_git_tag():
@@ -77,7 +83,6 @@ class Build(object):
         is_clean = len(result.stdout) == 0
 
         is_release = is_tagged and is_clean
-        debug_server_url = None
 
         if len(sys.argv) > 1 and sys.argv[1] == '--release':
             is_release = True
@@ -105,27 +110,36 @@ class Build(object):
             if e.errno != errno.EEXIST:
                 raise
 
-        build = cls()
+        # Before building, download dart-sass and esbuild if needed.  This lets the ppixiv
+        # build work if vview isn't being used.
+        Build._download_sass()
+        Build._download_esbuild()
 
-        # Before building, download dart-sass if needed.  This lets the ppixiv build work
-        # if vview isn't being used.
-        build._download_sass()
+        build = cls(is_release=is_release, git_tag=git_tag)
+        build.build_with_settings(deploy=args.deploy, latest=args.latest, debug_server_url=args.url)
 
-        build.build_with_settings(is_release=is_release, git_tag=git_tag, deploy=args.deploy, latest=args.latest,
-            debug_server_url=args.url)
-
-    def _download_sass(self):
+    @classmethod
+    def _download_sass(cls):
         """
         Download a dart-sass prebuilt into bin/dart-sass.
         """
-        output_dir = self.root / 'bin' / 'dart-sass'
+        output_dir = _root_path() / 'bin' / 'dart-sass'
         util.download_sass(output_dir)
 
-    def build_with_settings(self, *, is_release=False, git_tag='devel', deploy=False, latest=False, debug_server_url=None):
+    @classmethod
+    def _download_esbuild(cls):
+        """
+        Download an esbuild prebuilt into bin/esbuild.
+        """
+        output_dir = _root_path() / 'bin' / 'esbuild'
+        util.download_esbuild(output_dir)
+
+    def __init__(self, *, is_release=False, git_tag='devel'):
         self.is_release = is_release
         self.git_tag = git_tag
         self.distribution_url = f'{self.distribution_root}/builds/{get_git_tag()}'
 
+    def build_with_settings(self, *, deploy=False, latest=False, debug_server_url=None):
         self.build_release()
         self.build_debug(debug_server_url)
         if deploy:
@@ -256,19 +270,26 @@ class Build(object):
         result.append('''
 // Load and run the bootstrap script.  Note that we don't do this with @require, since TamperMonkey caches
 // requires overly aggressively, ignoring server cache headers.  Use sync XHR so we don't allow the site
-// to continue loading while we're setting up.
+// to continue loading while we're setting up, to try to mimic the regular environment as closely as possible.
 (() => {
     // If this is an iframe, don't do anything.
     if(window.top != window.self)
         return;
 
     let rootUrl = %(url)s;
+
+    let bundleUrl = new URL("/vview/app-bundle.js", rootUrl);
     let xhr = new XMLHttpRequest();
+    xhr.open("GET", bundleUrl, false);
+    xhr.send();
+    let bundle = xhr.response;
+
+    xhr = new XMLHttpRequest();
     xhr.open("GET", `${rootUrl}/vview/startup/bootstrap.js`, false);
     xhr.send();
 
     let startup = eval(xhr.responseText);
-    startup({rootUrl});
+    startup({bundle});
 })();
         ''' % { 'url': json.dumps(debug_server_url) })
 
@@ -302,31 +323,6 @@ class Build(object):
 
         return '\n'.join(result) + '\n'
 
-    @property
-    def root(self):
-        return Path(os.getcwd())
-
-    def get_local_root_url(self):
-        """
-        Return the file:/// path containing local source.
-
-        This is only used for development builds.
-        """
-        return self.root.as_uri()
-
-    def get_source_root_url(self, filetype='source'):
-        """
-        Return the URL to the top of the source tree, which source maps point to.
-        
-        This is used in used in sourceURL, and the URLs source maps point to.  In development,
-        this is a file: URL pointing to the local source tree.  For releases, this points to
-        the tag on GitHub for this release.
-        """
-        if self.is_release:
-            return self.github_root + self.git_tag
-        else:
-            return self.get_local_root_url()
-
     def get_resource_list(self):
         results = collections.OrderedDict()
         resource_path = Path('web/resources')
@@ -349,14 +345,46 @@ class Build(object):
         fn = ''.join(random.choice(string.ascii_lowercase) for _ in range(10))
         return Path(tempfile.gettempdir()) / ('vview-' + fn)
 
-    def build_css(self, path, embed_source_root=None):
-        if embed_source_root is None:
-            embed_source_root = self.get_source_root_url()
+    def get_build_timestamp(self):
+        """
+        Return the newest timestamp of any file in the web part of the source tree.
+
+        This is treated as the timestamp for the output bundle and used for HTTP caching.
+        """
+        root = _root_path() / 'web'
+        newest_mtime = 0
+        for path in root.rglob('*'):
+            try:
+                if not path.is_file():
+                    continue
+            except OSError:
+                # Windows links cause is_file() to throw an error for some reason.
+                continue
+
+            mtime = path.stat().st_mtime
+            newest_mtime = max(mtime, newest_mtime)
+        return int(newest_mtime)
+        
+    def build_css(self, path):
+        # Return the file:/// path containing local source.
+        #
+        # This is only used for development builds.
+        local_root_url = (_root_path() / 'web').as_uri()
+
+        # Return the URL to the top of the source tree, which source maps point to.
+        #
+        # This is used in used in sourceURL, and the URLs source maps point to.  In development,
+        # this is a file: URL pointing to the local source tree.  For releases, this points to
+        # the tag on GitHub for this release.
+        if self.is_release:
+            embed_source_root = self.github_root + self.git_tag
+        else:
+            embed_source_root = local_root_url
 
         path = path.resolve()
 
         # The path to dart-sass:
-        dart_path = self.root / 'bin' / 'dart-sass'
+        dart_path = _root_path() / 'bin' / 'dart-sass'
         dart_exe = dart_path / 'dart'
         sass = dart_path / 'sass.snapshot'
 
@@ -387,7 +415,7 @@ class Build(object):
             if not output:
                 output=result.stdout.decode("utf-8").strip()
 
-            raise Exception(f'Error building {path}: {output}')
+            raise BuildError(f'Error building {path}: {output}')
 
         # Read the temporary files, then clean them up.
         with open(output_css, 'rt', encoding='utf-8') as f:
@@ -409,7 +437,7 @@ class Build(object):
         #
         # Map these so they're relative to the root, and set sourceRoot to embed_source_root.
         source_map = json.loads(source_map)
-        expected_wrong_url = self.get_local_root_url() + '/web'
+        expected_wrong_url = local_root_url
         if not expected_wrong_url.endswith('/'):
             expected_wrong_url += '/'
 
@@ -426,7 +454,7 @@ class Build(object):
         source_map['sourceRoot'] = embed_source_root
 
         # Fix the filename, so it doesn't contain the temporary filename.
-        source_map['file'] = Path(path).relative_to(self.root).as_posix()
+        source_map['file'] = Path(path).relative_to(_root_path()).as_posix()
 
         # Reserialize the source map.
         source_map = json.dumps(source_map, indent=0)
@@ -448,7 +476,7 @@ class Build(object):
 
     def build_header(self, *, version_name, version_suffix=None):
         result = []
-        with open('web/startup/header.js', 'rt', encoding='utf-8') as input_file:
+        with open('web/vview/startup/header.js', 'rt', encoding='utf-8') as input_file:
             for line in input_file.readlines():
                 line = line.strip()
 
@@ -472,33 +500,119 @@ class Build(object):
 
         return version
 
-    @classmethod
-    def get_modules(cls):
+    def build_all_css(self):
         """
-        Return a dict of source modules, mapping from the module name to a path.
+        Compile all SCSS files in web/resources/css to output/css.
+
+        Imports from web/resources/css are redirected to output/css by tsconfig.json.
         """
-        modules = {}
-        modules_top = Path('web/vview')
-        for root, dirs, files in os.walk(modules_top):
-            for file in files:
-                # Ignore dotfiles.
-                if file.startswith('.'):
-                    continue
+        root = _root_path()
 
-                # web/vview/module/path.js -> vview/module/path.js
-                path = Path(root) / file
+        css_input_path = root / 'web/resources/css'
+        css_output_path = root / 'output/intermediate/css'
+        for path in css_input_path.rglob('*.scss'):
+            css_text = self.build_css(path)
+            css_output_path.mkdir(parents=True, exist_ok=True)
+            css_output_file = css_output_path / path.name
+            with css_output_file.open('wt', encoding='utf-8') as f:
+                f.write(css_text)
 
-                # Don't include app-startup.js as a module.  It's the entry point that loads
-                # the modules.
-                if path.as_posix() == 'web/vview/app-startup.js':
-                    continue
+    def build_resource_imports(self):
+        """
+        For esbuild to include resources, they need to be statically imported somewhere
+        in the code, but our resources are loaded dynamically.  Generate a script that
+        imports all files in web/resources and exports them as a dictionary.
+        """
+        # Find all resources.
+        root = _root_path()
+        resources_path = root / 'web/resources'
+        resource_paths = {}
+        for path in resources_path.rglob('*'):
+            if not path.is_file():
+                continue
 
-                relative_path = path.relative_to(modules_top)
-                module_name = 'vview' / relative_path
-                module_path = '/' + module_name.as_posix()
-                modules[module_path] = path
+            # Generate a name for this.  The particular name doesn't matter, since it
+            # only appears in app-resources.js.
+            relative_path = path.relative_to(resources_path)
+            name = relative_path.as_posix()
+            resource_id = name.replace('.', '_').replace('-', '_').replace('/', '_')
+            resource_paths[resource_id] = '/resources/' + relative_path.as_posix()
 
-        return modules
+        # Import each resource:
+        script = []
+        for resource_id, path in resource_paths.items():
+            script.append(f"import {resource_id} from '{path}';")
+
+        script.append('')
+
+        # Return a dictionary of resources:
+        script.append('export function getResources()')
+        script.append('{')
+        script.append('    return {')
+
+        for resource_id, path in resource_paths.items():
+            # The internal resource paths don't begin with a slash.
+            path = path.lstrip('/')
+            script.append(f"        {json.dumps(path)}: {resource_id},")
+
+        script.append('    };')
+        script.append('};')
+
+        script = '\n'.join(script)
+
+        output_path = root / 'output/intermediate/app-resources.js'
+        with output_path.open('wt', encoding='utf-8') as f:
+            f.write(script)
+
+        return '\n'.join(script)
+
+    def build_bundle(self, *, get_sourcemap=False):
+        """
+        Build the app bundle and source map.
+
+        If get_sourcemap is true, return the contents of the source map, otherwise the
+        bundle.  If both are needed we'll build twice, but esbuild is fast enough that
+        it's not worth optimizing around this.
+        """
+        # Make sure generated CSS files are up to date.  esbuild will pull these in
+        # via the tsconfig.json redirect.
+        self.build_all_css()
+
+        self.build_resource_imports()
+
+        esbuild_path = _root_path() / 'bin' / 'esbuild/esbuild'
+        output_file_js = self._make_temp_path()
+        output_file_map = output_file_js.with_suffix('.map')
+        try:
+            result = subprocess.run([
+                esbuild_path,
+                'web/vview/app-startup.js',
+                '--bundle',
+                f'--outfile={output_file_js}',
+                '--sourcemap',
+                '--source-root=web',
+                f'--define:VVIEW_VERSION={json.dumps(get_git_tag())}',
+                '--sourcemap=external',
+                '--log-level=error',
+                '--charset=utf8',
+                '--loader:.png=binary',
+                '--loader:.woff=binary',
+                '--loader:.html=text',
+                '--loader:.svg=text',
+                '--loader:.scss=text',
+            ])
+
+        except FileNotFoundError as e:
+            # If dart-sass doesn't exist in bin/dart-sass, it probably hasn't been downloaded.  Run
+            # vview.build.build_vview first at least once to download it.
+            raise Exception(f'esbuild not found in {esbuild_path}') from None
+
+        if result.returncode != 0:
+            raise BuildError(f'Error building app bundle')
+        
+        result_file = output_file_map if get_sourcemap else output_file_js
+        script = result_file.open('rt').read()
+        return script
 
     def build_output(self):
         result = self.build_header(version_name=self.get_release_version())
@@ -507,79 +621,18 @@ class Build(object):
         # Encapsulate the script.
         result.append('(function() {\n')
 
-        result.append('let env = {};')
-        result.append(f'env.version = "{self.get_release_version()}";')
-        result.append('env.resources = {};\n')
+        result.append(f'// The script is packaged into a string so we can execute it outside of the')
+        result.append(f'// userscript sandbox to avoid various problems with script managers.')
 
-        # Find modules, and add their contents as resources.
-        modules = self.get_modules()
-
-        # Add source modules.
-        result.append('env.modules = {')
-        for module_name, path in modules.items():
-            with path.open('rt', encoding='utf-8') as input_file:
-                script = input_file.read()
-
-                # app-startup is inside the application, but it's not a module.  It'll be added
-                # separately below.
-                # XXX remove
-                if module_name == 'vview/app-startup.js':
-                    continue
-
-                script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), path.as_posix())
-                script = to_javascript_string(script)
-
-                # "name": loadBlob("mime type", "source"),
-                result.append(f'    {json.dumps(module_name)}: loadBlob({json.dumps("application/javascript")},\n{script}),')
-
-        result.append('};\n')
-
-        # Add resources.
-        for name, path in self.get_resource_list().items():
-            name = name.replace('\\', '/')
-
-            mime_type, encoding = mimetypes.guess_type(path)
-            if mime_type is None:
-                raise Exception(f'{path}: MIME type unknown')
-
-            if mime_type in ('image/png', 'application/x-font-woff', 'application/octet-stream'):
-                # Encode binary files as data: URLs.
-                data = path.open('rb').read()
-                data = 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
-                result.append('''env.resources["%s"] = "%s";''' % (name, data))
-                continue
-
-            if path.suffix == '.scss':
-                data = self.build_css(path)
-                path = path.with_suffix('.css')
-                name = name.replace('.scss', '.css')
-            else:
-                data = path.open('rt', encoding='utf-8').read()
-
-            # Avoid base64-encoding text files, so we keep the script readable, and use
-            # to_javascript_string instead of JSON to avoid ugly escaping.
-            string = to_javascript_string(data)
-
-            result.append(f'''env.resources["{name}"] = loadBlob("{mime_type}", {string});''')
-
-        # Add app-startup directly without loading it into a blob.
-        path = Path('web/vview/app-startup.js')
-        with path.open('rt', encoding='utf-8') as input_file:
-            script = input_file.read()
-            script += '\n//# sourceURL=%s/%s\n' % (self.get_source_root_url(), path.as_posix())
-            script = to_javascript_string(script)
-            result.append(f'env.startup =\n{script};')
-
-        result.append('env.init = { };\n')
-        result.append(f'' +
-'function loadBlob(type, data) {\n' +
-'    return URL.createObjectURL(new Blob([data], { type }))\n'
-'}\n')
+        # Add the main bundle.
+        bundle = self.build_bundle()
+        bundle = to_javascript_string(bundle)
+        result.append(f'let bundle = {bundle};')
 
         # Add the bootstrap code directly.
-        bootstrap = open('web/startup/bootstrap.js', 'rt', encoding='utf-8').read()
+        bootstrap = open('web/vview/startup/bootstrap.js', 'rt', encoding='utf-8').read()
         result.append(bootstrap)
-        result.append('Bootstrap({env});\n')
+        result.append('Bootstrap({bundle});\n')
 
         result.append('})();\n')
 

@@ -154,7 +154,7 @@ export default class DesktopSearchUI extends Widget
 
     refreshUi()
     {
-        this.root.querySelector(".refresh-search-from-page-button").hidden = true; //!this.dataSource?.supportsStartPage;
+        this.root.querySelector(".refresh-search-from-page-button").hidden = true;
         if(this.dataSource)
         {
             let { userId, imageUrl, imageLinkUrl } = this.dataSource.uiInfo;

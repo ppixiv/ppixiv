@@ -9,17 +9,12 @@
 // For vview, this is the main entry point.
 class AppStartup
 {
-    constructor({env, rootUrl})
+    constructor()
     {
-        this.initialSetup({env, rootUrl});
+        this.initialSetup();
     }
 
-    // We can either be given a startup environment, or a server URL where we can fetch one.
-    // If we're running in a user script then the environment is packaged into the script, and
-    // if we're running on vview or a user script development environment we'll have a URL.
-    // We'll always be given one or the other.  This lets us skip the extra stuff in bootstrap.js
-    // when we're running natively, and just start directly.
-    async initialSetup({env, rootUrl})
+    async initialSetup()
     {
         // Set a dark background color early to try to prevent flashbangs if the page is rendered
         // before we get styles set up.
@@ -29,20 +24,6 @@ class AppStartup
         let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
         let android = navigator.userAgent.indexOf('Android') != -1;
         let mobile = ios || android;
-
-        // If we weren't given an environment, fetch it from rootUrl.
-        if(env == null)
-        {
-            if(rootUrl == null)
-            {
-                alert("Unexpected error: no environment or root URL");
-                return;
-            }
-
-            let url = new URL("/vview/init.js", rootUrl);
-            let request = await fetch(url);
-            env = await request.json();
-        }
 
         if(window.ppixiv)
         {
@@ -54,12 +35,10 @@ class AppStartup
 
         // Set up the global object.
         window.ppixiv = {
-            resources: env.resources,
-            version: env.version,
             native, mobile, ios, android,
         };
     
-        console.log(`${native? "vview":"ppixiv"} setup`);
+        console.log(`${native? "vview":"ppixiv"} setup: ${VVIEW_VERSION}`);
         console.log("Browser:", navigator.userAgent);
         
         // "Stay" for iOS leaves a <script> node containing ourself in the document.  Remove it for
@@ -87,27 +66,11 @@ class AppStartup
         // Wait for DOMContentLoaded to make sure document.head and document.body are ready.
         await this._waitForContentLoaded();
 
-        let { modules } = env;
-        await this.loadAndLaunchApp({modules});
-    }
-    
-    async loadAndLaunchApp({modules})
-    {
-        // Use import maps if available.  They're implemented in all modern browsers.
-        let useImportMaps = HTMLScriptElement.supports?.('importmap');
-        let ModuleImporterClass = useImportMaps? ModuleImporter_Native:ModuleImporter_Compat;
-
-        // Load our modules.
-        let importer = new ModuleImporterClass();
-        if(!await importer.load(modules))
-            return;
-
         let showLoggedOutMessage = this.showLoggedOutMessage.bind(this);
 
         // Run the app.
         console.log("Launching app");
-        window.import = importer.import.bind(importer);
-        let { default: App } = await window.import("/vview/app.js");
+        let { default: App } = await import("/vview/app.js");
         new App({ showLoggedOutMessage });
     }
 
@@ -662,317 +625,4 @@ class AppStartup
     }
 }
 
-// This loads a dictionary of modules:
-//
-// {
-//     "module/path": "module source"
-// }
-//
-// The modules can then be imported, and import each other with their given paths.
-// This allows us to load modules packaged within our user script, and import them
-// mostly normally.
-//
-// One limitation is that relative paths won't work.  All imports need to use the
-// path given when the module is loaded.  This is a limitation of import maps.
-//
-// See ModuleImporter_Compat for a polyfill for browsers that don't support import maps.
-class ModuleImporter
-{
-    load(scripts) { }
-    import = async(modulePath) => { }
-};
-
-// Native importing using import maps.
-class ModuleImporter_Native extends ModuleImporter
-{
-    constructor()
-    {
-        super();
-
-        this._knownModules = new Set();
-    }
-
-    load(scripts)
-    {
-        let imports = { };
-        for(let [path, url] of Object.entries(scripts))
-        {
-            imports[path] = url;
-            this._knownModules.add(path);
-
-            // Work around a quirk in import maps.  The imports above are relative paths,
-            // eg. /vview/app.js -> blob URL.  However, if we're loading directly from the
-            // vview server, the imported scripts will be treated as importing an absolute
-            // path relative to their own URL, eg. https://localhost/vview/app.js, which won't
-            // be matched by the above.  Work around this by adding a second mapping from
-            // each path's absolute path.
-            //
-            // If we don't do this then the scripts will still load, but they won't have
-            // the cache bust timestamp added, so they won't update correctly when changed.
-            // This has no effect when loading from the user script.  Don't do this if the
-            // URL is a blob, since URL will throw.
-            if(!url.startsWith("blob:"))
-            {
-                path = new URL(path, url);
-                imports[path] = url;
-            }
-        }
-
-        // Generate an import map for our scripts.
-        let importMap = document.realCreateElement("script");
-        importMap.type = "importmap";
-        importMap.textContent = JSON.stringify({ imports }, null, 4);
-        document.head.appendChild(importMap);
-
-        // Preload the modules.  We don't need to leave these nodes in the document.
-        for(let url of Object.values(scripts))
-        {
-            let link = document.createElement("link");
-            link.rel = "modulepreload";
-            link.href = url;
-            document.head.appendChild(link);
-            link.remove();
-        }
-
-        return true;
-    }
-
-    import = async(modulePath) =>
-    {
-        // This code path uses the browser's built-in import maps, but we still expect to see
-        // all imports during loading.
-        if(!this._knownModules.has(modulePath))
-            throw new TypeError("Dynamic module doesn't exist: " + modulePath);
-
-        return import(modulePath);
-    }
-}
-
-// A lightweight, very limited compatibility layer for importing modules in browsers that don't
-// support import maps.
-//
-// - Circular imports aren't supported.  Supporting this is complex and we don't use them.
-// - Syntax parsing is a trivial regex, so import statements must be on a single line at the
-//   top of the file.  The parsing is simplistic and stops when it reaches a line that isn't
-//   an import, blank or a line comment to stop it from matching things later in the file,
-//   like import statements inside strings.
-class ModuleImporter_Compat extends ModuleImporter
-{
-    async load(scripts)
-    {
-        this.blobs = {};
-
-        // Fetch the scripts.
-        let sources = { };
-        for(let [path, url] of Object.entries(scripts))
-            sources[path] = realFetch(url);
-        await Promise.all(Object.values(sources));
-
-        for(let [path, source] of Object.entries(sources))
-        {
-            let response = await source;
-            sources[path] = await response.text();
-        }
-        
-        // Create each script.
-        for(let path of Object.keys(sources))
-        {
-            // Keep trying to load if a script fails, so we act more like the native importer.
-            await this._createScript(path, { sources, scriptUrls: scripts, stack: [] });
-        }
-        return true;
-    }
-    
-    // Create the script with the given path, recursively creating its dependencies if they haven't
-    // been created yet.
-    async _createScript(path, { sources, scriptUrls, stack })
-    {
-        // Stop if we've already created this script.
-        if(this.blobs[path] != null)
-            return true;
-
-        // Find this script's dependencies.
-        let source = sources[path];
-        let moduleDeps = this._getDependencies(source);
-
-        // Recursively create this script's dependencies.
-        try {
-            stack.push(path);
-            
-            // path shouldn't already have been on the stack.  This check is done here so
-            // we can see the repeated path just by looking at stack.
-            if(stack.indexOf(path) != stack.length-1)
-            {
-                console.error("Import recursion:", stack);
-                throw new Error("Internal error: recursion detected");
-            }
-
-            for(let depPath of moduleDeps)
-            {
-                if(sources[depPath] == null)
-                {
-                    console.error(`${path} imports nonexistant module: ${depPath}`);
-                    return false;
-                }
-
-                let success = await this._createScript(depPath, { sources, scriptUrls, stack });
-                if(!success)
-                    return false;
-            }
-        } finally {
-            if(stack[stack.length-1] != path)
-                throw new Error("Internal error: stack mismatch");
-            stack.pop(path);
-        }
-
-        // Replace this script's imports with the blob URLs we created.
-        let lines = source.split('\n');
-        for(let lineNo = 0; lineNo < lines.length; ++lineNo)
-        {
-            let line = lines[lineNo];
-            line = line.trim();
-            let re = /^(import.* from) ?['"](.+)['"];?$/;
-            let match = line.match(re);
-            if(match == null)
-            {
-                // Stop if this isn't a blank or a single-line comment.
-                if(!line.match(/^\/\//) && line != '')
-                    break;
-
-                continue;
-            }
-
-            let importStatement = match[1];    // import name from
-            let importPath = match[2];         // file/path.js
-
-            let importBlobUrl = this.blobs[importPath];
-            if(importBlobUrl == null)
-            {
-                console.log(path, "deps:", moduleDeps);
-                throw new Error(`Internal error: ${path} missing ${importPath}`);
-            }
-
-            lines[lineNo] = `${importStatement} "${importBlobUrl}" /* ${importPath} */;`;
-        }
-        source = lines.join("\n");
-
-        // We can either leave the file alone, add a source map, or add a source URL.
-        //
-        // The source files already have a sourceURL, so they display a useful filename in devtools.
-        // This is either encoded into the user script, or added by the local server.  It's done this
-        // way so the source URLs exist regardless of how the scripts are loaded.
-        //
-        // However, iOS Safari has a really ugly bug: it doesn't use sourceURL for scripts loaded
-        // from blob URLs, so this doesn't work.  It's critical that we have meaningful filenames
-        // in logs, so we jump hoops to work around this by adding a source map, which does work.
-        // This isn't too hard to do, since it's a 1:1 mapping to source and there's only one source
-        // file per file.
-        if(ppixiv.ios)
-        {
-            // Remove the cache timestamp from the URL's query.
-            let sourceUrl = new URL(scriptUrls[path]);
-            sourceUrl.search = "";
-    
-            // Encode the source map.
-            let map = this._createOneToOneSourceMap(sourceUrl, source);
-            map = JSON.stringify(map, null, 4);
-
-            // Load the source map with a blob URL, so it doesn't clutter the devtools source view.
-            // This doesn't work in Chrome for some reason (only data: URLs do), but we only need
-            // this for iOS.  The data URL code path is left here in case it's useful.
-            let sourceMapBlob = new Blob([map], { type: "application/json" });
-            let sourceMapUrl = URL.createObjectURL(sourceMapBlob);
-            source += `\n//# sourceMappingURL=${sourceMapUrl}\n`;
-        }
-
-        // Load this script into a blob.
-        let blob = new Blob([source], { type: "application/javascript" });
-        let url = URL.createObjectURL(blob);
-        this.blobs[path] = url;
-
-        // Create the script.
-        let script = document.realCreateElement("script");
-        script.type = "module";
-        script.src = url;
-        script.dataset.modulePath = path;
-        document.head.append(script);
-        script.remove();
-
-        // We can't get errors from the script node directly.  Import the script so we receive
-        // any errors that the module raised.  These errors will usually be logged to the console
-        // twice, but this keeps us from continuing on and triggering them over and over.
-        //
-        // Top-level errors when importing modules sometimes cause errors to not use the source
-        // map, so log any error with the module path to make these easier to debug.  Don't raise
-        // errors, just return false on failure.
-        try {
-            await this.import(path);
-        } catch(e) {
-            console.error(`Error importing ${path}:`, e);
-            return false;
-        }
-
-        return true;
-    }
-
-    // Create a source map that maps each line of source to the same line of path.
-    _createOneToOneSourceMap(path, source)
-    {
-        // Each segment of a source map encodes [column,source idx,line idx,source column idx],
-        // where each value is relative to the previous segment if there is one.  We're just
-        // encoding [0,0,0,0] for the first line and [0,0,1,0] for each line after it.  We
-        // don't need to do actual VLC encoding since there are only two things we encode.
-        // 'AAAA' encodes [0,0,0,0] and 'AACA' encodes [0,0,1,0].
-        let firstLine = 'AAAA', nextLine = 'AACA';
-        let lineMappings = [];
-        let lines = source.split("\n");
-        for(let lineIdx = 0; lineIdx < lines.length; ++lineIdx)
-            lineMappings.push(lineIdx == 0? firstLine:nextLine);
-
-        return {
-            version: 3,
-            file: path.toString(),
-            sources: [path],
-            sourcesContent: [source],
-            names: [],
-            mappings: lineMappings.join(';'),
-        };
-    }
-
-    // Return the paths imported by the given module source.
-    _getDependencies(source)
-    {
-        let deps = [];
-
-        let lines = source.split('\n');
-        for(let lineNo = 0; lineNo < lines.length; ++lineNo)
-        {
-            let line = lines[lineNo];
-            line = line.trim();
-            let re = /^import.* from ['"](.+)['"];?$/;
-            let match = line.match(re);
-            if(match == null)
-            {
-                // Stop if this isn't a blank or a single-line comment.
-                if(!line.match(/^\/\//) && line != '')
-                    break;
-
-                continue;
-            }
-
-            let importPath = match[1];
-            deps.push(importPath);
-        }
-
-        return deps;
-    }
-
-    import = (modulePath) =>
-    {
-        let url = this.blobs[modulePath];
-        if(url == null)
-            throw Error(`Unknown module path: ${modulePath}`);
-
-        return import(url);
-    }
-}
+new AppStartup();

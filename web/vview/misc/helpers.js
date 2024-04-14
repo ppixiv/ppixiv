@@ -78,7 +78,7 @@ export class helpers
             if(resource == null)
             {
                 console.error("Unknown resource \"" + name + "\" in", element);
-                continue;
+                resource = other.blankImage;
             }
             element.setAttribute("src", resource);
 

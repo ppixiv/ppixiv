@@ -1,11 +1,8 @@
-// This is the entry point when running as a user script.
-//
-// A regular, production build will have all of our scripts and resources bundled together,
-// and they'll be passed to us as env.  A development script can instead pass a development
-// server URL for us to fetch the environment from.
+// This is the entry point when running as a user script.  bundle is the packaged
+// app bundle.  We'll run the app bundle in the page context.
 //
 // When running natively for vview, app-startup.js is launched directly and this isn't used.
-async function Bootstrap({env, rootUrl}={})
+async function Bootstrap({bundle}={})
 {
     // If this is an iframe, don't do anything, so we don't try to load in Pixiv iframes.
     if(window.top != window.self)
@@ -124,35 +121,7 @@ async function Bootstrap({env, rootUrl}={})
         script.remove();
     }
 
-    // When running as a user script, env is packaged into the script.  If we don't have it, we're
-    // either running natively for vview or in development mode for ppixiv, and we need to load it
-    // from rootUrl.
-    if(env == null)
-    {
-        if(rootUrl == null)
-        {
-            alert("Unexpected error: no environment or root URL");
-            return;
-        }
-
-        // Use sync XHR to try to mimic the regular environment as closely as possible, so we avoid
-        // going async and letting page scripts run.
-        let url = new URL("/vview/init.js", rootUrl);
-        let xhr = new XMLHttpRequest();
-        xhr.open("GET", url, false);
-        xhr.send();
-        let result = xhr.response;
-
-        env = JSON.parse(result);
-    }
-
-    // Run AppStartup, passing it the environment we loaded.  Make sure its script contents are on
-    // the first line of the script node so sourceURL lines up.
-    let { startup } = env;
-    delete env.startup;
-
-    runScript(startup);
-    runScript(`new AppStartup(${JSON.stringify({ env }) })`);
+    runScript(bundle);
 }
 
 // This script is executed by eval(), so this expression is its return value.

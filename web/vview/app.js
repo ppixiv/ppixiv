@@ -16,6 +16,7 @@ import UserCache from '/vview/misc/user-cache.js';
 import ExtraCache from '/vview/misc/extra-cache.js';
 import { helpers, PointerEventMovement } from '/vview/misc/helpers.js';
 import * as Recaptcha from '/vview/util/recaptcha.js';
+import * as Hooks from '/vview/util/hooks.js';
 import ExtraImageData from '/vview/misc/extra-image-data.js';
 import GuessImageURL from '/vview/misc/guess-image-url.js';
 import ImageTranslations from '/vview/misc/image-translation.js';
@@ -23,7 +24,7 @@ import PointerListener from '/vview/actors/pointer-listener.js';
 import VirtualHistory from '/vview/util/virtual-history.js';
 import SiteNative from '/vview/sites/native/site-native.js';
 import SitePixiv from '/vview/sites/pixiv/site-pixiv.js';
-import * as Hooks from '/vview/util/hooks.js';
+import { getResources } from '/vview/app-resources.js';
 
 // This is the main top-level app controller.
 export default class App
@@ -48,7 +49,7 @@ export default class App
         await helpers.other.waitForContentLoaded();
 
         // Init hooks if any.
-        await Hooks?.init(this);
+        await Hooks.init(this);
 
         // Install polyfills.
         InstallPolyfills();
@@ -121,7 +122,7 @@ export default class App
         document.head.appendChild(disableDarkReader);
 
         // Load image resources into blobs.
-        await this.loadResourceBlobs();
+        this.loadResourceBlobs();
 
         // Add the blobs for binary resources as CSS variables.
         helpers.html.addStyle("image-styles", `
@@ -143,9 +144,9 @@ export default class App
         `);
 
         // Add the main stylesheet.
-        let mainStylesheet = ppixiv.resources['resources/main.css'];
+        let mainStylesheet = ppixiv.resources['resources/css/main.scss'];
         if(mainStylesheet == null)
-            throw new Error("resources/main.css missing");
+            throw new Error("resources/css/main.scss missing");
         document.head.appendChild(helpers.html.createStyle(mainStylesheet, { id: "main" }));
 
         // If we're running natively, index.html included an initial stylesheet to set the background
@@ -820,33 +821,29 @@ export default class App
         return { };
     }
 
-    // Load binary resources into blobs, so we don't copy images into every
+    // Load binary resources into blob URLs, so we don't copy images into every
     // place they're used.
-    async loadResourceBlobs()
+    loadResourceBlobs()
     {
         // ppixiv.resources maps from resource names to URLs.  Fetch text resources like
         // HTML and SVG, and leave binaries as URLs.  Unless we're running natively or
         // in debug, these are all blob URLs.
-        let fetches = [];
-        for(let [path, url] of Object.entries(ppixiv.resources))
+        ppixiv.resources = { };
+
+        for(let [path, value] of Object.entries(getResources()))
         {
             let filename = (new URL(path, ppixiv.plocation)).pathname;
             let binary = filename.endsWith(".png") || filename.endsWith(".woff");
-            if(binary)
+            if(!binary)
+            {
+                // Just store text resources directly.
+                ppixiv.resources[path] = value;
                 continue;
+            }
 
-            fetches[path] = realFetch(url);
-        }
-        await Promise.all(Object.values(fetches));
-
-        for(let path of Object.keys(ppixiv.resources))
-        {
-            if(fetches[path] == null)
-                continue;
-
-            let data = await fetches[path];
-            let text = await data.text();
-            ppixiv.resources[path] = text;
+            let blob = new Blob([value]);
+            let url = URL.createObjectURL(blob);
+            ppixiv.resources[path] = url;
         }
     }
 

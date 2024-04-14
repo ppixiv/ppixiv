@@ -1,12 +1,13 @@
 # This handles serving the UI so it can be run independently.
 
-import aiohttp, asyncio, base64, glob, os, json, mimetypes
+import aiohttp, asyncio, base64, logging, os, json, mimetypes
 from datetime import datetime, timezone
-from pathlib import Path, PurePosixPath
-import urllib.parse
+from pathlib import Path
 from ..util import misc
 from ..util.paths import open_path
-from ..build.build_ppixiv import Build
+from ..build.build_ppixiv import Build, BuildError
+
+log = logging.getLogger(__name__)
 
 root_dir = misc.root_dir()
 
@@ -20,9 +21,15 @@ mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/scss', '.scss')
 
 def add_routes(router):
-    router.add_get('/vview/init.js', handle_init)
-    router.add_get(r'/vview/{path:.*\.css}', handle_css)
-    router.add_get('/vview/{path:.*}', handle_client)
+    router.add_get('/vview/app-bundle.js', handle_app_bundle)
+    router.add_get('/vview/app-bundle.js.map', handle_app_bundle)
+
+    # These directories are served directly.  /vview isn't loaded for most scripts,
+    # which are loaded through the bundle, but some files are served directly, such
+    # as bootstrap.js.
+    router.add_get('/vview/{path:.*}', handle_file)
+    router.add_get('/resources/{path:.*}', handle_file)
+    router.add_get('/local/{path:.*}', handle_file)
 
     router.add_get('/', handle_resource('resources/index.html'))
     router.add_get('/similar', handle_resource('resources/index.html'))
@@ -47,70 +54,43 @@ def handle_resource(path):
 
     return handle_file
 
-def _get_path_timestamp_suffix(path):
-    fs_path = root_dir / Path(path)
-    mtime = fs_path.stat().st_mtime
+# This handles both the app bundle and its source map.
+def handle_app_bundle(request):
+    send_sourcemap = request.filename = request.path.endswith('.map')
 
-    return f'?{mtime}'
-
-def _get_modules(base_url):
-    modules = Build.get_modules()
-
-    # Replace the module path with the API path, and add a cache timestamp.
-    for module_name, path in modules.items():
-        url_path = '/' / PurePosixPath(module_name)
-        url = urllib.parse.urljoin(str(base_url), url_path.as_posix())
-        suffix = _get_path_timestamp_suffix(path)
-        modules[module_name] = url + suffix
-
-    return modules
-
-def _get_resources(base_url):
     build = Build()
 
-    results = {}
-    for name, path in build.get_resource_list().items():
-        suffix = _get_path_timestamp_suffix(path)
+    # Check cache.
+    build_timestamp = build.get_build_timestamp()
+    if_modified_since = request.if_modified_since
+    if if_modified_since is not None:
+        modified_time = datetime.fromtimestamp(build_timestamp, timezone.utc)
+        modified_time = modified_time.replace(microsecond=0)
 
-        # Replace the path to .CSS files with their source .SCSS.  They'll be
-        # compiled by handle_css.
-        if path.suffix == '.scss':
-            name = PurePosixPath(name)
-            name = name.with_suffix('.css')
-            name = name.as_posix()
+        if modified_time <= if_modified_since:
+            raise aiohttp.web.HTTPNotModified()
 
-        url = urllib.parse.urljoin(str(base_url), name)
-        results[name] = url + suffix
+    try:
+        bundle = build.build_bundle(get_sourcemap=send_sourcemap)
+    except BuildError as e:
+        raise aiohttp.web.HTTPInternalServerError(reason=str(e))
 
-    return results
+    if not send_sourcemap:
+        bundle += '\n//# sourceMappingURL=./app-bundle.js.map\n'
 
-def handle_init(request):
-    # The startup script is included with init data to simplify bootstrapping.
-    startup_path = Path('web/vview/app-startup.js')
-    with startup_path.open('rt', encoding='utf-8') as startup_file:
-        startup_script = startup_file.read()
+    response = aiohttp.web.Response(body=bundle, headers={
+        'Content-Type': 'application/javascript',
 
-        # Add a source URL.
-        url = urllib.parse.urljoin(str(request.url), startup_path.relative_to('web/vview').as_posix())
-        startup_script += f'\n//# sourceURL={url}\n'
-
-    init = {
-        'modules': _get_modules(request.url),
-        'resources': _get_resources(request.url),
-        'startup': startup_script,
-        'version': 'native',
-    }
-    source_files_json = json.dumps(init, indent=4) + '\n'
-
-    return aiohttp.web.Response(body=source_files_json, headers={
-        'Content-Type': 'application/json',
-
-        # This is the one file we really don't want cached, since this is where we
-        # trigger reloads for everything else if they're modified.
-        'Cache-Control': 'no-store',
+        # Cache for a long time, but revalidate often.  The app is loaded in a single
+        # bundle, so this revalidation will only happen when the page is loaded and not
+        # for every file.
+        'Cache-Control': 'public, max-age=31536000, no-cache',
     })
 
-_override_cache = None
+    response.last_modified = build_timestamp
+
+    return response
+
 def _resolve_path(request, path):
     """
     Resolve a path for a script or resource request.
@@ -118,51 +98,33 @@ def _resolve_path(request, path):
     Normally, this is just a path relative to root_dir.  We also support overrides, which
     allow applying an overlay to add or replace files in the source tree.
     """
-    global _override_cache
-    if _override_cache is None:
-        # Convert overrides to (src, dst) paths.
-        path_overrides = request.app['server'].auth.data.get('overrides', [])
-        _override_cache = []
-        for src, dst in path_overrides.items():
-            src = Path(src)
-            dst = Path(dst)
-            _override_cache.append((src, dst))
-
     path = Path(path)
-
-    # See if the path is inside an override.
-    for src, dst in _override_cache:
-        if not path.is_relative_to(src):
-            continue
-
-        path_inside_src = path.relative_to(src)
-        path_inside_dst = dst / path_inside_src
-        if path_inside_dst.exists():
-            return path_inside_dst
 
     # Resolve the path relative to the root directory normally.
     path = root_dir / path
     path = path.resolve()
-    assert path.relative_to(root_dir)
+    
+    if not _is_path_access_allowed(request, path):
+        log.info(f'Access denied to {path}.  If you want to allow this path, add it to permitted_paths in settings.json.')
+        raise aiohttp.web.HTTPForbidden()
+    
     return path
 
-def handle_client(request):
-    path = request.match_info['path']
+def _is_path_access_allowed(request, path):
+    permitted_paths = request.app['server'].auth.data.get('permitted_paths', [])
+    permitted_paths.append(root_dir)
+    for permitted_path in permitted_paths:
+        if path.is_relative_to(permitted_path):
+            return True
+
+    return False
+
+def handle_file(request):
+    path = request.path.lstrip('/')
     as_data_url = 'data' in request.query
     path = Path(path)
 
-    cache_control = 'public, immutable'
-    if path in (Path('app-startup.js'), Path('startup/bootstrap.js')):
-        # Don't cache these.  They're loaded before URL cache busting is available.
-        cache_control = 'no-store'
-
-    if path.parts[0] in ('resources', 'startup', 'local'):
-        # (/vview)/resources/path -> /web/resources/path
-        path = 'web' / path
-    else:
-        # (/vview)/path -> /web/vview/path
-        path = 'web/vview' / path
-    
+    path = Path('web') / path
     path = _resolve_path(request, path)
 
     path = open_path(path)
@@ -170,7 +132,7 @@ def handle_client(request):
         raise aiohttp.web.HTTPNotFound()
 
     headers = {
-        'Cache-Control': cache_control,
+        'Cache-Control': 'public, max-age=31536000, no-cache',
     }
     
     with open(path, 'rb') as f:
@@ -193,44 +155,3 @@ def handle_client(request):
 
     response.last_modified = os.stat(path).st_mtime
     return response
-
-def handle_css(request):
-    path = request.match_info['path']
-
-    path = Path(path)
-    path = root_dir / 'web' / path
-    path = path.with_suffix('.scss')
-    path = path.resolve()
-    assert path.relative_to(root_dir)
-
-    path = open_path(path)
-    if not path.exists():
-        raise aiohttp.web.HTTPNotFound()
-
-    # Check cache.
-    mtime = path.stat().st_mtime
-    if_modified_since = request.if_modified_since
-    if if_modified_since is not None:
-        modified_time = datetime.fromtimestamp(mtime, timezone.utc)
-        modified_time = modified_time.replace(microsecond=0)
-
-        if modified_time <= if_modified_since:
-            raise aiohttp.web.HTTPNotModified()
-
-    build = Build()
-
-    # The source root for the CSS source map needs to be an absolute URL, since it might be
-    # loaded into the user script and a relative domain will resolve to that domain instead
-    # of ours.
-    base_url = request.url.with_query('').with_path('/vview')
-    data = build.build_css(path.path, embed_source_root=str(base_url))
-
-    response = aiohttp.web.Response(body=data, headers={
-        'Cache-Control': 'public, immutable',
-        'Content-Type': 'text/css; charset=utf-8',
-    })
-
-    response.last_modified = mtime
-    return response
-
-    

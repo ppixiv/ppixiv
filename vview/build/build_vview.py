@@ -193,6 +193,13 @@ class VViewBuild:
         output_dir = self.bin_dir / 'dart-sass'
         util.download_sass(output_dir)
 
+    def download_esbuild(self):
+        """
+        Download an esbuild prebuilt into bin/esbuild.
+        """
+        output_dir = self.bin_dir / 'esbuild'
+        util.download_esbuild(output_dir)
+
     def download_upscaler(self):
         url = 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip'
         output_file = util.download_file(url)

@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "module": "es6",
+
+        "paths": {
+            "/*": ["./web/*"],
+            "/vview/app-resources.js": ["./output/intermediate/app-resources.js"],
+            "/resources/css/*": ["./output/intermediate/css/*"],
+        },
+    }
+}
