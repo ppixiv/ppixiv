@@ -42,6 +42,7 @@ export class helpers
         let icon = document.createElement("span");
         icon.classList.add("font-icon");
         icon.classList.add(iconClass);
+        icon.setAttribute("translate", "no");
         icon.lang = "icon";
         icon.innerText = name;
 
