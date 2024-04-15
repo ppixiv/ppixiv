@@ -64,7 +64,10 @@ class AppStartup
         this._cleanupEnvironment();
 
         // Wait for DOMContentLoaded to make sure document.head and document.body are ready.
+        // Suppress errors while we wait, since Pixiv's pages might be spamming a bunch of errors.
+        this.suppressingErrors = true;
         await this._waitForContentLoaded();
+        this.suppressingErrors = false;
 
         // Set ppixivShowLoggedOut to let the app show the "log back in" message.
         window.ppixivShowLoggedOut = this.showLoggedOutMessage.bind(this);
@@ -403,7 +406,19 @@ class AppStartup
         // implement run-at: document-start correctly), so clear it if it's there.
         for(let key of ["onerror", "onunhandledrejection", "_send", "_time", "webpackJsonp", "touchJsonp"])
         {
-            window[key] = null;
+            if(key == "onerror" || key == "onunhandledrejection")
+            {
+                window[key] = (message, source, lineno, colno, error) => {
+                    // To suppress the console error, onerror wants us to return true and
+                    // onunhandledrejection wants us to return false.
+                    let returnToSuppressError = key == "onerror";
+
+                    if(!this.suppressingErrors)
+                        return !returnToSuppressError;
+                    else
+                        return returnToSuppressError;
+                };
+            }
 
             // Use an empty setter instead of writable: false, so errors aren't triggered all the time.
             Object.defineProperty(window, key, {
@@ -576,7 +591,7 @@ class AppStartup
             {
                 if(!isAllowed("createElement"))
                 {
-                    console.error("Disabling createElement " + type);
+                    // console.error("Disabling createElement " + type);
                     class ElementDisabled extends Error { };
                     throw new ElementDisabled("Element disabled");
                 }
@@ -584,21 +599,8 @@ class AppStartup
             return origCreateElement.apply(this, arguments);
         };
 
-        // Catch and discard ElementDisabled.
-        //
-        // This is crazy: the error event doesn't actually receive the unhandled exception.
-        // We have to examine the message to guess whether an error is ours.
-        window.addEventListener("error", (e) => {
-            if(e.message && e.message.indexOf("Element disabled") == -1)
-                return;
-
-            e.preventDefault();
-            e.stopPropagation();
-        }, true);
-
         // We have to hit things with a hammer to get Pixiv's scripts to stop running, which
-        // causes a lot of errors.  Silence all errors that have a stack within Pixiv's sources,
-        // as well as any errors from ElementDisabled.
+        // causes a lot of errors.  Silence all errors that have a stack within Pixiv's sources.
         window.addEventListener("error", (e) => {
             let silence_error = false;
             if(e.filename && e.filename.indexOf("s.pximg.net") != -1)
