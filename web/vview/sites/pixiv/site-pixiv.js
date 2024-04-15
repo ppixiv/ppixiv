@@ -206,8 +206,11 @@ export default class SitePixiv extends Site.Site
 
         // The user is probably not logged in.  If this happens on this code path, we
         // can't restore the page.
+        //
+        // window.ppixivShowLoggedOut is set by app-startup to let us share cooldown
+        // logic.
         console.log("Couldn't find context data.  Are we logged in?");
-        ppixiv.app.showLoggedOutMessage(true);
+        window.ppixivShowLoggedOut(true);
 
         // Redirect to no-ppixiv, to reload the page disabled so we don't leave the user
         // on a blank page.  If this is a page where Pixiv itself requires a login (which

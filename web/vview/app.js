@@ -29,10 +29,9 @@ import { getResources } from '/vview/app-resources.js';
 // This is the main top-level app controller.
 export default class App
 {
-    constructor({showLoggedOutMessage})
+    constructor()
     {
         ppixiv.app = this;
-        this.showLoggedOutMessage = showLoggedOutMessage;
         this.setup();
     }
 

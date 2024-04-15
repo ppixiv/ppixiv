@@ -66,12 +66,11 @@ class AppStartup
         // Wait for DOMContentLoaded to make sure document.head and document.body are ready.
         await this._waitForContentLoaded();
 
-        let showLoggedOutMessage = this.showLoggedOutMessage.bind(this);
+        // Set ppixivShowLoggedOut to let the app show the "log back in" message.
+        window.ppixivShowLoggedOut = this.showLoggedOutMessage.bind(this);
 
         // Run the app.
-        console.log("Launching app");
-        let { default: App } = await import("/vview/app.js");
-        new App({ showLoggedOutMessage });
+        new App();
     }
 
     // Block until DOMContentLoaded.
