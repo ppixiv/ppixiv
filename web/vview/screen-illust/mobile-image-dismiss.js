@@ -28,7 +28,6 @@ export default class MobileImageDismiss extends Actor
             duration: () => {
                 return ppixiv.settings.get("animations_enabled")? 250:0;
             },
-            size: 500,
 
             // Don't do anything if the screen isn't active.
             confirmDrag: ({event}) => this.parent._active && ppixiv.mobile,
@@ -66,7 +65,7 @@ export default class MobileImageDismiss extends Actor
 
     get _dragDistance()
     {
-        return document.documentElement.clientHeight * .25;
+        return document.documentElement.clientHeight * .5;
     }
 
     _configAnimation()
