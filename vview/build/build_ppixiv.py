@@ -284,9 +284,22 @@ class Build(object):
     xhr.send();
     let bundle = xhr.response;
 
+    if(xhr.status < 200 || xhr.status >= 400)
+    {
+        console.log("ppixiv: error loading app bundle");
+        return;
+    }
+
     xhr = new XMLHttpRequest();
     xhr.open("GET", `${rootUrl}/vview/startup/bootstrap.js`, false);
     xhr.send();
+    let bootstrap = xhr.responseText;
+
+    if(xhr.status < 200 || xhr.status >= 400)
+    {
+        console.log("ppixiv: error loading bootstrap.js");
+        return;
+    }
 
     let startup = eval(xhr.responseText);
     startup({bundle});
