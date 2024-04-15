@@ -253,7 +253,7 @@ class APIServer:
     @web.middleware
     async def file_timestamp_middleware(self, request, handler):
         """
-        Add cache timestamps to redirects inside vview/resources.
+        Add cache timestamps to redirects inside /resources.
         """
         try:
             return await handler(request)
@@ -262,10 +262,10 @@ class APIServer:
                 raise
 
             target = PurePosixPath(e.location)
-            if not target.is_relative_to('/vview/resources'):
+            if not target.is_relative_to('/resources'):
                 raise
 
-            fs_path = misc.root_dir() / 'web' / target.relative_to('/vview')
+            fs_path = misc.root_dir() / 'web' / target.relative_to('/')
             mtime = fs_path.stat().st_mtime
 
             raise aiohttp.web.HTTPFound(f'{e.location}?{mtime}')
