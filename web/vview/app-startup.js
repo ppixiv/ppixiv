@@ -386,6 +386,11 @@ class AppStartup
             return false;
         }
 
+        // Try to prevent Sentry from initializing (if it hasn't already) by defining its
+        // singleton and making it read-only.  It amy have already run.
+        window.__SENTRY__ = { };
+        Object.freeze(window.__SENTRY__);
+
         // Newer Pixiv pages run a bunch of stuff from deferred scripts, which install a bunch of
         // nastiness (like searching for installed polyfills--which we install--and adding wrappers
         // around them).  Break this by defining a webpackJsonp property that can't be set.  It
