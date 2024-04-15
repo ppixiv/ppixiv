@@ -76,7 +76,10 @@ def handle_app_bundle(request):
         raise aiohttp.web.HTTPInternalServerError(reason=str(e))
 
     if not send_sourcemap:
-        bundle += '\n//# sourceMappingURL=./app-bundle.js.map\n'
+        # If we're sending the app bundle (and not its source map), add the source map's
+        # URL.  Use an absolute URL, so this works if we're loading the bundle with exec().
+        source_map_url = request.url.with_path('/vview/app-bundle.js.map')
+        bundle += f'\n//# sourceMappingURL={source_map_url}\n'
 
     response = aiohttp.web.Response(body=bundle, headers={
         'Content-Type': 'application/javascript',
