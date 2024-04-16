@@ -82,7 +82,7 @@ def handle_app_bundle(request):
         bundle += f'\n//# sourceMappingURL={source_map_url}\n'
 
     response = aiohttp.web.Response(body=bundle, headers={
-        'Content-Type': 'application/javascript',
+        'Content-Type': 'application/javascript; charset=UTF-8',
 
         # Cache for a long time, but revalidate often.  The app is loaded in a single
         # bundle, so this revalidation will only happen when the page is loaded and not
