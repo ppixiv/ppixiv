@@ -53,6 +53,14 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
+        showMangaPageIndicator: () => {
+            return new MenuOptionToggleSetting({
+                ...globalOptions,
+                label: "Show manga progress",
+                setting: "manga_page_indicator",
+            });
+        },
+
         invertPopupHotkey: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
@@ -678,6 +686,7 @@ export class SettingsDialog extends DialogWidget
                 {
                     settingsWidgets.invertScrolling();
                     settingsWidgets.noHideCursor();
+                    settingsWidgets.showMangaPageIndicator();
                 }
             },
 

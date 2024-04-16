@@ -36,6 +36,10 @@ export default class ScreenIllust extends Screen
                      between them. -->
                 <div class="view-container mouse-hidden-box" data-context-menu-target></div>
 
+                <div class=manga-page-indicator>
+                    <div class=bar></div>
+                </div>
+
                 <div class=page-change-indicator data-icon=last-image>
                     <ppixiv-inline src="resources/last-page.svg"></ppixiv-inline>
                 </div>
@@ -76,6 +80,8 @@ export default class ScreenIllust extends Screen
         pageChangeIndicator.addEventListener("animationend", (e) => {
             pageChangeIndicator.classList.remove("flash");
         });
+
+        this.mangaPageIndicator = this.root.querySelector(".manga-page-indicator");
 
         // Desktop UI:
         if(!ppixiv.mobile)
@@ -368,6 +374,9 @@ export default class ScreenIllust extends Screen
         // If the image has the ドット絵 tag, enable nearest neighbor filtering.
         helpers.html.setClass(document.body, "dot", helpers.pixiv.tagsContainDot(earlyIllustData?.tagList));
 
+        // Update the manga page indicator.
+        this.showCurrentPage();
+        
         // If linked tabs are active, send this image.
         if(ppixiv.settings.get("linked_tabs_enabled"))
             ppixiv.sendImage.send_image(mediaId, ppixiv.settings.get("linked_tabs", []), "temp-view");
@@ -708,5 +717,69 @@ export default class ScreenIllust extends Screen
         indicator.getAnimations();
 
         indicator.classList.add("flash");
+    }
+
+    // If enabled and the current media is a manga post, flash the manga page indicator.
+    async showCurrentPage()
+    {
+        if(!ppixiv.settings.get("manga_page_indicator"))
+            return;
+
+        if(this._lastShownMangaPageId == this.currentMediaId)
+            return;
+        this._lastShownMangaPageId = this.currentMediaId;
+
+        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this.currentMediaId, { full: false });
+
+        let ourSentinel = this._hideCurrentPageSentinel = new Object();
+        if(this._hideCurrentPageTimer !== null)
+            realClearTimeout(this._hideCurrentPageTimer);
+
+        // If this is a manga page, show the page display.  If not, continue and hide
+        // the display immediately if it's visible.
+        if(mediaInfo != null && mediaInfo.pageCount >= 2)
+        {
+            let pageCount = mediaInfo.pageCount;
+            let [_, page] = helpers.mediaId.toIllustIdAndPage(this.currentMediaId);
+            let percent = Math.round(helpers.math.scale(page, 0, pageCount-1, 0, 100));
+            this.mangaPageIndicator.style.setProperty("--percent", `${percent}%`);
+
+            if(this._mangaPageIndicatorAnimation)
+            {
+                this._mangaPageIndicatorAnimation.cancel();
+                this._mangaPageIndicatorAnimation = null;
+            }
+    
+            this.mangaPageIndicator.style.opacity = 1;
+
+            // Sleep briefly before hiding it.
+            await helpers.other.sleep(250);
+        }
+
+        // Stop if another call to showCurrentPage took over the animation.
+        if(ourSentinel != this._hideCurrentPageSentinel)
+            return;
+
+        this._mangaPageIndicatorAnimation = this.mangaPageIndicator.animate([
+            { opacity: 0 }
+        ], {
+            duration: 150,
+            easing: 'ease-in',
+            fill: 'forwards',
+        });
+
+        try {
+            await this._mangaPageIndicatorAnimation.finished;
+        }
+        catch {
+            return;
+        }
+
+        if(ourSentinel != this._hideCurrentPageSentinel)
+            return;
+
+        this._mangaPageIndicatorAnimation.commitStyles();
+        this._mangaPageIndicatorAnimation.cancel();
+        this._mangaPageIndicatorAnimation = null;
     }
 }

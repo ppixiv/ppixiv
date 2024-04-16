@@ -135,8 +135,6 @@ export default class DesktopImageInfo extends Widget
         <vv-container class=tag-list-container></vv-container>
 
         <div class=description></div>
-
-        <div class=manga-page-bar hidden></div>
     </div>
 </div>
         `});
@@ -166,7 +164,6 @@ export default class DesktopImageInfo extends Widget
                 </div>
             `
         });
-        this.mangaPageBar = this.querySelector(".manga-page-bar");
 
         // The bookmark buttons, and clicks in the tag dropdown:
         this.bookmarkButtons = [];
@@ -341,13 +338,6 @@ export default class DesktopImageInfo extends Widget
         let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._mediaId, { full: false, safe: false });
         if(mediaInfo == null)
             return;
-
-        this.mangaPageBar.hidden = mediaInfo.pageCount == 1;
-        if(mediaInfo.pageCount > 1)
-        {
-            let fill = (this.displayedPage+1) / mediaInfo.pageCount;
-            this.mangaPageBar.style.width = (fill * 100) + "%";
-        }
 
         let [illustId] = helpers.mediaId.toIllustIdAndPage(this._mediaId);
         let userId = mediaInfo.userId;

@@ -791,7 +791,6 @@ input, textarea, [contenteditable] {
         }
 
         .description {
-            border: solid 1px var(--ui-border-color);
             white-space: pre-wrap;
             padding: .35em;
             background-color: var(--ui-bg-section-color);
@@ -807,17 +806,6 @@ input, textarea, [contenteditable] {
         {
             top: calc(100% - 11px);
             pointer-events: none;
-        }
-
-        .manga-page-bar {
-            position: sticky;
-            bottom: 0px;
-            left: 0px;
-            z-index: 1;
-            pointer-events: none;
-            background-color: #F00;
-            width: 100%;
-            height: 2px;
         }
     }
 }
@@ -3249,6 +3237,37 @@ svg.heart-image .delete {
             // Work around border-radius not clipping contents when transform is animated on iOS.
             // This makes the browser create a composite layer for this container.
             will-change: transform;
+        }
+    }
+
+    .manga-page-indicator {
+        position: absolute;
+        bottom: 0px;
+        --width: min(50%, 400px);
+        left: calc((100% - var(--width))/2);
+        right: calc((100% - var(--width))/2);
+        height: 10px;
+        z-index: 1;
+        pointer-events: none;
+        box-sizing: content-box;
+        border: 1px solid #000;
+        border-bottom: none;
+        border-radius: 10px 10px 0 0;
+        overflow: hidden;
+        opacity: 0;
+
+        // This bright but mostly transparent background makes the fill visible
+        // on dark backgrounds where the black border isn't visible, but doesn't
+        // have much effect on bright backgrounds where the border can be seen.
+        background-color: rgba(255,255,255,.25);
+
+        .bar {
+            position: absolute;
+            inset: 0;
+
+            background: linear-gradient(to right,
+                rgba(255,20,20,.75) var(--percent),
+                rgba(50,50,50,0) var(--percent));
         }
     }
 
