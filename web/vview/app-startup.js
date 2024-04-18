@@ -9,6 +9,7 @@
 // For vview, this is the main entry point.
 // XXX: split out vview further, it doesn't need almost any of this
 import App from "/vview/app.js";
+import activateIcon from '/resources/activate-icon.png';
 
 class AppStartupNative
 {
@@ -156,6 +157,7 @@ class AppStartup
 
         // On most pages, we show our button in the top corner to enable us on that page.  Clicking
         // it on a search page will switch to us on the same search.
+        let activateIconUrl = URL.createObjectURL(new Blob([activateIcon]));
         let disabledUi = document.createElement("div");
         disabledUi.innerHTML = `
             <div class=ppixiv-disabled-ui>
@@ -184,7 +186,7 @@ class AppStartup
                 </style>
 
                 <a href="#ppixiv">
-                    <img src=${ppixiv.resources['resources/activate-icon.png']}>
+                    <img src=${activateIconUrl}>
                 </a>
             </div>
         `;
