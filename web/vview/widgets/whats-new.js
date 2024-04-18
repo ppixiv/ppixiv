@@ -3,6 +3,13 @@ import widget from '/vview/widgets/widget.js';
 
 let updateHistory = [
     {
+        version: 236,
+        text: `
+            Added a manga progress bar at the bottom of the image view (disabled by
+            default).  This can be enabled in settings under "Image Viewing".            
+        `,
+    },
+    {
         version: 229,
         text: `
             Select "Translate" from the context menu while viewing an image to enable translation
