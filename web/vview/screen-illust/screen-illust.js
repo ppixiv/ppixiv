@@ -725,6 +725,10 @@ export default class ScreenIllust extends Screen
         if(!ppixiv.settings.get("manga_page_indicator"))
             return;
 
+        // Don't flash the manga page in slideshows.
+        if(helpers.args.location.hash.get("slideshow"))
+            return;
+
         if(this._lastShownMangaPageId == this.currentMediaId)
             return;
         this._lastShownMangaPageId = this.currentMediaId;
