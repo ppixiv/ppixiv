@@ -7,6 +7,50 @@
 // shutting down Pixiv's scripts before we get started.
 //
 // For vview, this is the main entry point.
+// XXX: split out vview further, it doesn't need almost any of this
+import App from "/vview/app.js";
+
+class AppStartupNative
+{
+    constructor()
+    {
+        let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
+        let android = navigator.userAgent.indexOf('Android') != -1;
+        let mobile = ios || android;
+
+        // Set up the global object.
+        window.ppixiv = {
+            native: true,
+            mobile, ios, android,
+        };
+    
+        console.log(`vview setup: ${VVIEW_VERSION}`);
+        console.log("Browser:", navigator.userAgent);
+
+        this._cleanupEnvironment();
+
+        // Run the app.
+        console.log("Launching app");
+        new App({});
+    }
+
+    // We're running in a local environment, so we don't need to do the cleanup that's
+    // needed when running on Pixiv.  Just add stubs for the functions we'd set up.
+    _cleanupEnvironment()
+    {
+        window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
+        window.realRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+        window.realCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+        window.realSetTimeout = window.setTimeout.bind(window);
+        window.realClearTimeout = window.clearTimeout.bind(window);
+        window.realSetInterval = window.setInterval.bind(window);
+        window.realClearInterval = window.clearInterval.bind(window);
+        window.realImage = window.Image;
+        window.realFetch = window.fetch;
+        window.MessagePort.prototype.realPostMessage = window.MessagePort.prototype.postMessage;
+    }
+}
+
 class AppStartup
 {
     constructor()
@@ -16,11 +60,17 @@ class AppStartup
 
     async initialSetup()
     {
+        let native = location.hostname != "pixiv.net" && location.hostname != "www.pixiv.net";
+        if(native)
+        {
+            new AppStartupNative();
+            return;
+        }
+
         // Set a dark background color early to try to prevent flashbangs if the page is rendered
         // before we get styles set up.
         document.documentElement.style.backgroundColor = "#000";
 
-        let native = location.hostname != "pixiv.net" && location.hostname != "www.pixiv.net";
         let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
         let android = navigator.userAgent.indexOf('Android') != -1;
         let mobile = ios || android;
@@ -35,10 +85,11 @@ class AppStartup
 
         // Set up the global object.
         window.ppixiv = {
-            native, mobile, ios, android,
+            native: false,
+            mobile, ios, android,
         };
     
-        console.log(`${native? "vview":"ppixiv"} setup: ${VVIEW_VERSION}`);
+        console.log(`ppixiv setup: ${VVIEW_VERSION}`);
         console.log("Browser:", navigator.userAgent);
         
         // "Stay" for iOS leaves a <script> node containing ourself in the document.  Remove it for
@@ -348,24 +399,6 @@ class AppStartup
     _cleanupEnvironment()
     {
         window.realRequestAnimationFrame = window.requestAnimationFrame.bind(window);
-
-        if(ppixiv.native)
-        {
-            // We're running in a local environment and not on Pixiv, so we don't need to do
-            // this stuff.  Just add stubs for the functions we'd set up here.
-            window.HTMLDocument.prototype.realCreateElement = window.HTMLDocument.prototype.createElement;
-            window.realRequestAnimationFrame = window.requestAnimationFrame.bind(window);
-            window.realCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
-            window.realSetTimeout = window.setTimeout.bind(window);
-            window.realClearTimeout = window.clearTimeout.bind(window);
-            window.realSetInterval = window.setInterval.bind(window);
-            window.realClearInterval = window.clearInterval.bind(window);
-            window.realImage = window.Image;
-            window.realFetch = window.fetch;
-            window.MessagePort.prototype.realPostMessage = window.MessagePort.prototype.postMessage;
-
-            return;
-        }
 
         // We disable a bunch of APIs below, but we want to allow recaptcha to call them.  This is
         // done by looking at the stack to see if stack frames in recaptcha's URLs exist.  There
