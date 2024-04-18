@@ -26,6 +26,8 @@ import SiteNative from '/vview/sites/native/site-native.js';
 import SitePixiv from '/vview/sites/pixiv/site-pixiv.js';
 import { getResources } from '/vview/app-resources.js';
 
+import appCss from '/resources/css/main.scss';
+
 // This is the main top-level app controller.
 export default class App
 {
@@ -143,10 +145,7 @@ export default class App
         `);
 
         // Add the main stylesheet.
-        let mainStylesheet = ppixiv.resources['resources/css/main.scss'];
-        if(mainStylesheet == null)
-            throw new Error("resources/css/main.scss missing");
-        document.head.appendChild(helpers.html.createStyle(mainStylesheet, { id: "main" }));
+        document.head.appendChild(helpers.html.createStyle(appCss, { id: "main" }));
 
         // If we're running natively, index.html included an initial stylesheet to set the background
         // color.  Remove it now that we have our real stylesheet.
