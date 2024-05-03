@@ -1,5 +1,6 @@
 # Helpers used by build_ppixiv and build_vview.
 
+from os.path import basename
 import os, sys, urllib, tempfile, subprocess, shutil, gzip, contextlib, platform
 from pathlib import Path
 from urllib import request
@@ -129,8 +130,7 @@ def download_esbuild(output_path):
     Download an esbuild prebuilt into output_path.
     """
     # Do a quick check to see if all of the files already exist.
-    exe_suffix = '.exe' if sys.platform == 'win32' else ''
-    files = (f'esbuild{exe_suffix}', 'README.md')
+    files = (f'esbuild.exe', 'README.md') if sys.platform == 'win32' else (f'bin/esbuild', 'README.md')
     all_files_exist = all((output_path / filename).exists() for filename in files)
     if all_files_exist:
         return
@@ -145,8 +145,9 @@ def download_esbuild(output_path):
     }
     name = paths[arch]
 
-    url = f'https://registry.npmjs.org/@esbuild/win32-x64/-/{name}-0.15.18.tgz'
+    url = f'https://registry.npmjs.org/@esbuild/{name}/-/{name}-0.15.18.tgz'
     output_file = download_file(url)
+    print(f'Downloaded esbuild to {output_file}')
 
     # Just extract the files we need and flatten the file tree.
     output_path.mkdir(parents=True, exist_ok=True)
@@ -155,7 +156,7 @@ def download_esbuild(output_path):
     with _open_zip_or_tar(output_file) as archive:
         for filename in files:
             input_filename = 'package/' + filename
-            output_filename = output_path / filename
+            output_filename = output_path / basename(filename)
             with archive.open(input_filename, 'r') as input_file:
                 with output_filename.open('wb') as output_file:
                     shutil.copyfileobj(input_file, output_file)
