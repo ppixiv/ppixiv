@@ -128,10 +128,16 @@ def download_esbuild(output_path):
     """
     Download an esbuild prebuilt into output_path.
     """
-    # Do a quick check to see if all of the files already exist.
+    # Do a quick check to see if all of the files already exist.  Work around esbuild's
+    # inconsistent packaging across platforms.
     exe_suffix = '.exe' if sys.platform == 'win32' else ''
-    files = (f'esbuild{exe_suffix}', 'README.md')
-    all_files_exist = all((output_path / filename).exists() for filename in files)
+    if sys.platform == 'win32':
+        files = (f'esbuild{exe_suffix}', 'README.md')
+    else:
+        files = (f'bin/esbuild{exe_suffix}', 'README.md')
+    files = [Path(filename) for filename in files]
+
+    all_files_exist = all((output_path / filename.name).exists() for filename in files)
     if all_files_exist:
         return
 
@@ -145,7 +151,7 @@ def download_esbuild(output_path):
     }
     name = paths[arch]
 
-    url = f'https://registry.npmjs.org/@esbuild/win32-x64/-/{name}-0.15.18.tgz'
+    url = f'https://registry.npmjs.org/@esbuild/{name}/-/{name}-0.15.18.tgz'
     output_file = download_file(url)
 
     # Just extract the files we need and flatten the file tree.
@@ -154,9 +160,9 @@ def download_esbuild(output_path):
 
     with _open_zip_or_tar(output_file) as archive:
         for filename in files:
-            input_filename = 'package/' + filename
-            output_filename = output_path / filename
-            with archive.open(input_filename, 'r') as input_file:
+            input_filename = 'package' / filename
+            output_filename = output_path / filename.name
+            with archive.open(str(input_filename), 'r') as input_file:
                 with output_filename.open('wb') as output_file:
                     shutil.copyfileobj(input_file, output_file)
 
