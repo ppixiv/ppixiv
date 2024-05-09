@@ -150,7 +150,7 @@ class VViewBuild:
         # much smaller, but currently we shell out to it
         # https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2021-11-30-12-21
         # https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2021-11-30-12-21/ffmpeg-N-104704-ge22dff43e7-win64-lgpl-shared.zip
-        url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-03-21-12-56/ffmpeg-N-114298-g97d2990ea6-win64-lgpl-shared.zip'
+        url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-03-31-17-28/ffmpeg-N-114545-g199c479b9a-win64-lgpl-shared.zip'
         output_file = util.download_file(url)
 
         # Extract FFmpeg.
