@@ -377,8 +377,8 @@ class UI extends Widget
             {
                 // Skip tags with very few posts.  This list includes every tag the author
                 // has ever used, and ends up being pages long with tons of tags that were
-                // only used once.
-                if(tagInfo.tag != "All" && tagInfo.cnt < 5)
+                // only used once.  Always include recently-used tags.
+                if(tagInfo.tag != "All" && tagInfo.cnt < 5 && !tagInfo.recent)
                     return;
 
                 let tag = tagInfo.tag;
