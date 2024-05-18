@@ -1050,7 +1050,6 @@ class TagSearchDropdownWidget extends widget
             } else {
                 acc.groups[slug].tag.push(tag.tag);
             }
-            console.log(`Group ${slug} with tags [${acc.groups[slug].tag}]`);
 
             return acc;
         }, { groups: {}, standalone: [] });
