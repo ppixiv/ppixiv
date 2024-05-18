@@ -1061,7 +1061,8 @@ class TagSearchDropdownWidget extends widget
             if (!acc.groups[slug]) {
                 acc.groups[slug] = {
                     tag: new Set([tag.tag]),
-                    search: tag.search
+                    // Downside of this approach is that joined tag list shoud be inserted in fixed place since we dont know position
+                    search: tag.search.replace(tag.tag, '')
                 };
             } else {
                 acc.groups[slug].tag.add(tag.tag);
@@ -1095,11 +1096,12 @@ class TagSearchDropdownWidget extends widget
             }
         }
 
-        const convertedGroups = Object.values(groupedTags.groups).reduce((acc, { tag }) => {
+        const convertedGroups = Object.values(groupedTags.groups).reduce((acc, { search, tag }) => {
             const tags = Array.from(tag);
             const target = tags.length === 1 ? tags[0] : `( ${tags.join(' OR ')} )`;
 
-            acc.push({ search: target, tag: target });
+            // Since we removed tag when pushing search append it from the start
+            acc.push({ search: `${target} ${search}`, tag: target });
 
             return acc;
         }, []);
