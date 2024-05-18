@@ -2030,7 +2030,8 @@ body.hide-r18g .r18g { display: none; }
         .edit-button, .editing-only { display: none !important; }
     }
 
-    .edit-button {
+    .edit-button, .group-suggestions-button
+    {
         align-items: center;
         justify-content: center;
         border: 1px solid #bbb;
