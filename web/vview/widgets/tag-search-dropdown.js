@@ -1032,6 +1032,38 @@ class TagSearchDropdownWidget extends widget
         return false;
     }
 
+    // Composing tag groups by matching translation in lowercase with brackets stripped out.
+    _groupTagsByTranslation = (autocompletedTags, translatedTags) => {
+        const groupedTags = autocompletedTags.reduce((acc, tag) => {
+            const translated = translatedTags[tag.tag.replace(/\s*\(.+\)\s*/g, '')];
+            if (!translated) {
+                acc.standalone.push(tag);
+                return acc;
+            }
+
+            const slug = translated.toLowerCase();
+            if (!acc.groups[slug]) {
+                acc.groups[slug] = {
+                    tag: [tag.tag],
+                    search: tag.search
+                };
+            } else {
+                acc.groups[slug].tag.push(tag.tag);
+            }
+            console.log(`Group ${slug} with tags [${acc.groups[slug].tag}]`);
+
+            return acc;
+        }, { groups: {}, standalone: [] });
+
+        const convertedGroups = Object.values(groupedTags.groups).reduce((acc, { tag }) => {
+            const target = tag.length === 1 ? tag[0] : `( ${tag.join(' OR ')} )`;
+            acc.push({ search: target, tag: target });
+            return acc;
+        }, []);
+
+        return convertedGroups.concat(groupedTags.standalone);
+    }
+
     // Populate the tag dropdown.
     //
     // This is async, since IndexedDB is async.  (It shouldn't be.  It's an overcorrection.
@@ -1104,7 +1136,10 @@ class TagSearchDropdownWidget extends widget
         if(autocompletedTags.length)
             this._inputDropdownContents.appendChild(this.createSeparator(`Suggestions for ${this._mostRecentAutocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
 
-        for(let tag of autocompletedTags)
+        // Compose tag groups
+        const groupedTags = this._groupTagsByTranslation(autocompletedTags, translatedTags);
+
+        for(let tag of groupedTags)
         {
             // Autocomplete entries link to the fully completed search, but only display the
             // tag that was searched for.
