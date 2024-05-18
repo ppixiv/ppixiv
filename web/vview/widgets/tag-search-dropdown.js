@@ -1033,8 +1033,9 @@ class TagSearchDropdownWidget extends widget
     }
 
     // Composing tag groups by matching translation in lowercase with brackets stripped out.
-    // Add option for split and mono tag handling e.g. handglove like hand_glove, hand-glove, hand glove will reside in hand group
-    // Will apply only for tags starting with lowercase since it's likely not name of the character
+    // joinMonotags provides split and mono tag handling e.g. handglove like hand_glove, hand-glove, hand glove will reside in hand group
+    // joinMonotags strictly applyed only to tags starting in lowercase since it's likely not name of the character
+    // joinPrefixes will try to join formed groups with same prefix
     _groupTagsByTranslation = (autocompletedTags, translatedTags, options) => {
         const tagGroupReducer = (acc, tag) => {
             const strippedTag = tag.tag.replace(/\s*\(.+\)\s*/g, '');
