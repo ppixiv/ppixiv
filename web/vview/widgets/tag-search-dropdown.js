@@ -1034,31 +1034,51 @@ class TagSearchDropdownWidget extends widget
 
     // Composing tag groups by matching translation in lowercase with brackets stripped out.
     _groupTagsByTranslation = (autocompletedTags, translatedTags) => {
-        const groupedTags = autocompletedTags.reduce((acc, tag) => {
+        const tagGroupReducer = (acc, tag) => {
             const strippedTag = tag.tag.replace(/\s*\(.+\)\s*/g, '');
+
+            // Consider translated itself if defined as property but does not have a value
             if (!Object.hasOwn(translatedTags, strippedTag)) {
                 acc.standalone.push(tag);
                 return acc;
             }
 
-            // Consider translated itself if defined as property but does not have a value
             const translated = translatedTags[strippedTag] ?? tag.tag;
-            const slug = translated.toLowerCase();
+            let slug = translated.toLowerCase();
+
+            // Likely not name since starting with lowercase
+            if (translated[0] === slug[0]) {
+                // Attach to group if starts with any existing group name for monotags and tags with spaces handling
+                slug = Object.keys(acc.groups).find(key => slug.startsWith(key)) ?? slug;
+                slug = slug.split(/[ _-]/g)[0]
+            }
+
             if (!acc.groups[slug]) {
                 acc.groups[slug] = {
-                    tag: [tag.tag],
+                    tag: new Set([tag.tag]),
                     search: tag.search
                 };
             } else {
-                acc.groups[slug].tag.push(tag.tag);
+                acc.groups[slug].tag.add(tag.tag);
             }
 
             return acc;
-        }, { groups: {}, standalone: [] });
+        }
+
+        // Run twice ensuring all prefix tags are collected in groups
+        const groupedTags = autocompletedTags.reduce(
+            tagGroupReducer,
+            autocompletedTags.reduce(
+                tagGroupReducer, { groups: {}, standalone: [] }
+            )
+        );
 
         const convertedGroups = Object.values(groupedTags.groups).reduce((acc, { tag }) => {
-            const target = tag.length === 1 ? tag[0] : `( ${tag.join(' OR ')} )`;
+            const tags = Array.from(tag);
+            const target = tags.length === 1 ? tags[0] : `( ${tags.join(' OR ')} )`;
+
             acc.push({ search: target, tag: target });
+
             return acc;
         }, []);
 
