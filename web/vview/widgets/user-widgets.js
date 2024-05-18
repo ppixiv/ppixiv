@@ -745,7 +745,8 @@ class FollowWidget extends Widget
             icon: "mat:block",
         });
 
-        if(userInfo?.acceptRequest)
+        let acceptRequest = userProfile?.body?.request?.showRequestTab;
+        if(acceptRequest)
         {
             extraLinks.push({
                 url: new URL(`/users/${this.userId}/request#no-ppixiv`, ppixiv.plocation),

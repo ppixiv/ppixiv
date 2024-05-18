@@ -192,7 +192,6 @@ export default class UserCache extends EventTarget
             'partial',
             'social',
             'commentHtml',
-            'acceptRequest',
             // 'premium',
             // 'sketchLiveId',
             // 'sketchLives',
@@ -260,7 +259,7 @@ export default class UserCache extends EventTarget
             return null;
 
         // console.log("Fetch user", userId);
-        let result = helpers.pixivRequest.get(`/ajax/user/${userId}/profile/all`);
+        let result = await helpers.pixivRequest.get(`/ajax/user/${userId}/profile/all`);
         if(result == null || result.error)
         {
             let message = result?.message || "Error loading user";
