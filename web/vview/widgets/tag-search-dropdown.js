@@ -1181,8 +1181,8 @@ class TagSearchDropdownWidget extends widget
 
         // Compose tag groups
         const groupedTags = this._groupTagsByTranslation(autocompletedTags, translatedTags, {
-            joinMonotags: true,
-            joinPrefixes: true
+            joinMonotags: false,
+            joinPrefixes: false
         });
 
         for(let tag of groupedTags)
