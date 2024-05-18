@@ -57,7 +57,8 @@ async function Bootstrap({bundle}={})
                     // page context instead of the script context, which breaks "value instanceof ArrayBuffer".
                     // We can just not check, since constructing a blob from a blob doesn't hurt
                     // anything.
-                    value = new Blob([value]);
+                    if(value.toString() == "[object ArrayBuffer]")
+                        value = new Blob([value]);
                 
                     data.append(key, value);
                 }
