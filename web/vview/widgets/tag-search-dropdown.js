@@ -1033,7 +1033,9 @@ class TagSearchDropdownWidget extends widget
     }
 
     // Composing tag groups by matching translation in lowercase with brackets stripped out.
-    _groupTagsByTranslation = (autocompletedTags, translatedTags) => {
+    // Add option for split and mono tag handling e.g. handglove like hand_glove, hand-glove, hand glove will reside in hand group
+    // Will apply only for tags starting with lowercase since it's likely not name of the character
+    _groupTagsByTranslation = (autocompletedTags, translatedTags, options) => {
         const tagGroupReducer = (acc, tag) => {
             const strippedTag = tag.tag.replace(/\s*\(.+\)\s*/g, '');
 
@@ -1046,11 +1048,13 @@ class TagSearchDropdownWidget extends widget
             const translated = translatedTags[strippedTag] ?? tag.tag;
             let slug = translated.toLowerCase();
 
-            // Likely not name since starting with lowercase
-            if (translated[0] === slug[0]) {
-                // Attach to group if starts with any existing group name for monotags and tags with spaces handling
-                slug = Object.keys(acc.groups).find(key => slug.startsWith(key)) ?? slug;
-                slug = slug.split(/[ _-]/g)[0]
+            if(options.joinMonotags) {
+                // Likely not name since starting with lowercase
+                if (translated[0] === slug[0]) {
+                    // Attach to group if starts with any existing group name for monotags and tags with spaces handling
+                    slug = Object.keys(acc.groups).find(key => slug.startsWith(key)) ?? slug;
+                    slug = slug.split(/[ _-]/g)[0]
+                }
             }
 
             if (!acc.groups[slug]) {
@@ -1065,12 +1069,16 @@ class TagSearchDropdownWidget extends widget
             return acc;
         }
 
+        const secondPassRequired = options.joinMonotags;
+        const accumulator = { groups: {}, standalone: [] };
+
         // Run twice ensuring all prefix tags are collected in groups
         const groupedTags = autocompletedTags.reduce(
             tagGroupReducer,
+            secondPassRequired ?
             autocompletedTags.reduce(
-                tagGroupReducer, { groups: {}, standalone: [] }
-            )
+                tagGroupReducer, accumulator
+            ) : accumulator
         );
 
         const convertedGroups = Object.values(groupedTags.groups).reduce((acc, { tag }) => {
@@ -1158,7 +1166,9 @@ class TagSearchDropdownWidget extends widget
             this._inputDropdownContents.appendChild(this.createSeparator(`Suggestions for ${this._mostRecentAutocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
 
         // Compose tag groups
-        const groupedTags = this._groupTagsByTranslation(autocompletedTags, translatedTags);
+        const groupedTags = this._groupTagsByTranslation(autocompletedTags, translatedTags, {
+            joinMonotags: true
+        });
 
         for(let tag of groupedTags)
         {
