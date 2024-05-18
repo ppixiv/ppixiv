@@ -1081,6 +1081,19 @@ class TagSearchDropdownWidget extends widget
             ) : accumulator
         );
 
+        // Will join groups with matching prefix
+        if (options.joinPrefixes) {
+            for (const [name, group] of Object.entries(groupedTags.groups)) {
+                const key = Object.keys(groupedTags.groups).find(key => key.startsWith(name))
+                if (!key || key === name) {
+                    continue
+                }
+
+                group.tag.forEach(tag => groupedTags.groups[key].tag.add(tag));
+                delete groupedTags.groups[name];
+            }
+        }
+
         const convertedGroups = Object.values(groupedTags.groups).reduce((acc, { tag }) => {
             const tags = Array.from(tag);
             const target = tags.length === 1 ? tags[0] : `( ${tags.join(' OR ')} )`;
@@ -1167,7 +1180,8 @@ class TagSearchDropdownWidget extends widget
 
         // Compose tag groups
         const groupedTags = this._groupTagsByTranslation(autocompletedTags, translatedTags, {
-            joinMonotags: true
+            joinMonotags: true,
+            joinPrefixes: true
         });
 
         for(let tag of groupedTags)
