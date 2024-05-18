@@ -1035,12 +1035,14 @@ class TagSearchDropdownWidget extends widget
     // Composing tag groups by matching translation in lowercase with brackets stripped out.
     _groupTagsByTranslation = (autocompletedTags, translatedTags) => {
         const groupedTags = autocompletedTags.reduce((acc, tag) => {
-            const translated = translatedTags[tag.tag.replace(/\s*\(.+\)\s*/g, '')];
-            if (!translated) {
+            const strippedTag = tag.tag.replace(/\s*\(.+\)\s*/g, '');
+            if (!Object.hasOwn(translatedTags, strippedTag)) {
                 acc.standalone.push(tag);
                 return acc;
             }
 
+            // Consider translated itself if defined as property but does not have a value
+            const translated = translatedTags[strippedTag] ?? tag.tag;
             const slug = translated.toLowerCase();
             if (!acc.groups[slug]) {
                 acc.groups[slug] = {
