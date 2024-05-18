@@ -1032,6 +1032,83 @@ class TagSearchDropdownWidget extends widget
         return false;
     }
 
+    // Composing tag groups by matching translation in lowercase with brackets stripped out.
+    // joinMonotags provides split and mono tag handling e.g. handglove like hand_glove, hand-glove, hand glove will reside in hand group
+    // joinMonotags strictly applyed only to tags starting in lowercase since it's likely not name of the character
+    // joinPrefixes will try to join formed groups with same prefix
+    _groupTagsByTranslation = (autocompletedTags, translatedTags, options) => {
+        const tagGroupReducer = (acc, tag) => {
+            const strippedTag = tag.tag.replace(/\s*\(.+\)\s*/g, '');
+
+            // Consider translated itself if defined as property but does not have a value
+            if (!Object.hasOwn(translatedTags, strippedTag)) {
+                acc.standalone.push(tag);
+                return acc;
+            }
+
+            const translated = translatedTags[strippedTag] ?? tag.tag;
+            let slug = translated.toLowerCase();
+
+            if(options.joinMonotags) {
+                // Likely not name since starting with lowercase
+                if (translated[0] === slug[0]) {
+                    // Attach to group if starts with any existing group name for monotags and tags with spaces handling
+                    slug = Object.keys(acc.groups).find(key => slug.startsWith(key)) ?? slug;
+                    slug = slug.split(/[ _-]/g)[0]
+                }
+            }
+
+            if (!acc.groups[slug]) {
+                acc.groups[slug] = {
+                    tag: new Set([tag.tag]),
+                    // Downside of this approach is that joined tag list shoud be inserted in fixed place since we dont know position
+                    search: tag.search.replace(tag.tag, '')
+                };
+            } else {
+                acc.groups[slug].tag.add(tag.tag);
+            }
+
+            return acc;
+        }
+
+        const secondPassRequired = options.joinMonotags;
+        const accumulator = { groups: {}, standalone: [] };
+
+        // Run twice ensuring all prefix tags are collected in groups
+        const groupedTags = autocompletedTags.reduce(
+            tagGroupReducer,
+            secondPassRequired ?
+            autocompletedTags.reduce(
+                tagGroupReducer, accumulator
+            ) : accumulator
+        );
+
+        // Will join groups with matching prefix
+        if (options.joinPrefixes) {
+            for (const [name, group] of Object.entries(groupedTags.groups)) {
+                const key = Object.keys(groupedTags.groups).find(key => key.startsWith(name))
+                if (!key || key === name) {
+                    continue
+                }
+
+                group.tag.forEach(tag => groupedTags.groups[key].tag.add(tag));
+                delete groupedTags.groups[name];
+            }
+        }
+
+        const convertedGroups = Object.values(groupedTags.groups).reduce((acc, { search, tag }) => {
+            const tags = Array.from(tag);
+            const target = tags.length === 1 ? tags[0] : `( ${tags.join(' OR ')} )`;
+
+            // Since we removed tag when pushing search append it from the start
+            acc.push({ search: `${target} ${search}`, tag: target });
+
+            return acc;
+        }, []);
+
+        return convertedGroups.concat(groupedTags.standalone);
+    }
+
     // Populate the tag dropdown.
     //
     // This is async, since IndexedDB is async.  (It shouldn't be.  It's an overcorrection.
@@ -1104,7 +1181,13 @@ class TagSearchDropdownWidget extends widget
         if(autocompletedTags.length)
             this._inputDropdownContents.appendChild(this.createSeparator(`Suggestions for ${this._mostRecentAutocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
 
-        for(let tag of autocompletedTags)
+        // Compose tag groups
+        const groupedTags = this._groupTagsByTranslation(autocompletedTags, translatedTags, {
+            joinMonotags: false,
+            joinPrefixes: false
+        });
+
+        for(let tag of groupedTags)
         {
             // Autocomplete entries link to the fully completed search, but only display the
             // tag that was searched for.
