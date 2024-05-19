@@ -1086,13 +1086,15 @@ class TagSearchDropdownWidget extends widget
         // Will join groups with matching prefix
         if (options.joinPrefixes) {
             for (const [name, group] of Object.entries(groupedTags.groups)) {
-                const key = Object.keys(groupedTags.groups).find(key => key.startsWith(name))
-                if (!key || key === name) {
+                const keys = Object.keys(groupedTags.groups).filter(key => key.startsWith(name) && key !== name);
+                if (keys.length === 0) {
                     continue
                 }
 
-                group.tag.forEach(tag => groupedTags.groups[key].tag.add(tag));
-                delete groupedTags.groups[name];
+                for (const key of keys) {
+                    groupedTags.groups[key].tag.forEach(tag => group.tag.add(tag));
+                    delete groupedTags.groups[key];
+                }
             }
         }
 
