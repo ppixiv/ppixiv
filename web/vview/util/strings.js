@@ -192,3 +192,38 @@ export function getPathPart(url, index, value)
     
     return parts[index] || "";
 }
+
+// This makes a very rough guess for whether the given string contains CJK text.
+export function containsAsianText(text)
+{
+    // Common CJK Unicode ranges
+    const cjkRanges = [
+        [0x4E00, 0x9FFF],  // CJK Unified Ideographs
+        [0x3400, 0x4DBF],  // CJK Unified Ideographs Extension A
+        [0x20000, 0x2A6DF], // CJK Unified Ideographs Extension B
+        [0x2A700, 0x2B73F], // CJK Unified Ideographs Extension C
+        [0x2B740, 0x2B81F], // CJK Unified Ideographs Extension D
+        [0x2B820, 0x2CEAF], // CJK Unified Ideographs Extension E
+        [0x2F00, 0x2FDF],  // Kangxi Radicals
+        [0x2E80, 0x2EFF],  // CJK Radicals Supplement
+        [0x3000, 0x303F],  // CJK Symbols and Punctuation
+        [0x31C0, 0x31EF],  // CJK Strokes
+        [0xF900, 0xFAFF],  // CJK Compatibility Ideographs
+        [0xFE30, 0xFE4F],  // CJK Compatibility Forms
+        [0xFF00, 0xFFEF],  // Halfwidth and Fullwidth Forms
+        [0xAC00, 0xD7AF]   // Hangul Syllables (Korean)
+    ];
+
+    function isCJK(charCode)
+    {
+        return cjkRanges.some(([start, end]) => charCode >= start && charCode <= end);
+    }
+
+    for(let i = 0; i < text.length; i++)
+    {
+        if(isCJK(text.charCodeAt(i)))
+            return true;
+    }
+
+    return false;
+}

@@ -152,17 +152,31 @@ export default class KeyStorage
     }
 
     // Given a dictionary, set all key/value pairs.
-    async multiSet(data)
+    async multiSet(data, { overwrite=true }={})
     {
         return await this.dbOp(async (db) => {
             let store = this.getStore(db);
 
+            async function setKey(key, value)
+            {
+                if(!overwrite)
+                {
+                    let existingKey = await store.getKey(key);
+                    if(existingKey !== undefined)
+                    {
+                        // Key already exists, skip to the next iteration
+                        return null;
+                    }
+                }
+
+                let request = store.put(value, key);
+                await KeyStorage.awaitRequest(request);
+            }
+
             let promises = [];
             for(let [key, value] of Object.entries(data))
-            {
-                let request = store.put(value, key);
-                promises.push(KeyStorage.awaitRequest(request));
-            }
+                promises.push(setKey(key, value));
+    
             await Promise.all(promises);
         });
     }

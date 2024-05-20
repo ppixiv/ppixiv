@@ -770,6 +770,18 @@ class TagSearchDropdownWidget extends widget
         this._autocompleteCache.set(word, candidates);
 
         // Cache any translated tags the autocomplete gave us.
+        //
+        // This isn't really correct, since the tag_translation field isn't the returned tag
+        // translated into the user's language.  It's actually the original tag that the
+        // autocomplete matched against, which might be in any language.  This means we can
+        // end up recording translations into other languages.
+        //
+        // But turning this off seems worse, since we won't have translations for autocompletes
+        // most of the time.  We do two things to try to mitigate this.  First, we ignore translations
+        // that appear to contain CJK characters, since they're the most common causes of this.
+        // (That might be annoying for Chinese users, but we only support English translations
+        // anyway.)  Second, we tell tagTranslations not to overwrite existing translations with
+        // these new ones if they already exist.
         let translations = { };
         for(let tag of candidates)
         {
@@ -777,11 +789,17 @@ class TagSearchDropdownWidget extends widget
             if(tag.type != "tag_translation")
                 continue;
 
+            if(helpers.strings.containsAsianText(tag.tag_translation))
+            {
+                // console.log(`Not storing translation from autocomplete: ${tag.tag_name} -> ${tag.tag_translation}`);
+                continue;
+            }
+
             translations[tag.tag_name] = {
                 en: tag.tag_translation
             };
         }
-        ppixiv.tagTranslations.addTranslationsDict(translations);
+        ppixiv.tagTranslations.addTranslationsDict(translations, { overwrite: false });
 
         // Store the results.
         this._currentAutocompleteResults = {
