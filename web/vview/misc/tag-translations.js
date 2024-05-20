@@ -28,7 +28,7 @@ export default class TagTranslations
     //         en: "english tag",
     //     }
     // }
-    async addTranslationsDict(tags)
+    async addTranslationsDict(tags, { overwrite=true }={})
     {
         let translations = [];
         for(let tag of Object.keys(tags))
@@ -51,7 +51,7 @@ export default class TagTranslations
             }
         }
 
-        this.addTranslations(translations);
+        this.addTranslations(translations, { overwrite });
     }
     
     // Store a list of tag translations.
@@ -66,7 +66,9 @@ export default class TagTranslations
     //
     // This is the same format that Pixiv uses in newer APIs.  Note that we currently only store
     // English translations.
-    async addTranslations(tagList)
+    //
+    // If overwrite is false, only overwrite translations that already exist.
+    async addTranslations(tagList, { overwrite=true }={})
     {
         let data = {};
         for(let tag of tagList)
@@ -96,12 +98,13 @@ export default class TagTranslations
                 tagInfo.romaji = tag.romaji;
             data[tag.tag] = tagInfo;
 
-            if(translation.en)
+            let exists = this._cache.get(tag.tag);
+            if(translation.en && (overwrite || !exists))
                 this._cache.set(tag.tag, translation.en);
         }
 
         // Batch write:
-        await this._db.multiSet(data);
+        await this._db.multiSet(data, { overwrite });
     }
 
     async getTagInfo(tags)
