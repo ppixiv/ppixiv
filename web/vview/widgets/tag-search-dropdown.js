@@ -173,7 +173,7 @@ class TagSearchDropdownWidget extends widget
 
         this.root.addEventListener("click", this._dropdownClick);
 
-        this._currentAutocompleteResults = [];
+        this._currentAutocompleteResults = {};
 
         // input-dropdown is resizable.  Save the size when the user drags it.
         this._allResults = this.root;
@@ -650,7 +650,7 @@ class TagSearchDropdownWidget extends widget
         // If _populateDropdown is still running, cancel it.
         this._cancelPopulateDropdown();
 
-        this._currentAutocompleteResults = [];
+        this._currentAutocompleteResults = {};
         this._mostRecentAutocomplete = null;
         this.editing = false;
         this.dragger.cancelDrag();
@@ -802,17 +802,23 @@ class TagSearchDropdownWidget extends widget
         ppixiv.tagTranslations.addTranslationsDict(translations, { overwrite: false });
 
         // Store the results.
-        this._currentAutocompleteResults = [];
+        this._currentAutocompleteResults = {
+            autocompletedTags: [],
+            text,
+            wordStart,
+            wordEnd,
+        };
         for(let candidate of candidates || [])
         {
             // Skip the word we searched for, since it's the text we already have.
             if(candidate.tag_name == word)
                 continue;
 
-            // If the input has multiple tags, we're searching the tag the cursor was on.  Replace just
-            // that word.
-            let search = text.slice(0, wordStart) + candidate.tag_name + text.slice(wordEnd);
-            this._currentAutocompleteResults.push({ tag: candidate.tag_name, search });
+            this._currentAutocompleteResults.autocompletedTags.push({
+                tag: candidate.tag_name,
+                accessCount: candidate.access_count,
+                tagTranslation: candidate.tag_translation,
+            });
         }
 
         // Refresh the dropdown with the new results.  Scroll to autocomplete if we're filling it in
@@ -895,7 +901,14 @@ class TagSearchDropdownWidget extends widget
         return entry;
     }
 
-    createSeparator(label, { icon, isUserSection, groupName=null, collapsed=false, classes=[] })
+    createSeparator(label, {
+        icon,
+        isUserSection,
+        groupName=null,
+        collapsed=false,
+        classes=[],
+        isAutocompleteHeader=false,
+    })
     {
         let section = this.createTemplate({html: `
             <div class=tag-section>
@@ -911,6 +924,7 @@ class TagSearchDropdownWidget extends widget
 
                 <span class="edit-button rename-group-button">${ helpers.createIcon("mat:edit") }</span>
                 <span class="edit-button delete-entry">X</span>
+                <span class="group-suggestions-button" hidden>${ helpers.createIcon("mat:unfold_less") }</span>
             </div>
         `});
         section.querySelector(".label").textContent = label;
@@ -929,6 +943,16 @@ class TagSearchDropdownWidget extends widget
 
         for(let name of classes)
             section.classList.add(name);
+
+        let groupSuggestionsButton = section.querySelector(".group-suggestions-button");
+        groupSuggestionsButton.hidden = !isAutocompleteHeader;
+        groupSuggestionsButton.classList.toggle("selected", ppixiv.settings.get("collapse_autocomplete"));
+
+        // On click, toggle collapse_autocomplete and repopulate.
+        groupSuggestionsButton.addEventListener("click", () => {
+            ppixiv.settings.set("collapse_autocomplete", !ppixiv.settings.get("collapse_autocomplete"));
+            this._populateDropdown();
+        });
 
         return section;
     }
@@ -1031,12 +1055,12 @@ class TagSearchDropdownWidget extends widget
             this._scrollEntryIntoView(selectedEntry);
     }
 
-    _populateDropdown = async(options) =>
+    _populateDropdown = async() =>
     {
         // If this is called again before the first call completes, the original call will be
         // aborted.  Keep waiting until one completes without being aborted (or we're hidden), so
         // we don't return until our contents are actually filled in.
-        let promise = this._populateDropdownPromise = this._populateDropdownInner(options);
+        let promise = this._populateDropdownPromise = this._populateDropdownInner();
         this._populateDropdownPromise.finally(() => {
             if(promise === this._populateDropdownPromise)
                 this._populateDropdownPromise = null;
@@ -1050,6 +1074,7 @@ class TagSearchDropdownWidget extends widget
         return false;
     }
 
+    
     // Populate the tag dropdown.
     //
     // This is async, since IndexedDB is async.  (It shouldn't be.  It's an overcorrection.
@@ -1065,7 +1090,7 @@ class TagSearchDropdownWidget extends widget
         let abortController = this._populateDropdownAbort = new AbortController();        
         let abortSignal = abortController.signal;
 
-        let autocompletedTags = this._currentAutocompleteResults || [];
+        let { autocompletedTags=[], text, wordStart, wordEnd } = this._currentAutocompleteResults;
 
         let tagsByGroup = SavedSearchTags.getAllGroups();
 
@@ -1120,13 +1145,34 @@ class TagSearchDropdownWidget extends widget
 
         // Add autocompletes at the top.
         if(autocompletedTags.length)
-            this._inputDropdownContents.appendChild(this.createSeparator(`Suggestions for ${this._mostRecentAutocomplete}`, { icon: "mat:assistant", classes: ["autocomplete"] }));
-
-        for(let tag of autocompletedTags)
         {
-            // Autocomplete entries link to the fully completed search, but only display the
-            // tag that was searched for.
-            let entry = this.createEntry(tag.tag, { classes: ["autocomplete"], targetTags: tag.search });
+            let separator = this.createSeparator(`Suggestions for ${this._mostRecentAutocomplete}`, {
+                icon: "mat:assistant",
+                classes: ["autocomplete"],
+                isAutocompleteHeader: true,
+            });
+
+            this._inputDropdownContents.appendChild(separator);
+        }
+
+        // Group tags with the same translation together.
+        if(ppixiv.settings.get("collapse_autocomplete"))
+            autocompletedTags = helpers.pixiv.groupTagsByTranslation(autocompletedTags, translatedTags);
+
+        for(let { tag, forTag, tagList } of autocompletedTags)
+        {
+            // If the input has multiple tags, we're searching the tag the cursor was on.  Replace just
+            // that word.
+            let search = text.slice(0, wordStart) + tag + text.slice(wordEnd);
+
+            // Adjust the text we display for grouped tag lists.
+            if(tagList && tagList.length > 1)
+                tag = `${forTag} (${tagList.join(", ")})`;
+
+            let entry = this.createEntry(tag, {
+                classes: ["autocomplete"],
+                targetTags: search,
+            });
             this._inputDropdownContents.appendChild(entry);
         }
 
