@@ -22,13 +22,7 @@ export function splitTagPrefixes(tag)
 }
 
 // Group tags by their translation from a tag autocomplete result.
-// joinMonotags provides split and mono tag handling e.g. handglove like hand_glove, hand-glove, hand glove will reside in hand group
-// joinMonotags strictly applyed only to tags starting in lowercase since it's likely not name of the character
-// joinPrefixes will try to join formed groups with same prefix
-export function groupTagsByTranslation(autocompletedTags, translatedTags, {
-    joinMonotags=false,
-    joinPrefixes=false,
-}={})
+export function groupTagsByTranslation(autocompletedTags, translatedTags)
 {
     const tagGroupReducer = (acc, tag) => {
         const strippedTag = tag.tag.replace(/\s*\(.+\)\s*/g, "");
@@ -42,14 +36,6 @@ export function groupTagsByTranslation(autocompletedTags, translatedTags, {
 
         const translatedTag = translatedTags[strippedTag] ?? tag.tag;
         let slug = translatedTag.toLowerCase();
-        if(joinMonotags && translatedTag[0] === slug[0])
-        {
-            // Likely not name since starting with lowercase
-            // Attach to group if starts with any existing group name for monotags and tags with spaces handling
-            slug = Object.keys(acc.groups).find(key => slug.startsWith(key)) ?? slug;
-            slug = slug.split(/[ _-]/g)[0];
-        }
-
         acc.groups[slug] ??= { tag: new Set() };
         acc.groups[slug].tag.add(tag.tag);
 
@@ -57,24 +43,8 @@ export function groupTagsByTranslation(autocompletedTags, translatedTags, {
     }
 
     // Run twice ensuring all prefix tags are collected in groups
-    let passes = joinMonotags? 2:1;
     let groupedTags = { groups: {}, standalone: [] };
-    for(let pass = 0; pass < passes; pass++)
-        groupedTags = autocompletedTags.reduce(tagGroupReducer, groupedTags);
-
-    // Will join groups with matching prefix
-    if(joinPrefixes)
-    {
-        for(const [name, group] of Object.entries(groupedTags.groups))
-        {
-            const key = Object.keys(groupedTags.groups).find(key => key.startsWith(name));
-            if(!key || key === name)
-                continue;
-
-            group.tag.forEach(tag => groupedTags.groups[key].tag.add(tag));
-            delete groupedTags.groups[name];
-        }
-    }
+    groupedTags = autocompletedTags.reduce(tagGroupReducer, groupedTags);
 
     let tagCounts = new Map();
     for(let tag of autocompletedTags)
