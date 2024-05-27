@@ -44,24 +44,34 @@ def open_handle_shared(path, mode='r'):
         access = GENERIC_READ|GENERIC_WRITE
         disposition = CREATE_ALWAYS
 
-    handle = CreateFileW(
-        # \\?\ enables long filename support.
-        '\\\\?\\' + str(path),
-        access,
+    # \\?\ enables long filename support.
+    prefix = '\\\\?\\'
+    for _ in range(2):
+        handle = CreateFileW(
+            prefix + str(path),
+            access,
 
-        # Don't lock the file in any way.  We're accessing files in the background
-        # and we need to be sure not to interfere with whatever the user's doing with
-        # them.
-        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+            # Don't lock the file in any way.  We're accessing files in the background
+            # and we need to be sure not to interfere with whatever the user's doing with
+            # them.
+            FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
 
-        None, # lpSecurityAttributes
-        disposition,
-        FILE_ATTRIBUTE_NORMAL|FILE_FLAG_RANDOM_ACCESS|FILE_FLAG_BACKUP_SEMANTICS,
-        None)
+            None, # lpSecurityAttributes
+            disposition,
+            FILE_ATTRIBUTE_NORMAL|FILE_FLAG_RANDOM_ACCESS|FILE_FLAG_BACKUP_SEMANTICS,
+            None)
 
-    if handle == -1:
-        raise ctypes.WinError(ctypes.get_last_error())
-    return handle
+        if handle == -1:
+            error = ctypes.get_last_error()
+            if error == 123 and prefix != '':
+                # "The filename, directory name, or volume label syntax is incorrect"
+                # This can happen when accessing files on network shares that don't support
+                # long filenames.  Try again without it.
+                prefix = ''
+                continue
+
+            raise ctypes.WinError(error)
+        return handle
 
 def open_shared(path, mode='r', encoding=None):
     """

@@ -414,10 +414,13 @@ class Library:
         if path is None:
             raise ValueError('Mount doesn\'t exist: %s' % mount)
 
-        monitor = monitor_changes.MonitorChanges(path.path)
-        task = asyncio.create_task(monitor.monitor_call(self.monitored_file_changed), name='MonitorChanges(%s)' % (mount))
-        self.monitors[mount] = task
-        log.info('Started monitoring: %s' % path)
+        try:
+            monitor = monitor_changes.MonitorChanges(path.path)
+            task = asyncio.create_task(monitor.monitor_call(self.monitored_file_changed), name='MonitorChanges(%s)' % (mount))
+            self.monitors[mount] = task
+            log.info('Started monitoring: %s' % path)
+        except OSError as e:
+            log.error('Couldn\'t monitor %s: %s' % (path, e))
 
     async def stop_monitoring(self, mount):
         """
