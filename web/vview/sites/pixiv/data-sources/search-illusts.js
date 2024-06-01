@@ -286,7 +286,7 @@ class UI extends Widget
                 <div class=tag-search-with-related-tags>
                     <vv-container class=tag-search-box-container></vv-container>
 
-                    ${ helpers.createBoxLink({label: "Related tags",    icon: "bookmark", classes: ["related-tags-button"] }) }
+                    ${ helpers.createBoxLink({popup: "Related tags", icon: "bookmark", classes: ["related-tags-button"] }) }
                 </div>
 
                 <div class=box-button-row>
