@@ -1,14 +1,15 @@
 import widget from '/vview/widgets/widget.js';
 import SavedSearchTags from '/vview/misc/saved-search-tags.js';
 import DragHandler from '/vview/misc/drag-handler.js';
-import { DropdownBoxOpener } from '/vview/widgets/dropdown.js';
+import { DropdownBoxOpener, DropdownMenuOpener } from '/vview/widgets/dropdown.js';
 import { ConfirmPrompt, TextPrompt } from '/vview/widgets/prompts.js';
+import { TagDropdownWidget } from '/vview/sites/data-source.js';
 import { helpers } from '/vview/misc/helpers.js';
 
 // Handle showing the search history and tag edit dropdowns.
 export class TagSearchBoxWidget extends widget
 {
-    constructor({...options})
+    constructor({dataSource, ...options})
     {
         super({...options, template: `
             <div class="search-box tag-search-box">
@@ -19,12 +20,19 @@ export class TagSearchBoxWidget extends widget
                         ${ helpers.createIcon("mat:edit") }
                     </span>
 
+                    <span class="related-tags-button right-side-button">
+                        ${ helpers.createIcon("bookmark") }
+                    </span>
+
                     <span class="search-submit-button right-side-button">
                         ${ helpers.createIcon("search") }
                     </span>
                 </div>
             </div>
         `});
+
+        this.dataSource = dataSource;
+        this.dataSource.addEventListener("updated", () => this.refresh(), this._signal);
 
         this._inputElement = this.root.querySelector(".input-field-container > input");
 
@@ -66,6 +74,11 @@ export class TagSearchBoxWidget extends widget
             },
         });
 
+        this.tagDropdown = new DropdownMenuOpener({
+            button: this.querySelector(".related-tags-button"),
+            createDropdown: ({...options}) => new RelatedTagDropdown({ dataSource, ...options }),
+        });
+
         // Show the dropdown when the input box is focused.
         this._inputElement.addEventListener("focus", () => this._dropdownOpener.visible = true, true);
 
@@ -81,6 +94,13 @@ export class TagSearchBoxWidget extends widget
 
         if(!this.visibleRecursively)
             this._dropdownOpener.visible = false;
+    }
+
+    refresh()
+    {
+        super.refresh();
+
+        helpers.html.setClass(this.querySelector(".related-tags-button"), "disabled", this.dataSource?.relatedTags == null);
     }
 
     // Run a text prompt.
@@ -1316,3 +1336,53 @@ class TagSearchDropdownWidget extends widget
             this.root.scrollTop -= stickyPadding - offsetFromTop;
     }
 }
+
+class RelatedTagDropdown extends TagDropdownWidget
+{
+    async refreshTags()
+    {
+        let tags = this.dataSource.relatedTags;
+        if(tags == null)
+            return;
+
+        // Short circuit if the tag list isn't changing, since IndexedDB is really slow.
+        if(this._currentTags != null && JSON.stringify(this._currentTags) == JSON.stringify(tags))
+            return;
+
+        // Look up tag translations.
+        let tagList = tags;
+        let translatedTags = await ppixiv.tagTranslations.getTranslations(tagList, "en");
+        
+        // Stop if the tag list changed while we were reading tag translations.
+        if(tagList != tags)
+            return;
+
+        this._currentTags = tags;
+
+        // Remove any old tag list and create a new one.
+        helpers.html.removeElements(this.root);
+
+        for(let tag of tagList)
+        {
+            let translatedTag = tag;
+            if(translatedTags[tag])
+                translatedTag = translatedTags[tag];
+
+            let a = helpers.createBoxLink({
+                label: translatedTag,
+                classes: ["tag-entry"],
+                link: this.formatTagLink(tag),
+                asElement: true,
+            });
+
+            this.root.appendChild(a);
+
+            a.dataset.tag = tag;
+        }
+    }
+
+    formatTagLink(tag)
+    {
+        return helpers.getArgsForTagSearch(tag, ppixiv.plocation);
+    }
+};

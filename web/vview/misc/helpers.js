@@ -167,8 +167,11 @@ export class helpers
             node.href = link;
 
         for(let className of classes || [])
-            node.classList.add(className);
-
+        {
+            if(className.length)
+                node.classList.add(className);
+        }
+        
         if(popup)
         {
             node.classList.add("popup");

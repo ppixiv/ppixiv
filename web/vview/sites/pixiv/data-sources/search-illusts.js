@@ -28,7 +28,7 @@
 // page and API, "/ajax/search/top/TAG".  It doesn't actually seem to be a rankings
 // page and just shows the same thing as the others with a different layout, so we
 // ignore this and treat it like "artworks".
-import DataSource, { TagDropdownWidget } from '/vview/sites/data-source.js';
+import DataSource from '/vview/sites/data-source.js';
 import Widget from '/vview/widgets/widget.js';
 import SavedSearchTags from '/vview/misc/saved-search-tags.js';
 import { TagSearchBoxWidget } from '/vview/widgets/tag-search-dropdown.js';
@@ -285,8 +285,6 @@ class UI extends Widget
             <div>
                 <div class=tag-search-with-related-tags>
                     <vv-container class=tag-search-box-container></vv-container>
-
-                    ${ helpers.createBoxLink({popup: "Related tags", icon: "bookmark", classes: ["related-tags-button"] }) }
                 </div>
 
                 <div class=box-button-row>
@@ -306,61 +304,6 @@ class UI extends Widget
 
         this.dataSource = dataSource;
         this.dataSource.addEventListener("updated", () => this.refresh(), this._signal);
-
-        class RelatedTagDropdown extends TagDropdownWidget
-        {
-            async refreshTags()
-            {
-                let tags = this.dataSource.relatedTags;
-                if(tags == null)
-                    return;
-
-                // Short circuit if the tag list isn't changing, since IndexedDB is really slow.
-                if(this._currentTags != null && JSON.stringify(this._currentTags) == JSON.stringify(tags))
-                    return;
-
-                // Look up tag translations.
-                let tagList = tags;
-                let translatedTags = await ppixiv.tagTranslations.getTranslations(tagList, "en");
-                
-                // Stop if the tag list changed while we were reading tag translations.
-                if(tagList != tags)
-                    return;
-
-                this._currentTags = tags;
-
-                // Remove any old tag list and create a new one.
-                helpers.html.removeElements(this.root);
-
-                for(let tag of tagList)
-                {
-                    let translatedTag = tag;
-                    if(translatedTags[tag])
-                        translatedTag = translatedTags[tag];
-
-                    let a = helpers.createBoxLink({
-                        label: translatedTag,
-                        classes: ["tag-entry"],
-                        link: this.formatTagLink(tag),
-                        asElement: true,
-                    });
-
-                    this.root.appendChild(a);
-
-                    a.dataset.tag = tag;
-                }
-            }
-
-            formatTagLink(tag)
-            {
-                return helpers.getArgsForTagSearch(tag, ppixiv.plocation);
-            }
-        };
-
-        this.tagDropdown = new DropdownMenuOpener({
-            button: this.querySelector(".related-tags-button"),
-            createDropdown: ({...options}) => new RelatedTagDropdown({ dataSource, ...options }),
-        });
 
         dataSource.setupDropdown(this.querySelector(".ages-button"), [{
             createOptions: { label: "All",  dataset: { default: true } },
@@ -574,7 +517,10 @@ class UI extends Widget
         });
 
         // Create the tag dropdown for the search page input.
-        this.tagSearchBox = new TagSearchBoxWidget({ container: this.querySelector(".tag-search-box-container") });
+        this.tagSearchBox = new TagSearchBoxWidget({
+            container: this.querySelector(".tag-search-box-container"),
+            dataSource: this.dataSource,
+        });
 
         // Fill the search box with the current tag.
         //
@@ -583,12 +529,5 @@ class UI extends Widget
         if(search)
             search += " ";
         this.querySelector(".tag-search-box .input-field-container > input").value = search;
-    }
-
-    refresh()
-    {
-        super.refresh();
-
-        helpers.html.setClass(this.querySelector(".related-tags-button"), "disabled", this.dataSource.relatedTags == null);
     }
 }
