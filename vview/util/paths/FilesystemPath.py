@@ -1,4 +1,4 @@
-import os
+import os, stat
 from pathlib import Path, PurePosixPath
 from .. import win32
 
@@ -77,8 +77,14 @@ class FilesystemPath(PathBase):
     def exists(self):
         if self.direntry is not None:
             return True
-        else:
-            return self._path.exists()
+
+        # This shares cache with other file checks if the file exists (but won't
+        # negative cache).
+        try:
+            self.stat()
+            return True
+        except FileNotFoundError:
+            return False
 
     @property
     def parent(self):
@@ -97,10 +103,7 @@ class FilesystemPath(PathBase):
         return self._path.parts
 
     def is_file(self):
-        if self.direntry is not None:
-            return self.direntry.is_file(follow_symlinks=False)
-        else:
-            return self._path.is_file()
+        return stat.S_ISREG(self.stat().st_mode)
 
     def is_dir(self):
         # If this is a ZIP, treat it like a directory.
@@ -110,10 +113,7 @@ class FilesystemPath(PathBase):
         return self.is_real_dir()
 
     def is_real_dir(self):
-        if self.direntry is not None:
-            return self.direntry.is_dir(follow_symlinks=False)
-        else:
-            return self._path.is_dir()
+        return stat.S_ISDIR(self.stat().st_mode)
 
     def _is_zip(self):
         return self.is_file() and self._path.suffix.lower().endswith('.zip')
