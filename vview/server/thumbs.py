@@ -499,6 +499,11 @@ async def handle_open(request):
     # Get the illust ID for this file or directory.
     path = PurePosixPath(request.app['server'].library.get_public_path(absolute_path))
 
+    # If we're opening a path that's mounted as a folder, use the folder path instead, so
+    # our active path is relative to the folder.
+    settings = request.app['server'].settings
+    path = settings.filesystem_path_to_folder(path)
+
     # If the underlying path is a file, separate the filename.
     if absolute_path.is_file() and absolute_path.suffix != '.zip':
         filename = path.name

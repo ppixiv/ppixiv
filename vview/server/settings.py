@@ -5,7 +5,7 @@
 # isn't worth it.
 
 import aiohttp, errno, hashlib, logging, json, os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from ..util import misc
 from pprint import pprint
 
@@ -104,6 +104,22 @@ class Settings:
                 'path': path,
             })
         return folders
+    
+    def filesystem_path_to_folder(self, path):
+        """
+        If path is within a folder, return its path relative to the folder.  Otherwise,
+        return path.
+        """
+        resolved_path = Path(path).resolve()
+        for folder in self.get_folders():
+            try:
+                relative_path = resolved_path.relative_to(folder['path'])
+            except ValueError:
+                continue
+
+            return PurePosixPath('/') / folder['name'] / relative_path
+
+        return path
 
 class User:
     def __init__(self, info, settings):
