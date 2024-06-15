@@ -705,7 +705,7 @@ void VVbrowserWindow::AddCallbacks()
         // a window really is coming from a user action.
         //
         // For the normal browser path, see vview.shell.view_in_explorer in the server.
-        std::wstring vviewinexplorer = L"vviewinexplorer:///";
+        std::wstring vviewinexplorer = L"vviewinexplorer://";
         if(url.find(vviewinexplorer) != 0)
             return S_OK;
 
@@ -718,7 +718,10 @@ void VVbrowserWindow::AddCallbacks()
             Uri_CREATE_CANONICALIZE | Uri_CREATE_NO_DECODE_EXTRA_INFO | Uri_CREATE_NO_ENCODE_FORBIDDEN_CHARACTERS, 0,
             &urlObject);
 
+        // The first path component is in the host component.
+        wil::unique_bstr host;
         wil::unique_bstr path;
+        urlObject->GetHost(&host);
         urlObject->GetPath(&path);
 
         // A separate API to get the unescaped path?  Surely there's a better API to do all this.
@@ -731,9 +734,6 @@ void VVbrowserWindow::AddCallbacks()
         if(wcslen(path2) == 0)
             return S_OK;
 
-        // Remove the leading slash: /c:/path
-        path2++;
-
         // Work around Explorer being the only Windows application that doesn't understand
         // that paths can have forward slashes.
         for(wchar_t *p = path2; *p; ++p)
@@ -743,6 +743,7 @@ void VVbrowserWindow::AddCallbacks()
         // Show the path in Explorer.
         wstring command = L"explorer.exe /select, ";
         command += L"\"";
+        command += host.get();
         command += path2;
         command += L"\"";
 

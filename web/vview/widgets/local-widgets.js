@@ -308,7 +308,7 @@ export class ViewInExplorerWidget extends IllustWidget
         // URL directly and then try to fill in the pathname, it won't let us change it.  We
         // have to create a file URL, fill in the pathname, then replace the scheme after
         // converting to a string.  Web!
-        let url = new URL("file:///");
+        let url = new URL("file://");
         url.pathname = path;
         url = url.toString();
         url = url.replace("file:", "vviewinexplorer:")

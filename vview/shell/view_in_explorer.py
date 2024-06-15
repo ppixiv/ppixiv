@@ -10,14 +10,15 @@ def show_in_explorer():
 
     # Parse the URL.  It looks like:
     #
-    # vviewinexplorer:///c:/path/to/file
+    # vviewinexplorer://c:/path/to/file
+    # vviewinexplorer:////10.0.0.1/share/path
     path = str(sys.argv[1])
     url = urllib.parse.urlparse(path)
-    path = urllib.parse.unquote(url.path)
+    path = url.netloc + urllib.parse.unquote(url.path)
 
-    # Remove the leading slash, and since Explorer is the only program in Windows
-    # that thinks directory separators have to be backslashes, replace them.
-    path = path[1:].replace('/', '\\')
+    # # Explorer is the only program in Windows that thinks directory separators
+    # have to be backslashes, so replace them.
+    path = path.replace('/', '\\')
 
     # Show the file with /select, which will display the file in its parent.
     proc = subprocess.Popen([
