@@ -837,7 +837,7 @@ async def api_auth_set_password(info):
 
     # If we're admin, see if a username was specified.
     if info.user.is_admin and username:
-        user = info.manager.auth.get_user(username)
+        user = info.manager.settings.get_user(username)
         if not user:
             raise misc.Error('not-found', f"User {username} doesn't exist")
     else:

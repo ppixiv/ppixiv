@@ -114,7 +114,7 @@ def _resolve_path(request, path):
     return path
 
 def _is_path_access_allowed(request, path):
-    permitted_paths = request.app['server'].auth.data.get('permitted_paths', [])
+    permitted_paths = request.app['server'].settings.data.get('permitted_paths', [])
     permitted_paths.append(root_dir)
     for permitted_path in permitted_paths:
         if path.is_relative_to(permitted_path):

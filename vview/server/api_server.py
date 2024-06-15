@@ -36,7 +36,7 @@ class APIServer:
         # won't connect to "insecure" endpoints.  (Even if you know what you're doing and it's perfectly
         # safe, iOS thinks it knows better than you do.)  This requires setting up a real domain, getting
         # a wildcard cert for it, and having a subdomain pointing to your local development server.
-        http_conf = self.server.auth.data.get('http', {
+        http_conf = self.server.settings.data.get('http', {
             'enabled': True,
         })
         if http_conf.get('enabled'):
@@ -49,7 +49,7 @@ class APIServer:
             await site.start()
             self.sites.append(site)
 
-        https_conf = self.server.auth.data.get('https', {})
+        https_conf = self.server.settings.data.get('https', {})
         if https_conf.get('enabled'):
             ssl_cert_path = https_conf['certificate']
             ssl_key_path = https_conf['key']
@@ -294,26 +294,26 @@ class APIServer:
         return True
 
     def check_auth(self, request):
-        auth = self.server.auth
-        request['user'] = auth.get_guest()
+        settings = self.server.settings
+        request['user'] = settings.get_guest()
 
         # Allow unauthenticated requests on localhost if the origin is localhost, so we
         # always give access to the local UI.
         if request['is_local']:
             log.debug('Request to localhost is admin')
-            request['user'] = auth.get_local_user()
+            request['user'] = settings.get_local_user()
             return
 
         # Allow unauthenticated requests to the authentication interface.
         if request.path == '/api/auth/login' or request.path == '/web/resources/auth.html':
             log.debug('Request to login API is guest')
-            request['user'] = auth.get_guest()
+            request['user'] = settings.get_guest()
             return
 
         # Check if there's an authentication cookie.
         auth_token = request.cookies.get('auth_token')
         if auth_token is not None:
-            user = auth.check_token(auth_token)
+            user = settings.check_token(auth_token)
             if user is not None:
                 log.debug(f'Request with token authed as {user.username}')
                 request['user'] = user
@@ -321,4 +321,4 @@ class APIServer:
                 return
 
         log.debug('Unauthenticated request')
-        request['user'] = auth.get_guest()
+        request['user'] = settings.get_guest()

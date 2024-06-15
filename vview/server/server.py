@@ -3,7 +3,7 @@ from pprint import pprint
 from pathlib import Path, PurePosixPath
 from collections import OrderedDict, namedtuple
 
-from .auth import Auth
+from .settings import Settings
 from ..util import misc, win32, windows_ui
 from ..util.paths import open_path, PathBase
 from ..util.threaded_tasks import AsyncTask
@@ -105,7 +105,7 @@ class Server:
         self.data_dir = data_dir
         self.data_dir.mkdir()
 
-        self.auth = Auth(self.data_dir / 'settings.json')
+        self.settings = Settings(self.data_dir / 'settings.json')
         self.library = Library(self.data_dir)
         self.sig_db = SignatureDB(self.data_dir / 'signatures.sqlite')
 
@@ -122,12 +122,11 @@ class Server:
 
         # Initialize libraries.
         log.info('Initializing libraries...')
-        for folder in self.auth.data.get('folders', []):
-            name = folder.get('name')
-            path = folder.get('path')
 
-            path = Path(path)
-            path = path.resolve()
+        for folder_info in self.settings.get_folders():
+            name = folder_info['name']
+            path = folder_info['path']
+
             if not path.exists():
                 log.warn('Library path doesn\'t exist: %s', str(path))
                 continue
@@ -158,16 +157,6 @@ class Server:
         # Ending the main task will exit the application.
         log.info(f'Manager exiting (reason: {reason})')
         self._main_task.cancel(reason)
-
-    async def restart_webserver(self):
-        """
-        Restart the webserver to reload settings like the listening address and port.
-        """
-        # Shut down the webserver and create a new one.
-        await self.api_server.shutdown()
-        
-        self.api_server = Webserver()
-        await self.api_server.init(self)
 
     def resolve_path(self, relative_path):
         """
