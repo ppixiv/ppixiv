@@ -997,7 +997,12 @@ class Library:
         # Create the Windows search.
         if use_windows_search:
             order = sort_order_info['windows'] if sort_order_info else None
-            windows_search_iter = windows_search.search(paths=[str(path) for path in paths], order=order, timeout=windows_search_timeout, **search_options)
+            order_fs = sort_order_info['fs'] if sort_order_info else None
+            windows_search_iter = windows_search.search(paths=[str(path) for path in paths],
+                order=order,
+                order_fs=order_fs,
+                timeout=windows_search_timeout,
+                **search_options)
         else:
             windows_search_iter = []
 

@@ -1,7 +1,8 @@
 # This gives an interface to Windows Search, returning results similar to
 # os.scandir.
 
-import asyncio, time, os, stat, logging
+import asyncio, time, os, stat, logging, threading, queue
+import concurrent.futures
 from pathlib import Path
 from pprint import pprint
 
@@ -174,7 +175,49 @@ class SearchDirEntry(os.PathLike):
 # This is yielded as a result if the query times out.
 class SearchTimeout: pass
 
-def search(*,
+def search(*args,
+        paths,
+
+        # An SQL ORDER BY statement to order results.  See library.sort_orders.
+        order=None,
+        
+        # A sort function that takes a DirEntry and returns a key.  This should match order.
+        # This is used if we fall back to _fallback_search.
+        order_fs=None,
+
+        **kwargs):
+    paths = [Path(path) for path in paths]
+
+    unseen_paths = set(paths)
+    for result in _windows_search(*args, paths=paths, order=order, **kwargs):
+        if result is not SearchTimeout:
+            # Remove entries from unseen_paths if this path is within any of them.
+            path = Path(result.path)
+            for unseen_path in list(unseen_paths):
+                try:
+                    path.relative_to(unseen_path)
+                except ValueError:
+                    continue
+                unseen_paths.remove(unseen_path)
+
+        yield result
+
+    # If a path didn't get any results at all, it might not be enabled for indexing.
+    # Do a quick check to see if it's possible to get results here.
+    for unseen_path in list(unseen_paths):
+        log.warn(f'No results for {unseen_path}')
+
+        query = f"SELECT TOP 1 System.ItemPathDisplay FROM SystemIndex WHERE scope='file:%s'" % escape_sql(str(unseen_path))
+
+        recordset = list(windows_search_api.search(query=query, timeout=1))
+        if len(recordset) > 0:
+            unseen_paths.remove(unseen_path)
+
+    for unseen_path in list(unseen_paths):
+        for result in _fallback_search(*args, paths=[unseen_path], order_fs=order_fs, **kwargs):
+            yield result
+
+def _windows_search(*,
         paths=None,
 
         # If set, return only the file with this exact path.
@@ -184,7 +227,6 @@ def search(*,
         filename=None,
 
         substr=None,
-        bookmarked=None,
         recurse=True,
         contents=None,
         media_type=None, # "images" or "videos"
@@ -277,12 +319,6 @@ def search(*,
 
     # where.append("(SYSTEM.ITEMTYPE = 'Directory' OR SYSTEM.KIND = 'picture' OR SYSTEM.KIND = 'video')")
 
-    # SYSTEM.RATING is null for no rating, and 1, 25, 50, 75, 99 for 1, 2, 3, 4, 5
-    # stars.  It's a bit weird, but we only use it for bookmarking.  Any image with 50 or
-    # higher rating is considered bookmarked.
-    if bookmarked:
-        where.append("SYSTEM.RATING >= 50")
-
     # If sort_results is true, sort directories first, then alphabetical.  This is
     # useful but makes the search slower.
     if order is None:
@@ -336,6 +372,126 @@ def search(*,
             yield SearchTimeout
         else:
             raise Exception('The search timed out')
+
+# This does a direct recursive search for files, as a slow fallback when Windows indexing
+# isn't available.  This only supports filters that we can implement reasonably quickly.
+# This is just enough to make things functional where we can't use search, like over network
+# mounts.
+def _fallback_search(*,
+        paths=None,
+        exact_path=None,
+        filename=None,
+
+        substr=None,
+        recurse=True,
+        media_type=None,
+        order_fs=None,
+
+        include_files=True,
+        include_dirs=True,
+
+        # Not supported:
+        contents=None,
+        total_pixels=None,
+        aspect_ratio=None,
+        timeout=None,
+    ):
+
+    if contents: log.warn('Contents search not supported in fallback search')
+    if total_pixels: log.warn('Total pixels search not supported in fallback search')
+    if aspect_ratio: log.warn('Aspect ratio search not supported in fallback search')
+
+    if paths is not None:
+        paths = [Path(path) for path in paths]
+        paths = list(set(paths))
+    if exact_path is not None:
+        paths = [Path(exact_path)]
+
+    # When we're scanning over a network, we may be heavily limited by latency to the server,
+    # so running several scandirs in parallel can speed up the scan significantly.
+    lock = threading.Lock()
+    result_queue = queue.Queue()
+
+    # Protected by lock:
+    tasks = {}
+    finished_paths = set()
+    cancel = False
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        def scan_directory(path):
+            try:
+                # If we were cancelled while this job was waiting in the queue, stop.
+                with lock:
+                    if cancel:
+                        return
+
+                for entry in os.scandir(path):
+                    # Stop if we're cancelled mid-job.
+                    with lock:
+                        if cancel:
+                            return
+
+                    # Push results back to the main loop.                
+                    result_queue.put(('entry', entry))
+
+                    # If we're recursing and this is a directory, submit this directory.
+                    if recurse and entry.is_dir():
+                        submit_directory(entry.path)
+            finally:
+                result_queue.put(('finished', path))
+
+        def submit_directory(path):
+            with lock:
+                if path in finished_paths:
+                    return
+
+                tasks[path] = executor.submit(scan_directory, path)
+                finished_paths.add(path)
+
+        # Queue top-level directories.
+        for path in paths:
+            submit_directory(path)
+
+        try:
+            results = []
+            while tasks or not result_queue.empty():
+                result_type, result = result_queue.get()
+                if result_type == 'entry':
+                    entry = result
+                    if filename is not None and entry.name != filename:
+                        continue
+                    if not include_files and entry.is_file():
+                        continue
+                    if not include_dirs and entry.is_dir():
+                        continue
+                    if substr is not None:
+                        if not all(word.lower() in entry.name.lower() for word in substr.split(' ')):
+                            continue
+
+                    if media_type == 'images':
+                        if not entry.name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff', '.bmp')):
+                            continue
+                    if media_type == 'videos':
+                        if not entry.name.lower().endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.gif')):
+                            continue
+
+                    if not order_fs:
+                        yield entry
+                    else:
+                        results.append(entry)
+                elif result_type == 'finished':
+                    with lock:
+                        del tasks[result]
+        finally:
+            # If we exit for any reason while jobs are still running, tell them to cancel.
+            with lock:
+                cancel = True
+
+        # If we're sorting results, sort and yield them now.
+        if order_fs:
+            results.sort(key=order_fs)
+            for entry in results:
+                yield entry
 
 def test():
     path=Path(r'F:\stuff\ppixiv\python\temp')
