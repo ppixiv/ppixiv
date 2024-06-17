@@ -622,21 +622,18 @@ class ThreadedQueue:
         return self
     
     def __next__(self):
-        # If the queue has been discarded, we've already stopped.
-        if self.results is None:
-            # If an exception was raised while iterating, raise it now that the
-            # queue is empty.
+        result = self.results.get()
+        if result is None:
+            self._join_thread()
+
+            # If an exception was thrown, raise it once the available results have been
+            # returned.  Otherwise, raise StopIteration.
             if self.exception is not None:
                 e = self.exception
                 self.exception = None
                 raise e
-
-            raise StopIteration
-
-        result = self.results.get()
-        if result is None:
-            self._join_thread()
-            raise StopIteration
+            else:
+                raise StopIteration
 
         return result
 
