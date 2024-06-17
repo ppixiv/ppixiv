@@ -319,14 +319,14 @@ class Library:
         This currently doesn't remove bookmarks from the database that no longer exist.
         """
         if paths is None:
-            paths = self.mounts
-        log.info('Initializing library: %s' % ', '.join(paths))
+            paths = list(self.mounts.values())
+        log.info('Initializing library: %s' % ', '.join(str(path) for path in paths))
         start = time.time()
 
         # Scan for metadata files.
         log.info(f'Finding bookmarks...')
         all_metadata_files = []
-        for path in paths.values():
+        for path in paths:
             # Find all metadata files.
             for result in windows_search.search(
                     paths=[str(path)],
@@ -345,7 +345,7 @@ class Library:
             await asyncio.sleep(0)
 
         end = time.time()
-        log.info(f'Indexing {", ".join(paths)} took %.2f seconds' % (end-start))
+        log.info(f'Indexing {", ".join(str(path) for path in paths)} took %.2f seconds' % (end-start))
 
     async def refresh(self, *, paths=None):
         """
