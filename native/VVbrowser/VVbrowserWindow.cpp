@@ -692,9 +692,9 @@ void VVbrowserWindow::AddCallbacks()
         CHECK_FAILURE(args->get_Uri(&urlPtr));
         std::wstring url(urlPtr);
 
-        // The custom vviewinexplorer scheme is used to open paths in Explorer from the
-        // web UI when it's running in a regular browser.  Intercept this here and handle
-        // it directly.  This fixes a couple problems:
+        // The custom vview scheme is used to open paths in Explorer from the web UI when
+        // it's running in a regular browser.  Intercept this here and handle it directly.
+        // This fixes a couple problems:
         // 
         // - WebView2's ICoreWebView2PermissionRequestedEventHandler is broken and isn't
         // called for external protocols, so users get annoying "allow external program"
@@ -704,31 +704,35 @@ void VVbrowserWindow::AddCallbacks()
         // about protecting focus and it doesn't understand that the server task opening
         // a window really is coming from a user action.
         //
-        // For the normal browser path, see vview.shell.view_in_explorer in the server.
-        std::wstring vviewinexplorer = L"vviewinexplorer://";
-        if(url.find(vviewinexplorer) != 0)
-            return S_OK;
-
-        // Cancel the navigation and handle it directly.
-        args->put_Cancel(true);
-
-        // Extract the path.
+        // For the normal browser path, see vview.shell.vview_scheme in the server.
+        //
+        // Extract the query string.
         wil::com_ptr<IUri> urlObject;
         CreateUri(url.c_str(),
             Uri_CREATE_CANONICALIZE | Uri_CREATE_NO_DECODE_EXTRA_INFO | Uri_CREATE_NO_ENCODE_FORBIDDEN_CHARACTERS, 0,
             &urlObject);
 
-        // The first path component is in the host component.
+        wil::unique_bstr scheme;
+        urlObject->GetSchemeName(&scheme);
+        if(wcscmp(scheme.get(), L"vview"))
+            return S_OK;
+
         wil::unique_bstr host;
-        wil::unique_bstr path;
         urlObject->GetHost(&host);
-        urlObject->GetPath(&path);
+        if(wcscmp(host.get(), L"view-in-explorer"))
+            return S_OK;
+
+        // Cancel the navigation and handle it directly now that we know we recognize it.
+        args->put_Cancel(true);
+
+        wil::unique_bstr query;
+        urlObject->GetQuery(&query);
 
         // A separate API to get the unescaped path?  Surely there's a better API to do all this.
         wchar_t decodedPath[INTERNET_MAX_URL_LENGTH];
         DWORD decodedPathSize = sizeof(decodedPath);
 
-        HRESULT hr = UrlUnescape(const_cast<wchar_t *>(path.get()), decodedPath, &decodedPathSize, URL_UNESCAPE_AS_UTF8);
+        HRESULT hr = UrlUnescape(const_cast<wchar_t *>(query.get()), decodedPath, &decodedPathSize, URL_UNESCAPE_AS_UTF8);
 
         wchar_t *path2 = decodedPath;
         if(wcslen(path2) == 0)
@@ -743,8 +747,7 @@ void VVbrowserWindow::AddCallbacks()
         // Show the path in Explorer.
         wstring command = L"explorer.exe /select, ";
         command += L"\"";
-        command += host.get();
-        command += path2;
+        command += path2 + 1; // skip ?
         command += L"\"";
 
         STARTUPINFOW si = {};

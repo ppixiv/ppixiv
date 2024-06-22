@@ -14,7 +14,8 @@ add_to_context_menu = True
 root_dir = Path(__file__).parent.parent.parent 
 vview_exe = root_dir / 'bin' / 'VView.exe'
 
-application_name = 'VView'
+# This key is used for shell integration:
+application_name = 'vview-shell'
 
 def _signal_file_association_changes():
     """
@@ -25,21 +26,20 @@ def _signal_file_association_changes():
     SHCNF_IDLIST = 0x0000
     ctypes.windll.shell32.SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, 0, 0)
 
-def register_view_in_explorer():
+def register_vview_scheme():
     """
-    Register the vviewinexplorer scheme.
+    Register the vview URL scheme.
 
     This handles "View in Explorer" in the UI.
     """
-    args = [str(vview_exe), '-m', 'vview.shell.view_in_explorer', '"%1"']
+    key = _create_key_path(winreg.HKEY_CURRENT_USER, r'Software\Classes\vview')
+    winreg.SetValueEx(key, None, 0, winreg.REG_SZ, 'vview')
+    winreg.SetValueEx(key, 'URL Protocol', 0, winreg.REG_SZ, 'vview')
+    winreg.SetValueEx(key, 'Content Type', 0, winreg.REG_SZ, 'application/vview')
 
-    key = _create_key_path(winreg.HKEY_CURRENT_USER, r'Software\Classes\vviewinexplorer')
-    winreg.SetValueEx(key, None, 0, winreg.REG_SZ, 'vviewinexplorer')
-    winreg.SetValueEx(key, 'URL Protocol', 0, winreg.REG_SZ, 'vviewinexplorer')
-    winreg.SetValueEx(key, 'Content Type', 0, winreg.REG_SZ, 'application/view-in-explorer')
-
-    key = _create_key_path(winreg.HKEY_CURRENT_USER, r'Software\Classes\vviewinexplorer\shell\open\command')
-    winreg.SetValueEx(key, None, 0, winreg.REG_SZ, ' '.join(args))
+    command_key = _create_key_path(key, r'shell\open\command')
+    executable = f'{vview_exe} -m vview.shell.vview_scheme "%1"'
+    winreg.SetValueEx(command_key, None, 0, winreg.REG_SZ, executable)
 
 def register_file_associations():
     # Register a shell extension that launches vview.shell.open_path.  This is
@@ -82,14 +82,17 @@ def register_context_menu_items():
     winreg.SetValueEx(key, None, 0, winreg.REG_SZ, f'{vview_exe} -m vview.shell.open_path "%1"')
 
 def unregister():
-    # Unregister vviewinexplorer:
-    _delete_registry_key(winreg.HKEY_CURRENT_USER, r'Software\Classes\vviewinexplorer\shell\open\command')
-    _delete_registry_key(winreg.HKEY_CURRENT_USER, r'Software\Classes\vviewinexplorer\shell\open')
-    _delete_registry_key(winreg.HKEY_CURRENT_USER, r'Software\Classes\vviewinexplorer\shell')
-    _delete_registry_key(winreg.HKEY_CURRENT_USER, r'Software\Classes\vviewinexplorer')
+    # Unregister vview-scheme:
+    _delete_registry_key(winreg.HKEY_CURRENT_USER, r'Software\Classes\vview\shell\open\command')
+    _delete_registry_key(winreg.HKEY_CURRENT_USER, r'Software\Classes\vview\shell\open')
+    _delete_registry_key(winreg.HKEY_CURRENT_USER, r'Software\Classes\vview\shell')
+    _delete_registry_key(winreg.HKEY_CURRENT_USER, r'Software\Classes\vview')
 
     # Unregister file associations:
     _delete_registry_key(winreg.HKEY_CURRENT_USER, rf'Software\Classes\{application_name}\shell\open\command')
+    _delete_registry_key(winreg.HKEY_CURRENT_USER, rf'Software\Classes\{application_name}\shell\open')
+    _delete_registry_key(winreg.HKEY_CURRENT_USER, rf'Software\Classes\{application_name}\shell')
+    _delete_registry_key(winreg.HKEY_CURRENT_USER, rf'Software\Classes\{application_name}')
 
     for file_type in _file_types:
         _delete_registry_value(winreg.HKEY_CURRENT_USER, rf'Software\Classes\{file_type}\OpenWithProgids', application_name)
@@ -102,7 +105,7 @@ def unregister():
 
 def register():
     if use_open_in_explorer_scheme:
-        register_view_in_explorer()
+        register_vview_scheme()
 
     if use_file_associations:
         register_file_associations()

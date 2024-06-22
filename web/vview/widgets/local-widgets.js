@@ -253,7 +253,7 @@ class LocalSearchDropdownWidget extends Widget
 
 // A button to show an image in Explorer.
 //
-// This requires view_in_explorer.pyw be set up.
+// This requires vview_scheme.pyw be set up.
 export class ViewInExplorerWidget extends IllustWidget
 {
     constructor({...options})
@@ -308,13 +308,13 @@ export class ViewInExplorerWidget extends IllustWidget
         // URL directly and then try to fill in the pathname, it won't let us change it.  We
         // have to create a file URL, fill in the pathname, then replace the scheme after
         // converting to a string.  Web!
-        let url = new URL("file://");
-        url.pathname = path;
+        let url = new URL("vview://view-in-explorer");
+        url.search = path;
         url = url.toString();
-        url = url.replace("file:", "vviewinexplorer:")
 
         let a = this.root;
         a.href = url;
+        console.log(url.toString());
 
         // Set the popup for the type of ID.
         let { type } = helpers.mediaId.parse(mediaId);
