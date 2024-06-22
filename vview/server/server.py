@@ -137,10 +137,10 @@ class Server:
 
             self.library.mount(path, name)
 
-            # Run a quick refresh at startup.  This can still take a few seconds for larger
-            # libraries, so run this in a task to allow requests to start being handled immediately.
-            refresh_task = self.library.quick_refresh()
-            self.run_background_task(refresh_task, name=f'Indexing {name}')
+        # Run a quick refresh at startup.  This can still take a few seconds for larger
+        # libraries, so run this in a task to allow requests to start being handled immediately.
+        refresh_task = self.library.quick_refresh()
+        self.run_background_task(refresh_task, name=f'Indexing {name}')
 
     async def _shutdown(self):
         log.info('Shutting down manager')
