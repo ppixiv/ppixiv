@@ -1624,6 +1624,13 @@ class ImagesContainer extends Widget
         this.inpaintImage = this.root.querySelector(".inpaint-image");
         this.translationImage = this.root.querySelector(".translation-image");
         this.previewImage = this.root.querySelector(".low-res-preview");
+
+        // Set these images to high-priority to try to encourage the browser to queue
+        // them ahead of thumbnails that might be loading in the background.
+        this.mainImage.fetchPriority = "high";
+        this.inpaintImage.fetchPriority = "high";
+        this.translationImage.fetchPriority = "high";
+        this.previewImage.fetchPriority = "high";
     }
 
     shutdown()
