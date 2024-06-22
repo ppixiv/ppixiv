@@ -894,6 +894,12 @@ export default class ContextMenu extends Widget
             mediaId = ppixiv.app.getMediaIdAtElement(node).mediaId;
         }
 
+        if(e.code == "Escape" && !e.ctrlKey && !e.altKey && !e.shiftKey)
+        {
+            ppixiv.phistory.back();
+            return true;
+        }
+
         // Handle VVbrowser-specific hotkeys.
         if(LocalAPI.isVVbrowser())
         {
