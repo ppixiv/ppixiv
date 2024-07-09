@@ -1021,7 +1021,7 @@ class Library:
                 # This is just a signal that the Windows search timed out.  We only enable timeouts
                 # for shuffled searches, in case they match tons of results.
                 return None
-            elif isinstance(result, windows_search.SearchDirEntry):
+            elif isinstance(result, os.DirEntry) or isinstance(result, windows_search.SearchDirEntry):
                 # log.info('Search result from Windows:', result.path)
                 if result.path in seen_paths:
                     return
@@ -1030,7 +1030,7 @@ class Library:
                 # Get a fast placeholder entry for this result.  This doesn't hit the database
                 # or read the file.
                 path = open_path(result.path)
-                return self._get_entry_from_path(path, populate=False, extra_metadata=result.metadata)
+                return self._get_entry_from_path(path, populate=False, extra_metadata=getattr(result, 'metadata', None))
             else:
                 # log.info('Search result from database:', entry['id'], entry['path_lowercase'])
                 if str(result['path']) in seen_paths:
