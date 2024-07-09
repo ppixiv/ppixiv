@@ -102,7 +102,7 @@ async def extract_frame(input_file, output_file, seek_seconds, exif_description=
 
     # If the file is shorter than seek_seconds, ffmpeg will return success and just
     # not create the file.
-    if result != 0 or not output_file.is_file():
+    if result != 0 or not output_file.exists():
         return False
 
     return True
