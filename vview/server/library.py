@@ -42,13 +42,12 @@ from ..util.paths import open_path, PathBase
 from ..util.misc import TransientWriteConnection
 
 log = logging.getLogger(__name__)
+natsort_key = natsort.natsort_keygen(alg=natsort.IGNORECASE)
 
 def _create_natsort():
     """
     Create our natural sort key.
     """
-    # We only need to create the natsort key function once.
-    natsort_key = natsort.natsort_keygen(alg=natsort.IGNORECASE)
     def key(entry):
         return not entry.is_dir(), *natsort_key(entry.stem)
 
@@ -71,11 +70,11 @@ def _create_natsort_pages_reversed():
     This sort actually does the opposite, and just reverses the pages within each group.  To
     get the correct affect, use it as a reverse sort.
     """
-    natsort_key = _create_natsort()
-
     # Look for "prefix #123...".
     pattern = re.compile(r'(.* #)(\d+)(.*)')
     def reverse_pages(entry):
+        entry_with_stem = entry
+
         match = pattern.match(entry.stem)
         if not entry.is_dir() and match:
             # natsort doesn't handle negative numbers, so we can't just invert the page number.
@@ -83,9 +82,9 @@ def _create_natsort_pages_reversed():
             page = int(match[2])
             suffix = match[3]
             reversed_filename = f'{prefix}{1000000000000000 - page}{suffix}'
-            entry = entry.with_stem(reversed_filename)
+            entry_with_stem = entry.with_stem(reversed_filename)
 
-        return natsort_key(entry)
+        return not entry.is_dir(), *natsort_key(entry_with_stem.stem)
 
     return reverse_pages
 
