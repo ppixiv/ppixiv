@@ -1051,7 +1051,7 @@ class Library:
                 if item is windows_search.SearchTimeout:
                     # This is ignored, so it doesn't matter where it goes.
                     return 0
-                elif isinstance(item, windows_search.SearchDirEntry):
+                elif isinstance(item, os.DirEntry) or isinstance(item, windows_search.SearchDirEntry):
                     return not item.is_dir()
                 else:
                     return not item['is_directory']
