@@ -231,34 +231,37 @@ export default class ImagePreloader
 
             // Preload the original image too, which ViewerUgoira displays if the ZIP isn't
             // ready yet.
-            results.push(new ImgResourceLoader(mediaInfo.mangaPages[0].urls.original));
+            results.push(new ImgResourceLoader([mediaInfo.mangaPages[0].urls.original]));
 
             return results;
         }
 
         // If this is a video, preload the poster.
         if(mediaInfo.illustType == "video")
-            return [new ImgResourceLoader(mediaInfo.mangaPages[0].urls.poster) ];
+            return [new ImgResourceLoader([mediaInfo.mangaPages[0].urls.poster]) ];
 
         // Otherwise, preload the images.  Preload thumbs first, since they'll load
         // much faster.  Don't preload local thumbs, since they're generated on-demand
         // by the local server and are just as expensive to load as the full image.
         let results = [];
 
+        let previewUrls = [];
         for(let url of mediaInfo.previewUrls)
         {
             if(!LocalAPI.shouldPreloadThumbs(mediaId, url))
                 continue;
-
-            results.push(new ImgResourceLoader(url));
+            previewUrls.push(url);
         }
+
+        if(previewUrls.length > 0)
+            results.push(new ImgResourceLoader(previewUrls));
 
         // Preload the requested page.
         let page = helpers.mediaId.parse(mediaId).page;
         if(page < mediaInfo.mangaPages.length)
         {
             let { url } = mediaInfo.getMainImageUrl(page);
-            results.push(new ImgResourceLoader(url));
+            results.push(new ImgResourceLoader([url]));
         }
 
         let preloadMode = ppixiv.settings.get("preload_manga");
@@ -277,7 +280,7 @@ export default class ImagePreloader
                     continue;
 
                 let { url } = mediaInfo.getMainImageUrl(p);
-                results.push(new ImgResourceLoader(url, { staggered }));
+                results.push(new ImgResourceLoader([url], { staggered }));
             }
         }
 
@@ -317,7 +320,7 @@ export default class ImagePreloader
         // Start the new guessed preload.
         if(guessedUrl)
         {
-            this.guessedPreload = new ImgResourceLoader(guessedUrl, {
+            this.guessedPreload = new ImgResourceLoader([guessedUrl], {
                 onerror: () => {
                     // The image load failed.  Let guessImageUrl know.
                     // console.info("Guessed image load failed");
@@ -410,37 +413,54 @@ class ResourceLoader
     }
 }
 
-// Load a single image with <img>:
+// Load images with <img>:
 class ImgResourceLoader extends ResourceLoader
 {
-    constructor(url, {
+    constructor(urls, {
         onerror=null,
         ...args
     }={})
     {
         super({...args});
-        this.url = url;
+        this.urls = urls;
+        console.assert(this.urls.length > 0);
+
+        // this.url is used as the identifier for remembering which images we've loaded
+        // recently.  Use the first image in the list for this.
+        this.url = urls[0];
         this.onerror = onerror;
-        console.assert(url);
     }
 
     // Start the fetch.  This should only be called once.
     async start()
     {
-        if(this.url == null)
-            return;
-
         await super.start();
 
         if(this.aborted)
             return;
 
-        let img = document.createElement("img");
-        img.src = this.url;
+        let promises = [];
+        for(let url of this.urls)
+        {
+            let img = document.createElement("img");
+            img.src = url;
 
-        let result = await helpers.other.waitForImageLoad(img, this.abortController.signal);
-        if(result == "failed" && this.onerror)
-            this.onerror();
+            let promise = helpers.other.waitForImageLoad(img, this.abortController.signal);;
+            promises.push(promise);
+        }
+
+        let isFirstError = true;
+        for(let promise of promises)
+        {
+            let result = await promise;
+
+            // Only report the first error.
+            if(result == "failed" && this.onerror && isFirstError)
+            {
+                isFirstError = false;
+                this.onerror();
+            }
+        }
 
         this._loadFinished();
     }
