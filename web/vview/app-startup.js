@@ -68,10 +68,6 @@ class AppStartup
             return;
         }
 
-        // Set a dark background color early to try to prevent flashbangs if the page is rendered
-        // before we get styles set up.
-        document.documentElement.style.backgroundColor = "#000";
-
         let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
         let android = navigator.userAgent.indexOf('Android') != -1;
         let mobile = ios || android;
@@ -109,6 +105,10 @@ class AppStartup
             this.setupDisabledUi();
             return;
         }
+
+        // Set a dark background color early to try to prevent flashbangs if the page is rendered
+        // before we get styles set up.
+        document.documentElement.style.backgroundColor = "#000";
 
         // Run _cleanupEnvironment.  This will try to prevent the underlying page scripts from
         // making network requests or creating elements, and apply other irreversible cleanups
