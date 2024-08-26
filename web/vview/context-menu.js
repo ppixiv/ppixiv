@@ -519,9 +519,6 @@ export default class ContextMenu extends Widget
         this.popupPosition = { x, y };
         this.setCurrentPosition();
 
-        // Start listening for the window moving.
-        this.addWindowMovementListeners();
-
         // Adjust the fade-in so it's centered around the centered element.
         this.displayedMenu.style.transformOrigin = (pos[0]) + "px " + (pos[1]) + "px";
 
@@ -553,76 +550,6 @@ export default class ContextMenu extends Widget
         this.displayedMenu.style.top = `${y}px`;
     }
 
-    // Try to keep the context menu in the same place on screen when we toggle fullscreen.
-    //
-    // To do this, we need to know when the position of the client area on the screen changes.
-    // There are no APIs to query this directly (window.screenX/screenY don't work, those are
-    // the position of the window rather than the client area).  Figure it out by watching
-    // mouse events, and comparing the client and screen position of the cursor.  If it's 100x50, the
-    // client area is at 100x50 on the screen.
-    //
-    // It's not perfect, but it helps keep the context menu from being way off in another part
-    // of the screen after toggling fullscreen.
-    addWindowMovementListeners()
-    {
-        // Firefox doesn't send any mouse events at all when the window moves (not even focus
-        // changes), which makes this look weird since it doesn't update until the mouse moves.
-        // Just disable it on Firefox.
-        if(navigator.userAgent.indexOf("Firefox/") != -1)
-            return;
-
-        if(this.removeWindowMovementListeners != null)
-            return;
-
-        this.lastOffset = null;
-        let controller = new AbortController();
-        let signal = controller.signal;
-
-        signal.addEventListener("abort", () => {
-            this.removeWindowMovementListeners = null;
-        });
-
-        // Call this.removeWindowMovementListeners() to turn this back off.
-        this.removeWindowMovementListeners = controller.abort.bind(controller);
-
-        // Listen for hover events too.  We don't get mousemouve events if the window changes
-        // but the mouse doesn't move, but the hover usually does change.
-        for(let event of ["mouseenter", "mouseleave", "mousemove", "mouseover", "mouseout"])
-        {
-            window.addEventListener(event, this._onMousePositionChanged, { capture: true, signal });
-        }
-    }
-
-    _onMousePositionChanged = (e) => {
-        if(!this.visible)
-            throw new Error("Expected to be visible");
-
-        // The position of the client area onscreen.  If we have client scaling, this is
-        // in client units.
-        let windowX = e.screenX/window.devicePixelRatio - e.clientX;
-        let windowY = e.screenY/window.devicePixelRatio - e.clientY;
-
-        // Stop if it hasn't changed.  screenX/devicePixelRatio can be fractional and not match up
-        // with clientX exactly, so ignore small changes.
-        if(this.lastOffset != null &&
-            Math.abs(windowX - this.lastOffset.x) <= 1 &&
-            Math.abs(windowY - this.lastOffset.y) <= 1)
-            return;
-
-        let previous = this.lastOffset;
-        this.lastOffset = { x: windowX, y: windowY };
-        if(previous == null)
-            return;
-
-        // If the window has moved by 20x10, move the context menu by -20x-10.
-        let windowDeltaX = windowX - previous.x;
-        let windowDeltaY = windowY - previous.y;
-
-        this.popupPosition.x -= windowDeltaX;
-        this.popupPosition.y -= windowDeltaY;
-        this.setCurrentPosition();
-    };
-    
     // If element is within a button that has a tooltip set, show it.
     _showTooltipForElement(element)
     {
@@ -742,9 +669,6 @@ export default class ContextMenu extends Widget
             this.clickOutsideListener.shutdown();
             this.clickOutsideListener = null;
         }
-
-        if(this.removeWindowMovementListeners)
-            this.removeWindowMovementListeners();
     }
 
     cancelEvent = (e) =>
