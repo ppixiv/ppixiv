@@ -507,8 +507,12 @@ class Build(object):
     def get_release_version(self):
         version = get_git_tag()
 
-        # Release tags look like "r100".  Remove the "r" from the @version.
-        assert version.startswith('r')
+        # Release tags look like "r100".  Remove the "r" from the @version.  If we don't
+        # have a version, the git repo probably didn't pull tags.
+        if not version.startswith('r'):
+            print(f'Warning: version "{version}" derived from tag isn\'t a valid version string.  Using as-is.')
+            return version
+
         version = version[1:]
 
         return version
