@@ -807,6 +807,7 @@ export default class ContextMenu extends Widget
         // was hovering over an image in search results.  We might not have the illust info yet,
         // but we at least need an illust ID.
         let mediaId = this._effectiveMediaId;
+        let screenName = ppixiv.app.getDisplayedScreen()
 
         // If there's no effective media ID, the user is pressing a key while the context menu isn't
         // open.  If the cursor is over a search thumbnail, use its media ID if any, to allow hovering
@@ -818,7 +819,8 @@ export default class ContextMenu extends Widget
             mediaId = ppixiv.app.getMediaIdAtElement(node).mediaId;
         }
 
-        if(e.code == "Escape" && !e.ctrlKey && !e.altKey && !e.shiftKey)
+        // Escape when on the illust view backs out to the search:
+        if(e.code == "Escape" && !e.ctrlKey && !e.altKey && !e.shiftKey && screenName == "illust")
         {
             ppixiv.phistory.back();
             return true;

@@ -409,7 +409,7 @@ export default class MoreOptionsDropdown extends IllustWidget
             },
         };
 
-        let screenName = ppixiv.app.getDisplayedScreen({ name: true })
+        let screenName = ppixiv.app.getDisplayedScreen();
         this._menuOptions = [];
         if(!ppixiv.native)
         {
