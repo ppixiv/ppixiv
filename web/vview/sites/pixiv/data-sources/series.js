@@ -22,9 +22,6 @@ export default class DataSource_MangaPages extends DataSource
 
     async loadPageInternal(page)
     {
-        if(page != 1)
-            return;
-
         let url = `/ajax/series/${this.seriesId}`;
         let result = await helpers.pixivRequest.get(url, { p: page });
         if(result.error)
@@ -60,7 +57,7 @@ export default class DataSource_MangaPages extends DataSource
         let mediaIds = [];
         let seriesPageInfo = body.page;
         let seriesPages = seriesPageInfo.series;
-        seriesPages.sort((lhs, rhs) => lhs.order - rhs.order);
+        seriesPages.sort((lhs, rhs) => rhs.order - lhs.order);
 
         for(let seriesPage of seriesPages)
         {
