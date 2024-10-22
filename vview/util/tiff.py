@@ -1,4 +1,8 @@
-import io, struct
+import io, struct, logging, json
+from lxml import etree
+from lxml.cssselect import CSSSelector
+
+log = logging.getLogger(__name__)
 
 def remove_photoshop_tiff_data(f):
     try:
@@ -159,19 +163,31 @@ def get_tiff_metadata(f):
 
     IMAGE_WIDTH = 256
     IMAGE_HEIGHT = 257 # Tiff calls height "length".  No.
+    XMP = 700
 
     metadata = { }
     tag_fmt = 'HHQ8s' if bigtiff else 'HHL4s'
+    int_size_fmt = 'Q' if bigtiff else 'L'
     for i in range(tag_count):
         tag, typ, count, data = _read_unpack(f'{endian}{tag_fmt}', f)
 
         # Remove ImageSourceData.
         if tag in (IMAGE_WIDTH, IMAGE_HEIGHT):
-            value, = struct.unpack(f'{endian}Q' if bigtiff else f'{endian}L', data)
+            value, = struct.unpack(f'{endian}{int_size_fmt}', data)
             if tag == IMAGE_WIDTH:
                 metadata['width'] = value
             elif tag == IMAGE_HEIGHT:
                 metadata['height'] = value
+        elif tag == XMP:
+            # The data is the offset into the file where the XMP data is stored.  Read it
+            # and seek back.
+            value, = struct.unpack(f'{endian}{int_size_fmt}', data)
+
+            saved_pos = f.tell()
+            f.seek(value)
+            xmp_data = f.read(count)
+            f.seek(saved_pos)
+            get_xmp_metadata(xmp_data, metadata)
 
     return metadata
 
@@ -182,3 +198,22 @@ def _read_unpack(fmt, f):
         raise OSError(f'Corrupt EXIF data')
     
     return struct.unpack(fmt, data)
+
+def get_xmp_metadata(xmp_data, metadata):
+    """
+    Read some basic metadata from XMP data.
+    """
+    parser = etree.XMLParser(remove_blank_text=True)
+
+    try:
+        root = etree.fromstring(xmp_data, parser)
+    except etree.XMLSyntaxError as e:
+        log.info(f'Error parsing XMP data: {e}')
+        return
+
+    # If we have a description node, store it as the comment.
+    selector = CSSSelector(r'dc\:description rdf\:li')
+    description_node = selector(root)
+    if description_node:
+        metadata['comment'] = description_node[0].text
+        print(f'desc: {description_node[0].text}')
