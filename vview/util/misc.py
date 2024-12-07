@@ -183,11 +183,10 @@ def read_metadata(f, mime_type):
     result['height'] = img.size[1]
     result['comment'] = img.info.get('parameters') or img.info.get('Description') or ''
 
-    # If the image has XMP metadata, we might be able to get a description from it too.
-    # This is mostly used for TIFFs, which is read by get_tiff_metadata, but it can exist
-    # in files like PNG too.
+    # If we didn't get a description from the comment or description, see if we can get
+    # one from XMP data.
     if not result['comment']:
-        xmp_data = img.info.get('XML:com.adobe.xmp')
+        xmp_data = img.info.get('xmp')
         if xmp_data:
             get_xmp_metadata(xmp_data, result)
 
