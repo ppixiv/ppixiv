@@ -189,7 +189,6 @@ export function getTagSearchFromArgs(url)
 
 // Known image hosts.  These can be selected in settings.
 export const pixivImageHosts = Object.freeze({
-    cf: { name: "CloudFlare", url: "i-cf.pximg.net" },
     pixiv: { name: "Pixiv", url: "i.pximg.net" },
 });
 

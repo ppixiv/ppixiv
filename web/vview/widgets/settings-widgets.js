@@ -347,19 +347,6 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
-        pixivCdn: () => {
-            let values = { };
-            for(let [setting, {name}] of Object.entries(helpers.pixiv.pixivImageHosts))
-                values[setting] = name;
-
-            return new MenuOptionOptionsSetting({
-                ...globalOptions,
-                setting: "pixiv_cdn",
-                label: "Pixiv image host",
-                values,
-            });
-        },
-
         preloadManga: () => {
             let values = {
                 full: "All pages",
@@ -733,10 +720,7 @@ export class SettingsDialog extends DialogWidget
                     settingsWidgets.limitSlideshowFramerate();
         
                 if(!ppixiv.native)
-                {
-                    settingsWidgets.pixivCdn();
                     settingsWidgets.preloadManga();
-                }
 
                 if(!ppixiv.native && ppixiv.mobile)
                     settingsWidgets.openPixiv();
