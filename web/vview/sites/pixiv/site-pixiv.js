@@ -149,39 +149,56 @@ export default class SitePixiv extends Site.Site
             }
         }
 
-        // This format is used on at least /new_illust.php.
+        // The site uses two different formats for user data.
         let globalData = doc.querySelector("#meta-global-data");
         if(globalData != null)
+        {
             globalData = JSON.parse(globalData.getAttribute("content"));
 
-        if(globalData == null)
-        {
-            // /request has its own special tag.
-            let nextData = doc.querySelector("script#__NEXT_DATA__");
-            if(nextData != null)
-            {
-                nextData = JSON.parse(nextData.innerText);
-                globalData = nextData.props.pageProps;
-                pixivTests = globalData.activeABTests;
-            }
+            if(globalData == null || globalData.userData == null)
+                return false;
+
+            this._initGlobalData({
+                csrfToken: globalData.token,
+                userId: globalData.userData.id,
+                premium: globalData.userData.premium,
+                mutes: globalData.mute,
+                hideAiWorks: globalData.userData.hideAiWorks,
+                contentMode: globalData.userData.xRestrict,
+                pixivTests,
+                recaptchaKey: globalData?.miscData?.grecaptcha?.recaptchaEnterpriseScoreSiteKey,
+            });
+            return true;
         }
 
-        if(globalData == null)
+        // The other format:
+        let nextData = doc.querySelector("script#__NEXT_DATA__");
+        if(nextData == null)
             return false;
 
-        // Discard this if it doesn't have login info.
-        if(globalData.userData == null)
+        nextData = JSON.parse(nextData.innerText);
+        globalData = nextData.props.pageProps;
+        if(globalData == null || globalData.gaUserData == null)
             return false;
+
+        let state = JSON.parse(globalData.serverSerializedPreloadedState);
+
+        // Convert the mutes lists to the same format the other interface uses.
+        let mutes = [];
+        for(let { value } of state.mute.tags)
+            mutes.push({type: 0, value});
+        for(let { value } of state.mute.userIds)
+            mutes.push({type: 1, value});
 
         this._initGlobalData({
-            csrfToken: globalData.token,
-            userId: globalData.userData.id ,
-            premium: globalData.userData.premium,
-            mutes: globalData.mute,
-            hideAiWorks: globalData.userData.hideAiWorks,
-            contentMode: globalData.userData.xRestrict,
-            pixivTests,
-            recaptchaKey: globalData?.miscData?.grecaptcha?.recaptchaEnterpriseScoreSiteKey,
+            csrfToken: state.api.token,
+            userId: state.userData.self.id,
+            premium: state.userData.self.premium,
+            mutes,
+            hideAiWorks: state.userData.self.hideAiWorks,
+            contentMode: state.userData.self.xRestrict,
+            pixivTests: state.test.ab,
+            recaptchaKey: state.misc.grecaptcha.recaptchaEnterpriseScoreSiteKey,
         });
 
         return true;
