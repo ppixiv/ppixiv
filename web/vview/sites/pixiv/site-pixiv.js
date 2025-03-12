@@ -178,7 +178,7 @@ export default class SitePixiv extends Site.Site
 
         nextData = JSON.parse(nextData.innerText);
         globalData = nextData.props.pageProps;
-        if(globalData == null || globalData.gaUserData == null)
+        if(globalData == null || globalData.gaUserData == null || !globalData.gaUserData.login)
             return false;
 
         let state = JSON.parse(globalData.serverSerializedPreloadedState);
