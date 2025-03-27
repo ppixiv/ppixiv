@@ -743,7 +743,7 @@ export class SettingsDialog extends DialogWidget
                 if(ppixiv.native || !ppixiv.mobile)
                     settingsWidgets.stageSlideshow();
 
-                if(!ppixiv.native && !ppixiv.mobile)
+                if(!ppixiv.native)
                     settingsWidgets.showAiIcon();
             },
 
