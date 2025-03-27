@@ -323,6 +323,7 @@ export default class SearchView extends Widget
         ppixiv.settings.addEventListener("expand_manga_thumbnails", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("thumbnail_style", () => this.updateFromSettings(), this._signal);
         ppixiv.settings.addEventListener("pixiv_cdn", () => this.updateFromSettings(), this._signal);
+        ppixiv.settings.addEventListener("show_ai_icon", () => this.refreshAllBookmarkIcons(), this._signal);
         ppixiv.muting.addEventListener("mutes-changed", () => this.refreshAfterMuteChange(), this._signal);
 
         this.updateFromSettings();
@@ -1734,6 +1735,12 @@ export default class SearchView extends Widget
         this.restoreScrollPosition(savedScroll);
     }
 
+    refreshAllBookmarkIcons()
+    {
+        for(let thumb of this.getLoadedThumbs())
+            this.refreshBookmarkIcon(thumb);
+    }
+
     // Set the bookmarked heart for thumbnailElement.  This can change if the user bookmarks
     // or un-bookmarks an image.
     refreshBookmarkIcon(thumbnailElement)
@@ -1759,6 +1766,8 @@ export default class SearchView extends Widget
 
         // On mobile, don't show ai-image if we're showing a bookmark to reduce clutter.
         if(ppixiv.mobile && showAI && showBookmarkHeart)
+            showAI = false;
+        if(!ppixiv.settings.get("show_ai_icon"))
             showAI = false;
 
         thumbnailElement.querySelector(".ai-image").hidden = !showAI;

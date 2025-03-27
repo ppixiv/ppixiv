@@ -3,6 +3,13 @@ import widget from '/vview/widgets/widget.js';
 
 let updateHistory = [
     {
+        version: 245,
+        boring: true,
+        text: `
+            Added an option to hide the AI-generated image icon.
+        `,
+    },
+    {
         version: 236,
         text: `
             Added a manga progress bar at the bottom of the image view (disabled by

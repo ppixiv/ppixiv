@@ -61,6 +61,14 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
+        showAiIcon: () => {
+            return new MenuOptionToggleSetting({
+                ...globalOptions,
+                label: "Show icon on AI-generated images",
+                setting: "show_ai_icon",
+            });
+        },
+
         invertPopupHotkey: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
@@ -734,6 +742,9 @@ export class SettingsDialog extends DialogWidget
                 // a PWA.
                 if(ppixiv.native || !ppixiv.mobile)
                     settingsWidgets.stageSlideshow();
+
+                if(!ppixiv.native && !ppixiv.mobile)
+                    settingsWidgets.showAiIcon();
             },
 
             whatsNew: () => {
