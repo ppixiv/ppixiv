@@ -361,15 +361,15 @@ function createSettingsWidget({ globalOptions }) {
       });
     },
 
-    // restoreDownloadFilename: () => {
-    //   new MenuOptionToggleSetting({
-    //     ...globalOptions,
-    //     label: "Restore original pixiv download filename ({pid}_p{page_number}.{ext})",
-    //     setting: "restore_download_filename",
-    //     onValue: "true",
-    //     offValue: "false",
-    //   });
-    // },
+    restoreDownloadFilename: () => {
+      new MenuOptionToggleSetting({
+        ...globalOptions,
+        label: "Restore original pixiv download filename ({pid}_p{page_number}.{ext})",
+        setting: "restore_download_filename",
+        onValue: "true",
+        offValue: "false",
+      });
+    },
 
     preloadManga: () => {
       let values = {
@@ -696,16 +696,12 @@ export class SettingsDialog extends DialogWidget {
         settingsWidgets.unlinkAllTabs();
       },
 
-      expandMangaPosts: () => {
-        settingsWidgets.downloads();
-      },
-
       // ImageTranslations handles these settings.  translationOverride is the settings override version
       // when we're viewing an image.
       translation: () => createTranslationSettingsWidgets({ globalOptions, editOverrides: false }),
       translationOverride: () => createTranslationSettingsWidgets({ globalOptions, editOverrides: true }),
 
-      //   downloads: () => settingsWidgets.restoreDownloadFilename(),
+      downloads: () => settingsWidgets.restoreDownloadFilename(),
 
       other: () => {
         if (ppixiv.native && !LocalAPI.localInfo.local) settingsWidgets.nativeLogin();

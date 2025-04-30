@@ -83,6 +83,11 @@ export default class PixivUgoiraDownloader {
       let mkv = encoder.build();
       let filename =
         this.illustData.userName + " - " + this.illustData.illustId + " - " + this.illustData.illustTitle + ".mkv";
+
+      //   if (ppixiv.settings.get("restore_download_filename")) {
+      //     filename = this.illustData.illustId + ".mkv";
+      //   } // should I add this thing to unnative function?
+
       helpers.saveBlob(mkv, filename);
     } catch (e) {
       console.error(e);
