@@ -65,6 +65,9 @@ export default class Settings extends EventTarget
         this.configure("translation_direction", { defaultValue: "auto" });
         this.configure("translation_language", { defaultValue: "ENG" });
 
+        // download setting
+        this.configure("use_original_download_filename", { defaultValue: true });
+
         // Run any one-time settings migrations.
         this.migrate();
     }

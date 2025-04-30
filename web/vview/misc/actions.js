@@ -609,15 +609,10 @@ export default class Actions
         {
             let blob = new Blob([results[0]]);
             let ext = results[0].extension;
-            let filename = userInfo.name + " - " + mediaInfo.illustId;
-
-            // If this is a single page of a manga post, include the page number.
-            if(downloadType == "image" && mediaInfo.mangaPages.length > 1)
-                filename += " #" + (mangaPage + 1);
-
-            filename += " - " + mediaInfo.illustTitle + "." + ext;
+            let isMangaPage = mediaInfo.mangaPages.length > 1 && downloadType == "image";
+            let filename = this.generateFilename(mediaInfo, userInfo, ext, mangaPage, isMangaPage);
             helpers.saveBlob(blob, filename);
-            return;
+        return;
         }
 
         // There are multiple images, and since browsers are stuck in their own little world, there's
@@ -636,6 +631,20 @@ export default class Actions
         helpers.saveBlob(zip, filename);
     }
 
+    static generateFilename(mediaInfo, userInfo, ext, mangaPage, isMangaPage) {
+        if (ppixiv.settings.get("use_original_download_filename")) {
+          // {pid}_p{page_number}.{ext}
+          let filename = mediaInfo.illustId + "_p0";
+          if (isMangaPage) filename = mediaInfo.illustId + "_p" + (mangaPage + 1);
+          return filename + "." + ext;
+        } else {
+          // {userName}-{pid} #{pageNumber}-{illustTitle}.{ext}
+          let filename = userInfo.name + " - " + mediaInfo.illustId;
+          if (isMangaPage) filename += " #" + (mangaPage + 1);
+          return filename + " - " + mediaInfo.illustTitle + "." + ext;
+        }
+    }
+    
     static isDownloadTypeAvailable(downloadType, mediaInfo)
     {
         if(ppixiv.mobile)
