@@ -361,11 +361,11 @@ function createSettingsWidget({ globalOptions }) {
       });
     },
 
-    restoreDownloadFilename: () => {
+    useOriginalDownloadFilename: () => {
       new MenuOptionToggleSetting({
         ...globalOptions,
-        label: "Restore original pixiv download filename ({pid}_p{page_number}.{ext})",
-        setting: "restore_download_filename",
+        label: "Use original pixiv download filename like 123_p0.jpg",
+        setting: "use_original_download_filename",
         onValue: "true",
         offValue: "false",
       });
@@ -493,6 +493,7 @@ let pageTitles = {
   linkedTabs: "Linked tabs",
   translation: "Translation",
   translationOverride: "Translation",
+  downloads: "Downloads",
   other: "Other",
   whatsNew: "What's New",
 };
@@ -701,7 +702,7 @@ export class SettingsDialog extends DialogWidget {
       translation: () => createTranslationSettingsWidgets({ globalOptions, editOverrides: false }),
       translationOverride: () => createTranslationSettingsWidgets({ globalOptions, editOverrides: true }),
 
-      downloads: () => settingsWidgets.restoreDownloadFilename(),
+      downloads: () => settingsWidgets.useOriginalDownloadFilename(),
 
       other: () => {
         if (ppixiv.native && !LocalAPI.localInfo.local) settingsWidgets.nativeLogin();

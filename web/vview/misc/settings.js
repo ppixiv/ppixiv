@@ -47,7 +47,7 @@ export default class Settings extends EventTarget {
     this.configure("show_ai_icon", { defaultValue: true });
 
     // download setting
-    this.configure("restore_download_filename", { defaultValue: true });
+    this.configure("use_original_download_filename", { defaultValue: true });
 
     // Default to aspect ratio thumbs unless we're on a phone.
     this.configure("thumbnail_style", { defaultValue: helpers.other.isPhone() ? "square" : "aspect" });
