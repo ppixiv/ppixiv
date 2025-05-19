@@ -246,7 +246,7 @@ html:not(.macos) {
 }
 
 body {
-  font-family: "Helvetica Neue", arial, sans-serif;
+  font-family: "Figtree", sans-serif;
   margin: 0;
   color: #fff;
   height: 100%;
@@ -1388,6 +1388,10 @@ body.hide-r18g .r18g {
     border-radius: var(--border-radius-large);
     box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.32);
 
+    .button-row {
+      margin-right: 8px;
+    }
+
     .avatar-container {
       margin: auto;
       position: relative;
@@ -1829,7 +1833,7 @@ body.hide-r18g .r18g {
       background-color: #333;
 
       html:not(.mobile) & {
-        border-radius: 50px 50px 0 0;
+        border-radius: var(--border-radius-large);
       }
 
       img.bg {
@@ -2650,8 +2654,7 @@ body.hide-r18g .r18g {
 
       > .avatar {
         // Don't use a box-shadow here, since it causes stuttering during the transition.
-        border: 2px solid #000;
-        border-radius: 100%;
+        border: 1px solid #000;
       }
 
       .follow-icon {
