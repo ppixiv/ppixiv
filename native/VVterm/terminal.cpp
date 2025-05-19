@@ -365,8 +365,12 @@ void Terminal::resizeline(shared_ptr<termline> line, int cols)
          * that the data we're copying is still there. However, if
          * we're expanding, we have to wait until _after_ the
          * resize so that the space we're copying into is there.)
+         * 
+         * Don't do this if there's no data to move, since it can
+         * access the array past the end, which will assert even though
+         * we're not actually doing anything with the pointer.
          */
-        if (cols < oldcols)
+        if (line->size != line->cols && cols < oldcols)
             memmove(&line->chars[cols], &line->chars[oldcols],
                     (line->size - line->cols) * TSIZE);
 
@@ -382,7 +386,7 @@ void Terminal::resizeline(shared_ptr<termline> line, int cols)
          * If we're expanding the line, _now_ we move the cc
          * section.
          */
-        if (cols > oldcols && line->size - line->cols > 0)
+        if (line->size != line->cols && cols > oldcols && line->size - line->cols > 0)
             memmove(&line->chars[cols], &line->chars[oldcols],
                     (line->size - line->cols) * TSIZE);
 
