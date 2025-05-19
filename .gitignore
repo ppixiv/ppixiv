@@ -7,3 +7,4 @@ bin
 notes
 **/__pycache__
 **/*.vcxproj.user
+.conda
