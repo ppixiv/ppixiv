@@ -471,7 +471,12 @@ class Library:
         # here, since we often get here before Windows's indexing has caught up.
         if action == monitor_changes.FileAction.FILE_ACTION_ADDED:
             # We don't care about files being added, only directories.
-            if not path.is_real_dir():
+            try:
+                if not path.is_real_dir():
+                    return
+            except FileNotFoundError:
+                # The path was deleted before we got here, which probably means a file
+                # was created and then immediately deleted.
                 return
 
             log.info('Refreshing added directory: %s' % path)
