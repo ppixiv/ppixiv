@@ -10,6 +10,7 @@ import TagListWidget from '/vview/widgets/tag-list-widget.js';
 import LocalAPI from '/vview/misc/local-api.js';
 import { getUrlForMediaId } from '/vview/misc/media-ids.js'
 import { helpers, ClassFlags } from '/vview/misc/helpers.js';
+import PointerListener from '/vview/actors/pointer-listener.js';
 
 export default class DesktopImageInfo extends Widget
 {
@@ -293,8 +294,46 @@ export default class DesktopImageInfo extends Widget
         return helpers.mediaId.parse(this._mediaId).page;
     }
 
-    handleKeydown(e)
+    async handleKeydown(e)
     {
+        if(!this.visible)
+            return;
+
+        let mediaInfo = ppixiv.mediaCache.getMediaInfoSync(this._mediaId, { full: false, safe: false });
+        if(mediaInfo == null)
+            return;
+
+        // If no text is selected and the title or description are hovered, copy the
+        // hovered text to the clipboard.
+        if(e.code == "KeyC" && e.ctrlKey)
+        {
+            // If any text is selected, stop and let regular text selection happen.
+            let selection = window.getSelection();
+            if(selection.rangeCount > 0 && selection.toString() != "")
+                return;
+
+            // Get the element under the mouse cursor.
+            let nodeUnderCursor = document.elementFromPoint(PointerListener.latestMouseClientPosition[0], PointerListener.latestMouseClientPosition[1]);
+            console.log(nodeUnderCursor);
+
+            let text = null;
+
+            let hoveringDescription = nodeUnderCursor.closest(".description") != null;
+            if(hoveringDescription)
+                text = mediaInfo.illustComment;
+
+            let hoveringTitle = nodeUnderCursor.closest(".title") != null;
+            if(hoveringTitle)
+                text = mediaInfo.illustTitle;
+
+            if(text == null)
+                return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            navigator.clipboard.writeText(text);
+        }
     }
 
     refresh = async() =>
