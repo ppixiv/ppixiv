@@ -1,8 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" stroke="currentColor" stroke-width="4">
-    <line x1="8" y1="26" x2="24" y2="26" />
-    <line x1="16" y1="3" x2="16" y2="22" />
-    <path d="M9 14 L 16 22 L 23 14" fill="none" stroke-width="3" />
-    <g transform="translate(0, -7)">
-        <path d="M9 14 L 16 22 L 23 14" fill="none" stroke-width="3" />
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+    <g id="SVGRepo_iconCarrier">
+        <path d="M8.5 7L8.5 14M8.5 14L11 11M8.5 14L6 11" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="--darkreader-inline-stroke: var(--darkreader-text-ffffff, #e8e6e3);" data-darkreader-inline-stroke=""></path>
+        <path d="M15.5 7L15.5 14M15.5 14L18 11M15.5 14L13 11" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="--darkreader-inline-stroke: var(--darkreader-text-ffffff, #e8e6e3);" data-darkreader-inline-stroke=""></path>
+        <path d="M18 17H12H6" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" style="--darkreader-inline-stroke: var(--darkreader-text-ffffff, #e8e6e3);" data-darkreader-inline-stroke=""></path>
+        <path d="M22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C21.5093 4.43821 21.8356 5.80655 21.9449 8" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" style="--darkreader-inline-stroke: var(--darkreader-text-ffffff, #e8e6e3);" data-darkreader-inline-stroke=""></path>
     </g>
 </svg>

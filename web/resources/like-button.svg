@@ -1,11 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="currentColor">
-    <path class="mouth" stroke-width="1" stroke-linecap="round"
-    transform-origin="50% 50%"
-    d="
-        M 6 14
-        A 4 4.5 0 0 0 26 14
-        M 26 14
-        C 26 10, 6 10, 6 14" />
-    <ellipse class="eye" cx="6" cy="9" rx="1.5" ry="1.5" transform-origin="6 9" stroke="none" />
-    <ellipse class="eye" cx="26" cy="9" rx="1.5" ry="1.5" transform-origin="26 9" stroke="none" />
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+    <g id="SVGRepo_iconCarrier">
+        <path d="M8 10V20M8 10L4 9.99998V20L8 20M8 10L13.1956 3.93847C13.6886 3.3633 14.4642 3.11604 15.1992 3.29977L15.2467 3.31166C16.5885 3.64711 17.1929 5.21057 16.4258 6.36135L14 9.99998H18.5604C19.8225 9.99998 20.7691 11.1546 20.5216 12.3922L19.3216 18.3922C19.1346 19.3271 18.3138 20 17.3604 20L8 20" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="--darkreader-inline-stroke: var(--darkreader-text-ffffff, #e8e6e3);" data-darkreader-inline-stroke=""></path>
+    </g>
 </svg>

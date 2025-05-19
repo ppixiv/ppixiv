@@ -45,7 +45,7 @@ Install fellow script:
 // ==/UserScript==
 (async function () {
   GM.xmlHttpRequest({
-    url: LOCALHOST_URL,
+    url: "http://[::1]:8000/output/ppixiv-main.user.js",
     onload: async (response) => {
       const text = response.responseText;
       const storageData = await GM.getValue("CachedScriptKey");

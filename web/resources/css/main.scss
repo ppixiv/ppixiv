@@ -26,7 +26,7 @@
 }
 
 * {
-  box-sizing: border-box;
+  // box-sizing: border-box;
 
   // Prevent drag-to-reload on Android.  This should be the default for home screen apps.
   overscroll-behavior: contain;
@@ -57,8 +57,8 @@ html {
   width: calc(100%);
   height: 100%;
 
-  background-color: var(--main-background-color);
-  background-image: var(--background-noise);
+  // background-color: var(--main-background-color);
+  // background-image: var(--background-noise);
 
   // Chrome has a lot of bugs around pointer cancellation, and tends to cancel drags when it
   // shouldn't.  Disable drags on the document to partially prevent this.  The document itself
@@ -339,7 +339,7 @@ html {
   /* Colors for major UI boxes */
   --ui-bg-color: rgba(0, 0, 0, 0.6);
   --ui-fg-color: #fff;
-  --ui-border-color: #636363;
+  --ui-border-color: #63636380;
   --ui-bg-section-color: #3b3b3b;
   /* color for sections within UI, like the description box */
 
@@ -720,7 +720,7 @@ textarea,
 
   > .message {
     background-color: rgba(0, 0, 0, 0.5);
-    border-radius: var(--border-radius-small);
+    border-radius: var(--border-radius-large);
     overflow: hidden;
     text-align: center;
     max-width: 40em;
@@ -799,11 +799,17 @@ textarea,
     > svg {
       width: 100%;
       height: 100%;
-      transform: translate(-50%, -50%);
+      transform: translate(-30%);
     }
   }
 
   .ui-box {
+    padding: 8px;
+    .button-row {
+      width: 70%;
+      margin-left: 4px;
+      padding-block-end: 8px;
+    }
     backdrop-filter: var(--ui-bg-blur);
     position: absolute;
     top: 1vmin;
@@ -861,18 +867,24 @@ textarea,
       display: inline-block;
       background-color: var(--box-link-bg-color);
       color: var(--box-link-fg-color);
-      border-radius: var(--border-radius-small);
+      border-radius: var(--border-radius-large);
+
       // Use a smaller, heavier font to distinguish these from tags.
       font-size: 0.8em;
       font-weight: bold;
       padding: 8px;
     }
 
+    .post-info > *:hover {
+      background-color: var(--box-link-hover-color);
+    }
+
     .description {
       white-space: pre-wrap;
       padding-inline: 8px;
-      padding-block-end: 8px;
+      padding-block: 8px;
       overflow-wrap: break-word;
+      border-top: solid 1px var(--ui-border-color);
     }
 
     .author {
@@ -997,7 +1009,7 @@ textarea,
     transition: filter 0.25s;
     display: block;
     filter: contrast(1);
-    border-radius: var(--border-radius-small);
+    border-radius: var(--border-radius-large);
     object-fit: cover;
     aspect-ratio: 1;
     width: 100%;
@@ -1142,7 +1154,8 @@ body.hide-r18g .r18g {
   overflow-y: auto;
   border: 1px solid var(--frame-border-color);
   background-color: var(--frame-bg-color);
-  border-radius: var(--border-radius-small);
+  border-radius: var(--border-radius-large);
+  backdrop-filter: var(--ui-bg-blur);
 }
 
 // ppixiv.dropdown_menu_opener:
@@ -1485,21 +1498,7 @@ body.hide-r18g .r18g {
   }
 
   .thumbnail-box.expanded-thumb a.thumbnail-link {
-    border-bottom: 10px solid #a0a;
-    border-bottom-width: 5px;
-    border-bottom-style: solid;
-
-    // Round the edges to cue the start and end.  Don't do this on mobile, where
-    // we don't round thumbs as much.
-    html:not(.mobile) & {
-      &.first-page {
-        border-bottom-left-radius: 30px;
-      }
-
-      &.last-page {
-        border-bottom-right-radius: 30px;
-      }
-    }
+    border-radius: var(--border-radius-large);
   }
 
   // A vertical strip of thumbnail rows:
@@ -1565,7 +1564,7 @@ body.hide-r18g .r18g {
       height: 100%;
 
       html:not(.mobile) & {
-        border-radius: var(--border-radius-small);
+        border-radius: var(--border-radius-large);
         overflow: hidden;
       }
     }
@@ -1689,13 +1688,12 @@ body.hide-r18g .r18g {
         display: flex;
         align-items: center;
         gap: 0.25em;
+        justify-content: end;
+        align-self: end;
       }
 
       .bottom-right-icon {
-        display: flex;
-
-        justify-content: end;
-        align-self: end;
+        margin-right: 8px;
       }
 
       .thumbnail-label {
@@ -1741,7 +1739,7 @@ body.hide-r18g .r18g {
         vertical-align: middle;
         padding: 0.25em 0.5em;
         background-color: rgba(0, 0, 0, 0.6);
-        border-radius: var(--border-radius-large);
+        border-radius: var(--border-radius-small) !important;
         white-space: nowrap;
         cursor: pointer;
         overflow: hidden; // clip the hover background-color to our border radius
@@ -1879,7 +1877,6 @@ body.hide-r18g .r18g {
 
 // box-links in horizontal strips.  Add horizontal padding between these.
 .box-button-row {
-  border-radius: var(--border-radius-small);
   display: flex;
   flex-direction: row;
   flex-wrap: unwrap;
@@ -1944,8 +1941,12 @@ body.hide-r18g .r18g {
   }
 }
 
+.box-link:hover {
+  background-color: var(--box-link-hover-color);
+}
+
 .box-link {
-  border-radius: var(--border-radius-small);
+  border-radius: var(--border-radius-large);
   display: inline-flex;
   cursor: pointer;
   text-decoration: none;
@@ -2268,7 +2269,7 @@ body.hide-r18g .r18g {
       align-items: center;
       gap: 0.5em;
       padding: 0.5em;
-      border-radius: var(--border-radius-small);
+      border-radius: var(--border-radius-large);
 
       // Show edit buttons in the modes specified in data-shown-in.
       &.recent .edit-button[data-shown-in~="recent"] {
@@ -2404,7 +2405,7 @@ body.hide-r18g .r18g {
       background-color: var(--frame-bg-color);
       color: var(--frame-fg-color);
       padding: 2px 8px;
-      border-radius: var(--border-radius-small);
+      border-radius: var(--border-radius-large);
       white-space: nowrap;
 
       &:after {
@@ -2440,18 +2441,9 @@ body.hide-r18g .r18g {
       margin-bottom: -12px;
     }
 
-    /* Round the outer corners of each strip. */
-    & > .button-block:first-child {
-      border-radius: var(--border-radius-small);
-    }
-
-    & > .button-block:last-child {
-      border-radius: var(--border-radius-small);
-    }
-
     .button {
       flex: 1;
-      border-radius: var(--border-radius-small);
+      border-radius: var(--border-radius-large);
       padding: 6px;
       width: 100%;
       height: 100%;
@@ -2753,9 +2745,7 @@ body.hide-r18g .r18g {
     width: 100%;
     background-color: #000;
     padding: 8px;
-    margin: 0.5em 0;
     border: 1px solid #aaa;
-    border-radius: var(--border-radius-small);
     overflow-wrap: break-word;
   }
 
@@ -2772,7 +2762,7 @@ body.hide-r18g .r18g {
       white-space: nowrap;
       background-color: var(--frame-bg-color);
       padding: 0.5em 0.75em;
-      border-radius: var(--border-radius-small);
+      border-radius: var(--border-radius-large);
       line-height: 1.5em;
       flex: 1;
 
@@ -2788,8 +2778,9 @@ body.hide-r18g .r18g {
   position: relative;
 
   .count {
-    color: var(--minor-text-fg-color);
-
+    color: white;
+    margin-top: -4px;
+    left: 10px;
     text-shadow:
       0px 1px 1px var(--minor-text-shadow-color),
       0px -1px 1px var(--minor-text-shadow-color),
@@ -2799,7 +2790,6 @@ body.hide-r18g .r18g {
     font-weight: bold;
     position: absolute;
     top: calc(100% - 14px);
-    left: 0;
     width: 100%;
     text-align: center;
   }
@@ -3109,7 +3099,7 @@ svg.heart-image .delete {
     // 90% of the window height so we leave some space on the top and bottom.
     max-height: 90vh;
 
-    border-radius: var(--border-radius-small);
+    border-radius: var(--border-radius-large);
   }
 
   &.small .dialog {
@@ -3125,8 +3115,8 @@ svg.heart-image .delete {
 
   .dialog {
     max-height: 100%;
-
-    background-color: var(--dialog-bg-color);
+    background-color: var(--ui-bg-color);
+    backdrop-filter: var(--ui-bg-blur);
     color: var(--ui-fg-color);
     position: relative;
     display: flex;
@@ -3593,7 +3583,7 @@ svg.heart-image .delete {
     background-color: #000;
     padding: 0.5em 1em;
     margin: 0.5em;
-    border-radius: var(--border-radius-small);
+    border-radius: var(--border-radius-large);
   }
 
   .content {
@@ -4389,14 +4379,14 @@ svg.heart-image .delete {
   .track-left {
     width: var(--fill);
     height: var(--track-height);
-    border-radius: var(--border-radius-small);
+    border-radius: var(--border-radius-large);
     background-color: var(--on-color);
   }
 
   .track-right {
     flex: 1;
     height: var(--track-height);
-    border-radius: var(--border-radius-small);
+    border-radius: var(--border-radius-large);
     background-color: var(--off-color);
   }
 
