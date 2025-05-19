@@ -247,7 +247,7 @@ export default class DataSources_Artist extends DataSource
         if(userInfo.frequentTags)
             return Array.from(userInfo.frequentTags);
 
-        let result = await helpers.pixivRequest.get("/ajax/user/" + userInfo.userId + "/illustmanga/tags", {});
+        let result = await helpers.pixivRequest.get("/ajax/user/" + userInfo.userId + "/illustmanga/tags", { all: "1"});
         if(result.error)
         {
             console.error("Error fetching tags for user " + userInfo.userId + ": " + result.error);
