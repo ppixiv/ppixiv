@@ -39,8 +39,8 @@ class AppStartupNative {
 	// We're running in a local environment, so we don't need to do the cleanup that's
 	// needed when running on Pixiv.  Just add stubs for the functions we'd set up.
 	_cleanupEnvironment() {
-		window.HTMLDocument.prototype.realCreateElement =
-			window.HTMLDocument.prototype.createElement;
+		window.Document.prototype.realCreateElement =
+			window.Document.prototype.createElement;
 		window.realRequestAnimationFrame =
 			window.requestAnimationFrame.bind(window);
 		window.realCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
@@ -261,7 +261,7 @@ class AppStartup {
 		// a page we do support.  Otherwise, replace the hash with #ppixiv.
 		if (this._urlSupported(window.location)) {
 			let url = new URL(window.location);
-			url.hash = "#ppixiv";
+			// url.hash = "#ppixiv";
 			disabledUi.querySelector("a").href = url;
 		} else {
 			// This should be synced with MainController.setup.
@@ -276,7 +276,7 @@ class AppStartup {
 		if (ppixiv.native) return true;
 
 		// If the hash is empty, use the default.
-		if (window.location.hash == "") return this._activeByDefault();
+		if (window.location.hash === "") return this._activeByDefault();
 
 		// If we have a hash and it's not #ppixiv, then we're explicitly disabled.
 		if (!window.location.hash.startsWith("#ppixiv")) return false;
@@ -347,43 +347,30 @@ class AppStartup {
 		if (ppixiv.native) return true;
 
 		url = new URL(url);
-		let pathname = this._getPathWithoutLanguage(url.pathname);
+		const pathname = this._getPathWithoutLanguage(url.pathname);
 
-		let parts = pathname.split("/");
-		let firstPart = parts[1]; // helpers.pixiv.getPageTypeFromUrl
-		if (firstPart == "artworks")
-			return true; // manga, current_illust
-		else if (firstPart == "user" && parts[3] == "series")
-			return true; // series
-		else if (firstPart == "users")
-			return true; // follows, artist, bookmarks, bookmarks_merged, bookmarks
-		else if (pathname == "/new_illust.php" || pathname == "/new_illust_r18.php")
+		const parts = pathname.split("/");
+		const firstPart = parts[1]; // helpers.pixiv.getPageTypeFromUrl
+		if (firstPart === "artworks") return true;
+		if (firstPart === "user" && parts[3] === "series") return true;
+		if (firstPart === "users") return true; // follows, artist, bookmarks, bookmarks_merged, bookmarks
+		if (pathname === "/new_illust.php" || pathname === "/new_illust_r18.php")
 			return true; // new_illust
-		else if (
-			pathname == "/bookmark_new_illust.php" ||
-			pathname == "/bookmark_new_illust_r18.php"
+		if (
+			pathname === "/bookmark_new_illust.php" ||
+			pathname === "/bookmark_new_illust_r18.php"
 		)
 			return true; // new_works_by_following
-		else if (firstPart == "tags")
-			return true; // search
-		else if (pathname == "/discovery")
-			return true; // discovery
-		else if (pathname == "/discovery/users")
-			return true; // discovery_users
-		else if (pathname == "/bookmark_detail.php")
-			return true; // related_illusts, related_favorites
-		else if (pathname == "/ranking.php")
-			return true; // rankings
-		else if (pathname == "/search_user.php")
-			return true; // search_users
-		else if (pathname.startsWith("/request/complete"))
-			return true; // completed_requests
-		else if (
-			firstPart == "" &&
-			window.location.hash.startsWith("#ppixiv/edits")
-		)
+		if (firstPart === "tags") return true; // search
+		if (pathname === "/discovery") return true; // discovery
+		if (pathname === "/discovery/users") return true; // discovery_users
+		if (pathname === "/bookmark_detail.php") return true; // related_illusts, related_favorites
+		if (pathname === "/ranking.php") return true; // rankings
+		if (pathname === "/search_user.php") return true; // search_users
+		if (pathname.startsWith("/request/complete")) return true; // completed_requests
+		if (firstPart === "" && window.location.hash.startsWith("#ppixiv/edits"))
 			return true; // edited_images
-		else return false;
+		return false;
 	}
 
 	// Try to stop the underlying page from doing things (it just creates unnecessary network
@@ -500,7 +487,7 @@ class AppStartup {
 			try {
 				Object.freeze(obj);
 			} catch (e) {
-				console.error(`Error freezing ${obj}: ${e}`);
+				console.warn(`Error freezing ${obj}: ${e}`);
 			}
 		}
 
@@ -602,16 +589,14 @@ class AppStartup {
 		// Similarly, prevent it from creating script and style elements.  Sometimes site scripts that
 		// we can't disable keep running and do things like loading more scripts or adding stylesheets.
 		// Use realCreateElement to bypass this.
-		let origCreateElement = window.HTMLDocument.prototype.createElement;
-		window.HTMLDocument.prototype.realCreateElement =
-			window.HTMLDocument.prototype.createElement;
-		window.HTMLDocument.prototype.createElement = function (type, options) {
+		const origCreateElement = window.Document.prototype.createElement;
+		window.Document.prototype.realCreateElement =
+			window.Document.prototype.createElement;
+		window.Document.prototype.createElement = function (type, options) {
 			// Prevent the underlying site from creating these elements.
-			if (type == "script" || type == "style" || type == "iframe") {
+			if (type === "script" || type === "style" || type === "iframe") {
 				if (!isAllowed("createElement")) {
-					// console.error("Disabling createElement " + type);
-					class ElementDisabled extends Error {}
-					throw new ElementDisabled("Element disabled");
+					console.warn(`Disabling createElement ${type}`);
 				}
 			}
 			return origCreateElement.apply(this, arguments);

@@ -973,7 +973,7 @@ export default class SearchView extends Widget {
                         <div class="heart button-bookmark private bookmarked" hidden>
                             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                         </div>
-                        <img class=ai-image src="ppixiv:resources/ai-image.png" hidden width='32' height='32'>
+                        <img class=ai-image src="ppixiv:resources/ai.png" hidden width='32' height='32'>
                     </div>
 
                     <div style="flex: 1;"></div>

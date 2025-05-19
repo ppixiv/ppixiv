@@ -13,6 +13,10 @@ A PPixiv overhaul.
 
 ## Usage
 
+### Note
+
+ADblock may cause compatibility issue, disable it.
+
 ## Build
 
 `python -m vview.build.build_ppixiv`

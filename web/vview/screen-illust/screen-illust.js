@@ -56,7 +56,7 @@ export default class ScreenIllust extends Screen
                 <div class=fade-search></div>
             </div>
         `});
-        
+
         this.currentMediaId = null;
         this.latestNavigationDirectionDown = true;
 
@@ -64,12 +64,12 @@ export default class ScreenIllust extends Screen
         let uiContainer = this.root.querySelector(".ui");
         if(!ppixiv.mobile)
             this.desktopUi = new DesktopImageInfo({ container: uiContainer });
-        
+
         // Make sure the hover UI isn't shown on mobile.
         if(ppixiv.mobile)
             uiContainer.hidden = true;
 
-        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal });        
+        ppixiv.userCache.addEventListener("usermodified", this.refreshUi, { signal: this.shutdownSignal });
         ppixiv.mediaCache.addEventListener("mediamodified", this.refreshUi, { signal: this.shutdownSignal });
         ppixiv.settings.addEventListener("recent-bookmark-tags", this.refreshUi, { signal: this.shutdownSignal });
 
@@ -202,7 +202,7 @@ export default class ScreenIllust extends Screen
             this.mobileImageDismiss.deactivate();
 
         this.cleanupImage();
-        
+
         // We leave editing on when navigating between images, but turn it off when we exit to
         // the search.
         ppixiv.settings.set("image_editing_mode", null);
@@ -271,7 +271,7 @@ export default class ScreenIllust extends Screen
             mediaId,
             container: this.viewContainer,
             slideshow: helpers.args.location.hash.get("slideshow"),
-            
+
             waitForTransitions: () => {
                 return this.mobileImageDismiss?.waitForAnimationsPromise;
             },
@@ -286,7 +286,7 @@ export default class ScreenIllust extends Screen
                 {
                     console.log("onnextimage from viewer that isn't active");
                     return { };
-                }                
+                }
 
                 // The viewer wants to go to the next image, normally during slideshows.
                 let manga = ppixiv.settings.get("slideshow_skips_manga")? "skip-to-first":"normal";
@@ -294,7 +294,7 @@ export default class ScreenIllust extends Screen
             },
             ...options,
         });
-        
+
         newViewer.load();
 
         return newViewer;
@@ -376,7 +376,7 @@ export default class ScreenIllust extends Screen
 
         // Update the manga page indicator.
         this.showCurrentPage();
-        
+
         // If linked tabs are active, send this image.
         if(ppixiv.settings.get("linked_tabs_enabled"))
             ppixiv.sendImage.send_image(mediaId, ppixiv.settings.get("linked_tabs", []), "temp-view");
@@ -515,7 +515,7 @@ export default class ScreenIllust extends Screen
 
         return { isMuted: true, mutedTag, mutedUser };
     }
-    
+
     // Remove the old viewer, if any.
     removeViewer()
     {
@@ -540,7 +540,7 @@ export default class ScreenIllust extends Screen
         if(this.pendingNavigation == null)
             return;
 
-        console.info("Cancelling async navigation");
+        console.debug("Reach end, cancelling async navigation");
         this.pendingNavigation = null;
     }
 
@@ -561,7 +561,7 @@ export default class ScreenIllust extends Screen
         // step over its page title, etc.
         if(!this._active)
             return;
-        
+
         // Tell the UI which page is being viewed.
         if(this.desktopUi)
             this.desktopUi.mediaId = this.currentMediaId;
@@ -579,7 +579,7 @@ export default class ScreenIllust extends Screen
     onwheel = (e) =>
     {
         if(!this._active)
-            return;        
+            return;
 
         let down = e.deltaY > 0;
         this.navigateToNext(down, { manga: e.shiftKey? "skip-to-first":"normal" });
@@ -604,7 +604,7 @@ export default class ScreenIllust extends Screen
             this.desktopUi.handleKeydown(e);
         if(e.defaultPrevented)
             return;
-        
+
         if(e.ctrlKey || e.altKey || e.metaKey)
             return;
         switch(e.key)
@@ -680,7 +680,7 @@ export default class ScreenIllust extends Screen
         // See if we should change the manga page.  This may block if it needs to load
         // the next page of search results.
         let newMediaId = await this.getNavigation(down, { manga, loop });
-    
+
         // If we didn't get a page, we're at the end of the search results.  Flash the
         // indicator to show we've reached the end and stop.
         if(newMediaId == null)
@@ -753,7 +753,7 @@ export default class ScreenIllust extends Screen
                 this._mangaPageIndicatorAnimation.cancel();
                 this._mangaPageIndicatorAnimation = null;
             }
-    
+
             this.mangaPageIndicator.style.opacity = 1;
 
             // Sleep briefly before hiding it.
