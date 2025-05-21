@@ -2,11 +2,20 @@
     "compilerOptions": {
         "baseUrl": ".",
         "module": "es6",
-
+        "lib": [
+            "es2017",
+            "dom"
+        ],
         "paths": {
-            "/*": ["./web/*"],
-            "/vview/app-resources.js": ["./output/intermediate/app-resources.js"],
-            "/resources/css/*": ["./output/intermediate/css/*"],
+            "/*": [
+                "./web/*"
+            ],
+            "/vview/app-resources.js": [
+                "./output/intermediate/app-resources.js"
+            ],
+            "/resources/css/*": [
+                "./output/intermediate/css/*"
+            ],
         },
     }
 }

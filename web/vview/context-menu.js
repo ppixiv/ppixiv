@@ -187,12 +187,12 @@ export default class ContextMenu extends Widget {
 		});
 
 		// Set up the more options dropdown.
-		let moreOptionsButton = this.root.querySelector(".button-more");
+		const moreOptionsButton = this.root.querySelector(".button-more");
 		this._moreOptionsDropdownOpener = new DropdownBoxOpener({
 			button: moreOptionsButton,
 
 			createDropdown: ({ ...options }) => {
-				let dropdown = new MoreOptionsDropdown({
+				const dropdown = new MoreOptionsDropdown({
 					...options,
 					parent: this,
 					showExtra: this.altPressed,
@@ -218,7 +218,7 @@ export default class ContextMenu extends Widget {
 			parent: this,
 			neededData: "full",
 			onrefresh: async ({ mediaInfo }) => {
-				let seriesId = mediaInfo?.seriesNavData?.seriesId;
+				const seriesId = mediaInfo?.seriesNavData?.seriesId;
 
 				this._buttonViewManga.dataset.popup =
 					mediaInfo == null
@@ -227,7 +227,7 @@ export default class ContextMenu extends Widget {
 							? "View series"
 							: "View manga pages";
 
-				let enabled = seriesId != null || mediaInfo?.pageCount > 1;
+				const enabled = seriesId != null || mediaInfo?.pageCount > 1;
 				helpers.html.setClass(this._buttonViewManga, "enabled", enabled);
 				this._buttonViewManga.style.pointerEvents = enabled ? "" : "none";
 
@@ -238,11 +238,11 @@ export default class ContextMenu extends Widget {
 				// Set the manga page or series link.
 				if (enabled) {
 					if (seriesId != null) {
-						let args = new helpers.args("/", ppixiv.plocation);
+						const args = new helpers.args("/", ppixiv.plocation);
 						args.path = `/user/${mediaInfo.userId}/series/${seriesId}`;
 						this._buttonViewManga.href = args.url.toString();
 					} else {
-						let args = getUrlForMediaId(mediaInfo?.mediaId, { manga: true });
+						const args = getUrlForMediaId(mediaInfo?.mediaId, { manga: true });
 						this._buttonViewManga.href = args.url.toString();
 					}
 				}
@@ -339,7 +339,7 @@ export default class ContextMenu extends Widget {
 			e.preventDefault();
 			e.stopPropagation();
 
-			if (this.toggleMode && this.visible) this.hide();
+			if (this.touchpadMode && this.visible) this.hide();
 			else this.show({ x: e.clientX, y: e.clientY, target: e.target });
 		} else {
 			// release event
@@ -354,7 +354,7 @@ export default class ContextMenu extends Widget {
 
 	// If true, RMB toggles the menu instead of displaying while held, and we'll also hide the
 	// menu if the mouse moves too far away.
-	get toggleMode() {
+	get touchpadMode() {
 		return ppixiv.settings.get("touchpad_mode", false);
 	}
 
@@ -402,7 +402,7 @@ export default class ContextMenu extends Widget {
 	// This is called on mouseup, and when keyboard shortcuts are released.  Hide the menu if all buttons
 	// that can open the menu have been released.
 	_hideIfAllButtonsReleased() {
-		if (this.toggleMode) return;
+		if (this.touchpadMode) return;
 
 		if (
 			!this._buttonsDown.lmb &&
@@ -416,19 +416,14 @@ export default class ContextMenu extends Widget {
 		this.hide();
 	};
 
-	// Return the element that should be under the cursor when the menu is opened.
-	get elementToCenter() {
-		return null;
-	}
-
 	show({ x, y, target }) {
 		// See if the click is inside a ViewerImages.
-		let widget = Widget.fromNode(target, { allowNone: true });
+		const widget = Widget.fromNode(target, { allowNone: true });
 		this._currentViewer = null;
 		if (widget) {
 			// To avoid importing ViewerImages here, just look for a widget in the tree
 			// with zoomToggle.
-			for (let parent of widget.ancestors({ includeSelf: true })) {
+			for (const parent of widget.ancestors({ includeSelf: true })) {
 				if (parent.zoomToggle != null) {
 					this._currentViewer = parent;
 					break;
@@ -442,7 +437,7 @@ export default class ContextMenu extends Widget {
 
 		// See if an element representing a user and/or an illust was under the cursor.
 		if (target != null) {
-			let { mediaId } = ppixiv.app.getMediaIdAtElement(target);
+			const { mediaId } = ppixiv.app.getMediaIdAtElement(target);
 			this._setTemporaryIllust(mediaId);
 		}
 
@@ -465,8 +460,8 @@ export default class ContextMenu extends Widget {
 		// drag and drop and there's no real reason to use it while the context menu is open.
 		window.addEventListener("dragstart", this.cancelEvent, true);
 
-		// In toggle mode, close the popup if anything outside is clicked.
-		if (this.toggleMode && this.clickOutsideListener == null) {
+		// In touchpadMode, close the popup if anything outside is clicked.
+		if (this.touchpadMode && this.clickOutsideListener == null) {
 			this.clickOutsideListener = new ClickOutsideListener([this.root], () => {
 				this.hide();
 			});
@@ -477,7 +472,7 @@ export default class ContextMenu extends Widget {
 
 		// The center of the centered element, relative to the menu.  Shift the center
 		// down a bit in the button.
-		let pos = helpers.html.getRelativePosition(
+		const pos = helpers.html.getRelativePosition(
 			centeredElement,
 			this.displayedMenu,
 		);
@@ -490,7 +485,7 @@ export default class ContextMenu extends Widget {
 		this.setCurrentPosition();
 
 		// Adjust the fade-in so it's centered around the centered element.
-		this.displayedMenu.style.transformOrigin = pos[0] + "px " + pos[1] + "px";
+		this.displayedMenu.style.transformOrigin = `${pos[0]}px ${pos[1]}px`;
 
 		HideMouseCursorOnIdle.disableAll("contextMenu");
 
@@ -508,8 +503,8 @@ export default class ContextMenu extends Widget {
 			//
 			// If zooming is enabled (we're viewing an image), always align to the same place,
 			// so the cursor is always over the zoom toggle button.
-			let windowWidth = window.innerWidth - 4;
-			let windowHeight = window.innerHeight - 20;
+			const windowWidth = window.innerWidth - 4;
+			const windowHeight = window.innerHeight - 20;
 			x = helpers.math.clamp(
 				x,
 				0,
@@ -591,13 +586,23 @@ export default class ContextMenu extends Widget {
 		return false;
 	}
 
-	visibilityChanged() {
-		super.visibilityChanged();
+	visibilityChanged(value) {
+		super.visibilityChanged(value);
 		OpenWidgets.singleton.set(this, this.visible);
+
+		if (this.visible)
+			window.addEventListener("wheel", this.onwheel, {
+				capture: true,
+
+				// Work around Chrome intentionally breaking event listeners.  Remember when browsers
+				// actually made an effort to not break things?
+				passive: false,
+			});
+		else window.removeEventListener("wheel", this.onwheel, true);
 	}
 
 	applyVisibility() {
-		let visible = this.visible && !this._hiddenTemporarily;
+		const visible = this.visible && !this._hiddenTemporarily;
 		helpers.html.setClass(this.root, "hidden-widget", !visible);
 		helpers.html.setClass(this.root, "visible", visible);
 	}
@@ -647,7 +652,7 @@ export default class ContextMenu extends Widget {
 		// Do nothing if opening the popup while holding ctrl is disabled.
 		if (!ppixiv.settings.get("ctrl_opens_popup")) return;
 
-		let a = e.target.closest("A");
+		const a = e.target.closest("A");
 		if (a == null) return;
 
 		// If a previous event handler called preventDefault on this click, ignore it.
@@ -659,35 +664,21 @@ export default class ContextMenu extends Widget {
 		e.preventDefault();
 		e.stopPropagation();
 
-		let url = new URL(a.href, ppixiv.plocation);
+		const url = new URL(a.href, ppixiv.plocation);
 		helpers.navigate(url);
 	};
-
-	visibilityChanged(value) {
-		super.visibilityChanged(value);
-
-		if (this.visible)
-			window.addEventListener("wheel", this.onwheel, {
-				capture: true,
-
-				// Work around Chrome intentionally breaking event listeners.  Remember when browsers
-				// actually made an effort to not break things?
-				passive: false,
-			});
-		else window.removeEventListener("wheel", this.onwheel, true);
-	}
 
 	// Return the media ID active in the context menu, or null if none.
 	//
 	// If we're opened by right clicking on an illust, we'll show that image's
 	// info.  Otherwise, we'll show the info for the illust we're on, if any.
 	get _effectiveMediaId() {
-		let mediaId = this._clickedMediaId ?? this._mediaId;
+		const mediaId = this._clickedMediaId ?? this._mediaId;
 		if (mediaId == null) return null;
 
 		// Don't return users this way.  They'll be returned by _effectiveUserId.
-		let { type } = helpers.mediaId.parse(mediaId);
-		if (type == "user") return null;
+		const { type } = helpers.mediaId.parse(mediaId);
+		if (type === "user") return null;
 
 		return mediaId;
 	}
@@ -698,7 +689,7 @@ export default class ContextMenu extends Widget {
 	}
 
 	setMediaId(mediaId) {
-		if (this._mediaId == mediaId) return;
+		if (this._mediaId === mediaId) return;
 
 		this._mediaId = mediaId;
 		this.getUserIdFromMediaId.id = this._clickedMediaId ?? this._mediaId;
@@ -708,6 +699,7 @@ export default class ContextMenu extends Widget {
 	// Put the zoom toggle button under the cursor, so right-left click is a quick way
 	// to toggle zoom lock.
 	get elementToCenter() {
+		// This is the one to keep, was previously duplicated
 		return this.displayedMenu.querySelector(".button-zoom");
 	}
 
@@ -743,24 +735,24 @@ export default class ContextMenu extends Widget {
 		// was hovering over an image in search results.  We might not have the illust info yet,
 		// but we at least need an illust ID.
 		let mediaId = this._effectiveMediaId;
-		let screenName = ppixiv.app.getDisplayedScreen();
+		const screenName = ppixiv.app.getDisplayedScreen();
 
 		// If there's no effective media ID, the user is pressing a key while the context menu isn't
 		// open.  If the cursor is over a search thumbnail, use its media ID if any, to allow hovering
 		// over a thumbnail and using bookmark, etc. hotkeys.  This isn't needed when ctrl_opens_popup
 		// is open since we'll already have _effectiveMediaId.
 		if (mediaId == null) {
-			let node = this._getHoveredElement();
+			const node = this._getHoveredElement();
 			mediaId = ppixiv.app.getMediaIdAtElement(node).mediaId;
 		}
 
 		// Escape when on the illust view backs out to the search:
 		if (
-			e.code == "Escape" &&
+			e.code === "Escape" &&
 			!e.ctrlKey &&
 			!e.altKey &&
 			!e.shiftKey &&
-			screenName == "illust"
+			screenName === "illust"
 		) {
 			ppixiv.phistory.back();
 			return true;
@@ -771,10 +763,10 @@ export default class ContextMenu extends Widget {
 			// Handle alt-left and alt-right for navigation.  This isn't done by VVBrowser itself.
 			// Don't use phistory here.  It doesn't handle forwards navigation, and we know
 			// we're not in phistory permanent mode since VVbrowser isn't used on mobile.
-			if (e.altKey && e.key == "ArrowLeft") {
+			if (e.altKey && e.key === "ArrowLeft") {
 				navigation.back();
 				e.preventDefault();
-			} else if (e.altKey && e.key == "ArrowRight") {
+			} else if (e.altKey && e.key === "ArrowRight") {
 				navigation.forward();
 				e.preventDefault();
 			}
@@ -783,7 +775,7 @@ export default class ContextMenu extends Widget {
 		// All of these hotkeys require Ctrl.
 		if (!e.ctrlKey) return;
 
-		if (e.key.toUpperCase() == "V") {
+		if (e.key.toUpperCase() === "V") {
 			if (mediaId == null) return;
 
 			Actions.likeImage(mediaId);
@@ -791,11 +783,11 @@ export default class ContextMenu extends Widget {
 			return true;
 		}
 
-		if (e.key.toUpperCase() == "B") {
+		if (e.key.toUpperCase() === "B") {
 			(async () => {
 				if (mediaId == null) return;
 
-				let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, {
+				const mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, {
 					full: false,
 				});
 
@@ -834,22 +826,22 @@ export default class ContextMenu extends Widget {
 			return true;
 		}
 
-		if (e.key.toUpperCase() == "P") {
-			let enable = !ppixiv.settings.get("auto_pan", false);
+		if (e.key.toUpperCase() === "P") {
+			const enable = !ppixiv.settings.get("auto_pan", false);
 			ppixiv.settings.set("auto_pan", enable);
 
 			ppixiv.message.show(`Image panning ${enable ? "enabled" : "disabled"}`);
 			return true;
 		}
 
-		if (e.key.toUpperCase() == "S") {
+		if (e.key.toUpperCase() === "S") {
 			// Go async to get media info if it's not already available.
 			(async () => {
 				if (mediaId == null) return;
 
 				// Download the image or video by default.  If alt is pressed and the image has
 				// multiple pages, download a ZIP instead.
-				let mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, {
+				const mediaInfo = await ppixiv.mediaCache.getMediaInfo(mediaId, {
 					full: false,
 				});
 				let downloadType = "image";
@@ -874,16 +866,16 @@ export default class ContextMenu extends Widget {
 		// These hotkeys require a user, which we have if we're viewing an image, if the user
 		// was hovering over an image in search results, or if we're viewing a user's posts.
 		// We might not have the user info yet, but we at least need a user ID.
-		let userId = this._effectiveUserId;
+		const userId = this._effectiveUserId;
 
 		// All of these hotkeys require Ctrl.
 		if (!e.ctrlKey) return;
 
-		if (e.key.toUpperCase() == "F") {
+		if (e.key.toUpperCase() === "F") {
 			(async () => {
 				if (userId == null) return;
 
-				let userInfo = await ppixiv.userCache.getUserInfo(userId, {
+				const userInfo = await ppixiv.userCache.getUserInfo(userId, {
 					full: true,
 				});
 				if (userInfo == null) return;
@@ -922,23 +914,23 @@ export default class ContextMenu extends Widget {
 	}
 
 	_handleKeyEvent(e) {
-		if (e.type != "keydown") return false;
+		if (e.type !== "keydown") return false;
 
-		if (e.altKey && e.key == "Enter") {
+		if (e.altKey && e.key === "Enter") {
 			helpers.toggleFullscreen();
 			return true;
 		}
 
 		if (this._isZoomUiEnabled) {
 			// Ctrl-0 toggles zoom, similar to the browser Ctrl-0 reset zoom hotkey.
-			if (e.code == "Digit0" && e.ctrlKey) {
+			if (e.code === "Digit0" && e.ctrlKey) {
 				e.preventDefault();
 				e.stopImmediatePropagation();
 				this._currentViewer.zoomToggle();
 				return;
 			}
 
-			let zoom = helpers.isZoomHotkey(e);
+			const zoom = helpers.isZoomHotkey(e);
 			if (zoom != null) {
 				e.preventDefault();
 				e.stopImmediatePropagation();
@@ -957,18 +949,18 @@ export default class ContextMenu extends Widget {
 
 	onwheel = (e) => {
 		// RMB-wheel zooming is confusing in toggle mode.
-		if (this.toggleMode) return;
+		if (this.touchpadMode) return;
 
 		// Stop if zooming isn't enabled.
 		if (!this._isZoomUiEnabled) return;
 
 		// Stop if the user dropdown is open.
-		let userDropdown = this.avatarWidget.userDropdownWidget;
+		const userDropdown = this.avatarWidget.userDropdownWidget;
 		if (userDropdown) {
 			// If the input isn't inside the dropdown, prevent the input so we don't navigate
 			// while the dropdown is open.  Otherwise, leave it alone to allow scrolling the
 			// dropdown.  This includes submenus (the bookmark tag dropdown).
-			let targetWidget = Widget.fromNode(e.target);
+			const targetWidget = Widget.fromNode(e.target);
 			if (targetWidget) {
 				if (!userDropdown.isAncestorOf(targetWidget)) {
 					e.preventDefault();
@@ -1138,7 +1130,7 @@ export default class ContextMenu extends Widget {
 	get _folderIdForParent() {
 		if (this._effectiveMediaId != null) return this._effectiveMediaId;
 
-		let dataSourceMediaId = this.dataSource?.uiInfo.mediaId;
+		const dataSourceMediaId = this.dataSource?.uiInfo.mediaId;
 		if (helpers.mediaId.isLocal(dataSourceMediaId)) return dataSourceMediaId;
 
 		return null;
@@ -1146,8 +1138,8 @@ export default class ContextMenu extends Widget {
 
 	// Return the folder ID that the parent button goes to.
 	get _parentFolderId() {
-		let folderId = this._folderIdForParent;
-		let isLocal = helpers.mediaId.isLocal(folderId);
+		const folderId = this._folderIdForParent;
+		const isLocal = helpers.mediaId.isLocal(folderId);
 		if (!isLocal) return null;
 
 		// Go to the parent of the item that was clicked on.
@@ -1159,10 +1151,10 @@ export default class ContextMenu extends Widget {
 		// sense whether you're clicking on an image in a search result (go to the
 		// location of the image), while viewing an image (also go to the location of
 		// the image), or in a folder view (go to the folder's parent).
-		let currentlyDisplayingId = LocalAPI.getLocalIdFromArgs(
+		const currentlyDisplayingId = LocalAPI.getLocalIdFromArgs(
 			helpers.args.location,
 		);
-		if (parentFolderId == currentlyDisplayingId)
+		if (parentFolderId === currentlyDisplayingId)
 			parentFolderId = LocalAPI.getParentFolder(parentFolderId);
 
 		return parentFolderId;
@@ -1171,10 +1163,10 @@ export default class ContextMenu extends Widget {
 	clicked_go_to_parent = (e) => {
 		e.preventDefault();
 
-		let parentFolderId = this._parentFolderId;
+		const parentFolderId = this._parentFolderId;
 		if (parentFolderId == null) return;
 
-		let args = new helpers.args("/", ppixiv.plocation);
+		const args = new helpers.args("/", ppixiv.plocation);
 		LocalAPI.getArgsForId(parentFolderId, args);
 		helpers.navigate(args.url);
 	};
@@ -1185,19 +1177,19 @@ class ImageInfoWidget extends IllustWidget {
 		super({
 			...options,
 			template: `
-            <div class="context-menu-image-info-widget">
-                <div class=title-text-block>
-                    <span class=folder-block hidden>
-                        <span class=folder-text></span>
-                        <span class=slash">/</span>
-                    </span>
-                    <span class=title hidden></span>
-                </div>
-                <div class=page-count hidden></div>
-                <div class=image-info hidden></div>
-                <div class="post-age popup" hidden></div>
-            </div>
-        `,
+	           <div class="context-menu-image-info-widget">
+	               <div class=title-text-block>
+	                   <span class=folder-block hidden>
+	                       <span class=folder-text></span>
+	                       <span class=slash">/</span>
+	                   </span>
+	                   <span class=title hidden></span>
+	               </div>
+	               <div class=page-count hidden></div>
+	               <div class=image-info hidden></div>
+	               <div class="post-age popup" hidden></div>
+	           </div>
+	       `,
 		});
 
 		this.showTitle = showTitle;
@@ -1206,9 +1198,9 @@ class ImageInfoWidget extends IllustWidget {
 	get neededData() {
 		// We need illust info if we're viewing a manga page beyond page 1, since
 		// early info doesn't have that.  Most of the time, we only need early info.
-		let mangaPage = this.mangaPage;
-		if (mangaPage == null || mangaPage == 0) return "partial";
-		else return "full";
+		const mangaPage = this.mangaPage;
+		if (mangaPage == null || mangaPage === 0) return "partial";
+		return "full";
 	}
 
 	set showPageNumber(value) {
@@ -1220,18 +1212,18 @@ class ImageInfoWidget extends IllustWidget {
 		this.root.hidden = mediaInfo == null;
 		if (this.root.hidden) return;
 
-		let setInfo = (query, text) => {
-			let node = this.root.querySelector(query);
+		const setInfo = (query, text) => {
+			const node = this.root.querySelector(query);
 			node.innerText = text;
-			node.hidden = text == "";
+			node.hidden = text === "";
 		};
 
 		// Add the page count for manga.  If the data source is dataSource.vview, show
 		// the index of the current file if it's loaded all results.
-		let pageCount = mediaInfo.pageCount;
+		const pageCount = mediaInfo.pageCount;
 		let pageText = this.dataSource.getPageTextForMediaId(mediaId);
 		if (pageText == null && pageCount > 1) {
-			let currentPage = this.mangaPage;
+			const currentPage = this.mangaPage;
 			if (this._showPageNumber || currentPage > 0)
 				pageText = `Page ${currentPage + 1}/${pageCount}`;
 			else pageText = `${pageCount} pages`;
@@ -1241,10 +1233,10 @@ class ImageInfoWidget extends IllustWidget {
 		if (this.showTitle) {
 			setInfo(".title", mediaInfo.illustTitle);
 
-			let showFolder = helpers.mediaId.isLocal(this._mediaId);
+			const showFolder = helpers.mediaId.isLocal(this._mediaId);
 			this.root.querySelector(".folder-block").hidden = !showFolder;
 			if (showFolder) {
-				let { id } = helpers.mediaId.parse(this._mediaId);
+				const { id } = helpers.mediaId.parse(this._mediaId);
 				this.root.querySelector(".folder-text").innerText =
 					helpers.strings.getPathSuffix(id, 1, 1); // parent directory
 			}
@@ -1255,22 +1247,22 @@ class ImageInfoWidget extends IllustWidget {
 		// manga post and we don't have illust data yet, we don't have dimensions, so hide it until
 		// it's loaded.
 		let info = "";
-		let { width, height } = ppixiv.mediaCache.getImageDimensions(
+		const { width, height } = ppixiv.mediaCache.getImageDimensions(
 			mediaInfo,
 			this._mediaId,
 		);
-		if (width != null && height != null) info += width + "x" + height;
+		if (width != null && height != null) info += `${width}x${height}`;
 		setInfo(".image-info", info);
 
-		let secondsOld = (new Date() - new Date(mediaInfo.createDate)) / 1000;
-		let age = helpers.strings.ageToString(secondsOld);
+		const secondsOld = (new Date() - new Date(mediaInfo.createDate)) / 1000;
+		const age = helpers.strings.ageToString(secondsOld);
 		this.root.querySelector(".post-age").dataset.popup =
 			helpers.strings.dateToString(mediaInfo.createDate);
 		setInfo(".post-age", age);
 	}
 
 	setDataSource(dataSource) {
-		if (this.dataSource == dataSource) return;
+		if (this.dataSource === dataSource) return;
 
 		this.dataSource = dataSource;
 		this.refresh();
