@@ -37,6 +37,69 @@ import {
 	OpenWidgets,
 } from "/vview/misc/helpers.js";
 
+const ContextMenuTemplate = `
+<div id="popup-context-menu">
+	<div id="context-menu-image-info">
+		<vv-container class="context-menu-item avatar-widget-container"></vv-container>
+		<div id="context-menu-image-info-container context-menu-item"></div>
+	</div>
+	<div id="context-menu-buttons-group">
+		<a href=# class="button button-view-manga context-menu-item" data-popup="View manga pages">
+			${helpers.createIcon("ppixiv:thumbnails", { classes: ["manga"] })}
+			${helpers.createIcon("mat:menu_book", { classes: ["series"] })}
+		</a>
+
+		<div class="context-menu-item button button-fullscreen enabled" data-popup="Fullscreen">
+			<ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
+		</div>
+
+		<div class="context-menu-item button button-browser-back enabled" data-popup="Back"
+			style="transform: scaleX(-1);">
+			<ppixiv-inline src="resources/exit-icon.svg"></ppixiv-inline>
+		</div>
+
+		<div class="context-menu-item button requires-zoom button-zoom" data-popup="Mousewheel to zoom">
+			<ppixiv-inline src="resources/zoom-plus.svg"></ppixiv-inline>
+			<ppixiv-inline src="resources/zoom-minus.svg"></ppixiv-inline>
+		</div>
+
+		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="cover"
+			data-popup="Zoom to cover">
+			<ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
+		</div>
+
+		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="actual"
+			data-popup="Zoom to actual size">
+			<ppixiv-inline src="resources/zoom-actual.svg"></ppixiv-inline>
+		</div>
+
+		<div class="context-menu-item button button-more enabled" data-popup="More...">
+			${helpers.createIcon("settings")}
+		</div>
+
+		<div class="context-menu-item button button-parent-folder enabled" data-popup="Parent folder" hidden>
+			${helpers.createIcon("folder")}
+		</div>
+
+		<div class="context-menu-item view-in-explorer" hidden></div>
+
+		<vv-container class="context-menu-item button-bookmark" data-bookmark-type=public></vv-container>
+
+		<vv-container class="context-menu-item private-bookmark-button button-bookmark" data-bookmark-type=private>
+		</vv-container>
+
+		<div class="context-menu-item button button-bookmark-tags" data-popup="Bookmark tags">
+			${helpers.createIcon("ppixiv:tag")}
+		</div>
+
+		<vv-container class="context-menu-item button-container button-like-container"></vv-container>
+	</div>
+	<div class=tooltip-display>
+		<div class=tooltip-display-text></div>
+	</div>
+</div>
+`;
+
 export default class ContextMenu extends Widget {
 	// Names for buttons, for storing in this._buttonsDown.
 	buttons = ["lmb", "rmb", "mmb"];
@@ -44,86 +107,7 @@ export default class ContextMenu extends Widget {
 	constructor({ ...options }) {
 		super({
 			...options,
-			template: `
-            <div class=popup-context-menu>
-                <div class=button-strip>
-                    <div class="button-block shift-right">
-                        <a href=# class="button button-view-manga" data-popup="View manga pages">
-                            ${helpers.createIcon("ppixiv:thumbnails", { classes: ["manga"] })}
-                            ${helpers.createIcon("mat:menu_book", { classes: ["series"] })}
-                        </a>
-                    </div>
-
-                    <div class=button-block>
-                        <div class="button button-fullscreen enabled" data-popup="Fullscreen">
-                            <ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
-                        </div>
-                    </div>
-                    <div class=context-menu-image-info-container></div>
-                </div>
-                <div class=button-strip>
-                    <div class=button-block>
-                        <div class="button button-browser-back enabled" data-popup="Back" style="transform: scaleX(-1);">
-                            <ppixiv-inline src="resources/exit-icon.svg"></ppixiv-inline>
-                        </div>
-                    </div>
-                    <div class=button-block>
-                        <div class="button requires-zoom button-zoom" data-popup="Mousewheel to zoom">
-                            <ppixiv-inline src="resources/zoom-plus.svg"></ppixiv-inline>
-                            <ppixiv-inline src="resources/zoom-minus.svg"></ppixiv-inline>
-                        </div>
-                    </div>
-                    <div class=button-block>
-                        <div class="button requires-zoom button-zoom-level" data-level="cover" data-popup="Zoom to cover">
-                            <ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
-                        </div>
-                    </div>
-                    <div class=button-block>
-                        <div class="button requires-zoom button-zoom-level" data-level="actual" data-popup="Zoom to actual size">
-                            <ppixiv-inline src="resources/zoom-actual.svg"></ppixiv-inline>
-                        </div>
-                    </div>
-                    <div class=button-block>
-                        <div class="button button-more enabled" data-popup="More...">
-                            ${helpers.createIcon("settings")}
-                        </div>
-                    </div>
-                </div>
-                <div class=button-strip>
-                    <div class=button-block>
-                        <vv-container class="avatar-widget-container"></vv-container>
-
-                        <div class="button button-parent-folder enabled" data-popup="Parent folder" hidden>
-                            ${helpers.createIcon("folder")}
-                        </div>
-                    </div>
-
-                    <div class="button-block view-in-explorer" hidden></div>
-
-                    <div class="button-block">
-                        <vv-container class=button-bookmark data-bookmark-type=public></vv-container>
-                    </div>
-
-                    <div class="button-block private-bookmark-button">
-                        <vv-container class=button-bookmark data-bookmark-type=private></vv-container>
-                    </div>
-
-                    <div class=button-block>
-                        <div class="button button-bookmark-tags" data-popup="Bookmark tags">
-                            ${helpers.createIcon("ppixiv:tag")}
-                        </div>
-                    </div>
-
-                    <div class="button-block button-container">
-                        <vv-container class=button-like-container></vv-container>
-                    </div>
-                </div>
-
-                <div class=tooltip-display>
-                    <div class=tooltip-display-text></div>
-                </div>
-            </div>
-        `,
+			template: ContextMenuTemplate,
 		});
 
 		this.visible = false;
@@ -154,16 +138,14 @@ export default class ContextMenu extends Widget {
 			callback: this.pointerevent,
 		});
 
-		window.addEventListener("keydown", this._onKeyEvent);
+		window.addEventListener("keydown", this._onKeyEvent); // ctx menu event
 		window.addEventListener("keyup", this._onKeyEvent);
 
-		// Use KeyListener to watch for ctrl being held.
-		new KeyListener("Control", this._ctrlWasPressed);
+		new KeyListener("Control", this._ctrlWasPressed); // listen ctrl event
 
-		// Work around glitchiness in Chrome's click behavior (if we're in Chrome).
-		new FixChromeClicks(this.root);
+		new FixChromeClicks(this.root); // fix chromium glitch
 
-		this.root.addEventListener("mouseover", this.onmouseover, true);
+		this.root.addEventListener("mouseover", this.onmouseover, true); // button tooltip event
 		this.root.addEventListener("mouseout", this.onmouseout, true);
 
 		// If the page is navigated while the popup menu is open, clear the ID the
@@ -196,7 +178,7 @@ export default class ContextMenu extends Widget {
 			.querySelector(".button-parent-folder")
 			.addEventListener("click", this.clicked_go_to_parent);
 
-		for (let button of this.root.querySelectorAll(".button-zoom-level"))
+		for (const button of this.root.querySelectorAll(".button-zoom-level"))
 			button.addEventListener("click", this._clickedZoomLevel);
 
 		this.avatarWidget = new AvatarWidget({
@@ -267,7 +249,13 @@ export default class ContextMenu extends Widget {
 			},
 		});
 
-		this.illustWidgets = [
+		this.illustWidgets = this._create_illust_widget();
+
+		this.refresh();
+	}
+
+	_create_illust_widget() {
+		const illustWidgets = [
 			this.avatarWidget,
 			new LikeButtonWidget({
 				container: this.root.querySelector(".button-like-container"),
@@ -278,16 +266,14 @@ export default class ContextMenu extends Widget {
                 `,
 			}),
 			new ImageInfoWidget({
-				container: this.root.querySelector(
-					".context-menu-image-info-container",
-				),
+				container: document.getElementById("context-menu-image-info-container"),
 			}),
 		];
 
 		if (ppixiv.native) {
-			let viewInExplorer = this.root.querySelector(".view-in-explorer");
+			const viewInExplorer = this.root.querySelector(".view-in-explorer");
 			viewInExplorer.hidden = false;
-			this.illustWidgets.push(
+			illustWidgets.push(
 				new ViewInExplorerWidget({
 					container: viewInExplorer,
 				}),
@@ -296,9 +282,9 @@ export default class ContextMenu extends Widget {
 
 		// The bookmark buttons, and clicks in the tag dropdown:
 		this.bookmarkButtons = [];
-		for (let a of this.root.querySelectorAll("[data-bookmark-type]")) {
+		for (const a of this.root.querySelectorAll("[data-bookmark-type]")) {
 			// The bookmark buttons, and clicks in the tag dropdown:
-			let bookmarkWidget = new BookmarkButtonWidget({
+			const bookmarkWidget = new BookmarkButtonWidget({
 				container: a,
 				// position: relative positions the bookmark count.
 				template: `
@@ -310,7 +296,7 @@ export default class ContextMenu extends Widget {
 			});
 
 			this.bookmarkButtons.push(bookmarkWidget);
-			this.illustWidgets.push(bookmarkWidget);
+			illustWidgets.push(bookmarkWidget);
 		}
 
 		// Set up the bookmark tags dropdown.
@@ -319,16 +305,15 @@ export default class ContextMenu extends Widget {
 			bookmarkTagsButton: this.root.querySelector(".button-bookmark-tags"),
 			bookmarkButtons: this.bookmarkButtons,
 		});
-		this.illustWidgets.push(this.bookmarkTagsDropdownOpener);
-
-		this.refresh();
+		illustWidgets.push(this.bookmarkTagsDropdownOpener);
+		return illustWidgets;
 	}
 
 	_contextMenuEnabledForElement(element) {
-		let target = element.closest("[data-context-menu-target]");
-		if (target == null || target.dataset.contextMenuTarget == "off")
+		const target = element.closest("[data-context-menu-target]");
+		if (target == null || target.dataset.contextMenuTarget === "off")
 			return false;
-		else return true;
+		return true;
 	}
 
 	pointerevent = (e) => {
@@ -733,11 +718,11 @@ export default class ContextMenu extends Widget {
 	}
 
 	setDataSource(dataSource) {
-		if (this.dataSource == dataSource) return;
+		if (this.dataSource === dataSource) return;
 
 		this.dataSource = dataSource;
 
-		for (let widget of this.illustWidgets) {
+		for (const widget of this.illustWidgets) {
 			if (widget.setDataSource) widget.setDataSource(dataSource);
 		}
 
@@ -1003,7 +988,7 @@ export default class ContextMenu extends Widget {
 		e.preventDefault();
 		e.stopImmediatePropagation();
 
-		let down = e.deltaY > 0;
+		const down = e.deltaY > 0;
 		this._handleZoomEvent(e, down);
 	};
 
@@ -1020,9 +1005,9 @@ export default class ContextMenu extends Widget {
 		}
 
 		// If e is a keyboard event, use null to use the center of the screen.
-		let keyboard = e instanceof KeyboardEvent;
-		let x = keyboard ? null : e.clientX;
-		let y = keyboard ? null : e.clientY;
+		const keyboard = e instanceof KeyboardEvent;
+		const x = keyboard ? null : e.clientX;
+		const y = keyboard ? null : e.clientY;
 
 		this._currentViewer.zoomAdjust(down, { x, y });
 
@@ -1033,7 +1018,7 @@ export default class ContextMenu extends Widget {
 	// This is used to remember what the cursor was over when the context menu was opened when in
 	// the search view.
 	_setTemporaryIllust(mediaId) {
-		if (this._clickedMediaId == mediaId) return;
+		if (this._clickedMediaId === mediaId) return;
 
 		this._clickedMediaId = mediaId;
 		this.getUserIdFromMediaId.id = this._clickedMediaId ?? this._mediaId;
@@ -1042,7 +1027,7 @@ export default class ContextMenu extends Widget {
 
 	// Update selection highlight for the context menu.
 	refresh() {
-		let mediaId = this._effectiveMediaId;
+		const mediaId = this._effectiveMediaId;
 		if (this.visible) this.getMediaInfo.id = mediaId;
 
 		// If we're not visible, don't refresh an illust until we are, so we don't trigger
@@ -1051,7 +1036,7 @@ export default class ContextMenu extends Widget {
 		// next time we're displayed.
 		if (!this.visible && mediaId != null) return;
 
-		let userId = this._effectiveUserId;
+		const userId = this._effectiveUserId;
 		helpers.html.setClass(
 			this._buttonFullscreen,
 			"selected",
@@ -1061,14 +1046,14 @@ export default class ContextMenu extends Widget {
 		this._refreshTooltip();
 
 		// Enable the zoom buttons if we're in the image view and we have an ViewerImages.
-		for (let element of this.root.querySelectorAll(".button.requires-zoom"))
+		for (const element of this.root.querySelectorAll(".button.requires-zoom"))
 			helpers.html.setClass(element, "enabled", this._isZoomUiEnabled);
 
 		// If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
 		// they don't load data unnecessarily.  Don't set these back to null if we're hidden, so they
 		// don't blank themselves while we're still fading out.
 		if (this.visible) {
-			for (let widget of this.illustWidgets) {
+			for (const widget of this.illustWidgets) {
 				if (widget.setMediaId) widget.setMediaId(mediaId);
 				if (widget.setUserId) widget.setUserId(userId);
 
@@ -1076,7 +1061,7 @@ export default class ContextMenu extends Widget {
 				// on.  Otherwise, we're open for the image actually being viewed.  Tell ImageInfoWidget
 				// to show the current manga page if we're on a viewed image, but not if we're on a search
 				// result.
-				let showingViewedImage = this._clickedMediaId == null;
+				const showingViewedImage = this._clickedMediaId == null;
 				widget.showPageNumber = showingViewedImage;
 			}
 
@@ -1085,10 +1070,10 @@ export default class ContextMenu extends Widget {
 			//
 			// If we don't have an illust ID, see if the data source has a folder ID, so this
 			// works when right-clicking outside thumbs on search pages.
-			let folderButton = this.root.querySelector(".button-parent-folder");
-			let authorButton = this.root.querySelector(".avatar-widget-container");
+			const folderButton = this.root.querySelector(".button-parent-folder");
+			const authorButton = this.root.querySelector(".avatar-widget-container");
 
-			let isLocal = helpers.mediaId.isLocal(this._folderIdForParent);
+			const isLocal = helpers.mediaId.isLocal(this._folderIdForParent);
 			folderButton.hidden = !isLocal;
 			authorButton.hidden = isLocal;
 			helpers.html.setClass(
@@ -1106,13 +1091,13 @@ export default class ContextMenu extends Widget {
 				this._currentViewer.getLockedZoom(),
 			);
 
-			let zoomLevel = this._currentViewer.getZoomLevel();
-			for (let button of this.root.querySelectorAll(".button-zoom-level"))
+			const zoomLevel = this._currentViewer.getZoomLevel();
+			for (const button of this.root.querySelectorAll(".button-zoom-level"))
 				helpers.html.setClass(
 					button,
 					"selected",
 					this._currentViewer.getLockedZoom() &&
-						button.dataset.level == zoomLevel,
+						button.dataset.level === zoomLevel,
 				);
 		}
 	}
@@ -1200,7 +1185,7 @@ class ImageInfoWidget extends IllustWidget {
 		super({
 			...options,
 			template: `
-            <div class=context-menu-image-info>
+            <div class="context-menu-image-info-widget">
                 <div class=title-text-block>
                     <span class=folder-block hidden>
                         <span class=folder-text></span>
