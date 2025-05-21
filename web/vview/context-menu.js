@@ -336,23 +336,16 @@ export default class ContextMenu extends Widget {
 			if (!this.visible && !this._contextMenuEnabledForElement(e.target))
 				return;
 
-			if (!this.visible && e.mouseButton != 1) return;
+			if (!this.visible && e.mouseButton !== 1) return;
 
-			let buttonName = this.buttons[e.mouseButton];
+			const buttonName = this.buttons[e.mouseButton];
 			if (buttonName != null) this._buttonsDown[buttonName] = true;
-			if (e.mouseButton != 1) return;
+			if (e.mouseButton !== 1) return;
 
-			// If invert-popup-hotkey is true, hold shift to open the popup menu.  Otherwise,
-			// hold shift to suppress the popup menu so the browser context menu will open.
-			//
-			// Firefox doesn't cancel the context menu if shift is pressed.  This seems like a
-			// well-intentioned but deeply confused attempt to let people override pages that
-			// block the context menu, making it impossible for us to let you choose context
-			// menu behavior and probably making it impossible for games to have sane keyboard
-			// behavior at all.
+			// support firefox shift press event
 			this.shiftWasPressed = e.shiftKey;
 			if (
-				navigator.userAgent.indexOf("Firefox/") == -1 &&
+				navigator.userAgent.indexOf("Firefox/") === -1 &&
 				ppixiv.settings.get("invert-popup-hotkey")
 			)
 				this.shiftWasPressed = !this.shiftWasPressed;
@@ -364,13 +357,10 @@ export default class ContextMenu extends Widget {
 			if (this.toggleMode && this.visible) this.hide();
 			else this.show({ x: e.clientX, y: e.clientY, target: e.target });
 		} else {
-			// Releasing the left or right mouse button hides the menu if both the left
-			// and right buttons are released.  Pressing right, then left, then releasing
-			// right won't close the menu until left is also released.  This prevents lost
-			// inputs when quickly right-left clicking.
+			// release event
 			if (!this.visible) return;
 
-			let buttonName = this.buttons[e.mouseButton];
+			const buttonName = this.buttons[e.mouseButton];
 			if (buttonName != null) this._buttonsDown[buttonName] = false;
 
 			this._hideIfAllButtonsReleased();
@@ -380,7 +370,7 @@ export default class ContextMenu extends Widget {
 	// If true, RMB toggles the menu instead of displaying while held, and we'll also hide the
 	// menu if the mouse moves too far away.
 	get toggleMode() {
-		return ppixiv.settings.get("touchpad-mode", false);
+		return ppixiv.settings.get("touchpad_mode", false);
 	}
 
 	// The subclass can override this to handle key events.  This is called whether the menu
@@ -404,20 +394,20 @@ export default class ContextMenu extends Widget {
 	};
 
 	_getHoveredElement() {
-		let x = PointerListener.latestMouseClientPosition[0];
-		let y = PointerListener.latestMouseClientPosition[1];
+		const x = PointerListener.latestMouseClientPosition[0];
+		const y = PointerListener.latestMouseClientPosition[1];
 		return document.elementFromPoint(x, y);
 	}
 
 	_ctrlWasPressed = (down) => {
 		if (!ppixiv.settings.get("ctrl_opens_popup")) return;
 
-		this._buttonsDown["Control"] = down;
+		this._buttonsDown.Control = down;
 
 		if (down) {
-			let x = PointerListener.latestMouseClientPosition[0];
-			let y = PointerListener.latestMouseClientPosition[1];
-			let node = this._getHoveredElement();
+			const x = PointerListener.latestMouseClientPosition[0];
+			const y = PointerListener.latestMouseClientPosition[1];
+			const node = this._getHoveredElement();
 			this.show({ x, y, target: node });
 		} else {
 			this._hideIfAllButtonsReleased();
@@ -430,9 +420,9 @@ export default class ContextMenu extends Widget {
 		if (this.toggleMode) return;
 
 		if (
-			!this._buttonsDown["lmb"] &&
-			!this._buttonsDown["rmb"] &&
-			!this._buttonsDown["Control"]
+			!this._buttonsDown.lmb &&
+			!this._buttonsDown.rmb &&
+			!this._buttonsDown.Control
 		)
 			this.hide();
 	}
