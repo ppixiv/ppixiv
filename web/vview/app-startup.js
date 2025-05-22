@@ -286,15 +286,15 @@ class AppStartup {
 	}
 
 	_windowPopstate = (e) => {
-		let currently_active = this._activeForCurrentUrl();
-		if (this.active == currently_active) return;
+		const currently_active = this._activeForCurrentUrl();
+		if (this.active === currently_active) return;
 
 		// Stop propagation, so other listeners don't see this.  For example, this prevents
 		// the thumbnail viewer from turning on or off as a result of us changing the hash
 		// to "#no-ppixiv".
 		e.stopImmediatePropagation();
 
-		if (this.active == currently_active) return;
+		if (this.active === currently_active) return;
 
 		this._storeDisabled(!currently_active);
 

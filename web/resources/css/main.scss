@@ -847,7 +847,7 @@ textarea,
     // want this to push the rest of the UI down.
     .avatar-popup {
       position: absolute;
-      width: 6em;
+      width: 4em;
       top: 8px;
       right: 8px;
     }
@@ -2350,6 +2350,7 @@ body.hide-r18g .r18g {
   left: 350px;
   text-align: left;
   padding: 10px;
+  border: 1px solid var(--ui-border-color);
   border-radius: var(--border-radius-large);
   background-color: var(--ui-bg-color);
   backdrop-filter: var(--ui-bg-blur);
@@ -3135,6 +3136,8 @@ svg.heart-image .delete {
 
   .dialog {
     max-height: 100%;
+    border: solid 1px var(--ui-border-color);
+    border-radius: var(--border-radius-large);
     background-color: var(--ui-bg-color);
     backdrop-filter: var(--ui-bg-blur);
     color: var(--ui-fg-color);
@@ -3833,7 +3836,6 @@ svg.heart-image .delete {
 
 @mixin settings-dialog() {
   @include general-dialog($dark: true);
-  border-color: var(--ui-border-color);
   // Set the font size.  This ignores the font size multiplier we use for the rest
   // of the UI on mobile, which is much too big for settings, and is slightly larger
   // on desktop.
