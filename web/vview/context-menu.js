@@ -44,27 +44,28 @@ const ContextMenuTemplate = `
 		<div id="context-menu-image-info-container context-menu-item"></div>
 	</div>
 	<div id="context-menu-buttons-group">
-		<a href=# class="button button-view-manga context-menu-item" data-popup="View manga pages">
-			${helpers.createIcon("ppixiv:thumbnails", { classes: ["manga"] })}
-			${helpers.createIcon("mat:menu_book", { classes: ["series"] })}
-		</a>
+		<vv-container class="context-menu-item button-bookmark" data-bookmark-type=public></vv-container>
 
-		<div class="context-menu-item button button-fullscreen enabled" data-popup="Fullscreen">
+		<vv-container class="context-menu-item private-bookmark-button button-bookmark" data-bookmark-type=private>
+		</vv-container>
+
+		<div class="context-menu-item button button-bookmark-tags" data-popup="Bookmark tags" style="display:none">
+			${helpers.createIcon("ppixiv:tag")}
+		</div>
+
+		<vv-container class="context-menu-item button-container button-like-container"></vv-container>
+
+		<div class="context-menu-item button button-fullscreen enabled" data-popup="Fullscreen" style="display:none">
 			<ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
 		</div>
 
-		<div class="context-menu-item button button-browser-back enabled" data-popup="Back"
-			style="transform: scaleX(-1);">
-			<ppixiv-inline src="resources/exit-icon.svg"></ppixiv-inline>
-		</div>
-
-		<div class="context-menu-item button requires-zoom button-zoom" data-popup="Mousewheel to zoom">
+		<div class="context-menu-item button requires-zoom button-zoom" data-popup="Mousewheel to zoom" style="display:none">
 			<ppixiv-inline src="resources/zoom-plus.svg"></ppixiv-inline>
 			<ppixiv-inline src="resources/zoom-minus.svg"></ppixiv-inline>
 		</div>
 
 		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="cover"
-			data-popup="Zoom to cover">
+			data-popup="Zoom to cover" style="display:none">
 			<ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
 		</div>
 
@@ -73,8 +74,18 @@ const ContextMenuTemplate = `
 			<ppixiv-inline src="resources/zoom-actual.svg"></ppixiv-inline>
 		</div>
 
+		<a href=# class="button button-view-manga context-menu-item" data-popup="View manga pages">
+			${helpers.createIcon("ppixiv:thumbnails", { classes: ["manga"] })}
+			${helpers.createIcon("mat:menu_book", { classes: ["series"] })}
+		</a>
+
 		<div class="context-menu-item button button-more enabled" data-popup="More...">
 			${helpers.createIcon("settings")}
+		</div>
+
+		<div class="context-menu-item button button-browser-back enabled" data-popup="Back"
+			style="transform: scaleX(-1);">
+			<ppixiv-inline src="resources/exit-icon.svg"></ppixiv-inline>
 		</div>
 
 		<div class="context-menu-item button button-parent-folder enabled" data-popup="Parent folder" hidden>
@@ -82,18 +93,7 @@ const ContextMenuTemplate = `
 		</div>
 
 		<div class="context-menu-item view-in-explorer" hidden></div>
-
-		<vv-container class="context-menu-item button-bookmark" data-bookmark-type=public></vv-container>
-
-		<vv-container class="context-menu-item private-bookmark-button button-bookmark" data-bookmark-type=private>
-		</vv-container>
-
-		<div class="context-menu-item button button-bookmark-tags" data-popup="Bookmark tags">
-			${helpers.createIcon("ppixiv:tag")}
-		</div>
-
-		<vv-container class="context-menu-item button-container button-like-container"></vv-container>
-	</div>
+</div>
 	<div class=tooltip-display>
 		<div class=tooltip-display-text></div>
 	</div>
@@ -132,29 +132,7 @@ export default class ContextMenu extends Widget {
 
 		this.root.ontransitionend = () => this.callVisibilityChanged();
 
-		this.pointerListener = new PointerListener({
-			element: window,
-			buttonMask: 0b11,
-			callback: this.pointerevent,
-		});
-
-		window.addEventListener("keydown", this._onKeyEvent); // ctx menu event
-		window.addEventListener("keyup", this._onKeyEvent);
-
-		new KeyListener("Control", this._ctrlWasPressed); // listen ctrl event
-
-		new FixChromeClicks(this.root); // fix chromium glitch
-
-		this.root.addEventListener("mouseover", this.onmouseover, true); // button tooltip event
-		this.root.addEventListener("mouseout", this.onmouseout, true);
-
-		// If the page is navigated while the popup menu is open, clear the ID the
-		// user clicked on, so we refresh and show the default.
-		window.addEventListener("pp:popstate", (e) => {
-			if (this._clickedMediaId == null) return;
-
-			this._setTemporaryIllust(null);
-		});
+		this._initListeners();
 
 		this._buttonViewManga = this.root.querySelector(".button-view-manga");
 
@@ -186,6 +164,42 @@ export default class ContextMenu extends Widget {
 			mode: "overlay",
 		});
 
+		this._createMoreOptionsButtons();
+
+		this.getMediaInfo = this._getMediaInfo();
+
+		this.illustWidgets = this._create_illust_widget();
+
+		this.refresh();
+	}
+
+	_initListeners() {
+		this.pointerListener = new PointerListener({
+			element: window,
+			buttonMask: 0b11,
+			callback: this.pointerevent,
+		});
+
+		window.addEventListener("keydown", this._onKeyEvent); // ctx menu event
+		window.addEventListener("keyup", this._onKeyEvent);
+
+		new KeyListener("Control", this._ctrlWasPressed); // listen ctrl event
+
+		new FixChromeClicks(this.root); // fix chromium glitch
+
+		this.root.addEventListener("mouseover", this.onmouseover, true); // button tooltip event
+		this.root.addEventListener("mouseout", this.onmouseout, true);
+
+		// If the page is navigated while the popup menu is open, clear the ID the
+		// user clicked on, so we refresh and show the default.
+		window.addEventListener("pp:popstate", (e) => {
+			if (this._clickedMediaId == null) return;
+
+			this._setTemporaryIllust(null);
+		});
+	}
+
+	_createMoreOptionsButtons() {
 		// Set up the more options dropdown.
 		const moreOptionsButton = this.root.querySelector(".button-more");
 		this._moreOptionsDropdownOpener = new DropdownBoxOpener({
@@ -212,46 +226,50 @@ export default class ContextMenu extends Widget {
 			this._moreOptionsDropdownOpener.visible =
 				!this._moreOptionsDropdownOpener.visible;
 		});
+	}
 
-		// Load full media info when the context menu is open, so we can find out if the post is in a series.
-		this.getMediaInfo = new GetMediaInfo({
+	_getMediaInfo() {
+		const mediaInfo = new GetMediaInfo({
 			parent: this,
 			neededData: "full",
 			onrefresh: async ({ mediaInfo }) => {
-				const seriesId = mediaInfo?.seriesNavData?.seriesId;
-
-				this._buttonViewManga.dataset.popup =
-					mediaInfo == null
-						? ""
-						: seriesId != null
-							? "View series"
-							: "View manga pages";
-
-				const enabled = seriesId != null || mediaInfo?.pageCount > 1;
-				helpers.html.setClass(this._buttonViewManga, "enabled", enabled);
-				this._buttonViewManga.style.pointerEvents = enabled ? "" : "none";
-
-				this._buttonViewManga.querySelector(".manga").hidden = seriesId != null;
-				this._buttonViewManga.querySelector(".series").hidden =
-					seriesId == null;
-
-				// Set the manga page or series link.
-				if (enabled) {
-					if (seriesId != null) {
-						const args = new helpers.args("/", ppixiv.plocation);
-						args.path = `/user/${mediaInfo.userId}/series/${seriesId}`;
-						this._buttonViewManga.href = args.url.toString();
-					} else {
-						const args = getUrlForMediaId(mediaInfo?.mediaId, { manga: true });
-						this._buttonViewManga.href = args.url.toString();
-					}
-				}
+				this._createManageViewButton(mediaInfo);
 			},
 		});
+		return mediaInfo;
+	}
 
-		this.illustWidgets = this._create_illust_widget();
+	_createManageViewButton(mediaInfo) {
+		const seriesId = mediaInfo?.seriesNavData?.seriesId;
+		this._buttonViewManga.hidden = !(
+			mediaInfo?.pageCount > 1 || seriesId != null
+		);
 
-		this.refresh();
+		this._buttonViewManga.dataset.popup =
+			mediaInfo == null
+				? ""
+				: seriesId != null
+					? "View series"
+					: "View manga pages";
+
+		const enabled = seriesId != null || mediaInfo?.pageCount > 1;
+		helpers.html.setClass(this._buttonViewManga, "enabled", enabled);
+		this._buttonViewManga.style.pointerEvents = enabled ? "" : "none";
+
+		this._buttonViewManga.querySelector(".manga").hidden = seriesId != null;
+		this._buttonViewManga.querySelector(".series").hidden = seriesId == null;
+
+		// Set the manga page or series link.
+		if (enabled) {
+			if (seriesId != null) {
+				const args = new helpers.args("/", ppixiv.plocation);
+				args.path = `/user/${mediaInfo.userId}/series/${seriesId}`;
+				this._buttonViewManga.href = args.url.toString();
+			} else {
+				const args = getUrlForMediaId(mediaInfo?.mediaId, { manga: true });
+				this._buttonViewManga.href = args.url.toString();
+			}
+		}
 	}
 
 	_create_illust_widget() {

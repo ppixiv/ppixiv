@@ -2366,6 +2366,7 @@ body.hide-r18g .r18g {
   // Most of this can just scale based on the size of the button, but we need to set the icon
   // size directly.
   --button-size: 32px;
+  --button-size-small: 16px;
 
   // Override the default hidden-widget hiding behavior.
   &.hidden-widget {
@@ -2461,8 +2462,8 @@ body.hide-r18g .r18g {
     }
 
     .button {
-      height: var(--button-size);
-      width: var(--button-size);
+      height: var(--button-size-small);
+      width: var(--button-size-small);
       flex: 1;
       border-radius: var(--border-radius-large);
       padding: 6px;
@@ -3832,7 +3833,7 @@ svg.heart-image .delete {
 
 @mixin settings-dialog() {
   @include general-dialog($dark: true);
-
+  border-color: var(--ui-border-color);
   // Set the font size.  This ignores the font size multiplier we use for the rest
   // of the UI on mobile, which is much too big for settings, and is slightly larger
   // on desktop.
