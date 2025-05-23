@@ -73,7 +73,7 @@ const ContextMenuTemplate = `
 
 		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="cover"
 			data-popup="Zoom to cover" style="display:none">
-			<ppixiv-inline class="ctx-icon" src="resources/zoom-full.svg"></ppixiv-inline>
+			<ppixiv-inline class="ctx-icon" src="resources/zoom-full.svg" style="margin-right: 4px;"></ppixiv-inline>
 		</div>
 
 		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="actual"

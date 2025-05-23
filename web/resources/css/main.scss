@@ -2356,7 +2356,7 @@ body.hide-r18g .r18g {
   // Most of this can just scale based on the size of the button, but we need to set the icon
   // size directly.
   --button-size: 32px;
-  --button-size-small: 16px;
+  --button-size-small: 22px;
 
   // Override the default hidden-widget hiding behavior.
   &.hidden-widget {
@@ -2398,6 +2398,9 @@ body.hide-r18g .r18g {
     display: flex;
     border-radius: var(--border-radius-large);
     height: var(--button-size);
+    padding-inline: 8px;
+    align-items: center;
+    gap: 4px;
   }
 
   .context-menu-item:hover {
@@ -2476,6 +2479,14 @@ body.hide-r18g .r18g {
       width: 100%;
       text-align: center;
       position: absolute;
+      top: -4px;
+      left: -8px;
+    }
+
+    svg {
+      height: var(--button-size-small);
+      width: var(--button-size-small);
+      margin-right: 4px;
     }
 
     .button {
@@ -2485,16 +2496,13 @@ body.hide-r18g .r18g {
 
       .font-icon {
         font-size: var(--button-size-small);
+        margin-right: 4px;
       }
 
       /* Grey out the buttons if this strip isn't enabled. */
       &:not(.enabled) {
         cursor: inherit;
         color: #666;
-      }
-
-      & > svg {
-        height: var(--button-size-small);
       }
 
       @media (hover: hover) {
@@ -2814,22 +2822,6 @@ svg.heart-image .delete {
     &.button.will-delete.enabled:hover svg.heart-image .delete {
       display: inline;
     }
-  }
-
-  // These are !important to override the default white coloring in the context
-  // menu.
-  svg {
-    color: #400 !important;
-  }
-
-  &.enabled svg {
-    color: #800 !important;
-    stroke: none;
-  }
-
-  &.bookmarked svg {
-    color: #f00 !important;
-    stroke: none;
   }
 
   @media (hover: hover) {
