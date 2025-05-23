@@ -1010,7 +1010,6 @@ textarea,
   .avatar {
     transition: filter 0.25s;
     display: block;
-    filter: contrast(1);
     border-radius: var(--border-radius-large);
     object-fit: cover;
     aspect-ratio: 1;
@@ -2391,7 +2390,7 @@ body.hide-r18g .r18g {
     transition: filter 0.25s;
     display: block;
     position: relative;
-    height: 4em;
+    height: inherit;
     filter: contrast(1);
   }
 
@@ -2409,6 +2408,7 @@ body.hide-r18g .r18g {
     display: flex;
     flex-direction: column;
     align-items: center;
+    height: var(--button-size);
   }
 
   .tooltip-display {
@@ -2439,6 +2439,7 @@ body.hide-r18g .r18g {
   #context-menu-buttons-group {
     display: grid;
     max-height: 500px;
+    gap: 8px;
 
     > .button-block {
       display: inline-flex;
@@ -2461,23 +2462,26 @@ body.hide-r18g .r18g {
     &:not(:last-child) > .button-block {
       margin-bottom: -12px;
     }
-
+    .context-menu-item-description {
+      display: block;
+      font-size: 0.8em;
+      color: #888;
+      margin-top: 4px;
+    }
     .button {
       height: var(--button-size-small);
       width: var(--button-size-small);
-      flex: 1;
       border-radius: var(--border-radius-large);
       padding: 6px;
+      margin: auto;
       text-align: center;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      background-color: #222;
-      color: #888;
 
       .font-icon {
-        font-size: var(--button-size);
+        font-size: var(--button-size-small);
       }
 
       /* Grey out the buttons if this strip isn't enabled. */
@@ -2549,10 +2553,7 @@ body.hide-r18g .r18g {
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-size: 0.8em;
-    font-weight: bold;
-    gap: 2px;
-    padding-top: 4px;
+    gap: 8px;
   }
 
   .popup-bookmark-tag-dropdown {
@@ -2756,7 +2757,7 @@ body.hide-r18g .r18g {
     align-items: center;
 
     .avatar-widget {
-      height: 4em;
+      height: inherit;
       margin-right: 0.5em;
     }
   }
@@ -2814,16 +2815,6 @@ body.hide-r18g .r18g {
     width: 100%;
     text-align: center;
   }
-}
-
-/* Nudge the public heart icon up a bit to make room for the bookmark count.
- * Only do this on the popup menu, not image-ui. */
-#popup-context-menu .button-bookmark[data-bookmark-type="public"] .has-like-count > svg {
-  margin-top: -10px;
-}
-
-#popup-context-menu .button.button-like > svg {
-  margin-top: -2px;
 }
 
 /* Hide the "delete" stroke over the heart icon unless clicking the button will

@@ -40,13 +40,13 @@ import {
 const ContextMenuTemplate = `
 <div id="popup-context-menu">
 	<div id="context-menu-image-info">
-		<vv-container class="context-menu-item avatar-widget-container"></vv-container>
+		<vv-container class="context-menu-item avatar-widget-container data-popup="Loading..."></vv-container>
 		<div id="context-menu-image-info-container context-menu-item"></div>
 	</div>
 	<div id="context-menu-buttons-group">
-		<vv-container class="context-menu-item button-bookmark" data-bookmark-type=public></vv-container>
+		<vv-container class="context-menu-item button-bookmark" data-bookmark-type=public data-popup="Bookmark Image"></vv-container>
 
-		<vv-container class="context-menu-item private-bookmark-button button-bookmark" data-bookmark-type=private>
+		<vv-container class="context-menu-item private-bookmark-button button-bookmark" data-bookmark-type=private data-popup="Bookmark Privately">
 		</vv-container>
 
 		<div class="context-menu-item button button-bookmark-tags" data-popup="Bookmark tags" style="display:none">
@@ -59,7 +59,8 @@ const ContextMenuTemplate = `
 			<ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
 		</div>
 
-		<div class="context-menu-item button requires-zoom button-zoom" data-popup="Mousewheel to zoom" style="display:none">
+		<div class="context-menu-item button requires-zoom button-zoom" data-popup="Mousewheel to zoom"
+			style="display:none">
 			<ppixiv-inline src="resources/zoom-plus.svg"></ppixiv-inline>
 			<ppixiv-inline src="resources/zoom-minus.svg"></ppixiv-inline>
 		</div>
@@ -93,9 +94,6 @@ const ContextMenuTemplate = `
 		</div>
 
 		<div class="context-menu-item view-in-explorer" hidden></div>
-</div>
-	<div class=tooltip-display>
-		<div class=tooltip-display-text></div>
 	</div>
 </div>
 `;
@@ -115,12 +113,9 @@ export default class ContextMenu extends Widget {
 		this._currentViewer = null;
 		this._mediaId = null;
 
-		// Whether the left and right mouse buttons are pressed:
 		this._buttonsDown = {};
 
-		// This UI isn't used on mobile, but we're still created so other code doesn't need
-		// to check if we exist.
-		if (ppixiv.mobile) return;
+		if (ppixiv.mobile) return; //skip for mobile ui
 
 		this.getUserIdFromMediaId = new GetUserIdFromMediaId({
 			parent: this,
@@ -132,7 +127,7 @@ export default class ContextMenu extends Widget {
 
 		this.root.ontransitionend = () => this.callVisibilityChanged();
 
-		this._initListeners();
+		this._initButtonListener();
 
 		this._buttonViewManga = this.root.querySelector(".button-view-manga");
 
@@ -168,16 +163,18 @@ export default class ContextMenu extends Widget {
 
 		this.getMediaInfo = this._getMediaInfo();
 
-		this.illustWidgets = this._create_illust_widget();
+		this.illustWidgets = this._createIllustWidget();
+
+		this._createCtxMenuItemDescription();
 
 		this.refresh();
 	}
 
-	_initListeners() {
+	_initButtonListener() {
 		this.pointerListener = new PointerListener({
 			element: window,
 			buttonMask: 0b11,
-			callback: this.pointerevent,
+			callback: this.pointerEvent,
 		});
 
 		window.addEventListener("keydown", this._onKeyEvent); // ctx menu event
@@ -187,16 +184,56 @@ export default class ContextMenu extends Widget {
 
 		new FixChromeClicks(this.root); // fix chromium glitch
 
-		this.root.addEventListener("mouseover", this.onmouseover, true); // button tooltip event
-		this.root.addEventListener("mouseout", this.onmouseout, true);
-
-		// If the page is navigated while the popup menu is open, clear the ID the
-		// user clicked on, so we refresh and show the default.
+		// refresh img cache when page navigating
 		window.addEventListener("pp:popstate", (e) => {
 			if (this._clickedMediaId == null) return;
 
 			this._setTemporaryIllust(null);
 		});
+	}
+
+	_createCtxMenuItemDescription() {
+		const elements = this.root.querySelectorAll(".context-menu-item");
+
+		for (const element of elements) {
+			// Ensure single attachment
+			if (element._descriptionObserverAttached) continue;
+			element._descriptionObserverAttached = true;
+
+			// Create or reuse description element
+			let descEl = element.querySelector(".context-menu-item-description");
+			if (!descEl) {
+				descEl = document.createElement("span");
+				descEl.className = "context-menu-item-description";
+				element.appendChild(descEl);
+			}
+
+			// Initial text from data-popup
+			descEl.textContent = element.dataset.popup || "";
+
+			// Observe data-popup changes dynamically
+			const observer = new MutationObserver((mutations) => {
+				for (const mutation of mutations) {
+					if (
+						mutation.type === "attributes" &&
+						mutation.attributeName === "data-popup"
+					) {
+						descEl.textContent = element.dataset.popup || "";
+					}
+				}
+			});
+			observer.observe(element, { attributes: true });
+		}
+	}
+
+	_updateAuthorName(mediaId) {
+		const authorName = this.root.querySelector(".avatar-widget-container");
+		if (authorName) {
+			const name =
+				this._userInfo?.name ??
+				(!helpers.mediaId.isLocal(mediaId) ? "---" : "");
+			authorName.dataset.popup = name;
+		}
 	}
 
 	_createMoreOptionsButtons() {
@@ -272,7 +309,7 @@ export default class ContextMenu extends Widget {
 		}
 	}
 
-	_create_illust_widget() {
+	_createIllustWidget() {
 		const illustWidgets = [
 			this.avatarWidget,
 			new LikeButtonWidget({
@@ -327,17 +364,16 @@ export default class ContextMenu extends Widget {
 		return illustWidgets;
 	}
 
-	_contextMenuEnabledForElement(element) {
+	_isContextMenuOpen(element) {
 		const target = element.closest("[data-context-menu-target]");
 		if (target == null || target.dataset.contextMenuTarget === "off")
 			return false;
 		return true;
 	}
 
-	pointerevent = (e) => {
+	pointerEvent = (e) => {
 		if (e.pressed) {
-			if (!this.visible && !this._contextMenuEnabledForElement(e.target))
-				return;
+			if (!this.visible && !this._isContextMenuOpen(e.target)) return;
 
 			if (!this.visible && e.mouseButton !== 1) return;
 
@@ -374,12 +410,6 @@ export default class ContextMenu extends Widget {
 	// menu if the mouse moves too far away.
 	get touchpadMode() {
 		return ppixiv.settings.get("touchpad_mode", false);
-	}
-
-	// The subclass can override this to handle key events.  This is called whether the menu
-	// is open or not.
-	_handleKeyEvent(e) {
-		return false;
 	}
 
 	_onKeyEvent = (e) => {
@@ -452,11 +482,14 @@ export default class ContextMenu extends Widget {
 		// If RMB is pressed while dragging LMB, stop dragging the window when we
 		// show the popup.
 		if (this._currentViewer != null) this._currentViewer.stopDragging();
-
 		// See if an element representing a user and/or an illust was under the cursor.
+		let mediaId;
 		if (target != null) {
-			const { mediaId } = ppixiv.app.getMediaIdAtElement(target);
-			this._setTemporaryIllust(mediaId);
+			const result = ppixiv.app.getMediaIdAtElement(target);
+			if (result != null) {
+				({ mediaId } = result);
+				this._setTemporaryIllust(mediaId);
+			}
 		}
 
 		if (this.visible) return;
@@ -538,51 +571,6 @@ export default class ContextMenu extends Widget {
 		this.displayedMenu.style.left = `${x}px`;
 		this.displayedMenu.style.top = `${y}px`;
 	}
-
-	// If element is within a button that has a tooltip set, show it.
-	_showTooltipForElement(element) {
-		if (element != null) element = element.closest("[data-popup]");
-
-		if (this._tooltipElement == element) return;
-
-		this._tooltipElement = element;
-		this._refreshTooltip();
-
-		if (this._tooltipObserver) {
-			this._tooltipObserver.disconnect();
-			this._tooltipObserver = null;
-		}
-
-		if (this._tooltipElement == null) return;
-
-		// Refresh the tooltip if the popup attribute changes while it's visible.
-		this._tooltipObserver = new MutationObserver((mutations) => {
-			for (let mutation of mutations) {
-				if (mutation.type == "attributes") {
-					if (mutation.attributeName == "data-popup") this._refreshTooltip();
-				}
-			}
-		});
-
-		this._tooltipObserver.observe(this._tooltipElement, { attributes: true });
-	}
-
-	_refreshTooltip() {
-		let element = this._tooltipElement;
-		if (element != null) element = element.closest("[data-popup]");
-		this.root.querySelector(".tooltip-display").hidden = element == null;
-		if (element != null)
-			this.root.querySelector(".tooltip-display-text").dataset.popup =
-				element.dataset.popup;
-	}
-
-	onmouseover = (e) => {
-		this._showTooltipForElement(e.target);
-	};
-
-	onmouseout = (e) => {
-		this._showTooltipForElement(e.relatedTarget);
-	};
 
 	get hideTemporarily() {
 		return this._hiddenTemporarily;
@@ -893,9 +881,7 @@ export default class ContextMenu extends Widget {
 			(async () => {
 				if (userId == null) return;
 
-				const userInfo = await ppixiv.userCache.getUserInfo(userId, {
-					full: true,
-				});
+				const userInfo = this._userInfo;
 				if (userInfo == null) return;
 
 				// Ctrl-Shift-F: unfollow
@@ -1047,13 +1033,22 @@ export default class ContextMenu extends Widget {
 		if (!this.visible && mediaId != null) return;
 
 		const userId = this._effectiveUserId;
+
+		ppixiv.userCache
+			.getUserInfo(userId, {
+				full: true,
+			})
+			.then((userInfo) => {
+				this._userInfo = userInfo;
+			});
+
+		this._updateAuthorName(mediaId);
+
 		helpers.html.setClass(
 			this._buttonFullscreen,
 			"selected",
 			helpers.isFullscreen(),
 		);
-
-		this._refreshTooltip();
 
 		// Enable the zoom buttons if we're in the image view and we have an ViewerImages.
 		for (const element of this.root.querySelectorAll(".button.requires-zoom"))
