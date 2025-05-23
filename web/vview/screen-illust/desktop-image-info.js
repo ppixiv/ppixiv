@@ -171,20 +171,22 @@ export default class DesktopImageInfo extends Widget {
 
 		// The bookmark buttons, and clicks in the tag dropdown:
 		this.bookmarkButtons = [];
-		for (let a of this.root.querySelectorAll("[data-bookmark-type]"))
+		for (const a of this.root.querySelectorAll("[data-bookmark-type]")) {
+			console.log("a.dataset.bookmarkType", a.dataset.bookmarkType);
 			this.bookmarkButtons.push(
 				new BookmarkButtonWidget({
 					container: a,
 					template: `
-                    <div class="button icon-button button-bookmark popup ${a.dataset.bookmarkType}">
-                        <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                    </div>
-                `,
+						<div class="button icon-button button-bookmark popup ${a.dataset.bookmarkType}">
+							<ppixiv-inline src="resources/${a.dataset.bookmarkType === "private" ? "heart-icon-private" : "heart-icon"}.svg"></ppixiv-inline>
+						</div>
+						`,
 					bookmarkType: a.dataset.bookmarkType,
 				}),
 			);
+		}
 
-		let bookmarkTagsButton = this.root.querySelector(".button-bookmark-tags");
+		const bookmarkTagsButton = this.root.querySelector(".button-bookmark-tags");
 		this.bookmarkTagsDropdownOpener = new BookmarkTagDropdownOpener({
 			parent: this,
 			bookmarkTagsButton,

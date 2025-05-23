@@ -1,37 +1,37 @@
 // The image UI for mobile.
 
-import Widget from '/vview/widgets/widget.js';
-import { BookmarkButtonWidget } from '/vview/widgets/illust-widgets.js';
-import MoreOptionsDropdown from '/vview/widgets/more-options-dropdown.js';
-import { BookmarkTagListWidget } from '/vview/widgets/bookmark-tag-list.js';
-import { AvatarWidget } from '/vview/widgets/user-widgets.js';
-import { IllustWidget, GetMediaInfo } from '/vview/widgets/illust-widgets.js';
-import { getUrlForMediaId } from '/vview/misc/media-ids.js'
-import DialogWidget from '/vview/widgets/dialog.js';
-import WidgetDragger from '/vview/actors/widget-dragger.js';
-import IsolatedTapHandler from '/vview/actors/isolated-tap-handler.js';
-import { helpers, ClassFlags, OpenWidgets } from '/vview/misc/helpers.js';
+import Widget from "/vview/widgets/widget.js";
+import { BookmarkButtonWidget } from "/vview/widgets/illust-widgets.js";
+import MoreOptionsDropdown from "/vview/widgets/more-options-dropdown.js";
+import { BookmarkTagListWidget } from "/vview/widgets/bookmark-tag-list.js";
+import { AvatarWidget } from "/vview/widgets/user-widgets.js";
+import { IllustWidget, GetMediaInfo } from "/vview/widgets/illust-widgets.js";
+import { getUrlForMediaId } from "/vview/misc/media-ids.js";
+import DialogWidget from "/vview/widgets/dialog.js";
+import WidgetDragger from "/vview/actors/widget-dragger.js";
+import IsolatedTapHandler from "/vview/actors/isolated-tap-handler.js";
+import { helpers, ClassFlags, OpenWidgets } from "/vview/misc/helpers.js";
 
 // The container for the mobile image UI.  This just creates and handles displaying
 // the tabs.
-export default class MobileImageUI extends Widget
-{
-    constructor({
-        // This node receives our drag animation property.  This goes on the screen instead of
-        // us, so the video UI can see it too.
-        transitionTarget,
+export default class MobileImageUI extends Widget {
+	constructor({
+		// This node receives our drag animation property.  This goes on the screen instead of
+		// us, so the video UI can see it too.
+		transitionTarget,
 
-        ...options
-    })
-    {
-        super({...options, template: `
+		...options
+	}) {
+		super({
+			...options,
+			template: `
             <div class=mobile-illust-ui-container>
                 <div class=mobile-illust-ui-page>
                     <div class=avatar></div>
 
                     <div class=menu-bar>
                         <div class="item button-info enabled">
-                            ${ helpers.createIcon("mat:info") }
+                            ${helpers.createIcon("mat:info")}
                             <span class=label>Info</span>
                         </div>
 
@@ -39,439 +39,443 @@ export default class MobileImageUI extends Widget
                         <vv-container class="manga-button-container"></vv-container>
 
                         <div class="item button-more enabled">
-                            ${ helpers.createIcon("settings") }
+                            ${helpers.createIcon("settings")}
                             <span class=label>More...</span>
                         </div>
                     </div>
                 </div>
             </div>
-        `});
-        
-        this.transitionTarget = transitionTarget;
+        `,
+		});
 
-        this.avatarWidget = new AvatarWidget({
-            container: this.root.querySelector(".avatar"),
-            clickAction: "author",
-        });
-        this.root.querySelector(".avatar").hidden = ppixiv.native;
+		this.transitionTarget = transitionTarget;
 
-        // Get the user ID to load the avatar.
-        this.getMediaInfo = new GetMediaInfo({
-            parent: this,
-            neededData: "partial",
-            onrefresh: async({mediaInfo}) => {
-                this.avatarWidget.visible = mediaInfo != null;
-                this.avatarWidget.setUserId(mediaInfo?.userId);
-            },
-        });
+		this.avatarWidget = new AvatarWidget({
+			container: this.root.querySelector(".avatar"),
+			clickAction: "author",
+		});
+		this.root.querySelector(".avatar").hidden = ppixiv.native;
 
-        this.dragger = new WidgetDragger({
-            parent: this,
-            name: "menu-dragger",
-            // Put the --menu-bar-pos property up high, since the video UI also uses it.
-            nodes: [this.transitionTarget],
-            dragNode: this.root.parentNode,
-            size: () => this.querySelector(".menu-bar").offsetHeight,
-            animatedProperty: "--menu-bar-pos",
-            direction: "up",
+		// Get the user ID to load the avatar.
+		this.getMediaInfo = new GetMediaInfo({
+			parent: this,
+			neededData: "partial",
+			onrefresh: async ({ mediaInfo }) => {
+				this.avatarWidget.visible = mediaInfo != null;
+				this.avatarWidget.setUserId(mediaInfo?.userId);
+			},
+		});
 
-            confirmDrag: () => {
-                // Don't start if MobileImageDismiss is animating, so dragging up during the
-                // transition back to ScreenIllust doesn't open the menu.
-                if(this.parent.mobileImageDismiss.isAnimating)
-                    return false;
+		this.dragger = new WidgetDragger({
+			parent: this,
+			name: "menu-dragger",
+			// Put the --menu-bar-pos property up high, since the video UI also uses it.
+			nodes: [this.transitionTarget],
+			dragNode: this.root.parentNode,
+			size: () => this.querySelector(".menu-bar").offsetHeight,
+			animatedProperty: "--menu-bar-pos",
+			direction: "up",
 
-                return true;
-            },
+			confirmDrag: () => {
+				// Don't start if MobileImageDismiss is animating, so dragging up during the
+				// transition back to ScreenIllust doesn't open the menu.
+				if (this.parent.mobileImageDismiss.isAnimating) return false;
 
-            oncancelled: ({otherDragger}) => {
-                if(!this.dragger.visible)
-                    return;
+				return true;
+			},
 
-                // Hide the menu if another dragger starts, so we hide if the image changer, pan/zoom,
-                // etc. begin.  We do it this way and not with a ClickOutsideListener so we don't
-                // close when a new menu drag starts.
-                this.dragger.hide();
+			oncancelled: ({ otherDragger }) => {
+				if (!this.dragger.visible) return;
 
-                // Prevent IsolatedTapHandler, so it doesn't trigger from this press and reopen us.
-                IsolatedTapHandler.preventTaps();
-            },
-            onbeforeshown: () => this.callVisibilityChanged(),
-            onafterhidden: () => this.callVisibilityChanged(),
-            onactive: () => this.callVisibilityChanged(),
-            oninactive: () => this.callVisibilityChanged(),
-        });
+				// Hide the menu if another dragger starts, so we hide if the image changer, pan/zoom,
+				// etc. begin.  We do it this way and not with a ClickOutsideListener so we don't
+				// close when a new menu drag starts.
+				this.dragger.hide();
 
-        this._mediaId = null;
+				// Prevent IsolatedTapHandler, so it doesn't trigger from this press and reopen us.
+				IsolatedTapHandler.preventTaps();
+			},
+			onbeforeshown: () => this.callVisibilityChanged(),
+			onafterhidden: () => this.callVisibilityChanged(),
+			onactive: () => this.callVisibilityChanged(),
+			oninactive: () => this.callVisibilityChanged(),
+		});
 
-        this.querySelector(".button-more").addEventListener("click", (e) => {
-            new MoreOptionsDialog({
-                mediaId: this._mediaId
-            });
+		this._mediaId = null;
 
-            this.dragger.hide();            
-        });
+		this.querySelector(".button-more").addEventListener("click", (e) => {
+			new MoreOptionsDialog({
+				mediaId: this._mediaId,
+			});
 
-        this.querySelector(".button-info").addEventListener("click", (e) => {
-            new MobileIllustInfoDialog({
-                mediaId: this._mediaId,
-                dataSource: this.dataSource,
-            });
+			this.dragger.hide();
+		});
 
-            this.dragger.hide();            
-        });
+		this.querySelector(".button-info").addEventListener("click", (e) => {
+			new MobileIllustInfoDialog({
+				mediaId: this._mediaId,
+				dataSource: this.dataSource,
+			});
 
-        this.buttonBookmark = this.querySelector(".bookmark-button-container");
-        this.bookmarkButtonWidget = new ImageBookmarkedWidget({ container: this.buttonBookmark });
+			this.dragger.hide();
+		});
 
-        this.viewManga = this.querySelector(".manga-button-container");
-        this.viewMangaWidget = new ViewMangaWidget({ container: this.viewManga });
+		this.buttonBookmark = this.querySelector(".bookmark-button-container");
+		this.bookmarkButtonWidget = new ImageBookmarkedWidget({
+			container: this.buttonBookmark,
+		});
 
-        this.buttonBookmark.addEventListener("click", (e) => {
-            new BookmarkTagDialog({
-                mediaId: this._mediaId
-            });
-            
-            this.dragger.hide();            
-        });
+		this.viewManga = this.querySelector(".manga-button-container");
+		this.viewMangaWidget = new ViewMangaWidget({ container: this.viewManga });
 
-        // This tells widgets that want to be above us how tall we are.
-        helpers.html.setSizeAsProperty(this.querySelector(".menu-bar"), {
-            target: this.closest(".screen"),
-            heightProperty: "--menu-bar-height",
-            ...this._signal
-        });
+		this.buttonBookmark.addEventListener("click", (e) => {
+			new BookmarkTagDialog({
+				mediaId: this._mediaId,
+			});
 
-        this.refresh();
-    }
+			this.dragger.hide();
+		});
 
-    set mediaId(mediaId)
-    {
-        if(this._mediaId == mediaId)
-            return;
+		// This tells widgets that want to be above us how tall we are.
+		helpers.html.setSizeAsProperty(this.querySelector(".menu-bar"), {
+			target: this.closest(".screen"),
+			heightProperty: "--menu-bar-height",
+			...this._signal,
+		});
 
-        // We'll apply the media ID to our children in refresh().
-        this._mediaId = mediaId;
+		this.refresh();
+	}
 
-        this.refresh();
-    }
-    get mediaId() { return this._mediaId; }
+	set mediaId(mediaId) {
+		if (this._mediaId == mediaId) return;
 
-    // We control our own visibility based on the dragger.
-    get visible()
-    {
-        return this.dragger.visible;
-    }
+		// We'll apply the media ID to our children in refresh().
+		this._mediaId = mediaId;
 
-    get actuallyVisible()
-    {
-        return this.dragger.visible;
-    }
-    
-    visibilityChanged()
-    {
-        super.visibilityChanged();
+		this.refresh();
+	}
+	get mediaId() {
+		return this._mediaId;
+	}
 
-        // Hide if our tree becomes hidden.
-        if(!this.visibleRecursively)
-            this.hide();
+	// We control our own visibility based on the dragger.
+	get visible() {
+		return this.dragger.visible;
+	}
 
-        let visible = this.actuallyVisible;
+	get actuallyVisible() {
+		return this.dragger.visible;
+	}
 
-        // Only hide if we're actually not visible, so we're hidden if we're offscreen but
-        // visible for transitions.
-        this.root.hidden = !visible;
+	visibilityChanged() {
+		super.visibilityChanged();
 
-        helpers.html.setClass(document.documentElement, "illust-menu-visible", visible);
+		// Hide if our tree becomes hidden.
+		if (!this.visibleRecursively) this.hide();
 
-        // This enables pointer-events only when the animation is finished.  This avoids problems
-        // with iOS sending clicks to the button when it wasn't pressable when the touch started.
-        helpers.html.setClass(this.root, "fully-visible", visible && !this.dragger.isAnimationPlaying);
+		let visible = this.actuallyVisible;
 
-        this.refresh();
-    }
+		// Only hide if we're actually not visible, so we're hidden if we're offscreen but
+		// visible for transitions.
+		this.root.hidden = !visible;
 
-    show()
-    {
-        this.dragger.show();        
-    }
+		helpers.html.setClass(
+			document.documentElement,
+			"illust-menu-visible",
+			visible,
+		);
 
-    hide()
-    {
-        this.dragger.hide();        
-    }
+		// This enables pointer-events only when the animation is finished.  This avoids problems
+		// with iOS sending clicks to the button when it wasn't pressable when the touch started.
+		helpers.html.setClass(
+			this.root,
+			"fully-visible",
+			visible && !this.dragger.isAnimationPlaying,
+		);
 
-    toggle()
-    {
-        if(this.dragger.visible)
-            this.hide();
-        else
-            this.show();
-    }
+		this.refresh();
+	}
 
-    setDataSource(dataSource)
-    {
-        if(this.dataSource == dataSource)
-            return;
+	show() {
+		this.dragger.show();
+	}
 
-        this.dataSource = dataSource;
+	hide() {
+		this.dragger.hide();
+	}
 
-        this.refresh();
-    }
+	toggle() {
+		if (this.dragger.visible) this.hide();
+		else this.show();
+	}
 
-    set mediaId(mediaId)
-    {
-        if(this._mediaId == mediaId)
-            return;
+	setDataSource(dataSource) {
+		if (this.dataSource == dataSource) return;
 
-        this._mediaId = mediaId;
-        this.refresh();
-    }
+		this.dataSource = dataSource;
 
-    refresh()
-    {
-        super.refresh();
+		this.refresh();
+	}
 
-        // Don't refresh while we're hiding, so we don't flash the next page's info while we're
-        // hiding right after the page is dragged.  This shouldn't happen when displaying, since
-        // our media ID should be set before show() is called.
-        if(this.dragger.isAnimationPlaying)
-            return;
+	set mediaId(mediaId) {
+		if (this._mediaId == mediaId) return;
 
-        this.getMediaInfo.id = this._mediaId;
+		this._mediaId = mediaId;
+		this.refresh();
+	}
 
-        // Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
-        // open.
-        let fullyVisible = this.dragger.position == 1;
-        ClassFlags.get.set("mobile-ui-visible", fullyVisible);
+	refresh() {
+		super.refresh();
 
-        // Add ourself to OpenWidgets if we're visible at all.
-        let visible = this.actuallyVisible;
-        OpenWidgets.singleton.set(this, visible);
+		// Don't refresh while we're hiding, so we don't flash the next page's info while we're
+		// hiding right after the page is dragged.  This shouldn't happen when displaying, since
+		// our media ID should be set before show() is called.
+		if (this.dragger.isAnimationPlaying) return;
 
-        // If we're not visible, don't refresh an illust until we are, so we don't trigger
-        // data loads.  Do refresh even if we're hidden if we have no illust to clear
-        // the previous illust's display even if we're not visible, so it's not visible the
-        // next time we're displayed.
-        if(!this.visible && this._mediaId != null)
-            return
+		this.getMediaInfo.id = this._mediaId;
 
-        helpers.html.setClass(this.root.querySelector(".button-bookmark"), "enabled", true);
+		// Set data-mobile-ui-visible if we're fully visible so other UIs can tell if this UI is
+		// open.
+		let fullyVisible = this.dragger.position == 1;
+		ClassFlags.get.set("mobile-ui-visible", fullyVisible);
 
-        // If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
-        // they don't load data unnecessarily.  Don't set these back to null if we're hidden, so they
-        // don't blank themselves while we're still fading out.
-        if(this.visible)
-        {
-            let mediaId = this._mediaId;
-            this.bookmarkButtonWidget.setMediaId(mediaId);
-            this.viewMangaWidget.setMediaId(mediaId);
-        }
-    }
+		// Add ourself to OpenWidgets if we're visible at all.
+		let visible = this.actuallyVisible;
+		OpenWidgets.singleton.set(this, visible);
+
+		// If we're not visible, don't refresh an illust until we are, so we don't trigger
+		// data loads.  Do refresh even if we're hidden if we have no illust to clear
+		// the previous illust's display even if we're not visible, so it's not visible the
+		// next time we're displayed.
+		if (!this.visible && this._mediaId != null) return;
+
+		helpers.html.setClass(
+			this.root.querySelector(".button-bookmark"),
+			"enabled",
+			true,
+		);
+
+		// If we're visible, tell widgets what we're viewing.  Don't do this if we're not visible, so
+		// they don't load data unnecessarily.  Don't set these back to null if we're hidden, so they
+		// don't blank themselves while we're still fading out.
+		if (this.visible) {
+			let mediaId = this._mediaId;
+			this.bookmarkButtonWidget.setMediaId(mediaId);
+			this.viewMangaWidget.setMediaId(mediaId);
+		}
+	}
 }
 
 // IllustBottomMenuBar's bookmark button.
-class ImageBookmarkedWidget extends IllustWidget
-{
-    constructor({ ...options })
-    {
-        super({
-            ...options,
-            template: `
+class ImageBookmarkedWidget extends IllustWidget {
+	constructor({ ...options }) {
+		super({
+			...options,
+			template: `
                 <div class="item button-bookmark public">
                     <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
-                
+
                     <vv-container class="button-bookmark-icon"></vv-container>
                     <span class=label>Bookmark</span>
                 </div>
-            `
-        });
-    }
+            `,
+		});
+	}
 
-    get neededData() { return "partial"; }
+	get neededData() {
+		return "partial";
+	}
 
-    refreshInternal({ mediaInfo })
-    {
-        let bookmarked = mediaInfo?.bookmarkData != null;
-        let privateBookmark = mediaInfo?.bookmarkData?.private;
+	refreshInternal({ mediaInfo }) {
+		let bookmarked = mediaInfo?.bookmarkData != null;
+		let privateBookmark = mediaInfo?.bookmarkData?.private;
 
-        helpers.html.setClass(this.root,  "enabled",     mediaInfo != null);
-        helpers.html.setClass(this.root,  "bookmarked",  bookmarked);
-        helpers.html.setClass(this.root,  "public",      !privateBookmark);
-    }
+		helpers.html.setClass(this.root, "enabled", mediaInfo != null);
+		helpers.html.setClass(this.root, "bookmarked", bookmarked);
+		helpers.html.setClass(this.root, "public", !privateBookmark);
+	}
 }
 
-class ViewMangaWidget extends IllustWidget
-{
-    constructor({ ...options })
-    {
-        super({
-            ...options,
-            template: `
+class ViewMangaWidget extends IllustWidget {
+	constructor({ ...options }) {
+		super({
+			...options,
+			template: `
                 <div class="item button-view-manga enabled">
                     <vv-container class=manga>
-                        ${ helpers.createIcon("ppixiv:thumbnails") }
+                        ${helpers.createIcon("ppixiv:thumbnails")}
                         <span class=label>Pages</span>
                     </vv-container>
 
                     <vv-container class=series hidden>
-                        ${ helpers.createIcon("mat:menu_book") }
+                        ${helpers.createIcon("mat:menu_book")}
                         <span class=label>Series</span>
                     </vv-container>
                 </div>
-            `
-        });
+            `,
+		});
 
-        this.root.addEventListener("click", (e) => this.onClick());
-    }
-    
-    get neededData() { return "full"; }
+		this.root.addEventListener("click", (e) => this.onClick());
+	}
 
-    refreshInternal({ mediaInfo })
-    {
-        let seriesId = mediaInfo?.seriesNavData?.seriesId;
+	get neededData() {
+		return "full";
+	}
 
-        this.root.dataset.popup = 
-            mediaInfo == null? "":
-            seriesId != null? "View series":"View manga pages";
-        
-        let enabled = seriesId != null || mediaInfo?.pageCount > 1;
-        this.root.hidden = !enabled;
+	refreshInternal({ mediaInfo }) {
+		let seriesId = mediaInfo?.seriesNavData?.seriesId;
 
-        this.querySelector(".manga").hidden = seriesId != null;
-        this.querySelector(".series").hidden = seriesId == null;
-  
-        // Store where we should go on click.
-        if(seriesId != null)
-        {
-            this.navigateArgs = new helpers.args("/", ppixiv.plocation);
-            this.navigateArgs.path  = `/user/${mediaInfo.userId}/series/${seriesId}`;
-        }
-        else if(mediaInfo?.pageCount > 1)
-            this.navigateArgs = getUrlForMediaId(mediaInfo?.mediaId, { manga: true });
-        else
-            this.navigateArgs = null;
-    }
+		this.root.dataset.popup =
+			mediaInfo == null
+				? ""
+				: seriesId != null
+					? "View series"
+					: "View manga pages";
 
-    onClick(e)
-    {
-        if(this.navigateArgs)
-            helpers.navigate(this.navigateArgs);
-    }
+		let enabled = seriesId != null || mediaInfo?.pageCount > 1;
+		this.root.hidden = !enabled;
+
+		this.querySelector(".manga").hidden = seriesId != null;
+		this.querySelector(".series").hidden = seriesId == null;
+
+		// Store where we should go on click.
+		if (seriesId != null) {
+			this.navigateArgs = new helpers.args("/", ppixiv.plocation);
+			this.navigateArgs.path = `/user/${mediaInfo.userId}/series/${seriesId}`;
+		} else if (mediaInfo?.pageCount > 1)
+			this.navigateArgs = getUrlForMediaId(mediaInfo?.mediaId, { manga: true });
+		else this.navigateArgs = null;
+	}
+
+	onClick(e) {
+		if (this.navigateArgs) helpers.navigate(this.navigateArgs);
+	}
 }
 
-class BookmarkTagDialog extends DialogWidget
-{
-    constructor({mediaId, ...options})
-    {
-        super({...options, dialogClass: "mobile-tag-list", header: "Bookmark illustration", template: `
+class BookmarkTagDialog extends DialogWidget {
+	constructor({ mediaId, ...options }) {
+		super({
+			...options,
+			dialogClass: "mobile-tag-list",
+			header: "Bookmark illustration",
+			template: `
             <div class=menu-bar>
                 <vv-container class=public-bookmark></vv-container>
                 <vv-container class=private-bookmark></vv-container>
                 <vv-container class=remove-bookmark></vv-container>
             </div>
-        `});
+        `,
+		});
 
-        this.tagListWidget = new BookmarkTagListWidget({
-            container: this.root.querySelector(".scroll"),
-            containerPosition: "afterbegin",
-        });
+		this.tagListWidget = new BookmarkTagListWidget({
+			container: this.root.querySelector(".scroll"),
+			containerPosition: "afterbegin",
+		});
 
-        this.publicBookmark = new BookmarkButtonWidget({
-            container: this.root.querySelector(".public-bookmark"),
-            template: `
+		this.publicBookmark = new BookmarkButtonWidget({
+			container: this.root.querySelector(".public-bookmark"),
+			template: `
                 <div class="button-bookmark public item">
                     <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                 </div>
             `,
 
-            bookmarkType: "public",
+			bookmarkType: "public",
 
-            // Instead of deleting the bookmark, save tag changes when these bookmark buttons
-            // are clicked.
-            toggleBookmark: false,
+			// Instead of deleting the bookmark, save tag changes when these bookmark buttons
+			// are clicked.
+			toggleBookmark: false,
 
-            // Close if a bookmark button is clicked.
-            bookmarkTagListWidget: this.tagListWidget,
-        });
-        this.publicBookmark.addEventListener("bookmarkedited", () => this.visible = false);
+			// Close if a bookmark button is clicked.
+			bookmarkTagListWidget: this.tagListWidget,
+		});
+		this.publicBookmark.addEventListener(
+			"bookmarkedited",
+			() => (this.visible = false),
+		);
 
-        let privateBookmark = this.root.querySelector(".private-bookmark");
-        privateBookmark.hidden = ppixiv.native;
-        if(!ppixiv.native)
-        {
-            this.privateBookmark = new BookmarkButtonWidget({
-                container: privateBookmark,
-                template: `
-                    <div class="button-bookmark private item">
-                        <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+		let privateBookmark = this.root.querySelector(".private-bookmark");
+		privateBookmark.hidden = ppixiv.native;
+		if (!ppixiv.native) {
+			this.privateBookmark = new BookmarkButtonWidget({
+				container: privateBookmark,
+				template: `
+                    <div class="button-bookmark-private item">
+                        <ppixiv-inline src="resources/heart-icon-private.svg"></ppixiv-inline>
                     </div>
                 `,
-                bookmarkType: "private",
-                toggleBookmark: false,
-                bookmarkTagListWidget: this.tagListWidget,
-            });
-            this.privateBookmark.addEventListener("bookmarkedited", () => this.visible = false);
-        }
+				bookmarkType: "private",
+				toggleBookmark: false,
+				bookmarkTagListWidget: this.tagListWidget,
+			});
+			this.privateBookmark.addEventListener(
+				"bookmarkedited",
+				() => (this.visible = false),
+			);
+		}
 
-        let deleteBookmark = this.root.querySelector(".remove-bookmark");
-        this.deleteBookmark = new BookmarkButtonWidget({
-            container: deleteBookmark,
-            template: `
+		let deleteBookmark = this.root.querySelector(".remove-bookmark");
+		this.deleteBookmark = new BookmarkButtonWidget({
+			container: deleteBookmark,
+			template: `
                 <div class="button-bookmark item icon-button">
-                    ${ helpers.createIcon("mat:delete") }
+                    ${helpers.createIcon("mat:delete")}
                 </div>
             `,
 
-            bookmarkType: "delete",
-            bookmarkTagListWidget: this.tagListWidget,
-        });
-        this.deleteBookmark.addEventListener("bookmarkedited", () => this.visible = false);
+			bookmarkType: "delete",
+			bookmarkTagListWidget: this.tagListWidget,
+		});
+		this.deleteBookmark.addEventListener(
+			"bookmarkedited",
+			() => (this.visible = false),
+		);
 
-        this.tagListWidget.setMediaId(mediaId);
-        this.publicBookmark.setMediaId(mediaId);
-        this.deleteBookmark.setMediaId(mediaId);
-        if(this.privateBookmark)
-            this.privateBookmark.setMediaId(mediaId);
-    }
+		this.tagListWidget.setMediaId(mediaId);
+		this.publicBookmark.setMediaId(mediaId);
+		this.deleteBookmark.setMediaId(mediaId);
+		if (this.privateBookmark) this.privateBookmark.setMediaId(mediaId);
+	}
 
-    visibilityChanged()
-    {
-        super.visibilityChanged();
+	visibilityChanged() {
+		super.visibilityChanged();
 
-        // Let the tag list know when it's hidden, so it knows to save changes.
-        if(this.tagListWidget)
-            this.tagListWidget.visible = this.actuallyVisible;
-    }
+		// Let the tag list know when it's hidden, so it knows to save changes.
+		if (this.tagListWidget) this.tagListWidget.visible = this.actuallyVisible;
+	}
 }
 
-class MoreOptionsDialog extends DialogWidget
-{
-    constructor({template, mediaId, ...options})
-    {
-        super({...options, header: "More", classes: ['mobile-illust-ui-dialog'], template: `
+class MoreOptionsDialog extends DialogWidget {
+	constructor({ template, mediaId, ...options }) {
+		super({
+			...options,
+			header: "More",
+			classes: ["mobile-illust-ui-dialog"],
+			template: `
             <div class=box>
             </div>
-        `});
+        `,
+		});
 
-        this.moreOptionsWidget = new MoreOptionsDropdown({
-            container: this.root.querySelector(".box"),
-        });
-        this.moreOptionsWidget.setMediaId(mediaId);
-    }
+		this.moreOptionsWidget = new MoreOptionsDropdown({
+			container: this.root.querySelector(".box"),
+		});
+		this.moreOptionsWidget.setMediaId(mediaId);
+	}
 
-    // moreOptionsWidget items can call hide() on us when it's clicked.
-    hide()
-    {
-        this.visible = false;
-    }
+	// moreOptionsWidget items can call hide() on us when it's clicked.
+	hide() {
+		this.visible = false;
+	}
 }
 
-class MobileIllustInfoDialog extends DialogWidget
-{
-    constructor({mediaId, dataSource, ...options})
-    {
-        super({...options, header: "More", classes: ['mobile-illust-ui-dialog'], template: `
+class MobileIllustInfoDialog extends DialogWidget {
+	constructor({ mediaId, dataSource, ...options }) {
+		super({
+			...options,
+			header: "More",
+			classes: ["mobile-illust-ui-dialog"],
+			template: `
             <div class=mobile-image-info>
                 <div class=author-block>
                     <vv-container class=avatar></vv-container>
@@ -483,115 +487,111 @@ class MobileIllustInfoDialog extends DialogWidget
                 <div class=bookmark-tags></div>
                 <div class=description></div>
             </div>
-        `});
+        `,
+		});
 
-        this.dataSource = dataSource;
+		this.dataSource = dataSource;
 
-        this.avatarWidget = new AvatarWidget({
-            container: this.root.querySelector(".avatar"),
-            mode: "dropdown",
-        });
-        this.root.querySelector(".avatar").hidden = ppixiv.native;
+		this.avatarWidget = new AvatarWidget({
+			container: this.root.querySelector(".avatar"),
+			mode: "dropdown",
+		});
+		this.root.querySelector(".avatar").hidden = ppixiv.native;
 
-        this.getMediaInfo = new GetMediaInfo({
-            parent: this,
-            id: mediaId,
-            onrefresh: async(info) => this.refreshInternal(info),
-        });
-    }
+		this.getMediaInfo = new GetMediaInfo({
+			parent: this,
+			id: mediaId,
+			onrefresh: async (info) => this.refreshInternal(info),
+		});
+	}
 
-    async refreshInternal({ mediaId, mediaInfo })
-    {
-        this.root.hidden = mediaInfo == null;
-        if(this.root.hidden)
-            return;
+	async refreshInternal({ mediaId, mediaInfo }) {
+		this.root.hidden = mediaInfo == null;
+		if (this.root.hidden) return;
 
-        this.querySelector(".author").textContent = `by ${mediaInfo?.userName}`;
-        this.avatarWidget.setUserId(mediaInfo?.userId);
+		this.querySelector(".author").textContent = `by ${mediaInfo?.userName}`;
+		this.avatarWidget.setUserId(mediaInfo?.userId);
 
-        let isLocal = helpers.mediaId.isLocal(mediaId);
-        let tags = isLocal? mediaInfo.bookmarkData?.tags:mediaInfo.tagList;
-        tags ??= [];
-        
-        // If this is a local image then the tags are bookmark tags, so don't try to get translations.
-        let translatedTags = {};
-        if(!isLocal)
-            translatedTags = await ppixiv.tagTranslations.getTranslations(tags, "en");
+		let isLocal = helpers.mediaId.isLocal(mediaId);
+		let tags = isLocal ? mediaInfo.bookmarkData?.tags : mediaInfo.tagList;
+		tags ??= [];
 
-        let tagWidget = this.root.querySelector(".bookmark-tags");
-        helpers.html.removeElements(tagWidget);
+		// If this is a local image then the tags are bookmark tags, so don't try to get translations.
+		let translatedTags = {};
+		if (!isLocal)
+			translatedTags = await ppixiv.tagTranslations.getTranslations(tags, "en");
 
-        for(let tag of tags)
-        {
-            let entry = this.createTemplate({name: "tag-entry", html: `
+		let tagWidget = this.root.querySelector(".bookmark-tags");
+		helpers.html.removeElements(tagWidget);
+
+		for (let tag of tags) {
+			let entry = this.createTemplate({
+				name: "tag-entry",
+				html: `
                 <a href=# class="mobile-ui-tag-entry">
-                    ${ helpers.createIcon("ppixiv:tag", { classes: ["bookmark-tag-icon"] }) }
+                    ${helpers.createIcon("ppixiv:tag", { classes: ["bookmark-tag-icon"] })}
                     <span class=tag-name></span>
                 </a>
-            `});
+            `,
+			});
 
-            let translatedTag = tag;
-            if(translatedTags[tag])
-                translatedTag = translatedTags[tag]
+			let translatedTag = tag;
+			if (translatedTags[tag]) translatedTag = translatedTags[tag];
 
-            entry.href = helpers.getArgsForTagSearch(tag, ppixiv.plocation);
-            entry.querySelector(".tag-name").innerText = translatedTag;
-            tagWidget.appendChild(entry);
-        }
+			entry.href = helpers.getArgsForTagSearch(tag, ppixiv.plocation);
+			entry.querySelector(".tag-name").innerText = translatedTag;
+			tagWidget.appendChild(entry);
+		}
 
-        let setInfo = (query, text) =>
-        {
-            let node = this.root.querySelector(query);
-            node.innerText = text;
-            node.hidden = text == "";
-        };
-        
-        // Add the page count for manga.  If the data source is dataSource.vview, show
-        // the index of the current file if it's loaded all results.
-        let pageCount = mediaInfo.pageCount;
-        let pageText = this.dataSource.getPageTextForMediaId(mediaId);
-        if(pageText == null && pageCount > 1)
-        {
-            let currentPage = this._page;
-            if(currentPage > 0)
-                pageText = `Page ${currentPage+1}/${pageCount}`;
-            else
-                pageText = `${pageCount} pages`;
-        }
-        setInfo(".page-count", pageText ?? "");
+		let setInfo = (query, text) => {
+			let node = this.root.querySelector(query);
+			node.innerText = text;
+			node.hidden = text == "";
+		};
 
-        this.header = mediaInfo.illustTitle;
-    
-        // If we're on the first page then we only requested early info, and we can use the dimensions
-        // on it.  Otherwise, get dimensions from mangaPages from illust data.  If we're displaying a
-        // manga post and we don't have illust data yet, we don't have dimensions, so hide it until
-        // it's loaded.
-        let info = "";
-        
-        let { width, height } = ppixiv.mediaCache.getImageDimensions(mediaInfo, mediaId);
-        if(width != null && height != null)
-            info += width + "x" + height;
-        setInfo(".image-info-text", info);
+		// Add the page count for manga.  If the data source is dataSource.vview, show
+		// the index of the current file if it's loaded all results.
+		let pageCount = mediaInfo.pageCount;
+		let pageText = this.dataSource.getPageTextForMediaId(mediaId);
+		if (pageText == null && pageCount > 1) {
+			let currentPage = this._page;
+			if (currentPage > 0) pageText = `Page ${currentPage + 1}/${pageCount}`;
+			else pageText = `${pageCount} pages`;
+		}
+		setInfo(".page-count", pageText ?? "");
 
-        let secondsOld = (new Date() - new Date(mediaInfo.createDate)) / 1000;
-        let age = helpers.strings.ageToString(secondsOld);
-        this.root.querySelector(".post-age").dataset.popup = helpers.strings.dateToString(mediaInfo.createDate);
-        setInfo(".post-age", age);
+		this.header = mediaInfo.illustTitle;
 
-        let elementComment = this.querySelector(".description");
-        elementComment.hidden = mediaInfo.illustComment == "";
-        elementComment.innerHTML = mediaInfo.illustComment;
-        helpers.pixiv.fixPixivLinks(elementComment);
-        if(!ppixiv.native)
-            helpers.pixiv.makePixivLinksInternal(elementComment);
-    }
+		// If we're on the first page then we only requested early info, and we can use the dimensions
+		// on it.  Otherwise, get dimensions from mangaPages from illust data.  If we're displaying a
+		// manga post and we don't have illust data yet, we don't have dimensions, so hide it until
+		// it's loaded.
+		let info = "";
 
-    setDataSource(dataSource)
-    {
-        if(this.dataSource == dataSource)
-            return;
+		let { width, height } = ppixiv.mediaCache.getImageDimensions(
+			mediaInfo,
+			mediaId,
+		);
+		if (width != null && height != null) info += width + "x" + height;
+		setInfo(".image-info-text", info);
 
-        this.dataSource = dataSource;
-        this.refresh();
-    }
+		let secondsOld = (new Date() - new Date(mediaInfo.createDate)) / 1000;
+		let age = helpers.strings.ageToString(secondsOld);
+		this.root.querySelector(".post-age").dataset.popup =
+			helpers.strings.dateToString(mediaInfo.createDate);
+		setInfo(".post-age", age);
+
+		let elementComment = this.querySelector(".description");
+		elementComment.hidden = mediaInfo.illustComment == "";
+		elementComment.innerHTML = mediaInfo.illustComment;
+		helpers.pixiv.fixPixivLinks(elementComment);
+		if (!ppixiv.native) helpers.pixiv.makePixivLinksInternal(elementComment);
+	}
+
+	setDataSource(dataSource) {
+		if (this.dataSource == dataSource) return;
+
+		this.dataSource = dataSource;
+		this.refresh();
+	}
 }

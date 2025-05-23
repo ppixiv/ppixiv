@@ -40,23 +40,29 @@ import {
 const ContextMenuTemplate = `
 <div id="popup-context-menu">
 	<div id="context-menu-image-info">
-		<vv-container class="context-menu-item avatar-widget-container data-popup="Loading..."></vv-container>
+		<vv-container class="context-menu-item avatar-widget-container data-popup=" Loading..."></vv-container>
 		<div id="context-menu-image-info-container context-menu-item"></div>
 	</div>
 	<div id="context-menu-buttons-group">
-		<vv-container class="context-menu-item button-bookmark" data-bookmark-type=public data-popup="Bookmark Image"></vv-container>
+		<vv-container class="context-menu-item button-bookmark" data-bookmark-type=public data-popup="Bookmark Image">
+			<ppixiv-inline class="ctx-icon" src="resources/heart-icon.svg"></ppixiv-inline>
+		</vv-container>
 
-		<vv-container class="context-menu-item private-bookmark-button button-bookmark" data-bookmark-type=private data-popup="Bookmark Privately">
+		<vv-container class="context-menu-item button-bookmark-private button-bookmark" data-bookmark-type=private
+			data-popup="Bookmark Privately">
+			<ppixiv-inline class="ctx-icon" src="resources/heart-icon-private.svg"></ppixiv-inline>
 		</vv-container>
 
 		<div class="context-menu-item button button-bookmark-tags" data-popup="Bookmark tags" style="display:none">
 			${helpers.createIcon("ppixiv:tag")}
 		</div>
 
-		<vv-container class="context-menu-item button-container button-like-container"></vv-container>
+		<vv-container class="context-menu-item button-container button-like-container" data-popup="Like Image">
+			<ppixiv-inline class="ctx-icon" src="resources/like-button.svg"></ppixiv-inline>
+		</vv-container>
 
 		<div class="context-menu-item button button-fullscreen enabled" data-popup="Fullscreen" style="display:none">
-			<ppixiv-inline src="resources/fullscreen.svg"></ppixiv-inline>
+			<ppixiv-inline class="ctx-icon" src="resources/fullscreen.svg"></ppixiv-inline>
 		</div>
 
 		<div class="context-menu-item button requires-zoom button-zoom" data-popup="Mousewheel to zoom"
@@ -67,12 +73,12 @@ const ContextMenuTemplate = `
 
 		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="cover"
 			data-popup="Zoom to cover" style="display:none">
-			<ppixiv-inline src="resources/zoom-full.svg"></ppixiv-inline>
+			<ppixiv-inline class="ctx-icon" src="resources/zoom-full.svg"></ppixiv-inline>
 		</div>
 
 		<div class="context-menu-item button requires-zoom button-zoom-level" data-level="actual"
 			data-popup="Zoom to actual size">
-			<ppixiv-inline src="resources/zoom-actual.svg"></ppixiv-inline>
+			<ppixiv-inline class="ctx-icon" src="resources/zoom-actual.svg"></ppixiv-inline>
 		</div>
 
 		<a href=# class="button button-view-manga context-menu-item" data-popup="View manga pages">
@@ -84,9 +90,9 @@ const ContextMenuTemplate = `
 			${helpers.createIcon("settings")}
 		</div>
 
-		<div class="context-menu-item button button-browser-back enabled" data-popup="Back"
-			style="transform: scaleX(-1);">
-			<ppixiv-inline src="resources/exit-icon.svg"></ppixiv-inline>
+		<div class="context-menu-item button button-browser-back enabled" data-popup="Back">
+			<ppixiv-inline class="ctx-icon" src="resources/exit-icon.svg" style="transform: scaleX(-1);">
+			</ppixiv-inline>
 		</div>
 
 		<div class="context-menu-item button button-parent-folder enabled" data-popup="Parent folder" hidden>
@@ -316,7 +322,6 @@ export default class ContextMenu extends Widget {
 				container: this.root.querySelector(".button-like-container"),
 				template: `
                     <div class="button button-like enabled" style="position: relative;">
-                        <ppixiv-inline src="resources/like-button.svg"></ppixiv-inline>
                     </div>
                 `,
 			}),
@@ -344,7 +349,6 @@ export default class ContextMenu extends Widget {
 				// position: relative positions the bookmark count.
 				template: `
                     <div class="button button-bookmark ${a.dataset.bookmarkType}">
-                        <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                     </div>
                 `,
 				bookmarkType: a.dataset.bookmarkType,
@@ -1086,7 +1090,7 @@ export default class ContextMenu extends Widget {
 				"enabled",
 				this._parentFolderId != null,
 			);
-			this.querySelector(".private-bookmark-button").hidden = isLocal;
+			this.querySelector(".button-bookmark-private").hidden = isLocal;
 		}
 
 		if (this._isZoomUiEnabled) {

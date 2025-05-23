@@ -970,8 +970,8 @@ export default class SearchView extends Widget {
                         <div class="heart button-bookmark public bookmarked" hidden>
                             <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
                         </div>
-                        <div class="heart button-bookmark private bookmarked" hidden>
-                            <ppixiv-inline src="resources/heart-icon.svg"></ppixiv-inline>
+                        <div class="heart button-bookmark-private bookmarked" hidden>
+                            <ppixiv-inline src="resources/heart-icon-private.svg"></ppixiv-inline>
                         </div>
                         <img class=ai-image src="ppixiv:resources/ai.png" hidden width='32' height='32'>
                     </div>
@@ -1776,9 +1776,9 @@ export default class SearchView extends Widget {
 		if (!ppixiv.settings.get("show_ai_icon")) showAI = false;
 
 		thumbnailElement.querySelector(".ai-image").hidden = !showAI;
-		thumbnailElement.querySelector(".heart.public").hidden =
+		thumbnailElement.querySelector(".button-bookmark").hidden =
 			!showBookmarkHeart || mediaInfo.bookmarkData.private;
-		thumbnailElement.querySelector(".heart.private").hidden =
+		thumbnailElement.querySelector(".button-bookmark-private").hidden =
 			!showBookmarkHeart || !mediaInfo.bookmarkData.private;
 	}
 

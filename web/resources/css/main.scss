@@ -892,12 +892,6 @@ textarea,
     .author {
       vertical-align: top;
     }
-
-    .button.button-bookmark .count,
-    .button.button-like .count {
-      top: calc(100% - 11px);
-      pointer-events: none;
-    }
   }
 }
 
@@ -2345,16 +2339,12 @@ body.hide-r18g .r18g {
 #popup-context-menu {
   color: #fff;
   position: fixed;
-  top: 100px;
-  left: 350px;
   text-align: left;
-  padding: 10px;
+  padding: 4px;
   border: 1px solid var(--ui-border-color);
   border-radius: var(--border-radius-large);
   background-color: var(--ui-bg-color);
   backdrop-filter: var(--ui-bg-blur);
-  display: flex;
-  flex-direction: column;
   z-index: 10;
   user-select: none;
   -webkit-user-select: none;
@@ -2406,9 +2396,12 @@ body.hide-r18g .r18g {
 
   .context-menu-item {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    border-radius: var(--border-radius-large);
     height: var(--button-size);
+  }
+
+  .context-menu-item:hover {
+    background-color: var(--button-hover-bgcolor);
   }
 
   .tooltip-display {
@@ -2439,7 +2432,7 @@ body.hide-r18g .r18g {
   #context-menu-buttons-group {
     display: grid;
     max-height: 500px;
-    gap: 8px;
+    gap: 2px;
 
     > .button-block {
       display: inline-flex;
@@ -2465,20 +2458,30 @@ body.hide-r18g .r18g {
     .context-menu-item-description {
       display: block;
       font-size: 0.8em;
-      color: #888;
-      margin-top: 4px;
+      width: inherit;
     }
-    .button {
-      height: var(--button-size-small);
-      width: var(--button-size-small);
-      border-radius: var(--border-radius-large);
-      padding: 6px;
-      margin: auto;
+
+    .ctx-icon {
+    }
+
+    .count {
+      color: white;
+      text-shadow:
+        0px 1px 1px var(--minor-text-shadow-color),
+        0px -1px 1px var(--minor-text-shadow-color),
+        1px 0px 1px var(--minor-text-shadow-color),
+        -1px 0px 1px var(--minor-text-shadow-color);
+      font-size: 0.7em;
+      font-weight: bold;
+      width: 100%;
       text-align: center;
+      position: absolute;
+    }
+
+    .button {
+      height: var(--button-size);
       cursor: pointer;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
 
       .font-icon {
         font-size: var(--button-size-small);
@@ -2491,19 +2494,18 @@ body.hide-r18g .r18g {
       }
 
       & > svg {
-        width: 100%;
-        height: 100%;
+        height: var(--button-size-small);
       }
 
       @media (hover: hover) {
         &.enabled:hover {
           color: #fff;
-          background-color: #444;
+          background-color: var(--button-hover-bgcolor);
         }
       }
 
       &.enabled.selected {
-        background-color: #444;
+        background-color: var(--button-hover-bgcolor);
         color: #fff;
       }
 
@@ -2798,23 +2800,6 @@ body.hide-r18g .r18g {
 .button-bookmark,
 .button-like {
   position: relative;
-
-  .count {
-    color: white;
-    margin-top: -4px;
-    left: 10px;
-    text-shadow:
-      0px 1px 1px var(--minor-text-shadow-color),
-      0px -1px 1px var(--minor-text-shadow-color),
-      1px 0px 1px var(--minor-text-shadow-color),
-      -1px 0px 1px var(--minor-text-shadow-color);
-    font-size: 0.7em;
-    font-weight: bold;
-    position: absolute;
-    top: calc(100% - 14px);
-    width: 100%;
-    text-align: center;
-  }
 }
 
 /* Hide the "delete" stroke over the heart icon unless clicking the button will
@@ -3298,12 +3283,6 @@ svg.heart-image .delete {
     padding-bottom: var(--dialog-inner-padding-bottom);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-
-    // Nudge the bookmark icons down a bit, since they're offset vertically.
-    .button-bookmark.public,
-    .button-bookmark.private {
-      margin-bottom: -0.25em;
-    }
   }
 }
 
