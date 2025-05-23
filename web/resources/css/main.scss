@@ -2486,6 +2486,10 @@ body.hide-r18g .r18g {
     svg {
       height: var(--button-size-small);
       width: var(--button-size-small);
+    }
+
+    .button-zoom-level,
+    .button-browser-back svg {
       margin-right: 4px;
     }
 
