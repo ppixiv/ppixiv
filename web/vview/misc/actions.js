@@ -551,7 +551,7 @@ export default class Actions {
 			return;
 		}
 
-		if (downloadType != "image" && downloadType != "ZIP") {
+		if (downloadType !== "image" && downloadType != "ZIP") {
 			console.error("Unknown download type " + downloadType);
 			return;
 		}
@@ -562,23 +562,23 @@ export default class Actions {
 			pages.push(page);
 
 		// If we're in image mode for a manga post, only download the requested page.
-		let mangaPage = helpers.mediaId.parse(mediaId).page;
-		if (downloadType == "image") pages = [mangaPage];
+		const mangaPage = helpers.mediaId.parse(mediaId).page;
+		if (downloadType === "image") pages = [mangaPage];
 
-		ppixiv.message.show(
-			pages.length > 1
-				? `Downloading ${pages.length} pages...`
-				: `Downloading image...`,
-		);
+		// ppixiv.message.show(
+		// 	pages.length > 1
+		// 		? `Downloading ${pages.length} pages...`
+		// 		: `Downloading image...`,
+		// );
 
-		let results = [];
+		const results = [];
 		try {
-			for (let page of pages) {
-				let pageMediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
+			for (const page of pages) {
+				const pageMediaId = helpers.mediaId.getMediaIdForPage(mediaId, page);
 
 				// If translations for this image are enabled, try to save the image with translations.
 				// If translations are disabled for this image, this will be null.
-				let translatedCanvas =
+				const translatedCanvas =
 					await ppixiv.imageTranslations.getTranslatedImage(pageMediaId);
 				if (translatedCanvas != null) {
 					let blob = await helpers.other.canvasToBlob(translatedCanvas, {
@@ -660,35 +660,34 @@ export default class Actions {
 		if (ppixiv.mobile) return false;
 
 		// Single image downloading works for single images and manga pages.
-		if (downloadType == "image") return mediaInfo.illustType != 2;
+		if (downloadType === "image") return mediaInfo.illustType !== 2;
 
 		// ZIP downloading only makes sense for image sequences.
-		if (downloadType == "ZIP")
-			return mediaInfo.illustType != 2 && mediaInfo.pageCount > 1;
+		if (downloadType === "ZIP")
+			return mediaInfo.illustType !== 2 && mediaInfo.pageCount > 1;
 
 		// MJPEG only makes sense for videos.
-		if (downloadType == "MKV") return mediaInfo.illustType == 2;
+		if (downloadType === "MKV") return mediaInfo.illustType === 2;
 
-		throw "Unknown download type " + downloadType;
+		throw `Unknown download type ${downloadType}`;
 	}
 
 	static async loadRecentBookmarkTags() {
 		if (ppixiv.native) return await LocalAPI.loadRecentBookmarkTags();
 
-		let url =
-			"/ajax/user/" + ppixiv.pixivInfo.userId + "/illusts/bookmark/tags";
-		let result = await helpers.pixivRequest.get(url, {});
-		let bookmarkTags = [];
-		let addTag = (tag) => {
+		const url = `/ajax/user/${ppixiv.pixivInfo.userId}/illusts/bookmark/tags`;
+		const result = await helpers.pixivRequest.get(url, {});
+		const bookmarkTags = [];
+		const addTag = (tag) => {
 			// Ignore "untagged".
-			if (tag.tag == "未分類") return;
+			if (tag.tag === "未分類") return;
 
-			if (bookmarkTags.indexOf(tag.tag) == -1) bookmarkTags.push(tag.tag);
+			if (bookmarkTags.indexOf(tag.tag) === -1) bookmarkTags.push(tag.tag);
 		};
 
-		for (let tag of result.body.public) addTag(tag);
+		for (const tag of result.body.public) addTag(tag);
 
-		for (let tag of result.body.private) addTag(tag);
+		for (const tag of result.body.private) addTag(tag);
 
 		return bookmarkTags;
 	}

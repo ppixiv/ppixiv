@@ -1511,6 +1511,7 @@ body.hide-r18g .r18g {
     width: var(--container-width);
     display: flex;
     flex-direction: column;
+    padding-bottom: var(--thumb-padding);
 
     // Center thumbs if they don't fill the screen.
     margin: 0 auto;
