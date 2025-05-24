@@ -95,7 +95,8 @@ class BuildHandler(FileSystemEventHandler):
         with self.build_lock:
             self.last_build_time = now
             self.last_hash = new_hash
-            print("[Build] Change detected in:")
+            timestamp = time.time()
+            print(f"[Build] {timestamp} Change detected in:")
             for f in sorted(self.pending_files):
                 print("    •", f)
             self.pending_files.clear()

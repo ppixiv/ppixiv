@@ -169,7 +169,6 @@ export default class DesktopImageInfo extends Widget {
 		// The bookmark buttons, and clicks in the tag dropdown:
 		this.bookmarkButtons = [];
 		for (const a of this.root.querySelectorAll("[data-bookmark-type]")) {
-			console.log("a.dataset.bookmarkType", a.dataset.bookmarkType);
 			this.bookmarkButtons.push(
 				new BookmarkButtonWidget({
 					container: a,

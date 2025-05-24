@@ -505,16 +505,16 @@ export default class App {
 		}
 
 		// If we're entering ScreenSearch, ignore clicks for a while.  See _windowClickCapture.
-		if (newScreen.screenType == "search")
+		if (newScreen.screenType === "search")
 			this._ignoreClicksUntil = Date.now() + 100;
 
-		console.log(
+		console.debug(
 			`Showing screen: ${newScreen.screenType}, data source: ${this._dataSource.name}, cause: ${cause}, media ID: ${mediaId ?? "(none)"}, scroll to: ${targetMediaId}`,
 		);
 
 		this._currentScreen = newScreen;
 
-		if (newScreen != oldScreen) {
+		if (newScreen !== oldScreen) {
 			// Let the screens know whether they're current.  Screens don't use visible
 			// directly (visibility is controlled by animations instead), but this lets
 			// visibleRecursively know if the hierarchy is visible.

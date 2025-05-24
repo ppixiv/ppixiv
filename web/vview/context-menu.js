@@ -326,7 +326,9 @@ export default class ContextMenu extends Widget {
                 `,
 			}),
 			new ImageInfoWidget({
-				container: document.getElementById("context-menu-image-info-container"),
+				container: document?.getElementById?.(
+					"context-menu-image-info-container",
+				),
 			}),
 		];
 

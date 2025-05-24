@@ -91,8 +91,7 @@ class AppStartup {
 			android,
 		};
 
-		console.log(`ppixiv setup: ${VVIEW_VERSION}`);
-		console.log("Browser:", navigator.userAgent);
+		console.debug("Browser:", navigator.userAgent);
 
 		// "Stay" for iOS leaves a <script> node containing ourself in the document.  Remove it for
 		// consistency with other script managers.

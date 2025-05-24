@@ -81,10 +81,10 @@ export class helpers {
 			// Copy attributes from the <ppixiv-inline> node to the newly created node which
 			// is replacing it.  This can be used for simple things, like setting the id.
 			for (let attr of element.attributes) {
-				if (attr.name == "src") continue;
+				if (attr.name === "src") continue;
 
 				if (node.hasAttribute(attr.name)) {
-					console.error("Node", node, "already has attribute", attr);
+					console.warn("Node", node, "already has attribute", attr);
 					continue;
 				}
 

@@ -351,12 +351,12 @@ class Build(object):
             const storageData = await GM.getValue("CachedScriptKey");
 
             if (text != storageData) {{
-                console.log("PPPixiv: update script");
+                console.log("PPPixiv Debug: update script");
 
                 await GM.setValue("CachedScriptKey", text);
                 location.reload();
             }} else {{
-                console.log("PPPixiv: nothing changed, skipping");
+                console.log("PPPixiv Debug: nothing changed, skipping");
             }}
         }},
     }});
