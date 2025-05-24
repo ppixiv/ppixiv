@@ -2,11 +2,13 @@
 // @name        pppixiv for Pixiv
 // @author      rainbowflesh, ppixiv
 // @namespace   pppixiv
-// @description A PPixiv overhaul.
-// @homepage    https://github.com/ppixiv/ppixiv
+// @description PPixiv Plus, the PPixiv overhaul.
+// @homepage    https://github.com/rainbowflesh/pppixiv
 // @match       https://*.pixiv.net/*
+// @icon        https://www.pixiv.net/favicon.ico
+// @license MIT
+
 // @run-at      document-start
-// @icon        https://ppixiv.org/ppixiv.png
 // @grant       GM.xmlHttpRequest
 // @grant       GM.setValue
 // @grant       GM.getValue
@@ -14,3 +16,9 @@
 // @connect     pximg.net
 // @connect     self
 // @connect     *
+
+// @version
+// @require https://raw.githubusercontent.com/rainbowflesh/pppixiv/build/ppixiv-main.user.js
+// @require https://cdn.jsdelivr.net/gh/rainbowflesh/pppixiv@build/ppixiv-main.user.js
+// @updateURL   https://raw.githubusercontent.com/rainbowflesh/pppixiv/build/ppixiv-main.user.js
+// @downloadURL https://raw.githubusercontent.com/rainbowflesh/pppixiv/build/ppixiv-main.user.js
