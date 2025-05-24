@@ -49,6 +49,6 @@ jobs:
           tag_name: ${{ steps.versioning.outputs.version }}
           name: Release ${{ steps.versioning.outputs.version }}
           body: ${{ steps.changelog.outputs.changelog }}
-          files: output/ppixiv-main.user.js
+          files: output/pppixiv.user.js
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}

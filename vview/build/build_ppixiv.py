@@ -269,7 +269,7 @@ class Build(object):
         """
         # Generate the main script.  This can be installed directly, or loaded by the
         # loader script.
-        output_file = "output/ppixiv-main.user.js"
+        output_file = "output/pppixiv.user.js"
         print("Building: %s" % output_file)
 
         data = self.build_output()
@@ -295,7 +295,7 @@ class Build(object):
             main_url = f"{self.distribution_root}/beta/ppixiv-main.user.js"
 
         result.append(f"// @require     {main_url}#sha256={sha256}")
-        result.append(f"// ==/UserScript==")
+        result.append(f"// ==/UserScript==" + "\n")
 
         # Add a dummy statement.  Greasy Fork complains about "contains no executable code" if there's
         # nothing in the top-level script, since it doesn't understand that all of our code is in a
@@ -309,13 +309,13 @@ class Build(object):
 
     def build_debug(self, debug_server_url=None):
         if debug_server_url is None:
-            debug_server_url = "http://localhost:8235"
+            debug_server_url = "http://localhost:8000"
 
         output_file = "output/ppixiv-debug.user.js"
         print("Building: %s" % output_file)
 
         result = self.build_header(version_name="testing", version_suffix="(testing)")
-        result.append(f"// ==/UserScript==")
+        result.append(f"// ==/UserScript==" + "\n")
 
         # Add the loading code for debug builds, which just runs bootstrap_native.js.
         result.append(
@@ -378,7 +378,7 @@ class Build(object):
             version_name="Loader",
             version_suffix="(testing, loader)" if devel else "testing",
         )
-        result.append(f"// ==/UserScript==")
+        result.append(f"// ==/UserScript==" + "\n")
 
         result.append(
             """
@@ -577,19 +577,27 @@ class Build(object):
         return result
 
     def get_release_version(self):
-        version = get_git_tag()
+        import subprocess
+        from datetime import datetime
 
-        # Release tags look like "r100".  Remove the "r" from the @version.  If we don't
-        # have a version, the git repo probably didn't pull tags.
-        if not version.startswith("r"):
-            print(
-                f'Warning: version "{version}" derived from tag isn\'t a valid version string.  Using as-is.'
+        try:
+            # Get current date in YYYYMMDD format
+            today = datetime.now().strftime("%Y%m%d")
+
+            # Get short git commit hash (7 characters)
+            result = subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+                text=True,
             )
-            return version
+            git_hash = result.stdout.strip()
 
-        version = version[1:]
-
-        return version
+            return f"{today}-{git_hash}"
+        except subprocess.CalledProcessError as e:
+            print(f"Warning: failed to get git commit hash: {e}")
+            return "unknown"
 
     def build_all_css(self):
         """
@@ -709,7 +717,7 @@ class Build(object):
 
     def build_output(self):
         result = self.build_header(version_name=self.get_release_version())
-        result.append(f"// ==/UserScript==")
+        result.append(f"// ==/UserScript==" + "\n")
 
         # Encapsulate the script.
         result.append("(function() {\n")

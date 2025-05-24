@@ -17,5 +17,5 @@
 // @connect     self
 // @connect     *
 
-// @updateURL   https://raw.githubusercontent.com/rainbowflesh/pppixiv/build/ppixiv-main.user.js
-// @downloadURL https://raw.githubusercontent.com/rainbowflesh/pppixiv/build/ppixiv-main.user.js
+// @updateURL   https://github.com/rainbowflesh/pppixiv/releases/latest/download/pppixiv.user.js
+// @downloadURL https://github.com/rainbowflesh/pppixiv/releases/latest/download/pppixiv.user.js

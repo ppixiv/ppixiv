@@ -15,7 +15,9 @@ A PPixiv overhaul.
 
 ## Install
 
-Get on [Greasyfork]()
+Get on [Greasyfork](https://greasyfork.org/en/scripts/537094-pppixiv-for-pixiv "https://greasyfork.org/en/scripts/537094-pppixiv-for-pixiv")
+
+Or [click me](https://github.com/rainbowflesh/pppixiv/releases/latest/download/pppixiv.user.js "https://github.com/rainbowflesh/pppixiv/releases/latest/download/pppixiv.user.js")
 
 ### Note
 
@@ -27,46 +29,6 @@ ADblock may cause compatibility issue, disable it.
 
 ## Live Debug
 
-`python -m http.server 8000`
+`python -m http.server 8000 && python -m vview.build.build_ppixiv --url http://localhost:8000`
 
-Install fellow script:
-
-```js
-// ==UserScript==
-// @name        pppixiv for Pixiv
-// @author      rainbowflesh, ppixiv
-// @namespace   pppixiv
-// @description A PPixiv overhaul.
-// @homepage    https://github.com/ppixiv/ppixiv
-// @match       https://*.pixiv.net/*
-// @run-at      document-start
-// @icon        https://ppixiv.org/ppixiv.png
-// @grant       GM.xmlHttpRequest
-// @grant       GM.setValue
-// @grant       GM.getValue
-// @connect     pixiv.net
-// @connect     pximg.net
-// @connect     self
-// @connect     *
-// @comment     Live debug profile
-// @require     http://[::1]:8000/output/ppixiv-main.user.js
-// ==/UserScript==
-(async function () {
-  GM.xmlHttpRequest({
-    url: "http://[::1]:8000/output/ppixiv-main.user.js",
-    onload: async (response) => {
-      const text = response.responseText;
-      const storageData = await GM.getValue("CachedScriptKey");
-
-      if (text != storageData) {
-        console.log("reload!");
-
-        await GM.setValue("CachedScriptKey", text);
-        location.reload();
-      } else {
-        console.log("NO reload!");
-      }
-    },
-  });
-})();
-```
+Install fellow script: `output/ppixiv-debug.user.js;`
