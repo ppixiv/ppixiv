@@ -19,17 +19,17 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install Python dependencies
-        run: pip install -r vview/requirements.txt
+      # - name: Install Python dependencies
+      #   run: pip install -r vview/requirements.txt
 
-      - name: Set version header
-        id: versioning
-        run: |
-          today=$(date +%F)
-          hash=$(git rev-parse --short HEAD)
-          version="$today-$hash"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          sed -i "s|^\(\s*//\s*@version\s*\).*|\1$version|" web/vview/startup/header.js
+      # - name: Set version header
+      #   id: versioning
+      #   run: |
+      #     today=$(date +%F)
+      #     hash=$(git rev-parse --short HEAD)
+      #     version="$today-$hash"
+      #     echo "version=$version" >> "$GITHUB_OUTPUT"
+      #     sed -i "s|^\(\s*//\s*@version\s*\).*|\1$version|" web/vview/startup/header.js
 
       - name: Generate changelog (since last tag)
         id: changelog
