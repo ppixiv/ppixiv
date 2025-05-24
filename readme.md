@@ -2,6 +2,8 @@
 
 A PPixiv overhaul.
 
+![preview](assets/preview.png "preview")
+
 ## What's news
 
 - New ui style;
@@ -11,7 +13,9 @@ A PPixiv overhaul.
 - Compatible with ppixiv;
 - And more ...
 
-## Usage
+## Install
+
+Get on [Greasyfork]()
 
 ### Note
 

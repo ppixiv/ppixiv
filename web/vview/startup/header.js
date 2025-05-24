@@ -6,7 +6,7 @@
 // @homepage    https://github.com/rainbowflesh/pppixiv
 // @match       https://*.pixiv.net/*
 // @icon        https://www.pixiv.net/favicon.ico
-// @license MIT
+// @license     MIT
 
 // @run-at      document-start
 // @grant       GM.xmlHttpRequest
@@ -18,7 +18,6 @@
 // @connect     *
 
 // @version
-// @require https://raw.githubusercontent.com/rainbowflesh/pppixiv/build/ppixiv-main.user.js
-// @require https://cdn.jsdelivr.net/gh/rainbowflesh/pppixiv@build/ppixiv-main.user.js
 // @updateURL   https://raw.githubusercontent.com/rainbowflesh/pppixiv/build/ppixiv-main.user.js
 // @downloadURL https://raw.githubusercontent.com/rainbowflesh/pppixiv/build/ppixiv-main.user.js
+// ==/UserScript==
