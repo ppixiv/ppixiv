@@ -1,0 +1,58 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # get tag
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python dependencies
+        run: pip install -r vview/requirements.txt
+
+      - name: Set version header
+        id: versioning
+        run: |
+          today=$(date +%F)
+          hash=$(git rev-parse --short HEAD)
+          version="$today-$hash"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          sed -i "s|^\(\s*//\s*@version\s*\).*|\1$version|" web/vview/startup/header.js
+
+      - name: Generate changelog (since last tag)
+        id: changelog
+        run: |
+          last_tag=$(git describe --tags --abbrev=0 || echo "")
+          if [ -n "$last_tag" ]; then
+            log=$(git log "$last_tag"..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          else
+            log=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$log" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Run build script
+        run: python -m vview.build.build_ppixiv
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.versioning.outputs.version }}
+          name: Release ${{ steps.versioning.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          files: output/ppixiv-main.user.js
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
