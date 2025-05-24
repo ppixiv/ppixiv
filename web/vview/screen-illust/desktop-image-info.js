@@ -54,7 +54,7 @@ export default class DesktopImageInfo extends Widget {
             </div>
         </div>
 
-        <div class=button-row style='padding-block-end: 8px;'>
+        <div class=button-row style='padding-block-end: 14px;'>
             <a class="icon-button disable-ui-button popup pixiv-only" data-popup="Return to Pixiv" href="#no-ppixiv">
                 ${helpers.createIcon("ppixiv:pixiv")}
             </a>
@@ -83,10 +83,7 @@ export default class DesktopImageInfo extends Widget {
                 </div>
             </div>
 
-            <div class=button-container>
-                <!-- position: relative positions the bookmark count. -->
-                <vv-container class=bookmark-button-container data-bookmark-type=public></vv-container>
-            </div>
+			<vv-container class=bookmark-button-container data-bookmark-type=public></vv-container>
 
             <vv-container class="bookmark-button-container button-container" data-bookmark-type=private></vv-container>
 
@@ -101,19 +98,19 @@ export default class DesktopImageInfo extends Widget {
 
             <vv-container class="button-like-container button-container"></vv-container>
 
-            <a class="similar-illusts-button popup pixiv-only" data-popup="Similar illustrations" href=#>
+            <a class="similar-illusts-button popup pixiv-only" data-popup="Similar illustrations" href=# hidden>
                 <div class=icon-button>
                     ${helpers.createIcon("ppixiv:suggestions")}
                 </div>
             </a>
 
-            <a class="similar-artists-button popup pixiv-only" data-popup="Similar artists" href=#>
+            <a class="similar-artists-button popup pixiv-only" data-popup="Similar artists" href=# hidden>
                 <div class=icon-button>
                     ${helpers.createIcon("ppixiv:suggestions")}
                 </div>
             </a>
 
-            <a class="similar-bookmarks-button popup pixiv-only" data-popup="Similar bookmarks" href=#>
+            <a class="similar-bookmarks-button popup pixiv-only" data-popup="Similar bookmarks" href=# hidden>
                 <div class=icon-button>
                     ${helpers.createIcon("ppixiv:suggestions")}
                 </div>

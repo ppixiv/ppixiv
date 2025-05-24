@@ -91,7 +91,7 @@ const ContextMenuTemplate = `
 		</div>
 
 		<div class="context-menu-item button button-browser-back enabled" data-popup="Back">
-			<ppixiv-inline class="ctx-icon" src="resources/exit-icon.svg" style="transform: scaleX(-1);">
+			<ppixiv-inline class="ctx-icon" src="resources/exit-icon.svg" style="transform: scaleX(-1); margin-right: 4px;">
 			</ppixiv-inline>
 		</div>
 

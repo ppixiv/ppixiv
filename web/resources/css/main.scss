@@ -765,7 +765,13 @@ textarea,
   .disabled {
     display: none;
   }
-
+  .count {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: difference;
+  }
   // This is the box that triggers the UI to be displayed.  We use this rather than
   // ui-box for this so we can give it a fixed size.  That way, the UI box won't suddenly
   // appear when changing to another image because a longer description caused the box
@@ -2396,7 +2402,7 @@ body.hide-r18g .r18g {
 
   .context-menu-item {
     display: flex;
-    border-radius: var(--border-radius-large);
+    border-radius: var(--border-radius-small);
     height: var(--button-size);
     padding-inline: 8px;
     align-items: center;
