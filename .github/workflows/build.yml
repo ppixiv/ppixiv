@@ -12,24 +12,20 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # get tag
+          fetch-depth: 0 # Ensure full history and tags for changelog
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      # - name: Install Python dependencies
-      #   run: pip install -r vview/requirements.txt
-
-      - name: Set version header
+      - name: Determine version tag
         id: versioning
         run: |
           today=$(date +%F)
           hash=$(git rev-parse --short HEAD)
           version="$today-$hash"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          // sed -i "s|^\(\s*//\s*@version\s*\).*|\1$version|" web/vview/startup/header.js
 
       - name: Generate changelog (since last tag)
         id: changelog
