@@ -94,11 +94,11 @@ class Build(object):
             help="Point latest at this version",
         )
         parser.add_argument(
-            "--url",
-            "-u",
+            "--port",
+            "-p",
             action="store",
             default=None,
-            help="Location of the debug server for ppixiv-debug",
+            help="Location of the debug server port for ppixiv-debug",
         )
         args = parser.parse_args()
 
@@ -150,7 +150,7 @@ class Build(object):
 
         build = cls(is_release=is_release, git_tag=git_tag)
         build.build_with_settings(
-            deploy=args.deploy, latest=args.latest, debug_server_url=args.url
+            deploy=args.deploy, latest=args.latest, debug_server_port=args.port
         )
 
     @classmethod
@@ -174,9 +174,11 @@ class Build(object):
         self.git_tag = git_tag
         self.distribution_url = f"{self.distribution_root}/builds/{get_git_tag()}"
 
-    def build_with_settings(self, *, deploy=False, latest=False, debug_server_url=None):
+    def build_with_settings(
+        self, *, deploy=False, latest=False, debug_server_port=None
+    ):
         self.build_release()
-        self.build_debug(debug_server_url)
+        self.build_debug(debug_server_port)
         if deploy:
             self.deploy(latest=latest)
 
@@ -307,63 +309,61 @@ class Build(object):
         with open(output_loader_file, "w+b") as output_file:
             output_file.write(data)
 
-    def build_debug(self, debug_server_url=None):
-        if debug_server_url is None:
-            debug_server_url = "http://localhost:8000"
+    def build_debug(self, debug_server_port=None):
+        import time
 
-        output_file = "output/ppixiv-debug.user.js"
+        if debug_server_port is None:
+            debug_server_port = "8000"
+
+        output_file = "output/pppixiv-debug.user.js"
         print("Building: %s" % output_file)
 
-        result = self.build_header(version_name="testing", version_suffix="(testing)")
-        result.append(f"// ==/UserScript==" + "\n")
-
+        debug_url = f"http://127.0.0.1:{debug_server_port}/output/pppixiv.user.js"
+        timestamp = int(time.time())
         # Add the loading code for debug builds, which just runs bootstrap_native.js.
-        result.append(
-            """
-// Load and run the bootstrap script.  Note that we don't do this with @require, since TamperMonkey caches
-// requires overly aggressively, ignoring server cache headers.  Use sync XHR so we don't allow the site
-// to continue loading while we're setting up, to try to mimic the regular environment as closely as possible.
-(() => {
-    // If this is an iframe, don't do anything.
-    if(window.top != window.self)
-        return;
+        debug_script = f"""
+// ==UserScript==
+// @name pppixiv for Pixiv
+// @author rainbowflesh, ppixiv
+// @namespace pppixiv
+// @description A PPixiv overhaul.
+// @homepage https://github.com/ppixiv/ppixiv
+// @match https://*.pixiv.net/*
+// @run-at document-start
+// @icon https://ppixiv.org/ppixiv.png
+// @grant GM.xmlHttpRequest
+// @grant GM.setValue
+// @grant GM.getValue
+// @connect pixiv.net
+// @connect pximg.net
+// @connect self
+// @connect *
+// @comment Live debug profile
+// @require {debug_url}
+// @version {timestamp}
+// ==/UserScript==
 
-    let rootUrl = %(url)s;
+(async function () {{
+    GM.xmlHttpRequest({{
+        url: "{debug_url}",
+        onload: async (response) => {{
+            const text = response.responseText;
+            const storageData = await GM.getValue("CachedScriptKey");
 
-    let bundleUrl = new URL("/vview/app-bundle.js", rootUrl);
-    let xhr = new XMLHttpRequest();
-    xhr.open("GET", bundleUrl, false);
-    xhr.send();
-    let bundle = xhr.response;
+            if (text != storageData) {{
+                console.log("PPPixiv: update script");
 
-    if(xhr.status < 200 || xhr.status >= 400)
-    {
-        console.log("ppixiv: error loading app bundle");
-        return;
-    }
-
-    xhr = new XMLHttpRequest();
-    xhr.open("GET", `${rootUrl}/vview/startup/bootstrap.js`, false);
-    xhr.send();
-    let bootstrap = xhr.responseText;
-
-    if(xhr.status < 200 || xhr.status >= 400)
-    {
-        console.log("ppixiv: error loading bootstrap.js");
-        return;
-    }
-
-    let startup = eval(xhr.responseText);
-    startup({bundle});
-})();
-        """
-            % {"url": json.dumps(debug_server_url)}
-        )
-
-        lines = "\n".join(result) + "\n"
-
-        with open(output_file, "w+t", encoding="utf-8", newline="\n") as f:
-            f.write(lines)
+                await GM.setValue("CachedScriptKey", text);
+                location.reload();
+            }} else {{
+                console.log("PPPixiv: nothing changed, skipping");
+            }}
+        }},
+    }});
+}})();
+"""
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(debug_script)
 
     def build_launch(self, *, devel):
         """

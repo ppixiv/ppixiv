@@ -29,6 +29,9 @@ ADblock may cause compatibility issue, disable it.
 
 ## Live Debug
 
-`python -m http.server 8000 && python -m vview.build.build_ppixiv --url http://localhost:8000`
+```python
+pip install pathspec watchdog
+python -m vview.build.build_ppixiv_watch -p 8000
+```
 
-Install fellow script: `output/ppixiv-debug.user.js;`
+Then install fellow script: `output/ppixiv-debug.user.js;`
