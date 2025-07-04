@@ -401,7 +401,7 @@ export class DropdownMenuOpener extends DropdownBoxOpener
         let selectedItem = box.querySelector(".selected");
         let selectedDefault = selectedItem == null || selectedItem.dataset["default"];
 
-        // If an explicit default button exists, there's usually always something selected in the
+        // If an explicit default button exists, there's usually something selected in the
         // list: either a filter is selected or the default is.  If a list has a default button
         // but nothing is selected at all, that means we're not on any of the available selections
         // (we don't even match the default).  For example, this can happen if "This Week" is selected,

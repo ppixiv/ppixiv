@@ -5,6 +5,7 @@
 import Actor from '/vview/actors/actor.js';
 import TouchListener from '/vview/actors/touch-listener.js';
 import { helpers } from '/vview/misc/helpers.js';
+import { DRAG_THRESHOLD } from '/vview/misc/constants.js';
 
 export default class DragHandler extends Actor
 {
@@ -72,6 +73,7 @@ export default class DragHandler extends Actor
 
         this._dragStarted = false;
         this._dragDelayTimer = null;
+        this._totalMovement = [0, 0];
 
         signal ??= (new AbortController().signal);
 
@@ -146,6 +148,7 @@ export default class DragHandler extends Actor
 
         window.addEventListener("pointermove", this._pointermove, this._signal);
         this._dragStarted = false;
+        this._totalMovement = [0, 0];
 
         RunningDrags.add(this, ({otherDragger}) => {
             this.cancelDrag();
@@ -229,17 +232,16 @@ export default class DragHandler extends Actor
         if(pointerInfo == null)
             return;
 
-        // On iOS, we can do this to allow dragging with a large press without waiting for
-        // the delay.  It's disabled for now since it might make the UI confusing.  It probably
-        // would work better if we had access to haptics.
-        /*
-        if(this.deferDelayMs && this._dragDelayTimer != null && e.width > 50)
+        // iOS thresholds movement, but browsers on Android don't, so we need to do it ourselves.
+        this._totalMovement[0] += event.movementX;
+        this._totalMovement[1] += event.movementY;
+        if(ppixiv.android)
         {
-            realClearTimeout(this._dragDelayTimer);
-            this._dragDelayTimer = null;
-            this._commitStartDragging({event: null});
+            // Ignore movement until we accumulate the movement threshold.
+            let totalDistance = Math.sqrt(this._totalMovement[0] * this._totalMovement[0] + this._totalMovement[1] * this._totalMovement[1]);
+            if(totalDistance < DRAG_THRESHOLD)
+                return;
         }
-        */
 
         if(this.deferDelayMs != null && this._dragDelayTimer != null)
         {

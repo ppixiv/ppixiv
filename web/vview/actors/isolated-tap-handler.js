@@ -18,6 +18,7 @@
 // This doesn't currently detect if the tap was on something that had a default
 // action, like a link, since we only use this for taps on the image view.
 import Actor from '/vview/actors/actor.js';
+import { DRAG_THRESHOLD } from '/vview/misc/constants.js';
 
 export default class IsolatedTapHandler extends Actor
 {
@@ -45,6 +46,7 @@ export default class IsolatedTapHandler extends Actor
         this._timeoutId = -1;
         this._pressed = false;
         this._allPresses = new Set();
+        this._totalMovement = [0, 0];
 
         IsolatedTapHandler.handlers.add(this);
         this.shutdownSignal.addEventListener("abort", () => IsolatedTapHandler.handlers.delete(this));
@@ -140,13 +142,29 @@ export default class IsolatedTapHandler extends Actor
             // Keep the initial press event so we can pass it to the callback.
             this._pressEvent = e;
 
+            // Clear accumulated movement.
+            this._totalMovement[0] = 0;
+            this._totalMovement[1] = 0;
+
             this._queueEvent();
         }
 
-        // Any pointer movement cancels the tap.  Mobile browsers already threshold pointer movement,
-        // so we don't need to do it.
+        // Any pointer movement cancels the tap.
         if(e.type == "pointermove")
         {
+            // iOS thresholds pointer movement, but Edge (and probably all Chromium-based browsers
+            // on Android) doesn't, so we need to do it ourselves.
+            this._totalMovement[0] += e.movementX;
+            this._totalMovement[1] += e.movementY;
+            if(ppixiv.android)
+            {
+                let totalDistance = Math.sqrt(this._totalMovement[0] * this._totalMovement[0] + this._totalMovement[1] * this._totalMovement[1]);
+                if(totalDistance < DRAG_THRESHOLD)
+                    return;
+
+                // console.log(`Moved by ${totalDistance} during tap, cancelling`);
+            }
+
             this._unqueueEvent();
             return;
         }
