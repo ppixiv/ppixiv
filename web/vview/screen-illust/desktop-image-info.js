@@ -305,7 +305,7 @@ export default class DesktopImageInfo extends Widget
 
         // If no text is selected and the title or description are hovered, copy the
         // hovered text to the clipboard.
-        if(e.code == "KeyC" && e.ctrlKey)
+        if(e.code == "KeyC" && helpers.isCtrlPressed(e))
         {
             // If any text is selected, stop and let regular text selection happen.
             let selection = window.getSelection();

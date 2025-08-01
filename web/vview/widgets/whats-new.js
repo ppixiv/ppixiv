@@ -3,6 +3,13 @@ import widget from '/vview/widgets/widget.js';
 
 let updateHistory = [
     {
+        version: 249,
+        boring: true,
+        text: `
+        Hotkeys now use the command key by default on Mac.  This can be changed in settings.
+        `,
+    },
+    {
         version: 245,
         boring: true,
         text: `

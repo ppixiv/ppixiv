@@ -469,6 +469,21 @@ export class helpers
         return false;
     }
 
+    // Return true if ctrl (or meta) is pressed for the given input event.
+    static isCtrlPressed(e)
+    {
+        let modifier = ppixiv.settings.get("hotkey_modifier");
+        let useCtrl = true;
+        if(modifier == "auto")
+            useCtrl = !ppixiv.mac; // On Mac, use Cmd.
+        else if(modifier == "meta")
+            useCtrl = false;
+        else
+            console.assert(modifier == "ctrl", `Unknown hotkey modifier ${modifier}`);
+
+        return useCtrl? e.ctrlKey:e.metaKey;
+    }
+
     // If we're in VVbrowser, return the host object implemented in VVbrowserInterface.cpp.  Otherwise,
     // return null.
     static _vvbrowser({sync=true}={})
@@ -775,7 +790,7 @@ export class helpers
     // out, or null if it's not a zoom keypress.
     static isZoomHotkey(e)
     {
-        if(!e.ctrlKey)
+        if(!helpers.isCtrlPressed(e))
             return null;
         
         if(e.code == "NumpadAdd" || e.code == "Equal") /* = */

@@ -69,6 +69,19 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
+        hotkeyModifier: () => {
+            return new MenuOptionOptionsSetting({
+                ...globalOptions,
+                setting: "hotkey_modifier",
+                label: "Hotkey modifier",
+                values: {
+                    auto: "Automatic",
+                    ctrl: "Ctrl",
+                    meta: "Command",
+                },
+            });
+        },
+
         invertPopupHotkey: () => {
             return new MenuOptionToggleSetting({
                 ...globalOptions,
@@ -729,6 +742,8 @@ export class SettingsDialog extends DialogWidget
         
                 if(!ppixiv.native)
                     settingsWidgets.preloadManga();
+
+                settingsWidgets.hotkeyModifier();
 
                 if(!ppixiv.native && ppixiv.mobile)
                     settingsWidgets.openPixiv();

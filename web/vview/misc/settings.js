@@ -47,6 +47,7 @@ export default class Settings extends EventTarget
         this.configure("manga_page_indicator", { defaultValue: false });
         this.configure("collapse_autocomplete", { defaultValue: true });
         this.configure("show_ai_icon", { defaultValue: true });
+        this.configure("hotkey_modifier", { defaultValue: "auto" });
 
         // Default to aspect ratio thumbs unless we're on a phone.
         this.configure("thumbnail_style", { defaultValue: helpers.other.isPhone()? "square":"aspect" });

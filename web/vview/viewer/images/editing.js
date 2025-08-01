@@ -106,7 +106,7 @@ export default class ImageEditor extends IllustWidget
             if(!this.visible)
                 return;
 
-            if(e.code == "KeyC" && e.ctrlKey)
+            if(e.code == "KeyC" && helpers.isCtrlPressed(e))
             {
                 // It's tricky to figure out if there's something the user might be trying to copy.
                 // See if there's a text selection.  This requires that anything that might have
@@ -123,7 +123,7 @@ export default class ImageEditor extends IllustWidget
                 e.stopPropagation();
                 this.copy();
             }
-            else if(e.code == "KeyV" && e.ctrlKey)
+            else if(e.code == "KeyV" && helpers.isCtrlPressed(e))
             {
                 e.preventDefault();
                 e.stopPropagation();
@@ -176,21 +176,21 @@ export default class ImageEditor extends IllustWidget
 
         // Hotkeys:
         window.addEventListener("keydown", (e) => {
-            if(e.code == "KeyS" && e.ctrlKey)
+            if(e.code == "KeyS" && helpers.isCtrlPressed(e))
             {
                 e.stopPropagation();
                 e.preventDefault();
                 this.save();
             }
 
-            if(e.code == "KeyZ" && e.ctrlKey)
+            if(e.code == "KeyZ" && helpers.isCtrlPressed(e))
             {
                 e.stopPropagation();
                 e.preventDefault();
                 this.undo();
             }
 
-            if(e.code == "KeyY" && e.ctrlKey)
+            if(e.code == "KeyY" && helpers.isCtrlPressed(e))
             {
                 e.stopPropagation();
                 e.preventDefault();

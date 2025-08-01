@@ -704,7 +704,7 @@ export default class ContextMenu extends Widget
             return;
 
         // Only change ctrl-clicks.
-        if(e.altKey || e.shiftKey || !e.ctrlKey)
+        if(e.altKey || e.shiftKey || !helpers.isCtrlPressed(e))
             return;
 
         e.preventDefault();
@@ -820,7 +820,7 @@ export default class ContextMenu extends Widget
         }
 
         // Escape when on the illust view backs out to the search:
-        if(e.code == "Escape" && !e.ctrlKey && !e.altKey && !e.shiftKey && screenName == "illust")
+        if(e.code == "Escape" && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey && screenName == "illust")
         {
             ppixiv.phistory.back();
             return true;
@@ -845,7 +845,7 @@ export default class ContextMenu extends Widget
         }
 
         // All of these hotkeys require Ctrl.
-        if(!e.ctrlKey)
+        if(!helpers.isCtrlPressed(e))
             return;
 
         if(e.key.toUpperCase() == "V")
@@ -951,7 +951,7 @@ export default class ContextMenu extends Widget
         let userId = this._effectiveUserId;
 
         // All of these hotkeys require Ctrl.
-        if(!e.ctrlKey)
+        if(!helpers.isCtrlPressed(e))
             return;
 
         if(e.key.toUpperCase() == "F")

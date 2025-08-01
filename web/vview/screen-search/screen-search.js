@@ -105,7 +105,7 @@ export default class ScreenSearch extends Screen
 
         // Zoom the thumbnails on ctrl-mousewheel:
         this.root.addEventListener("wheel", (e) => {
-            if(!e.ctrlKey)
+            if(!helpers.isCtrlPressed(e))
                 return;
     
             e.preventDefault();
@@ -293,7 +293,7 @@ export default class ScreenSearch extends Screen
         if(this.dataSource.name == "vview" || this.dataSource.name == "vview-search")
         {
             // Pressing ^F while on the local search focuses the search box.
-            if(e.code == "KeyF" && e.ctrlKey)
+            if(e.code == "KeyF" && helpers.isCtrlPressed(e))
             {
                 this.root.querySelector(".local-tag-search-box input").focus();
                 e.preventDefault();
@@ -303,7 +303,7 @@ export default class ScreenSearch extends Screen
             // Pressing ^V while on the local search pastes into the search box.  We don't do
             // this for other searches since this is the only one I find myself wanting to do
             // often.
-            if(e.code == "KeyV" && e.ctrlKey)
+            if(e.code == "KeyV" && helpers.isCtrlPressed(e))
             {
                 let text = await navigator.clipboard.readText();
                 let input = this.root.querySelector(".local-tag-search-box input");
