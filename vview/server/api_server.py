@@ -80,7 +80,8 @@ class APIServer:
         """
         Create a web.Application for running our HTTP server.
         """
-        app = web.Application(middlewares=[self.register_request_middleware, self.auth_middleware, self.file_timestamp_middleware])
+        app = web.Application(client_max_size=10*1024*1024,
+                              middlewares=[self.register_request_middleware, self.auth_middleware, self.file_timestamp_middleware])
 
         # Store the server on the app so it can be accessed from requests.
         app['server'] = self.server
