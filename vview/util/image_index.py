@@ -108,6 +108,19 @@ class ImageIndex:
             'unweighted_score': results[idx].unweighted_score,
         } for idx in range(count)]
 
+    def compare_signatures(self, signature1, signature2):
+        """
+        Compare two signatures and return a SearchResult with the similarity score.
+        """
+        result = _SearchResult()
+        dll.ImageIndex_CompareSignatures(self.index, signature1, signature2, byref(result))
+        
+        return {
+            'id': 0,
+            'score': result.score,
+            'unweighted_score': result.unweighted_score,
+        }
+    
     def __del__(self):
         dll.ImageIndex_Destroy(self.index)
 
@@ -139,6 +152,9 @@ if dll is not None:
 
     dll.ImageIndex_ImageSearch.restype = c_int
     dll.ImageIndex_ImageSearch.argtypes = (c_void_p, ImageSignature, c_int, POINTER(_SearchResult))
+
+    dll.ImageIndex_CompareSignatures.restype = None
+    dll.ImageIndex_CompareSignatures.argtypes = (c_void_p, ImageSignature, ImageSignature, POINTER(_SearchResult))
 
     _signature_size = dll.ImageSignature_Size()
     _image_size = dll.ImageSignature_ImageSize()

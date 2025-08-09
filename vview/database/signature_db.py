@@ -26,8 +26,6 @@ from pprint import pprint
 
 log = logging.getLogger(__name__)
 
-# XXX: a way to save signatures for all bookmarks, threaded?
-
 # This implements the database storage for library.  It stores similar data to
 # what we get from the Windows index.
 class SignatureDB(Database):

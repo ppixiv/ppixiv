@@ -38,6 +38,7 @@ public:
 
     // Find images similar to the given signature.
     std::vector<SearchResult> ImageSearch(const ImageSignature &signature, int maxResults) const;
+    SearchResult CompareSignatures(const ImageSignature &signature1, const ImageSignature &signature2) const;
 
 private:
     class Buckets;

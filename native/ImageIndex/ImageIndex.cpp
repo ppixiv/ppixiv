@@ -266,3 +266,47 @@ std::vector<ImageIndex::SearchResult> ImageIndex::ImageSearch(const ImageSignatu
     reverse(results.begin(), results.end());
     return results;
 }
+
+ImageIndex::SearchResult ImageIndex::CompareSignatures(const ImageSignature &signature1, const ImageSignature &signature2) const
+{
+    std::shared_lock L(lock);
+
+    // Compare the average color value of each image.  Images with closer average
+    // color are more similar, so have a smaller starting score.
+    float unweightedScore = 0;
+    for(int c = 0; c < 1; c++)
+    {
+        float difference = fabsf(signature1.AverageColor[c] - signature2.AverageColor[c]);
+        unweightedScore -= BucketWeights[0][c] * difference;
+    }
+
+    // The total score that can be added back to an image in this search:
+    float totalWeight = 0;
+
+    // For each color channel:
+    for(int c = 0; c < 3; c++)
+    {
+        // For each coefficient:
+        for(int16_t coeff: signature1.Signature[c])
+        {
+            // coeff is the index of the coefficient (x+y*Pixels), and negative
+            // if the original value was negative.  Flip these back to positive, and
+            // get the original coordinates back.
+            uint16_t idx = abs(coeff);
+            int coeffX = idx % ImageSignature::ImageSize;
+            int coeffY = idx / ImageSignature::ImageSize;
+
+            // Figure out which weight bin this coefficient is in, and get the weight
+            // for this channel.
+            int bin = min(max(coeffX, coeffY), 5);
+            float weight = BucketWeights[bin][c];
+            totalWeight += weight;
+
+            // Increase the score of images that have this coefficient.
+            unweightedScore += weight;
+        }
+    }
+
+    float finalScore = unweightedScore / totalWeight;
+    return SearchResult(0, finalScore, unweightedScore);
+}

@@ -18,6 +18,7 @@ extern "C"
     // ids and scores must be big enough to hold maxResults.  Returns the number
     // of results.
     __declspec(dllexport) int ImageIndex_ImageSearch(ImageIndex *idx, const ImageSignature *signature, int maxResults, ImageIndex::SearchResult *results);
+    __declspec(dllexport) void ImageIndex_CompareSignatures(ImageIndex *idx, const ImageSignature *signature1, const ImageSignature *signature2, ImageIndex::SearchResult *result);
 
     __declspec(dllexport) void ImageSignature_FromImageData(ImageSignature *signature, const uint8_t *imageData);
     __declspec(dllexport) int ImageSignature_ImageSize();

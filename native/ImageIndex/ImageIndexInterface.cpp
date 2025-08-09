@@ -41,6 +41,11 @@ int ImageIndex_ImageSearch(ImageIndex *idx, const ImageSignature *signature, int
     return (int) data.size();
 }
 
+void ImageIndex_CompareSignatures(ImageIndex *idx, const ImageSignature *signature1, const ImageSignature *signature2, ImageIndex::SearchResult *result)
+{
+    *result = idx->CompareSignatures(*signature1, *signature2);
+}
+
 void ImageSignature_FromImageData(ImageSignature *signature, const uint8_t *imageData)
 {
     signature->FromImageData(imageData);
