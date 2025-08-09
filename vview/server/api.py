@@ -434,7 +434,7 @@ async def api_similar_search(info):
             result_path = info.request.app['server'].library.get_public_path(absolute_path)
             entry = await _get_api_illust_info(info, result_path)
         except misc.Error as e:
-            log.warn('Skipping result:', e, result['path'])
+            log.warn(f'Skipping result: {e} ({result['path']})')
             continue
 
         results.append({
