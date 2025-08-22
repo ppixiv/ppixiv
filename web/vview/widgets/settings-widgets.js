@@ -476,6 +476,16 @@ function createSettingsWidget({ globalOptions })
                 },
             });
         },
+
+        useOriginalDownloadFilename: () => {
+            new MenuOptionToggleSetting({
+                ...globalOptions,
+                label: "Use original pixiv download filename like 123_p0.jpg",
+                setting: "use_original_download_filename",
+                onValue: "true",
+                offValue: "false",
+            });
+        },
     };
 }
 
@@ -487,6 +497,7 @@ let pageTitles = {
     linkedTabs: "Linked tabs",
     translation: "Translation",
     translationOverride: "Translation",
+    downloads: "Downloads",
     other: "Other",
     whatsNew: "What's New",
 };
@@ -715,6 +726,8 @@ export class SettingsDialog extends DialogWidget
             // when we're viewing an image.
             translation: () => createTranslationSettingsWidgets({ globalOptions, editOverrides: false }),
             translationOverride: () => createTranslationSettingsWidgets({ globalOptions, editOverrides: true }),
+
+            downloads: () => settingsWidgets.useOriginalDownloadFilename(),
 
             other: () => {
                 if(ppixiv.native && !LocalAPI.localInfo.local)
