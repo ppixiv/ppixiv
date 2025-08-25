@@ -5,7 +5,7 @@ from PIL import Image
 from pathlib import Path, PurePosixPath
 from shutil import copyfile
 
-from ..util import misc, mjpeg_mkv_to_zip, ugoira_from_webp_animation, gif_to_zip, inpainting, upscaling, video
+from ..util import misc, ugoira_from_mjpeg_mkv, ugoira_from_webp_animation, gif_to_zip, inpainting, upscaling, video
 from ..util.paths import open_path
 from ..util.tiff import remove_photoshop_tiff_data
 
@@ -401,8 +401,8 @@ async def handle_mjpeg(request):
         if mime_type in ('video/x-matroska', 'video/webm'):
             # Get frame durations.  This is where we expect an exception to be thrown if
             # the file isn't an MJPEG, so we do this before creating our response.
-            frame_durations = mjpeg_mkv_to_zip.get_frame_durations(f)
-            output_file, task = await mjpeg_mkv_to_zip.create_ugoira(f, frame_durations)
+            frame_durations = ugoira_from_mjpeg_mkv.get_frame_durations(f)
+            output_file, task = await ugoira_from_mjpeg_mkv.create_ugoira(f, frame_durations)
         elif mime_type == 'image/webp':
             frame_durations = ugoira_from_webp_animation.get_frame_durations(f)
             output_file, task = await ugoira_from_webp_animation.create_ugoira(f, frame_durations)
