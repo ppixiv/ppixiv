@@ -293,7 +293,7 @@ class Library:
     @classmethod
     def split_library_name_and_path(cls, path):
         """
-        Given an id, eg. "file:/library/path1/path2/path3", return ('library', 'path1/path2/path3').
+        Given an id, eg. "/library/path1/path2/path3", return ('library', 'path1/path2/path3').
         """
         # The root doesn't correspond to an library.
         if path == '/':
