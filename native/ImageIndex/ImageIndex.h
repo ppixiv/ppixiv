@@ -19,6 +19,7 @@ public:
     void AddImage(uint64_t id, const ImageSignature &signature);
     bool GetImage(uint64_t id, ImageSignature &signature);
     void RemoveImage(uint64_t id);
+    void RemoveAllImages();
 
     // Return true if id is already registered.
     bool HasImage(uint64_t id) const;

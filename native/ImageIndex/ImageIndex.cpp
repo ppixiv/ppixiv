@@ -142,6 +142,15 @@ void ImageIndex::RemoveImage(uint64_t id)
     RemoveImageLocked(id);
 }
 
+void ImageIndex::RemoveAllImages()
+{
+    std::unique_lock L(lock);
+
+    m_AllImages.clear();
+    for(int channel = 0; channel < 3; ++channel)
+        m_pBuckets[channel] = make_shared<Buckets>();
+}
+
 void ImageIndex::RemoveImageLocked(uint64_t id)
 {
     auto signature = GetSignatureLocked(id);

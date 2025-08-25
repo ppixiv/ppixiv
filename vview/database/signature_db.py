@@ -95,6 +95,9 @@ class SignatureDB(Database):
         if not image_index.available:
             return
 
+        # If we're reloading, clear the image index first.
+        self.image_index.remove_all_images()
+
         log.info('Loading image signatures...')
         idx = 0
         for idx, sig_entry in enumerate(self.all_signatures()):

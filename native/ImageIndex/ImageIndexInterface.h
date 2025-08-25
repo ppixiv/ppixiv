@@ -13,6 +13,7 @@ extern "C"
     __declspec(dllexport) void ImageIndex_Destroy(ImageIndex *idx);
     __declspec(dllexport) void ImageIndex_AddImage(ImageIndex *idx, uint64_t id, const ImageSignature *signature);
     __declspec(dllexport) void ImageIndex_RemoveImage(ImageIndex *idx, uint64_t id);
+    __declspec(dllexport) void ImageIndex_RemoveAllImages(ImageIndex *idx);
     __declspec(dllexport) bool ImageIndex_HasImage(ImageIndex *idx, uint64_t id);
 
     // ids and scores must be big enough to hold maxResults.  Returns the number

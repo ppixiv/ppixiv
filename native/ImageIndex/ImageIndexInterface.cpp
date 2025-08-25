@@ -26,6 +26,11 @@ void ImageIndex_RemoveImage(ImageIndex *idx, uint64_t id)
     idx->RemoveImage(id);
 }
 
+void ImageIndex_RemoveAllImages(ImageIndex *idx)
+{
+    idx->RemoveAllImages();
+}
+
 bool ImageIndex_HasImage(ImageIndex *idx, uint64_t id)
 {
     return idx->HasImage(id);

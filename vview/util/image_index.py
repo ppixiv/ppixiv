@@ -90,6 +90,12 @@ class ImageIndex:
         """
         dll.ImageIndex_RemoveImage(self.index, image_id)
 
+    def remove_all_images(self):
+        """
+        Remove all images from the index.
+        """
+        dll.ImageIndex_RemoveAllImages(self.index)
+
     def image_search(self, signature, max_results=10):
         """
         Search for images similar to image_id, returning an array of dicts:
@@ -144,6 +150,9 @@ if dll is not None:
     dll.ImageIndex_RemoveImage.argtypes = (c_void_p, c_ulonglong)
     dll.ImageIndex_RemoveImage.restype = None
 
+    dll.ImageIndex_RemoveAllImages.argtypes = (c_void_p,)
+    dll.ImageIndex_RemoveAllImages.restype = None
+    
     dll.ImageIndex_HasImage.argtypes = (c_void_p, c_ulonglong)
     dll.ImageIndex_HasImage.restype = c_bool
 
