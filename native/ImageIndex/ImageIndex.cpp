@@ -73,7 +73,7 @@ public:
     {
         // This isn't efficient and would need to be done differently if we need
         // to remove batches of images.
-        auto bucket = image->signature.Signature[color];
+        auto &bucket = image->signature.Signature[color];
         for(int coeff: image->signature.Signature[color])
         {
             auto bucket = buckets[coeff + maxCoeff];
