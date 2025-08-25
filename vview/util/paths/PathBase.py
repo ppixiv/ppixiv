@@ -24,6 +24,8 @@ class PathBase:
 
     def relative_to(self, path):
         return self.path.relative_to(path)
+    def is_relative_to(self, path):
+        return self.path.is_relative_to(path)
 
     @property
     def parent(self):
