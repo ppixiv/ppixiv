@@ -5,7 +5,7 @@ from PIL import Image
 from pathlib import Path, PurePosixPath
 from shutil import copyfile
 
-from ..util import misc, ugoira_from_mjpeg_mkv, ugoira_from_webp_animation, gif_to_zip, inpainting, upscaling, video
+from ..util import misc, ugoira_from_gif, ugoira_from_mjpeg_mkv, ugoira_from_webp_animation, inpainting, upscaling, video
 from ..util.paths import open_path
 from ..util.tiff import remove_photoshop_tiff_data
 
@@ -407,8 +407,8 @@ async def handle_mjpeg(request):
             frame_durations = ugoira_from_webp_animation.get_frame_durations(f)
             output_file, task = await ugoira_from_webp_animation.create_ugoira(f, frame_durations)
         elif mime_type == 'image/gif':
-            frame_durations = gif_to_zip.get_frame_durations(f)
-            output_file, task = gif_to_zip.create_ugoira(f, frame_durations)
+            frame_durations = ugoira_from_gif.get_frame_durations(f)
+            output_file, task = ugoira_from_gif.create_ugoira(f, frame_durations)
         else:
             raise aiohttp.web.HTTPNotFound(f'MJPEG not supported for {mime_type}')
 
