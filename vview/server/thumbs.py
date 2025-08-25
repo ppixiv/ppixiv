@@ -5,7 +5,7 @@ from PIL import Image
 from pathlib import Path, PurePosixPath
 from shutil import copyfile
 
-from ..util import misc, mjpeg_mkv_to_zip, gif_to_zip, inpainting, upscaling, video
+from ..util import misc, mjpeg_mkv_to_zip, ugoira_from_webp_animation, gif_to_zip, inpainting, upscaling, video
 from ..util.paths import open_path
 from ..util.tiff import remove_photoshop_tiff_data
 
@@ -403,11 +403,14 @@ async def handle_mjpeg(request):
             # the file isn't an MJPEG, so we do this before creating our response.
             frame_durations = mjpeg_mkv_to_zip.get_frame_durations(f)
             output_file, task = await mjpeg_mkv_to_zip.create_ugoira(f, frame_durations)
+        elif mime_type == 'image/webp':
+            frame_durations = ugoira_from_webp_animation.get_frame_durations(f)
+            output_file, task = await ugoira_from_webp_animation.create_ugoira(f, frame_durations)
         elif mime_type == 'image/gif':
             frame_durations = gif_to_zip.get_frame_durations(f)
             output_file, task = gif_to_zip.create_ugoira(f, frame_durations)
         else:
-            raise aiohttp.web.HTTPNotFound(f'Thumbnails not supported for {mime_type}')
+            raise aiohttp.web.HTTPNotFound(f'MJPEG not supported for {mime_type}')
 
         response = aiohttp.web.Response(status=200, headers={
             'Content-Type': 'application/zip',

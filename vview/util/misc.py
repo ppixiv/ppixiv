@@ -183,6 +183,10 @@ def read_metadata(f, mime_type):
     result['height'] = img.size[1]
     result['comment'] = img.info.get('parameters') or img.info.get('Description') or ''
 
+    # Mark animated WebPs, so they can use ugoira_from_webp_animation.
+    if mime_type == 'image/webp' and getattr(img, "is_animated", False):
+        result['animation'] = True
+
     # If we didn't get a description from the comment or description, see if we can get
     # one from XMP data.
     if not result['comment']:
