@@ -320,6 +320,8 @@ async def api_similar_search(info):
 
         # Check that the top path is in the library.  We don't check this for each result.
         info.request.app['server'].library.get_public_path(absolute_path)
+        if info.manager.library.get_mount_for_path(absolute_path) is None:
+            raise misc.Error('not-found', 'Path not in library')
 
     async def do_index():
         if path is not None:
