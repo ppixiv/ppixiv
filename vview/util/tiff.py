@@ -214,6 +214,5 @@ def get_xmp_metadata(xmp_data, metadata):
     # If we have a description node, store it as the comment.
     selector = CSSSelector(r'dc\:description rdf\:li')
     description_node = selector(root)
-    if description_node:
+    if description_node and description_node[0].text:
         metadata['comment'] = description_node[0].text
-        print(f'desc: {description_node[0].text}')
