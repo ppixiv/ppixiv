@@ -8,7 +8,7 @@ import urllib.parse
 
 from ..util.paths import open_path
 from ..util.tiff import get_tiff_metadata, get_xmp_metadata
-from .video_metadata import mp4, mkv, gif
+from .video_metadata import mp4, mkv, gif, webp
 
 log = logging.getLogger(__name__)
 
@@ -170,6 +170,9 @@ def read_metadata(f, mime_type):
     # Use our faster implementation to get metadata from TIFFs.
     if mime_type == 'image/tiff':
         return get_tiff_metadata(f)
+
+    if mime_type == 'image/webp':
+        return webp.get_webp_metadata(f)
 
     result = { }
 
