@@ -581,6 +581,9 @@ export default class ScreenIllust extends Screen
         if(!this._active)
             return;        
 
+        if(ppixiv.settings.get("debounce_wheel") && e.timeDelta != -1 && e.timeDelta < 50)
+            return;
+        
         let down = e.deltaY > 0;
         this.navigateToNext(down, { manga: e.shiftKey? "skip-to-first":"normal" });
     }

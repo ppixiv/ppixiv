@@ -1374,6 +1374,28 @@ export class OpenWidgets extends EventTarget
     }
 }
 
+// Add a timeDelta property on wheel events containing the time in milliseconds
+// since the last wheel event in the same direction, or -1 if the direction has
+// changed.
+export function addWheelEventTimeDeltas()
+{
+    let lastDeltaY = 0;
+    let lastEventTime = 0;
+
+    window.addEventListener("wheel", (e) =>
+    {
+        e.timeDelta = -1;
+
+        if(e.deltaY != 0 && lastDeltaY != 0 &&
+            (e.deltaY > 0) == (lastDeltaY > 0))
+        {
+            e.timeDelta = e.timeStamp - lastEventTime;
+        }
+        lastDeltaY = e.deltaY;
+        lastEventTime = e.timeStamp;
+    }, { passive: false, capture: true });
+}
+
 // These are used all over the place, so we add them here to avoid having to import them
 // everywhere.  Eventually this module should just be a collection of these modules and
 // everything else should be in submodules.

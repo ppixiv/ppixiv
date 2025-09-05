@@ -14,7 +14,7 @@ import MessageWidget from '/vview/widgets/message-widget.js';
 import MediaCache from '/vview/misc/media-cache.js';
 import UserCache from '/vview/misc/user-cache.js';
 import ExtraCache from '/vview/misc/extra-cache.js';
-import { helpers, PointerEventMovement } from '/vview/misc/helpers.js';
+import { helpers, addWheelEventTimeDeltas, PointerEventMovement } from '/vview/misc/helpers.js';
 import * as Recaptcha from '/vview/util/recaptcha.js';
 import * as Hooks from '/vview/util/hooks.js';
 import ExtraImageData from '/vview/misc/extra-image-data.js';
@@ -52,8 +52,9 @@ export default class App
         // Init hooks if any.
         await Hooks.init(this);
 
-        // Install polyfills.
+        // Install polyfills and global helpers.
         InstallPolyfills();
+        addWheelEventTimeDeltas();
 
         // Create singletons.
         ppixiv.phistory = new VirtualHistory({ permanent: ppixiv.mobile });

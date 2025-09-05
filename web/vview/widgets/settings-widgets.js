@@ -69,6 +69,15 @@ function createSettingsWidget({ globalOptions })
             });
         },
 
+        debounceWheel: () => {
+            return new MenuOptionToggleSetting({
+                ...globalOptions,
+                label: "Ignore rapid mousewheel inputs",
+                setting: "debounce_wheel",
+                explanationEnabled: "Enable if wheel scrolls by multiple images",
+            });
+        },
+
         hotkeyModifier: () => {
             return new MenuOptionOptionsSetting({
                 ...globalOptions,
@@ -738,7 +747,10 @@ export class SettingsDialog extends DialogWidget
                 settingsWidgets.bookmarkPrivatelyByDefault();
 
                 if(!ppixiv.mobile)
+                {
                     settingsWidgets.limitSlideshowFramerate();
+                    settingsWidgets.debounceWheel();
+                }
         
                 if(!ppixiv.native)
                     settingsWidgets.preloadManga();
