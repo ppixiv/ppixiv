@@ -54,6 +54,7 @@ export default class Settings extends EventTarget
         this.configure("expand_manga_thumbnails", { defaultValue: false });
         this.configure("slideshow_framerate", { defaultValue: 60 });
         this.configure("animations_enabled", { defaultValue: true });
+        this.configure("debounce_wheel", { defaultValue: false });
 
         // If not null, this limits the size of loaded images.
         this.configure("image_size_limit", { defaultValue: ppixiv.mobile? 4000*4000:null });
