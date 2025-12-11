@@ -817,8 +817,7 @@ async def api_auth_login(info):
     username = info.data.get('username')
     password = info.data.get('password')
 
-    auth = info.manager.auth
-    user = auth.get_user(username)
+    user = info.manager.settings.get_user(username)
     if user is None:
         raise misc.Error('access-denied', 'Incorrect username or password')
 
