@@ -59,7 +59,8 @@ async def _create_upscale_or_wait(*args, output_file, **kwargs):
         # Just wait for it to finish.
         log.info(f'Upscale {output_file} is already being generated, waiting for it')
         existing_task = _upscale_jobs[output_file]
-        return await existing_task
+        await existing_task
+        return output_file, 'image/jpeg'
 
     # Run the upscale.
     task = _create_upscale(*args, **kwargs, output_file=output_file)
