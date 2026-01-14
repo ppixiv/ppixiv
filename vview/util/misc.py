@@ -755,7 +755,6 @@ def config_logging():
     logging.captureWarnings(True)
 
     if sys.stderr is not None:
-        stdout_handler = logging.StreamHandler()
         add_root_logging_handler(logging.StreamHandler())
 
     logging.getLogger('vview').setLevel(logging.INFO)
