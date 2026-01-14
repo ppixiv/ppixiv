@@ -109,6 +109,12 @@ export default class ViewerUgoira extends ViewerVideoBase
     {
         super.shutdown();
 
+        if(this.video)
+        {
+            this.video.remove();
+            this.video = null;
+        }
+
         // Cancel the player's download and remove event listeners.
         if(this.abortController)
         {

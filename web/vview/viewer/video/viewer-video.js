@@ -32,7 +32,7 @@ export default class ViewerVideo extends ViewerVideoBase
         this.video.addEventListener("volumechange", (e) => {
             ppixiv.settings.set("volume", this.video.volume);
             ppixiv.settings.set("mute", this.video.muted);
-        });
+        }, { signal: this.shutdownSignal });
 
         this.video.autoplay = true;
         this.video.className = "filtering";
@@ -42,14 +42,14 @@ export default class ViewerVideo extends ViewerVideoBase
 
         this.videoContainer.appendChild(this.video);
 
-        this.video.addEventListener("timeupdate", () => this.updateSeekBar());
-        this.video.addEventListener("progress", () => this.updateSeekBar());
+        this.video.addEventListener("timeupdate", () => this.updateSeekBar(), { signal: this.shutdownSignal });
+        this.video.addEventListener("progress", () => this.updateSeekBar(), { signal: this.shutdownSignal });
 
         // Clicking on mobile shows the menu, so use dblclick for pause.
         this.videoContainer.addEventListener(ppixiv.mobile? "dblclick":"click", this.togglePause);
 
         // In case we start PIP without playing first, switch the poster when PIP starts.
-        this.video.addEventListener("enterpictureinpicture", (e) => { this._switchPosterToThumb(); });
+        this.video.addEventListener("enterpictureinpicture", (e) => { this._switchPosterToThumb(); }, { signal: this.shutdownSignal });
 
         // True if we want to play if the window has focus.  We always pause when backgrounded.
         let args = helpers.args.location;
@@ -68,8 +68,7 @@ export default class ViewerVideo extends ViewerVideoBase
         await super.load(mediaId, { slideshow, onnextimage });
 
         // Remove the old source, if any, and create a new one.
-        if(this.source)
-            this.source.remove();
+        this._removeSource();        
         this.source = document.createElement("source");
 
         // Don't loop in slideshow.
@@ -111,20 +110,33 @@ export default class ViewerVideo extends ViewerVideoBase
         this.refreshFocus();
     }
 
+    _removeSource()
+    {
+        if(this.source == null)
+            return;
+
+        this.source.src = "";
+        this.source.remove();
+        this.source = null;
+    }
+
     shutdown()
     {
         super.shutdown();
 
-        if(this.source)
-        {
-            this.source.remove();
-            this.source = null;
-        }
+        this._removeSource();
 
-        if(this.player)
+        if(this.video)
         {
-            this.player.pause(); 
-            this.player = null;
+            this.video.poster = "";
+            try { this.video.pause(); } catch (e) {}
+        
+            // Force resource release:
+            try { this.video.load(); } catch (e) {}
+        
+            this.video.onended = null;
+            this.video.remove();
+            this.video = null;
         }
     }
 

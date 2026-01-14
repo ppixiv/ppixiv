@@ -87,7 +87,6 @@ export default class ViewerVideoBase extends Viewer
         // If this.load() is running, cancel it.
         this._loadSentinel = null;
 
-        this.video.remove();
         this.videoUi.seekBar.setCallback(null);
 
         super.shutdown();
