@@ -32,7 +32,9 @@
     box-sizing: border-box;
 
     // Prevent drag-to-reload on Android.  This should be the default for home screen apps.
-    overscroll-behavior: contain;
+    &.android {
+        overscroll-behavior: contain;
+    }
 
     // On mobile, only allow touches to scroll, not to do things like zoom.
     touch-action: pan-x pan-y;
