@@ -4,14 +4,30 @@
 # (this isn't multithreaded), and it doesn't use bcrypt since the extra dependancy
 # isn't worth it.
 
-import aiohttp, errno, hashlib, logging, json, os
+import aiohttp, base64, errno, hashlib, hmac, logging, json, os
 from pathlib import Path, PurePosixPath
 from ..util import misc
 from pprint import pprint
 
 log = logging.getLogger(__name__)
 
+_singleton = None
 class Settings:
+    @classmethod
+    def create(cls, filename):
+        global _singleton
+        if _singleton is not None:
+            raise Exception('Settings already initialized')
+        _singleton = cls(filename)
+        return _singleton
+    
+    @classmethod
+    def get(cls):
+        global _singleton
+        if _singleton is None:
+            raise Exception('Settings not initialized')
+        return _singleton
+
     def __init__(self, filename):
         self.filename = Path(filename)
         self.load()
@@ -90,6 +106,64 @@ class Settings:
             return self.get_user('guest')
 
         return user
+    
+    def get_access_token_payload(self, file_access_token):
+        """
+        Check a file access token.  If valid, return the payload.
+        """
+        try:
+            payload_b64, signature_b64 = file_access_token.split('.', 1)
+        except ValueError:
+            return None
+
+        # Decode the payload and find the associated user.
+        payload_json = base64.urlsafe_b64decode(payload_b64)
+        payload = json.loads(payload_json)
+        username = payload.get('u')
+        user = self.get_user(username)
+        if user is None:
+            log.info(f'User {username} doesn\'t exist')
+            return None
+        
+        # See if any of this user's session tokens match this access token.
+        expected_hashed_token = payload.get('t')
+        user_tokens = user.info.get('tokens', [])
+        user_hashed_tokens = [hashlib.sha256(token.encode()).hexdigest() for token in user_tokens]
+        if expected_hashed_token not in user_hashed_tokens:
+            log.info(f'No valid session token found for access token')
+            return None
+
+        # Find the un-hashed token that was used to sign the access token.
+        token_index = user_hashed_tokens.index(expected_hashed_token)
+        token = user_tokens[token_index]
+        expected_signature = hmac.new(token.encode(), payload_b64.encode(), hashlib.sha256).digest()
+        try:
+            signature = base64.urlsafe_b64decode(signature_b64)
+        except Exception:
+            log.info('Invalid signature encoding for access token')
+            return None
+
+        if not hmac.compare_digest(expected_signature, signature):
+            log.info('Invalid signature for access token')
+            return None
+
+        return payload
+
+    def check_hashed_token(self, username, hashed_token):
+        """
+        hashed_token is the SHA-256 hash of a token.
+
+        If hashed_token is valid, return the user, otherwise return None.
+        """
+        # This is used for access keys.  A "real" auth system would just embed
+        # the session ID.
+        user = self.get_user(username)
+        if user is None:
+            log.info(f'User {username} doesn\'t exist')
+            return None
+
+        log.info(f'Invalid token for user {user}')
+        return None
 
     def get_folders(self):
         folders = []

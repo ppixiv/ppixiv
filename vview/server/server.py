@@ -105,7 +105,7 @@ class Server:
         self.data_dir = data_dir
         self.data_dir.mkdir()
 
-        self.settings = Settings(self.data_dir / 'settings.json')
+        self.settings = Settings.create(self.data_dir / 'settings.json')
         self.library = Library(self.data_dir)
         self.sig_db = SignatureDB(self.data_dir / 'signatures.sqlite')
 

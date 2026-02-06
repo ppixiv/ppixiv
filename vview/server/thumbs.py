@@ -8,6 +8,7 @@ from shutil import copyfile
 from ..util import misc, ugoira_from_gif, ugoira_from_mjpeg_mkv, ugoira_from_webp_animation, inpainting, upscaling, video
 from ..util.paths import open_path
 from ..util.tiff import remove_photoshop_tiff_data
+from .settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +32,25 @@ def _check_access(request, absolute_path):
         return
 
     entry = request.app['server'].library.get(absolute_path)
+
+    # If an access token was provided, check it.
+    access_token = request.query.get('access_token')
+    if access_token:
+        payload = Settings.get().get_access_token_payload(access_token)
+        if payload is None:
+            log.info('Invalid access key provided')
+            raise aiohttp.web.HTTPUnauthorized()
+
+        requested_media_id = payload.get('f')
+        user = Settings.get().get_user(payload['u'])
+        if user is None:
+            log.info(f'Access key for user {payload["u"]} has invalid user')
+            raise aiohttp.web.HTTPUnauthorized()
+
+        media_id = f'file:{request.app['server'].library.get_public_path(absolute_path)}'
+        if requested_media_id != media_id:
+            log.info(f'Access key for file {requested_media_id} doesn\'t match requested file {media_id}')
+            raise aiohttp.web.HTTPUnauthorized()
 
     # Check that the user has access to this file.
     user.check_image_access(entry, api=False)
