@@ -8,6 +8,7 @@ import { LinkTabsPopup } from '/vview/misc/send-image.js';
 import DialogWidget from '/vview/widgets/dialog.js';
 import PointerListener from '/vview/actors/pointer-listener.js';
 import { helpers } from '/vview/misc/helpers.js';
+import { importAllData, exportAllData } from '/vview/misc/data-export.js';
 import WhatsNew from '/vview/widgets/whats-new.js';
 import { ConfirmPrompt } from '/vview/widgets/prompts.js';
 import LocalAPI from '/vview/misc/local-api.js';
@@ -202,21 +203,21 @@ function createSettingsWidget({ globalOptions })
         importExtraData: () => {
             let widget = new MenuOptionRow({
                 ...globalOptions,
-                label: "Image edits",
+                label: "Settings and data",
             });
 
             new MenuOptionButton({
                 icon: "file_upload",
                 label: "Import",
                 container: widget.root,
-                onclick: () => ppixiv.extraImageData.import(),
+                onclick: () => importAllData(),
             });
 
             new MenuOptionButton({
                 icon: "file_download",
                 label: "Export",
                 container: widget.root,
-                onclick: () => ppixiv.extraImageData.export(),
+                onclick: () => exportAllData(),
             });
             return widget;
         },

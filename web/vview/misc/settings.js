@@ -181,6 +181,38 @@ export default class Settings extends EventTarget
         return result;
     }
 
+    // Get and set all settings, for export.
+    getAll()
+    {
+        // Return keys from localStorage instead of using our key list above, since
+        // we don't require that all settings be registered with configure().
+        let result = new Map();
+        for(let [storageKey, value] of Object.entries(localStorage))
+        {
+            if(!storageKey.startsWith("_ppixiv_"))
+                continue;
+
+            let key = storageKey.substring("_ppixiv_".length);
+
+            try {
+                value = JSON.parse(value);
+            } catch(e) {
+                console.warn(e);
+                console.log("Skipping invalid setting:", storageKey, value);
+                continue;
+            }
+
+            result.set(key, value);
+        }
+        return result;
+    }
+
+    setAll(settings)
+    {
+        for(let [key, value] of settings.entries())
+            this.set(key, value);
+    }
+
     // Handle migrating settings that have changed.
     migrate()
     {

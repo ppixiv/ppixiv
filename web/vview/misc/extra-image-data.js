@@ -172,70 +172,31 @@ export default class ExtraImageData
             return results;
         }) ?? [];
 
-        let exportedData = {
-            type: "ppixiv-image-data",
-            data,
-        };
-
-        if(exportedData.data.length == 0)
-        {
-            ppixiv.message.show("No edited images to export.");
-            return;
-        }
-
-        let json = JSON.stringify(exportedData, null, 4);
-        let blob = new Blob([json], { type: "application/json" });
-        helpers.saveBlob(blob, "ppixiv image edits.json");
+        return data;
     }
 
     // Import data exported by export().  This will overwrite any overlapping entries, but entries
     // won't be deleted if they don't exist in the input.
-    async import()
+    async import(data)
     {
         if(this.db == null)
             throw new Error("ExtraImageData is disabled");
 
-        // This API is annoying: it throws an exception (rejects the promise) instead of
-        // returning null.  Exceptions should be used for unusual errors, not for things
-        // like the user cancelling a file dialog.
-        let files;
-        try {
-            files = await window.showOpenFilePicker({
-                multiple: false,
-                types: [{
-                    description: 'Exported image edits',
-                    accept: {
-                        'application/json': ['.json'],
-                    }
-                }],
-            });
-        } catch(e) {
-            return;
-        }
-
-        let file = await files[0].getFile();
-        let data = JSON.parse(await file.text());
-        if(data.type != "ppixiv-image-data")
-        {
-            ppixiv.message.show(`The file "${file.name}" doesn't contain exported image edits.`);
-            return;
-        }
-
         let dataByMediaId = {};
-        for(let entry of data.data)
+        for(let entry of data)
         {
             let mediaId = entry.media_id;
             delete entry.media_id;
             dataByMediaId[mediaId] = entry;
         }
 
-        console.log(`Importing data:`, data);
+        console.log(`Importing image edits:`, data);
         await this.db.multiSet(dataByMediaId);
 
         // Tell MediaCache that we've replaced extra data, so any loaded images are updated.
         for(let [mediaId, data] of Object.entries(dataByMediaId))
             ppixiv.mediaCache.replaceExtraData(mediaId, data);
 
-        ppixiv.message.show(`Imported edits for ${data.data.length} ${data.data.length == 1? "image":"images"}.`);
+        return { count: data.length };
     }
 }
