@@ -308,13 +308,20 @@ export default class MediaCache extends EventTarget
     }
 
     // Update URLs for all cached images after a change to the pixiv_cdn setting.
+    //
+    // This doesn't currently work: _updateMediaInfoUrls expects to update raw
+    // search result data before it's registered (via addMediaInfosPartial), and
+    // MediaInfo._getInfo currently throws when we try to access mediaInfo.mangaPages
+    // for partial info.  However, this is currently never used since Pixiv removed
+    // their CF CDN entirely and this only gets called when something like a data backup
+    // changes the old CDN setting.  So it's just disabled for now.
     _updatePixivURLs()
     {
-        for(let mediaInfo of Object.values(this._mediaInfo))
-            this._updateMediaInfoUrls(mediaInfo);
+        // for(let mediaInfo of Object.values(this._mediaInfo))
+        //     this._updateMediaInfoUrls(mediaInfo);
 
-        for(let mediaId of Object.keys(this._mediaInfo))
-            MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
+        // for(let mediaId of Object.keys(this._mediaInfo))
+        //     MediaInfo.callMediaInfoModifiedCallbacks(mediaId);
     }
 
     // Update URLs in mediaInfo that are affected by adjustImageUrlHostname.  This can be called
