@@ -6,8 +6,17 @@
 // that loads and runs the @require manually.
 
 // Cache the main script URL.
-function getCodeURL() { return localStorage._ppixiv_last_seen_source_url; }
-function setCodeURL(url) { localStorage._ppixiv_last_seen_source_url = url; }
+function getCodeURL()
+{
+    try {
+        let value = localStorage._ppixiv_last_seen_source_url;
+        return value? JSON.parse(value):null;
+    } catch(e) {
+        console.log(`Error parsing cached ppixiv source URL:`, e);
+        return null;
+    }
+}
+function setCodeURL(url) { localStorage._ppixiv_last_seen_source_url = JSON.stringify(url); }
 
 // This is the entry point called by the userscript stub that's loading us.  Return the code, which
 // the caller should eval().  We don't execute it here since we want the code to be run in the context
