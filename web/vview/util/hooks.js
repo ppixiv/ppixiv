@@ -9,6 +9,10 @@ export async function init()
     if(!url)
         return;
 
-    Hooks = await import(url);
-    await Hooks?.init?.({ app });
+    try {
+        Hooks = await import(url);
+        await Hooks?.init?.({ app });
+    } catch(e) {
+        console.error("Failed to load hooks from " + url, e);
+    }
 }
