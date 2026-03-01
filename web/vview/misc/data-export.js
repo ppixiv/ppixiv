@@ -55,7 +55,8 @@ export async function importAllData()
             console.log(`Imported ${Object.keys(data).length} settings.`);
             break;
         default:
-            console.warn(`Unknown data type "${type}" in imported data, skipping.`, data);
+            console.log(`Unknown data type "${type}" in imported data, skipping.`, data);
+            break;
         }
     }
 
@@ -67,11 +68,14 @@ export async function exportAllData()
     let exportedItems = [];
 
     let imageEdits = await ppixiv.extraImageData.export();
-    exportedItems.push({
-        type: "image-data",
-        data: imageEdits,
-    });
-
+    if(imageEdits.length > 0)
+    {
+        exportedItems.push({
+            type: "image-data",
+            data: imageEdits,
+        });
+    }
+    
     let settings = ppixiv.settings.getAll();
     exportedItems.push({
         type: "settings",
