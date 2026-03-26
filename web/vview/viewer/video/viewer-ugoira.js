@@ -125,8 +125,6 @@ export default class ViewerUgoira extends ViewerVideoBase
         // Send a finished progress callback if we were still loading.
         this.progress(null);
 
-        this.video.hidden = true;
-
         if(this.player)
         {
             this.player.pause(); 
