@@ -293,10 +293,11 @@ class UI extends Widget
                     ${ helpers.createBoxLink({label: "Type",    classes: [["search-type-button"]] }) }
                     ${ helpers.createBoxLink({label: "Search mode",    classes: ["search-mode-button"] }) }
                     ${ helpers.createBoxLink({label: "Image size",    classes: ["image-size-button"] }) }
-                    ${ helpers.createBoxLink({label: "Aspect ratio",    classes: ["aspect-ratio-button"] }) }
-                    ${ helpers.createBoxLink({label: "Bookmarks",    classes: ["bookmark-count-button", "premium-only"] }) }
+                    ${ helpers.createBoxLink({label: "Aspect",    classes: ["aspect-ratio-button"] }) }
+                    ${ helpers.createBoxLink({label: "# Bookmarks",    classes: ["bookmark-count-button", "premium-only"] }) }
+                    ${ helpers.createBoxLink({label: "Bookmarked",    classes: ["bookmarked-by-user", "premium-only"] }) }
                     ${ helpers.createBoxLink({label: "Time",    classes: ["time-ago-button"] }) }
-                    ${ helpers.createBoxLink({label: "Hide AI",    popup: "Show only R18 works",   dataType: "hide-ai" }) }
+                    ${ helpers.createBoxLink({label: "Hide AI",    popup: "Show or hide AI works",   dataType: "hide-ai" }) }
                     ${ helpers.createBoxLink({label: "Reset", popup: "Clear all search options", classes: ["reset-search"] }) }
                 </div>
             </div>
@@ -434,6 +435,20 @@ class UI extends Widget
         }, {
             createOptions: { label: "5000+",             dataType: "bookmarks-5000" },
             setupOptions: { fields: {blt: 5000, bgt: null} },
+        }]);
+        
+        dataSource.setupDropdown(this.querySelector(".bookmarked-by-user"), [{
+            createOptions: { label: "All",               dataType: "bookmarks-all",    dataset: { default: true } },
+            setupOptions: { fields: {wib: null} },
+        }, {
+            createOptions: { label: "All bookmarks",     dataType: "bookmarks-all-user" },
+            setupOptions: { fields: {wib: 1} },
+        }, {
+            createOptions: { label: "Public bookmarks",  dataType: "bookmarks-public" },
+            setupOptions: { fields: {wib: 2} },
+        }, {
+            createOptions: { label: "Private bookmarks", dataType: "bookmarks-private" },
+            setupOptions: { fields: {wib: 3} },
         }]);
 
         // The time-ago dropdown has a custom layout, so create it manually.
