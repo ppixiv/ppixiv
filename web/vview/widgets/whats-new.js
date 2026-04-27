@@ -3,10 +3,21 @@ import widget from '/vview/widgets/widget.js';
 
 let updateHistory = [
     {
+        version: 254,
+        text: `
+            Added support for searching bookmarked images in the search page.
+            <p>
+            Added support for sorting the bookmark view oldest-first.
+            <p>
+            Pixiv limits these features to Premium users, and they're in beta, so this may not
+            work for everybody yet.
+        `,
+    },
+    {
         version: 249,
         boring: true,
         text: `
-        Hotkeys now use the command key by default on Mac.  This can be changed in settings.
+            Hotkeys now use the command key by default on Mac.  This can be changed in settings.
         `,
     },
     {
