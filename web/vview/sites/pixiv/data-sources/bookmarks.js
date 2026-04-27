@@ -173,6 +173,9 @@ export class DataSource_BookmarksBase extends DataSource
         else if(tag == null)
             tag = "";
 
+        // "order" is either "asc" or "desc".  If not specified, it defaults to "desc" (newest first).
+        let order = queryArgs.get("order") || "desc";
+
         // Load 20 results per page, so our page numbers should match the underlying page if
         // the UI is disabled.
         return {
@@ -180,6 +183,7 @@ export class DataSource_BookmarksBase extends DataSource
             offset: (page-1)*this.estimatedItemsPerPage,
             limit: this.estimatedItemsPerPage,
             rest: rest, // public or private (no way to get both)
+            order,
         };
     }
 
@@ -493,6 +497,10 @@ class UI extends Widget
                     ${ helpers.createBoxLink({label: "Private",    popup: "Show private bookmarks",   dataType: "private" }) }
                 </div>
 
+                <div class=box-button-row>
+                    ${ helpers.createBoxLink({label: "Sort",    classes: ["sort-button", "premium-only"] }) }
+                </div>
+                
                 ${ helpers.createBoxLink({ popup: "Shuffle", icon: "shuffle",   dataType: "order-shuffle" }) }
 
                 ${ helpers.createBoxLink({label: "All bookmarks",    popup: "Bookmark tags",  icon: "ppixiv:tag", classes: ["bookmark-tag-button"] }) }
@@ -500,6 +508,14 @@ class UI extends Widget
         `});
 
         this.dataSource = dataSource;
+
+        dataSource.setupDropdown(this.querySelector(".sort-button"), [{
+            createOptions: { label: "Newest",              dataset: { default: true } },
+            setupOptions: { fields: {order: null}, defaults: {order: "desc"} }
+        }, {
+            createOptions: { label: "Oldest" },
+            setupOptions: { fields: {order: "asc"} }
+        }]);
 
         // Refresh the displayed label in case we didn't have it when we created the widget.
         this.dataSource.addEventListener("updated", () => this.tagDropdown.setButtonPopupHighlight(), this._signal);
