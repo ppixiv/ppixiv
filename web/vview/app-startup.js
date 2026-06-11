@@ -11,18 +11,30 @@
 import App from "/vview/app.js";
 import activateIcon from '/resources/activate-icon.png';
 
+function mobileFlags()
+{
+    let ios =
+        navigator.platform.indexOf('iPhone') != -1 ||
+        navigator.platform.indexOf('iPad') != -1 ||
+        navigator.userAgent.indexOf('iPhone') != -1 ||
+        navigator.userAgent.indexOf('iPad') != -1;
+
+    if(navigator.platform == "MacIntel" && navigator.maxTouchPoints > 1)
+        ios = true; // large iPads lie and pretend to be a Mac
+
+    let android = navigator.userAgent.indexOf('Android') != -1;
+    let mobile = ios || android;
+    return { mobile, ios, android };
+}
+
 class AppStartupNative
 {
     constructor()
     {
-        let ios = navigator.platform.indexOf('iPhone') != -1 || navigator.platform.indexOf('iPad') != -1;
-        let android = navigator.userAgent.indexOf('Android') != -1;
-        let mobile = ios || android;
-
         // Set up the global object.
         window.ppixiv = {
             native: true,
-            mobile, ios, android,
+            ...mobileFlags(),
         };
     
         console.log(`vview setup: ${VVIEW_VERSION}`);
@@ -83,7 +95,7 @@ class AppStartup
         // Set up the global object.
         window.ppixiv = {
             native: false,
-            mobile, ios, android,
+            ...mobileFlags(),
         };
     
         console.log(`ppixiv setup: ${VVIEW_VERSION}`);
