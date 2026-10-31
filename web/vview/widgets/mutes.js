@@ -142,17 +142,20 @@ export class EditMutedTagsWidget extends Widget
             });
         }
 
-        for(let tag of ppixiv.muting.pixivMutedTags)
+        if(ppixiv.pixivInfo.premium)
         {
-            let entry = createMutedTagEntry(tag, mutedTagList);
+            for(let tag of ppixiv.muting.pixivMutedTags)
+            {
+                let entry = createMutedTagEntry(tag, mutedTagList);
 
-            entry.querySelector(".remove-mute").addEventListener("click", async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+                entry.querySelector(".remove-mute").addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-                await ppixiv.muting.removePixivMute(tag, {type: "tag"});
-                this.refresh();
-            });
+                    await ppixiv.muting.removePixivMute(tag, {type: "tag"});
+                    this.refresh();
+                });
+            }
         }
     }
 
