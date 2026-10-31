@@ -83,7 +83,7 @@ export class EditMutedTagsWidget extends Widget
         if(this._muteType == "tag")
             await this._refreshForTags();
         else
-            await this._refrehsForUsers();
+            await this._refreshForUsers();
     }
 
     createEntry()
@@ -156,7 +156,7 @@ export class EditMutedTagsWidget extends Widget
         }
     }
 
-    _refrehsForUsers = async() =>
+    _refreshForUsers = async() =>
     {
         let createMutedTagEntry = (userId, username, tagListContainer) =>
         {
