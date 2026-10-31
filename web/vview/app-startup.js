@@ -492,8 +492,16 @@ class AppStartup
             if(!orig_func.__sentry_original__)
                 return;
 
+            let seen = new Set();
             while(orig_func.__sentry_original__)
+            {
+                // Stop if we see a cycle.  This happens with fetch on Pixiv's current Sentry setup.
+                if(seen.has(orig_func))
+                    break;
+
+                seen.add(orig_func);
                 orig_func = orig_func.__sentry_original__;
+            }
             obj[name] = orig_func;
         }
 
